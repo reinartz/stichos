@@ -55,7 +55,7 @@ jobs:
               f.write(f"fontset_hash={pins['fontset_hash']}\n")
           PY
 
-      - uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@v4
       - name: build harness image (gha layer cache; reused once warm)
         uses: docker/build-push-action@v6
         with:
