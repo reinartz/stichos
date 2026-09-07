@@ -1,0 +1,3 @@
+custom-styles docx 002
+GP Mid chain paragraph, italic and 12pt through inheritance.
+Leaf chain paragraph with underlined character style inside.

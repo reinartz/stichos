@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "id": "embedded-ole-xlsx-001",
+  "title": "Embedded OLE object xlsx 001",
+  "source": "generated",
+  "generator": {
+    "name": "harness/generator",
+    "version": "0.1.0"
+  },
+  "format": "xlsx",
+  "categories": [
+    "embedded-ole"
+  ],
+  "features": {
+    "w:tbl": 0,
+    "w:drawing": 0,
+    "w:fldSimple": 0,
+    "w:commentReference": 0,
+    "w:comment": 0,
+    "w:instrText": 0
+  },
+  "reference_text": "corpus/reference/embedded-ole-xlsx-001.txt",
+  "expected": {
+    "page_count_min": null,
+    "page_count_max": null
+  },
+  "render": {
+    "dpis": [
+      150
+    ],
+    "engines": [
+      "soffice-26.2.5"
+    ]
+  },
+  "notes": "real package-level embed plumbing with a shapeless payload: xl/embeddings/object1.bin (hand-built minimal CFB, same builder as the docx fixture: D0CF11E0A1B11AE1 magic, v3, 512-byte sectors, header + Root Entry directory sector + one FAT sector, no server streams) added via zip rewrite after openpyxl save, plus a workbook-part oleObject relationship in xl/_rels/workbook.xml.rels and a Content_Types oleObject override for /xl/embeddings/object1.bin. The embed is present but NOT referenced by a visible drawing — there is no xl/drawings part and no legacy OLE object on the sheet — so this fixture probes pass-through behavior: walkers that only follow sheet drawings never see it, container-level readers must still enumerate the part. No text truth in the embed; reference_text covers the three sheet cells only.",
+  "sha256": "9fbfe0d941ee13e0bc5a43afc5233a70bc3b5ca2f0ed208f4699ed5f149fc663"
+}

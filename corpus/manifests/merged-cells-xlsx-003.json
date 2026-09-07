@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "id": "merged-cells-xlsx-003",
+  "title": "Merged cells grid 3",
+  "source": "generated",
+  "generator": {
+    "name": "harness/generator",
+    "version": "0.1.0"
+  },
+  "format": "xlsx",
+  "categories": [
+    "merged-cells"
+  ],
+  "features": {
+    "w:tbl": 0,
+    "w:drawing": 0,
+    "w:fldSimple": 0,
+    "w:commentReference": 0,
+    "w:comment": 0,
+    "w:instrText": 0
+  },
+  "reference_text": "corpus/reference/merged-cells-xlsx-003.txt",
+  "expected": {
+    "page_count_min": null,
+    "page_count_max": null
+  },
+  "render": {
+    "dpis": [
+      150
+    ],
+    "engines": [
+      "soffice-26.2.5"
+    ]
+  },
+  "notes": "real ws.merge_cells across two worksheets ('Main' A1:B2, 'Second' B4:C6), one merge per sheet plus one normal cell per sheet; merge regions never cross sheet boundaries (xlsx has no cross-sheet merge) — the point is per-sheet merge state.",
+  "sha256": "5b0836d6dc1b87c1f34a1002f0fcf16d216aaabf76dce51b2d1b12929aac67c4"
+}

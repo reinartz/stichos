@@ -1,0 +1,10 @@
+image-textwrap docx 002
+A floating square-wrapped picture follows in this paragraph.
+Wrap line 01: fixed filler sentence that flows around the picture edge and keeps the wrap boundary exercised across several lines.
+Wrap line 02: fixed filler sentence that flows around the picture edge and keeps the wrap boundary exercised across several lines.
+Wrap line 03: fixed filler sentence that flows around the picture edge and keeps the wrap boundary exercised across several lines.
+Wrap line 04: fixed filler sentence that flows around the picture edge and keeps the wrap boundary exercised across several lines.
+Wrap line 05: fixed filler sentence that flows around the picture edge and keeps the wrap boundary exercised across several lines.
+Wrap line 06: fixed filler sentence that flows around the picture edge and keeps the wrap boundary exercised across several lines.
+Wrap line 07: fixed filler sentence that flows around the picture edge and keeps the wrap boundary exercised across several lines.
+Wrap line 08: fixed filler sentence that flows around the picture edge and keeps the wrap boundary exercised across several lines.

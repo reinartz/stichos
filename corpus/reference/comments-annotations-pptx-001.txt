@@ -1,0 +1,6 @@
+comments-annotations pptx 001
+first commented line
+second commented line
+Comment one on the first commented line.
+Comment two on the second commented line.
+Comment three on the whole slide body.

@@ -1,0 +1,28 @@
+# stichos dependency automation (SEC-02 flavor: keep the dev-only harness
+# deps + CI actions fresh; no Rust ecosystem to watch until CORE-01 lands —
+# add a `cargo` entry here together with the Cargo workspace).
+version: 2
+updates:
+  - package-ecosystem: "pip"
+    directory: "/harness"           # harness/requirements-dev.txt (dev-only, never shipped)
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "02:30"
+      timezone: "UTC"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(harness)"
+    labels: ["dependencies", "harness"]
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "02:30"
+      timezone: "UTC"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(ci)"
+    labels: ["dependencies", "ci"]

@@ -1,0 +1,5 @@
+sum 30
+average 6
+min 2
+max 10
+2 4 6 8 10

@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "id": "custom-styles-odp-002",
+  "title": "Custom styles odp 002",
+  "source": "generated",
+  "generator": {
+    "name": "harness/generator",
+    "version": "0.1.0"
+  },
+  "format": "odp",
+  "categories": [
+    "custom-styles"
+  ],
+  "features": {
+    "table:table": 0,
+    "draw:frame": 2,
+    "text:note": 0,
+    "text:field": 0,
+    "office:annotation": 0
+  },
+  "reference_text": "corpus/reference/custom-styles-odp-002.txt",
+  "expected": {
+    "page_count_min": null,
+    "page_count_max": null
+  },
+  "render": {
+    "dpis": [
+      150
+    ],
+    "engines": [
+      "soffice-26.2.5"
+    ]
+  },
+  "notes": "named styles, second instance — the dimension probed is inheritance DEPTH: styles.xml carries a THREE-level paragraph chain GP Body2 (16pt) <- GP Mid2 (20pt italic) <- GP Head2 (bold 30pt) where 001 has a single parent hop, plus a second character style GP Char2 (fo:font-weight bold; 001's GP Char is italic), and the body exercises the MIDDLE style's inheritance explicitly. GP Body/GP Head/GP Char (001 names) are asserted absent, all four visible strings differ. Same honest caveats (rendering policy LO-side, LO not run); no normative counter matches style elements, draw:frame=2 stands; reference text = every visible paragraph string.",
+  "sha256": "ccf79d2b28f4178081ab6f407090de22984c83ccd7222e191af78787144c7aa3"
+}

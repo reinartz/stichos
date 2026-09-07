@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "id": "numbering-restarts-odt-002",
+  "title": "Numbering restarts odt 002",
+  "source": "generated",
+  "generator": {
+    "name": "harness/generator",
+    "version": "0.1.0"
+  },
+  "format": "odt",
+  "categories": [
+    "numbering-restarts"
+  ],
+  "features": {
+    "table:table": 0,
+    "draw:frame": 0,
+    "text:note": 0,
+    "text:field": 0,
+    "office:annotation": 0
+  },
+  "reference_text": "corpus/reference/numbering-restarts-odt-002.txt",
+  "expected": {
+    "page_count_min": null,
+    "page_count_max": null
+  },
+  "render": {
+    "dpis": [
+      150
+    ],
+    "engines": [
+      "soffice-26.2.5"
+    ]
+  },
+  "notes": "real ODF list numbering: text:list-style \"L2\" declaring three levels — text:num-format \"1\" / \"a\" / \"i\" (decimal/lowercase-letter/lowercase-roman, start-value 1 on level 1) — used by a 3-deep nested text:list-item tree and a second top-level list with text:continue-numbering=\"false\" restarting the counters. ODF restart semantics stated honestly: text:continue-numbering DEFAULTS to false, so a sibling text:list sharing a list-style does not continue the previous counter anyway — the explicit text:continue-numbering=\"false\" pins the restart (continuation would require \"true\"); text:start-value on the level style sets the per-level start. Reference text is the exact item strings only — the number markers are render-derived, never in the file as text. No normative counter matches list elements, so feature counts stay 0.",
+  "sha256": "30ee692278b1025881363ca1f962480ad45908df2722b8943d2c20f6243b233a"
+}

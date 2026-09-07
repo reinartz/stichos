@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "id": "image-textwrap-docx-001",
+  "title": "Image text wrap docx 001",
+  "source": "generated",
+  "generator": {
+    "name": "harness/generator",
+    "version": "0.1.0"
+  },
+  "format": "docx",
+  "categories": [
+    "image-textwrap"
+  ],
+  "features": {
+    "w:tbl": 0,
+    "w:drawing": 1,
+    "w:fldSimple": 0,
+    "w:commentReference": 0,
+    "w:comment": 0,
+    "w:instrText": 0
+  },
+  "reference_text": "corpus/reference/image-textwrap-docx-001.txt",
+  "expected": {
+    "page_count_min": null,
+    "page_count_max": null
+  },
+  "render": {
+    "dpis": [
+      150
+    ],
+    "engines": [
+      "soffice-26.2.5"
+    ]
+  },
+  "notes": "real inline picture: run.add_picture emits w:drawing/wp:inline with a real PNG media part + document.xml.rels image relationship; surrounding text runs and paragraphs provide the inline flow. Inline-only (no floating anchor) in 001.",
+  "sha256": "e3ce244b87dbc2fa598ea95f35d642299d0badbc786144a657959ab7a37a9057"
+}

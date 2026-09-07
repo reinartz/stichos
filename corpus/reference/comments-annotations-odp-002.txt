@@ -1,0 +1,5 @@
+comments-annotations odp 002
+Statement 1 reviewed by bot-c on this slide.
+Statement 2 reviewed by bot-a on this slide.
+Statement 3 reviewed by bot-b on this slide.
+Statement 4 reviewed by bot-c on this slide.

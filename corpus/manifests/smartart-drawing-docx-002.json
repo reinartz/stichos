@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "id": "smartart-drawing-docx-002",
+  "title": "SmartArt-like drawing docx 002",
+  "source": "generated",
+  "generator": {
+    "name": "harness/generator",
+    "version": "0.1.0"
+  },
+  "format": "docx",
+  "categories": [
+    "smartart-drawing"
+  ],
+  "features": {
+    "w:tbl": 0,
+    "w:drawing": 1,
+    "w:fldSimple": 0,
+    "w:commentReference": 0,
+    "w:comment": 0,
+    "w:instrText": 0
+  },
+  "reference_text": "corpus/reference/smartart-drawing-docx-002.txt",
+  "expected": {
+    "page_count_min": null,
+    "page_count_max": null
+  },
+  "render": {
+    "dpis": [
+      150
+    ],
+    "engines": [
+      "soffice-26.2.5"
+    ]
+  },
+  "notes": "python-docx cannot emit diagrams: raw w:drawing with one inline wpg:wgp group containing two wps:wsp ellipse shapes carrying wps:txbx text, injected via parse_xml. LibreOffice renders shape txbx text into the PDF text layer, so the labels are reference text. DrawingML shape group only — no diagram parts in 002, not MS-generated SmartArt.",
+  "sha256": "8566979715f18cae5f1ad8245a27281f344c96ca67a7f9652f1aec83486876b8"
+}

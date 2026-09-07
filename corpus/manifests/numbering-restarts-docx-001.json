@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "id": "numbering-restarts-docx-001",
+  "title": "Numbering restarts docx 001",
+  "source": "generated",
+  "generator": {
+    "name": "harness/generator",
+    "version": "0.1.0"
+  },
+  "format": "docx",
+  "categories": [
+    "numbering-restarts"
+  ],
+  "features": {
+    "w:tbl": 0,
+    "w:drawing": 0,
+    "w:fldSimple": 0,
+    "w:commentReference": 0,
+    "w:comment": 0,
+    "w:instrText": 0
+  },
+  "reference_text": "corpus/reference/numbering-restarts-docx-001.txt",
+  "expected": {
+    "page_count_min": null,
+    "page_count_max": null
+  },
+  "render": {
+    "dpis": [
+      150
+    ],
+    "engines": [
+      "soffice-26.2.5"
+    ]
+  },
+  "notes": "real numbering part, raw XML: word/numbering.xml replaced wholesale with one abstractNum (lvl 0 decimal \"%1.\", lvl 1 lowerLetter \"%2.\") and two w:num instances — numId 1 plain, numId 2 with w:lvlOverride w:ilvl=\"0\" w:startOverride=1 — so the second 5-item list restarts its decimal counter at 1; body paragraphs reference the lists via w:pPr/w:numPr (w:ilvl + w:numId), items 3 of each list at ilvl 1 to exercise lowerLetter. The template's own numbering part was dropped: its abstractNums were only referenced by unapplied built-in list styles. Reference text is the exact item strings only — number markers are render-derived, not inserted text.",
+  "sha256": "ed4f065242aa50a4875a035e4d9bd49ab3898625d38555eefd96013fd1a6b009"
+}

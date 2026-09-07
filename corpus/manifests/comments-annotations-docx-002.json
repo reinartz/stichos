@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "id": "comments-annotations-docx-002",
+  "title": "Comments docx 002",
+  "source": "generated",
+  "generator": {
+    "name": "harness/generator",
+    "version": "0.1.0"
+  },
+  "format": "docx",
+  "categories": [
+    "comments-annotations"
+  ],
+  "features": {
+    "w:tbl": 0,
+    "w:drawing": 0,
+    "w:fldSimple": 0,
+    "w:commentReference": 5,
+    "w:comment": 5,
+    "w:instrText": 0
+  },
+  "reference_text": "corpus/reference/comments-annotations-docx-002.txt",
+  "expected": {
+    "page_count_min": null,
+    "page_count_max": null
+  },
+  "render": {
+    "dpis": [
+      150
+    ],
+    "engines": [
+      "soffice-26.2.5"
+    ]
+  },
+  "notes": "real comments support: word/comments.xml part with 5 w:comment elements (ids 0..4, authors bot-a/bot-b, fixed w:date), [Content_Types].xml override and document.xml.rels relationship added, w:commentRangeStart/w:commentRangeEnd + w:commentReference wrapped around anchor runs in the body via zip_read/zip_write; comment texts are also part of the reference text.",
+  "sha256": "90d86372eac1620792a2d034529d6e352365cd96dd52f92a4073631a4f42c5d2"
+}

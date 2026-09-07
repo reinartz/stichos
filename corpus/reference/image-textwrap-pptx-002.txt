@@ -1,0 +1,4 @@
+image-textwrap pptx 002
+Mirror layout: the opaque slate block sits right, the frame enters upper-left.
+The frame overlaps the picture's upper-left corner region:
+z-order decides visibility, not wrap — the frame added last paints on top.

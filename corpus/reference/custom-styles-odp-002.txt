@@ -1,0 +1,4 @@
+custom-styles odp 002
+Heading three levels deep in the GP Head2 chain.
+Middle style applied directly — italic 20pt inherited from GP Mid2.
+Body line on GP Body2 carrying a bold character span via GP Char2.

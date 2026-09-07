@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 855 400" width="855" height="400">
+  <mask id="kt" maskUnits="userSpaceOnUse" x="-855" y="-400" width="2565" height="1200">
+    <rect x="-855" y="-400" width="2565" height="1200" fill="#fff"/>
+    <rect x="59.0" y="111.0" width="33.0" height="32.0" fill="#000"/>
+    <path transform="translate(48.0,280.0)" d="M -2.5 -159.7 L 18.4 -137.0 L 57.5 -171.5" fill="none" stroke="#000" stroke-width="32.0" stroke-linecap="round" stroke-linejoin="round"/>
+  </mask>
+  <text x="48.0" y="280" font-family="Inter" font-size="220" font-weight="500" fill="currentColor" mask="url(#kt)">stichos</text>
+  <path transform="translate(48.0,280.0)" d="M -2.5 -159.7 L 18.4 -137.0 L 57.5 -171.5" fill="none" stroke="currentColor" stroke-width="16.0" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

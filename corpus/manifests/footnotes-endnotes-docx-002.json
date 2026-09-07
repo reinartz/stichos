@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "id": "footnotes-endnotes-docx-002",
+  "title": "Footnotes and endnotes docx 002",
+  "source": "generated",
+  "generator": {
+    "name": "harness/generator",
+    "version": "0.1.0"
+  },
+  "format": "docx",
+  "categories": [
+    "footnotes-endnotes"
+  ],
+  "features": {
+    "w:tbl": 0,
+    "w:drawing": 0,
+    "w:fldSimple": 0,
+    "w:commentReference": 0,
+    "w:comment": 0,
+    "w:instrText": 0
+  },
+  "reference_text": "corpus/reference/footnotes-endnotes-docx-002.txt",
+  "expected": {
+    "page_count_min": null,
+    "page_count_max": null
+  },
+  "render": {
+    "dpis": [
+      150
+    ],
+    "engines": [
+      "soffice-26.2.5"
+    ]
+  },
+  "notes": "real footnotes/endnotes support: word/footnotes.xml + word/endnotes.xml added with the ECMA-376 separator convention inside the parts (w:footnote/w:endnote ids -1 (w:separator) and 0 (w:continuationSeparator)) plus real notes ids 2..2; settings.xml w:footnotePr/w:endnotePr intentionally omitted (minimum viable per ECMA: separators live in the notes parts). [Content_Types].xml overrides and document.xml.rels footnotes/endnotes relationships added; body references via w:footnoteReference/w:endnoteReference runs wrapped onto anchor runs via zip_read/zip_write. LibreOffice renders footnote and endnote text into the PDF text layer, so the note strings are part of the reference text.",
+  "sha256": "dc92c05a9e5583c40dd102690c683703a628c1d4e9626c32ca46ce048348e4cd"
+}

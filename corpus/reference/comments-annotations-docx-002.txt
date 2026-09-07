@@ -1,0 +1,11 @@
+comments-annotations docx 002
+Claim 0 opens anchor-text-0 closes claim 0.
+Claim 1 opens anchor-text-1 closes claim 1.
+Claim 2 opens anchor-text-2 closes claim 2.
+Claim 3 opens anchor-text-3 closes claim 3.
+Claim 4 opens anchor-text-4 closes claim 4.
+Comment 0: reviewer note on claim 0.
+Comment 1: reviewer note on claim 1.
+Comment 2: reviewer note on claim 2.
+Comment 3: reviewer note on claim 3.
+Comment 4: reviewer note on claim 4.

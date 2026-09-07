@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "id": "embedded-ole-odt-001",
+  "title": "Embedded OLE object odt 001",
+  "source": "generated",
+  "generator": {
+    "name": "harness/generator",
+    "version": "0.1.0"
+  },
+  "format": "odt",
+  "categories": [
+    "embedded-ole"
+  ],
+  "features": {
+    "table:table": 0,
+    "draw:frame": 1,
+    "text:note": 0,
+    "text:field": 0,
+    "office:annotation": 0
+  },
+  "reference_text": "corpus/reference/embedded-ole-odt-001.txt",
+  "expected": {
+    "page_count_min": null,
+    "page_count_max": null
+  },
+  "render": {
+    "dpis": [
+      150
+    ],
+    "engines": [
+      "soffice-26.2.5"
+    ]
+  },
+  "notes": "legacy OLE embed in ODF: real binary part object.bin (hand-built minimal CFB v3 stub, imported _ole_cfb_stub from the docx builders) with manifest media-type application/x-ole-object, referenced by draw:frame (as-char anchor, svg 5cm x 5cm, draw:opacity=\"100%\") > draw:object (draw:mime-type + draw:object-type \"application/oleobject\", xlink:type simple, xlink:href object.bin, show=embed, actuate=onLoad). Honest caveat: the CFB stub carries no real payload/streams, so LibreOffice may show an icon placeholder or render nothing for the object — reference text covers only the three surrounding text paragraphs.",
+  "sha256": "a21892d1ef410623ec4390fc10b5b2dd27ae48fd7d3665de4f3967ce79739565"
+}

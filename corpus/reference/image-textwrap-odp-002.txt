@@ -1,0 +1,4 @@
+image-textwrap odp 002
+Mirror layout: the slate block sits right, the body frame starts left.
+It overlaps the picture's upper-left corner region:
+z-order decides visibility, not wrap — the frame listed later paints on top.

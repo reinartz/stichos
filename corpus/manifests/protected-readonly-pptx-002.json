@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "id": "protected-readonly-pptx-002",
+  "title": "Protected read-only pptx 002",
+  "source": "generated",
+  "generator": {
+    "name": "harness/generator",
+    "version": "0.1.0"
+  },
+  "format": "pptx",
+  "categories": [
+    "protected-readonly"
+  ],
+  "features": {
+    "w:tbl": 0,
+    "w:drawing": 0,
+    "w:fldSimple": 0,
+    "w:commentReference": 0,
+    "w:comment": 0,
+    "w:instrText": 0
+  },
+  "reference_text": "corpus/reference/protected-readonly-pptx-002.txt",
+  "expected": {
+    "page_count_min": null,
+    "page_count_max": null
+  },
+  "render": {
+    "dpis": [
+      150
+    ],
+    "engines": [
+      "soffice-26.2.5"
+    ]
+  },
+  "notes": "same honest closest-feature as 001 (package-level modifyVerifier covered=\"1\", no password attributes, injected after defaultTextStyle per CT_Presentation order) — but a TWO-slide deck (asserted: two slide parts) with different body wording: the flag exists ONCE per package, so the probe is whether a consumer reads protection at package level or only notices slide one. Same caveats as 001: legacy knob, likely ignored by modern PowerPoint and LibreOffice. Body text of both slides is the whole reference_text.",
+  "sha256": "80b2f1901a1ddeb14b475b59a3100c9fdabb09535a6c1c79ac79f62386467895"
+}

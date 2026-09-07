@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "id": "huge-cell-text-ods-001",
+  "title": "Huge cell text ods 001",
+  "source": "generated",
+  "generator": {
+    "name": "harness/generator",
+    "version": "0.1.0"
+  },
+  "format": "ods",
+  "categories": [
+    "huge-cell-text"
+  ],
+  "features": {
+    "table:table": 1,
+    "draw:frame": 0,
+    "text:note": 0,
+    "text:field": 0,
+    "office:annotation": 0
+  },
+  "reference_text": "corpus/reference/huge-cell-text-ods-001.txt",
+  "expected": {
+    "page_count_min": null,
+    "page_count_max": null
+  },
+  "render": {
+    "dpis": [
+      150
+    ],
+    "engines": [
+      "soffice-26.2.5"
+    ]
+  },
+  "notes": "real spreadsheet text stress: ONE cell holding the deterministic 48,000-char string 'lorem ipsum ' * 4000 in both office:string-value and its display text:p. ODF has NO ECMA-376-style 32,767-char cell cap, so 48k in one cell is spec-legal here (the xlsx counterpart must pin at 32767) — readers that truncate at OOX limits are the fidelity finding this fixture hunts. Reference text is the exact same string(s), byte-for-byte as inserted, no truncation allowed. Deflate collapses the repetitive text hard: saved blob is 2187 bytes, far under the 10 MB cap. The normative counter reads table:table=1. Overflow/wrap/print-area behavior over the giant strings is the fixture's point.",
+  "sha256": "72b136294b97d0b02fe789330e8dd510d3904d1712110b16b910dbfe7a82ab10"
+}

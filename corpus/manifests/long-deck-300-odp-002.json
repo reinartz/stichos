@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "id": "long-deck-300-odp-002",
+  "title": "Long deck 300 odp 002",
+  "source": "generated",
+  "generator": {
+    "name": "harness/generator",
+    "version": "0.1.0"
+  },
+  "format": "odp",
+  "categories": [
+    "long-deck-300"
+  ],
+  "features": {
+    "table:table": 0,
+    "draw:frame": 600,
+    "text:note": 0,
+    "text:field": 0,
+    "office:annotation": 0
+  },
+  "reference_text": "corpus/reference/long-deck-300-odp-002.txt",
+  "expected": {
+    "page_count_min": null,
+    "page_count_max": null
+  },
+  "render": {
+    "dpis": [
+      150
+    ],
+    "engines": [
+      "soffice-26.2.5"
+    ]
+  },
+  "notes": "300-slide stress, second instance — the phase knob: bullets come from the SAME _LD_PHRASES 12-cycle but ROTATED BY +6 (slide 1 opens 'golf/hotel/india' where 001 opens 'alpha/bravo/charlie' — asserted), so per-slide text differs from 001 while the per-phrase count stays exactly 75 (asserted) and the deck remains index-comparable across instances; titles stay 'Slide {i}' so the delta is isolated to body text. Same 300 draw:page / 600 draw:frame geometry, same plain-text-p bullet honesty, same <12 MB and <60 s budgets asserted here, and reference_text is the rotated 1200 lines.",
+  "sha256": "7cadad37b8df4a48d5a2373ded0a4e4c6d5841a9e14022564789ed628e0a71b8"
+}

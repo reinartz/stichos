@@ -1,0 +1,3 @@
+protected-readonly pptx 001
+This presentation carries a legacy modifyVerifier in ppt/presentation.xml.
+Editors should treat the deck as final.

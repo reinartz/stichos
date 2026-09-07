@@ -1,0 +1,2 @@
+protected-readonly odp 002
+Flip test: the same Impress item now reads true — parse the value, not the name.

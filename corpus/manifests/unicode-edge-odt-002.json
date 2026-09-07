@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "id": "unicode-edge-odt-002",
+  "title": "Unicode edge cases odt 002",
+  "source": "generated",
+  "generator": {
+    "name": "harness/generator",
+    "version": "0.1.0"
+  },
+  "format": "odt",
+  "categories": [
+    "unicode-edge"
+  ],
+  "features": {
+    "table:table": 0,
+    "draw:frame": 0,
+    "text:note": 0,
+    "text:field": 0,
+    "office:annotation": 0
+  },
+  "reference_text": "corpus/reference/unicode-edge-odt-002.txt",
+  "expected": {
+    "page_count_min": null,
+    "page_count_max": null
+  },
+  "render": {
+    "dpis": [
+      150
+    ],
+    "engines": [
+      "soffice-26.2.5"
+    ]
+  },
+  "notes": "real codepoint edge content (same string constants as docx unicode-edge, imported from .docx): mathematical double-struck (sans) letters U+1D54F/U+1D550 outside the BMP; mathematical bold digit numerals U+1D7CF/U+1D7D0/U+1D7D1 (non-ASCII digit forms that break naive isdigit/number extraction); U+2764 heart paired with VS15 U+FE0E (text) vs VS16 U+FE0F (emoji) — same base codepoint, different presentation; a bidi sandwich of LRM U+200E + RLM U+200F-wrapped Hebrew inside an LTR paragraph; and U+FEFF zero-width no-break space as the FIRST character of a paragraph. Reference text is the byte-exact inserted codepoints. LibreOffice font coverage varies per glyph class: missing glyphs rendering as tofu .notdef boxes is a REAL fidelity finding, not a generator bug.",
+  "sha256": "37c272e38bad865fed58ee2abcca2bca8caed2e1ea7ab5b6f1723b2ae7de38a6"
+}

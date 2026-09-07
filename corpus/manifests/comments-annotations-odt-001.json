@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "id": "comments-annotations-odt-001",
+  "title": "Comments and annotations odt 001",
+  "source": "generated",
+  "generator": {
+    "name": "harness/generator",
+    "version": "0.1.0"
+  },
+  "format": "odt",
+  "categories": [
+    "comments-annotations"
+  ],
+  "features": {
+    "table:table": 0,
+    "draw:frame": 0,
+    "text:note": 0,
+    "text:field": 0,
+    "office:annotation": 4
+  },
+  "reference_text": "corpus/reference/comments-annotations-odt-001.txt",
+  "expected": {
+    "page_count_min": null,
+    "page_count_max": null
+  },
+  "render": {
+    "dpis": [
+      150
+    ],
+    "engines": [
+      "soffice-26.2.5"
+    ]
+  },
+  "notes": "real ODF comments: 4 inline office:annotation elements (office:name anno1..anno4, alternating dc:creator bot-a/bot-b, fixed dc:date 2026-01-01T00:00:00), each holding the annotation body as text:p and anchored inline between the runs of its claim paragraph (point annotation — no annotation-start/end, so only the four annotation elements exist). The normative office:annotation counter scans content.xml, so the manifest must read office:annotation=4. Reference text includes every annotation body string (all visible strings, annotation text included) — honest caveat: PDF export may omit comment bubbles unless the renderer is told to export annotations.",
+  "sha256": "03292e60c190dc4b7aeb2f231496e962dceabb492f0a136f1fb2ea303213f2d7"
+}

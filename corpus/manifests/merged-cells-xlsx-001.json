@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "id": "merged-cells-xlsx-001",
+  "title": "Merged cells grid 1",
+  "source": "generated",
+  "generator": {
+    "name": "harness/generator",
+    "version": "0.1.0"
+  },
+  "format": "xlsx",
+  "categories": [
+    "merged-cells"
+  ],
+  "features": {
+    "w:tbl": 0,
+    "w:drawing": 0,
+    "w:fldSimple": 0,
+    "w:commentReference": 0,
+    "w:comment": 0,
+    "w:instrText": 0
+  },
+  "reference_text": "corpus/reference/merged-cells-xlsx-001.txt",
+  "expected": {
+    "page_count_min": null,
+    "page_count_max": null
+  },
+  "render": {
+    "dpis": [
+      150
+    ],
+    "engines": [
+      "soffice-26.2.5"
+    ]
+  },
+  "notes": "real ws.merge_cells 3x2 region A1:B3; all six cells (every corner) were written pre-merge as a value-conflict probe — openpyxl's merge keeps the top-left value only and the other five are not present in sheet XML, so reference_text lists the survivors (top-left + one normal cell) only.",
+  "sha256": "d5102481c0ccb37d1d0f2dd6e6bd0d30a3609df1bcf355f7e7bf7ef637004749"
+}

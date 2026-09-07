@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "id": "image-textwrap-odp-002",
+  "title": "Image overlap odp 002",
+  "source": "generated",
+  "generator": {
+    "name": "harness/generator",
+    "version": "0.1.0"
+  },
+  "format": "odp",
+  "categories": [
+    "image-textwrap"
+  ],
+  "features": {
+    "table:table": 0,
+    "draw:frame": 2,
+    "text:note": 0,
+    "text:field": 0,
+    "office:annotation": 0
+  },
+  "reference_text": "corpus/reference/image-textwrap-odp-002.txt",
+  "expected": {
+    "page_count_min": null,
+    "page_count_max": null
+  },
+  "render": {
+    "dpis": [
+      150
+    ],
+    "engines": [
+      "soffice-26.2.5"
+    ]
+  },
+  "notes": "z-order overlap test, second instance — MIRROR of 001: a slate 96x72 PNG (different size AND fill from 001's ink 64x48, both deterministic PIL bytes) is placed at the RIGHT by automatic style gpPicB (5.4in/0.8in, 3.6in x 2.6in, z 0); the gp1 body frame (0.5in/1.9in, 9in x 5in, z 1) now overlaps the picture's UPPER-LEFT corner instead of the lower-right, with FOUR body lines (001: three). Document order + z-index still put the frame on top (asserted: WrapPicB precedes Body1). Same honest caveats as 001 (fill-less gp1, LO not run); reference text is the four frame lines; counters stay draw:frame=2.",
+  "sha256": "73264f9fd0149aea350859bc90fff87a9cae29fadfa724756e828c9e1661fa75"
+}

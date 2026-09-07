@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "id": "tracked-changes-docx-003",
+  "title": "Tracked changes docx 003",
+  "source": "generated",
+  "generator": {
+    "name": "harness/generator",
+    "version": "0.1.0"
+  },
+  "format": "docx",
+  "categories": [
+    "tracked-changes"
+  ],
+  "features": {
+    "w:tbl": 1,
+    "w:drawing": 0,
+    "w:fldSimple": 0,
+    "w:commentReference": 0,
+    "w:comment": 0,
+    "w:instrText": 0
+  },
+  "reference_text": "corpus/reference/tracked-changes-docx-003.txt",
+  "expected": {
+    "page_count_min": null,
+    "page_count_max": null
+  },
+  "render": {
+    "dpis": [
+      150
+    ],
+    "engines": [
+      "soffice-26.2.5"
+    ]
+  },
+  "notes": "real w:ins/w:del tracked revisions (w:delText for the deleted run) wrapped around python-docx runs via zip_read/zip_write, plus a tracked table-row insertion marked by w:trPr/w:ins on the second row; all w:date fixed to 2026-01-01T00:00:00Z. Reference text keeps ins text and the inserted row, excludes delText.",
+  "sha256": "15e2afbf3a758c86d33a785207993121537a131656be022a6a0cfe25b6ac7b20"
+}

@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "id": "cjk-text-odp-001",
+  "title": "CJK text odp 001",
+  "source": "generated",
+  "generator": {
+    "name": "harness/generator",
+    "version": "0.1.0"
+  },
+  "format": "odp",
+  "categories": [
+    "cjk-text"
+  ],
+  "features": {
+    "table:table": 0,
+    "draw:frame": 2,
+    "text:note": 0,
+    "text:field": 0,
+    "office:annotation": 0
+  },
+  "reference_text": "corpus/reference/cjk-text-odp-001.txt",
+  "expected": {
+    "page_count_min": null,
+    "page_count_max": null
+  },
+  "render": {
+    "dpis": [
+      150
+    ],
+    "engines": [
+      "soffice-26.2.5"
+    ]
+  },
+  "notes": "real CJK slide: title 静夜思 (Li Bai, Quiet Night Thought) in the presentation:title frame, the four verse lines 床前明月光，/ 疑是地上霜。/ 举头望明月，/ 低头思故乡。 plus Bashō's frog haiku 古池や 蛙飛びこむ 水の音 in the presentation:body frame, exact strings byte-for-byte (same codepoints as the odt/ods/pptx cjk fixtures). Every text:p carries the named paragraph style \"GP CJK\" (shared with the odt builder) whose text-properties set style:font-name-asian=\"Noto Serif CJK SC\" plus fo:language=\"zh\" fo:country=\"CN\" — the asian font-name slot, not the latin fo:font-name. Honest caveats: one shared style tags zh/CN over all six lines, so kana substitution is renderer-font dependent (Noto CJK covers both scripts when installed); LibreOffice was not run here. Reference text is the six exact inserted strings; the per-char CJK tokenization rule applies downstream; tofu from missing CJK fonts at render is a fidelity finding, not a generator bug. The normative counters read draw:frame=2.",
+  "sha256": "8472ff9bfe74b8ef1208b436dd6337d7b48b6951e1744873a8139dc25f80a573"
+}

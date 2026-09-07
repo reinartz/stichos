@@ -1,0 +1,3 @@
+embedded-ole odp 001
+Slide one carries the deck title and this lead line.
+Slide two body line next to the embedded object.

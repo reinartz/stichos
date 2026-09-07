@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "id": "embedded-ole-pptx-002",
+  "title": "Embedded OLE object pptx 002",
+  "source": "generated",
+  "generator": {
+    "name": "harness/generator",
+    "version": "0.1.0"
+  },
+  "format": "pptx",
+  "categories": [
+    "embedded-ole"
+  ],
+  "features": {
+    "w:tbl": 0,
+    "w:drawing": 0,
+    "w:fldSimple": 0,
+    "w:commentReference": 0,
+    "w:comment": 0,
+    "w:instrText": 0
+  },
+  "reference_text": "corpus/reference/embedded-ole-pptx-002.txt",
+  "expected": {
+    "page_count_min": null,
+    "page_count_max": null
+  },
+  "render": {
+    "dpis": [
+      150
+    ],
+    "engines": [
+      "soffice-26.2.5"
+    ]
+  },
+  "notes": "real package-level OLE plumbing modeled on how PowerPoint writes legacy embeds: ppt/embeddings/object1.bin carries a 1x1 PNG byte stub under the oleObject part — the same honest type/content mismatch the docx counterpart uses in its 001 (declared oleObject content type, PNG magic inside), ProgID Paint.Picture, and the v:shape declares Type=Embed regardless: a consumer that sniffs magic vs one that trusts the declared type will disagree, which is exactly what this instance probes, declared with the oleObject relationship type in ppt/slides/_rels/slide1.xml.rels and a Content_Types override. The slide carries an mc:AlternateContent whose mc:Choice Requires=\"v\" holds a v:shape with o:ole=rIdN + o:OLEObject child (Type=Embed, DrawAspect=Icon) and an empty mc:Fallback; the p:sld root gains xmlns:mc + mc:Ignorable=\"v o\" via zip rewrite. Synthetic layout, not schema-validated: LibreOffice may show an icon, render nothing, or drop the parts — tolerance varies by consumer and is what the fixture probes. The embed carries no text truth, so reference_text covers only the three body lines.",
+  "sha256": "a9d8af9849098a1d331ba55464539c082649efb0dc21b4af4a136bba27190d45"
+}

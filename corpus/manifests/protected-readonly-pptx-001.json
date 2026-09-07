@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "id": "protected-readonly-pptx-001",
+  "title": "Protected read-only pptx 001",
+  "source": "generated",
+  "generator": {
+    "name": "harness/generator",
+    "version": "0.1.0"
+  },
+  "format": "pptx",
+  "categories": [
+    "protected-readonly"
+  ],
+  "features": {
+    "w:tbl": 0,
+    "w:drawing": 0,
+    "w:fldSimple": 0,
+    "w:commentReference": 0,
+    "w:comment": 0,
+    "w:instrText": 0
+  },
+  "reference_text": "corpus/reference/protected-readonly-pptx-001.txt",
+  "expected": {
+    "page_count_min": null,
+    "page_count_max": null
+  },
+  "render": {
+    "dpis": [
+      150
+    ],
+    "engines": [
+      "soffice-26.2.5"
+    ]
+  },
+  "notes": "the only real modify-protection knob in presentationML is CT_Presentation/modifyVerifier (PowerPoint's legacy 'modify password' element) — injected via zip rewrite at its schema position, after defaultTextStyle, as <p:modifyVerifier covered=\"1\"/> with NO password/salt/spinCount/cryptAlgorithm attributes: a password-less modify-reminder flag, not a real protection hash. There is no clean package-level read-only-recommended flag a generator can set (docProps appMetadata is not writable here; <p15:persistence> is a co-authoring marker, not protection), so this is the honest closest feature — legacy modifyVerifier; modern PowerPoint may ignore it and LibreOffice likely does. Body text is plain python-pptx content and is the whole reference_text.",
+  "sha256": "b311dad7c285b58bd3b55fa8006914b840c55187bb4b38b8a058a7b26ac5cd2e"
+}

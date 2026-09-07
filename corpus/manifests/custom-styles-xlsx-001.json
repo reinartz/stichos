@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "id": "custom-styles-xlsx-001",
+  "title": "Custom named styles xlsx 001",
+  "source": "generated",
+  "generator": {
+    "name": "harness/generator",
+    "version": "0.1.0"
+  },
+  "format": "xlsx",
+  "categories": [
+    "custom-styles"
+  ],
+  "features": {
+    "w:tbl": 0,
+    "w:drawing": 0,
+    "w:fldSimple": 0,
+    "w:commentReference": 0,
+    "w:comment": 0,
+    "w:instrText": 0
+  },
+  "reference_text": "corpus/reference/custom-styles-xlsx-001.txt",
+  "expected": {
+    "page_count_min": null,
+    "page_count_max": null
+  },
+  "render": {
+    "dpis": [
+      150
+    ],
+    "engines": [
+      "soffice-26.2.5"
+    ]
+  },
+  "notes": "two real openpyxl NamedStyle definitions registered on the workbook: 'GP Money' with a currency number_format (\"$\"#,##0.00) applied to the B2:D3 numeric range, and 'GP Head' (bold ink-vs-paper font + solid 101A2E fill) applied to the A1:D1 header row; wb.named_styles contains both (asserted), and after save both style names are asserted present in xl/styles.xml. Reference text lists the raw stored values, not the currency-formatted rendering.",
+  "sha256": "9f89a7715576c57c9836e3d853853d91fe27d7f015d26adc0c4d47d7c244be20"
+}

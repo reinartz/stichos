@@ -1,0 +1,4 @@
+smartart-drawing pptx 001
+Two DrawingML shapes stand in for a diagram below.
+Diagram stand-in: intake step
+Diagram stand-in: output check

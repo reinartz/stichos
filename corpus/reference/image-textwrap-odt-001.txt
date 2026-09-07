@@ -1,0 +1,8 @@
+image-textwrap odt 001
+Text before the anchored picture in the same paragraph.text after the anchored picture.
+Wrap line 01: fixed filler sentence that should flow around the anchored picture and keep the wrap boundary exercised across several lines.
+Wrap line 02: fixed filler sentence that should flow around the anchored picture and keep the wrap boundary exercised across several lines.
+Wrap line 03: fixed filler sentence that should flow around the anchored picture and keep the wrap boundary exercised across several lines.
+Wrap line 04: fixed filler sentence that should flow around the anchored picture and keep the wrap boundary exercised across several lines.
+Wrap line 05: fixed filler sentence that should flow around the anchored picture and keep the wrap boundary exercised across several lines.
+Wrap line 06: fixed filler sentence that should flow around the anchored picture and keep the wrap boundary exercised across several lines.

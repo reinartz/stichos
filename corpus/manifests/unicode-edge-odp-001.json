@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "id": "unicode-edge-odp-001",
+  "title": "Unicode edge odp 001",
+  "source": "generated",
+  "generator": {
+    "name": "harness/generator",
+    "version": "0.1.0"
+  },
+  "format": "odp",
+  "categories": [
+    "unicode-edge"
+  ],
+  "features": {
+    "table:table": 0,
+    "draw:frame": 2,
+    "text:note": 0,
+    "text:field": 0,
+    "office:annotation": 0
+  },
+  "reference_text": "corpus/reference/unicode-edge-odp-001.txt",
+  "expected": {
+    "page_count_min": null,
+    "page_count_max": null
+  },
+  "render": {
+    "dpis": [
+      150
+    ],
+    "engines": [
+      "soffice-26.2.5"
+    ]
+  },
+  "notes": "one text:p per unicode-edge string (same _UE_* codepoints as docx/odt/ods unicode-edge fixtures): ligature glyphs, ZWJ family emoji, combining stacks, NBSP sentence, soft hyphens, math alphanumerics, VS15/VS16 heart pair, LRM/RLM bidi sandwich, leading U+FEFF. Tofu/substitution under LibreOffice is a REAL fidelity finding for the baseline report, not a generator bug.",
+  "sha256": "25ffd98ba76e6b6b1148220d5adf69040c06d84cf00f949541a6be778d0ed128"
+}

@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "id": "scanned-ocr-odp-002",
+  "title": "Scanned slide odp 002",
+  "source": "generated",
+  "generator": {
+    "name": "harness/generator",
+    "version": "0.1.0"
+  },
+  "format": "odp",
+  "categories": [
+    "scanned-ocr"
+  ],
+  "features": {
+    "table:table": 0,
+    "draw:frame": 2,
+    "text:note": 0,
+    "text:field": 0,
+    "office:annotation": 0
+  },
+  "reference_text": "corpus/reference/scanned-ocr-odp-002.txt",
+  "expected": {
+    "page_count_min": null,
+    "page_count_max": null
+  },
+  "render": {
+    "dpis": [
+      150
+    ],
+    "engines": [
+      "soffice-26.2.5"
+    ]
+  },
+  "notes": "scanned-slide emulation, second instance: differs from 001 visibly — the shared _sc_scan_png raster is MIRRORED horizontally on top of the per-fixture ctx.rng seed (different pixel stream), it is placed HALF-PAGE by automatic style gpScanB (0.5in/0.5in, 6in x 4.5in; 001 is full-bleed 10in x 7.5in via gpScan), and the title frame carries a TWO-line caption (001: one line), both lines listed in reference text. Still the honest near-None case (no text layer in the raster); normative counters stay draw:frame=2.",
+  "sha256": "209c9a02087903bf9fdf57d8104af9acbecc7071bbee6ca9c50b1f8d17a66683"
+}

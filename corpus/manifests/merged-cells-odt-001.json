@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "id": "merged-cells-odt-001",
+  "title": "Merged cells grid odt 001",
+  "source": "generated",
+  "generator": {
+    "name": "harness/generator",
+    "version": "0.1.0"
+  },
+  "format": "odt",
+  "categories": [
+    "merged-cells"
+  ],
+  "features": {
+    "table:table": 1,
+    "draw:frame": 0,
+    "text:note": 0,
+    "text:field": 0,
+    "office:annotation": 0
+  },
+  "reference_text": "corpus/reference/merged-cells-odt-001.txt",
+  "expected": {
+    "page_count_min": null,
+    "page_count_max": null
+  },
+  "render": {
+    "dpis": [
+      150
+    ],
+    "engines": [
+      "soffice-26.2.5"
+    ]
+  },
+  "notes": "real ODF covered-cell merges (ODF 1.2 §9.4): table:number-rows-spanned=\"2\" on cell A1 with a covered:table-cell placeholder in the same column of row 2, plus table:number-columns-spanned=\"2\" on A3 with a covered:table-cell to its right in row 3; covered: is the mandated prefix for the table namespace URI. Reference text lists each surviving cell's text once in row-major order (covered cells carry no text).",
+  "sha256": "76a216e289cb0564783992140afa1f6b6547acb9d5db18792fd599d85670d2ab"
+}

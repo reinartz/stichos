@@ -1,0 +1,3 @@
+protected-readonly pptx 002
+The modifyVerifier flag lives once, in presentation.xml, not per slide.
+Second slide: consumers must read the package, not just slide one.

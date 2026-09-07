@@ -1,0 +1,3 @@
+image-textwrap odp 001
+This body frame overlaps the opaque picture block from its lower-right corner:
+z-order decides visibility, not wrap — the frame listed later paints on top.

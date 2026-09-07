@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "id": "cjk-text-odp-002",
+  "title": "CJK text odp 002",
+  "source": "generated",
+  "generator": {
+    "name": "harness/generator",
+    "version": "0.1.0"
+  },
+  "format": "odp",
+  "categories": [
+    "cjk-text"
+  ],
+  "features": {
+    "table:table": 0,
+    "draw:frame": 2,
+    "text:note": 0,
+    "text:field": 0,
+    "office:annotation": 0
+  },
+  "reference_text": "corpus/reference/cjk-text-odp-002.txt",
+  "expected": {
+    "page_count_min": null,
+    "page_count_max": null
+  },
+  "render": {
+    "dpis": [
+      150
+    ],
+    "engines": [
+      "soffice-26.2.5"
+    ]
+  },
+  "notes": "real CJK slide, second instance — a DIFFERENT poem pair so the two instances are not string-copies: title 春晓 plus Meng Haoran's four lines 春眠不觉晓，/ 处处闻啼鸟。/ 夜来风雨声，/ 花落知多少。 in the body frame plus Bashō's 五月雨を あつめて早し 最上川 (the frog haiku and 静夜思 of 001 are asserted absent). Same GP CJK named style (style:font-name-asian=\"Noto Serif CJK SC\" + zh/CN) over all six text:p; same honest caveats (one zh/CN tag over the kana line, LO not run, tofu is a fidelity finding); counters stay draw:frame=2 and the six-string C9 §10.6 per-char rule applies.",
+  "sha256": "6638bd92010a0312bd5032d730fbbf397c13922893c50470df73005183994af5"
+}

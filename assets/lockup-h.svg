@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1155 400" width="1155" height="400">
+  <g transform="translate(48.0,73.2) scale(0.4816)">
+  <!-- stichos app icon: a sheet of set lines carrying a proofreader's tick -->
+  <rect width="512" height="512" rx="112" fill="#101A2E"/>
+  <!-- verso sheet: the layer behind (source vs. proof) -->
+  <rect x="104" y="66" width="256" height="336" rx="18" fill="#FBF7EE" opacity="0.22"/>
+  <!-- front sheet: the proof -->
+  <rect x="140" y="96" width="256" height="336" rx="18" fill="#FBF7EE"/>
+  <!-- typeset lines (abstract, never letterforms) -->
+  <g fill="#93A0B8">
+    <rect x="178" y="150" width="182" height="20" rx="10"/>
+    <rect x="178" y="194" width="182" height="20" rx="10"/>
+    <rect x="178" y="238" width="148" height="20" rx="10"/>
+  </g>
+  <!-- proofreader's tick in vermilion: the only accent in the mark -->
+  <path d="M188 298 L246 358 L370 214" fill="none" stroke="#E2483A" stroke-width="34"
+        stroke-linecap="round" stroke-linejoin="round"/>
+</g>
+  <mask id="kt" maskUnits="userSpaceOnUse" x="-855" y="-400" width="2565" height="1200">
+    <rect x="-855" y="-400" width="2565" height="1200" fill="#fff"/>
+    <rect x="358.6" y="111.0" width="33.0" height="32.0" fill="#000"/>
+  </mask>
+  <text x="347.6" y="280" font-family="Inter" font-size="220" font-weight="500" fill="#101A2E" mask="url(#kt)">stichos</text>
+  <path transform="translate(347.6,280.0)" d="M -2.5 -159.7 L 18.4 -137.0 L 57.5 -171.5" fill="none" stroke="#E2483A" stroke-width="16.0" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

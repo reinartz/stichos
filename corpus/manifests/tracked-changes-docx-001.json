@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "id": "tracked-changes-docx-001",
+  "title": "Tracked changes docx 001",
+  "source": "generated",
+  "generator": {
+    "name": "harness/generator",
+    "version": "0.1.0"
+  },
+  "format": "docx",
+  "categories": [
+    "tracked-changes"
+  ],
+  "features": {
+    "w:tbl": 0,
+    "w:drawing": 0,
+    "w:fldSimple": 0,
+    "w:commentReference": 0,
+    "w:comment": 0,
+    "w:instrText": 0
+  },
+  "reference_text": "corpus/reference/tracked-changes-docx-001.txt",
+  "expected": {
+    "page_count_min": null,
+    "page_count_max": null
+  },
+  "render": {
+    "dpis": [
+      150
+    ],
+    "engines": [
+      "soffice-26.2.5"
+    ]
+  },
+  "notes": "real w:ins run and w:del run (text converted to w:delText) wrapped around python-docx runs via zip_read/zip_write; single author bot-a, w:date fixed. Reference text includes ins text, excludes del text.",
+  "sha256": "04d92149a90a8d5dffeef6d3a4e9e13d3668e017eb0f039415510a73021e88d6"
+}

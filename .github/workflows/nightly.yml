@@ -1,0 +1,237 @@
+# stichos nightly (SA-8: HAR-07 full corpus + DIS-01 flavor + SEC-02-for-python)
+#
+# Two jobs, per the M0 CI interpretation agreed for SA-8:
+#   harness   — linux-only fidelity job: builds the pinned image (docker/harness,
+#               gated against docker/harness/pin.txt), rebuilds the corpus from the
+#               generator (blobs are gitignored, corpus/PLAN.md §6), runs the full
+#               127-fixture LO convert check + a 25-id golden-stability sample,
+#               and trends one row per run.
+#   platforms — the platform-agnostic "nightly green ×3 platforms" gate
+#               (ubuntu/macos/windows): gen verify --no-blobs + metrics pytest.
+#               The fidelity image is linux-only BY DESIGN (SA-3/D15); LO-on-
+#               macOS/Windows probes are Phase 1 / ENG-05, not M0.
+#
+# cargo-deny (SEC-02): ready-but-skipped — deny.toml at repo root, the CI step lives
+# in pr.yml behind a hashFiles('Cargo.toml') condition and self-activates at CORE-01.
+#
+# Trend persistence: nightly appends baseline/nightly-trend.csv in the workspace and
+# uploads it as an artifact ONLY — nothing is committed back from CI (M0 decision).
+# Owner option for later: a separate `contents: write` job opening a PR per run.
+name: nightly
+on:
+  schedule:
+    - cron: "0 3 * * *"
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: nightly-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  harness:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: install harness dev deps (dev-only, never shipped — concept §6)
+        run: pip install -r harness/requirements-dev.txt
+
+      - name: "read pins (single source of truth: docker/harness/pin.txt)"
+        id: pin
+        run: |
+          python3 - <<'PY'
+          import os, pathlib, re
+          pins = dict(re.findall(r"^([a-z_]+)=(.+)$",
+                                 pathlib.Path("docker/harness/pin.txt").read_text(encoding="utf-8"), re.M))
+          missing = {"image_tag", "lo_version", "lo_build", "fontset_hash"} - pins.keys()
+          assert not missing, f"pin.txt missing keys: {sorted(missing)}"
+          with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+              f.write(f"image=stichos-harness:{pins['image_tag']}\n")
+              f.write(f"lo_build={pins['lo_build']}\n")
+              f.write(f"fontset_hash={pins['fontset_hash']}\n")
+          PY
+
+      - uses: docker/setup-buildx-action@v3
+      - name: build harness image (gha layer cache; reused once warm)
+        uses: docker/build-push-action@v6
+        with:
+          context: docker/harness
+          load: true
+          tags: ${{ steps.pin.outputs.image }}
+          cache-from: type=gha,scope=harness-image
+          cache-to: type=gha,mode=max,scope=harness-image
+
+      - name: LO build pin check (D15)
+        run: |
+          v=$(docker run --rm "${{ steps.pin.outputs.image }}" soffice --version 2>/dev/null | awk '{print $2}')
+          echo "soffice --version -> ${v}"
+          [ "${v}" = "${{ steps.pin.outputs.lo_build }}" ] \
+            || { echo "::error::LO build drift: got ${v}, pin says ${{ steps.pin.outputs.lo_build }}"; exit 1; }
+
+      - name: fontset_hash pin check (INV-4)
+        run: |
+          out=$(bash tools/fontset_hash.sh "${{ steps.pin.outputs.image }}")
+          echo "${out}"
+          actual=$(printf '%s\n' "${out}" | sed -n 's/^fontset_hash=//p')
+          [ "${actual}" = "${{ steps.pin.outputs.fontset_hash }}" ] \
+            || { echo "::error::fontset_hash drift — goldens identity changed; go through the engine-upgrade gate (HAR-08)"; exit 1; }
+
+      - name: rebuild corpus from generator (blobs are gitignored)
+        working-directory: harness/generator
+        run: python3 -m gen build
+
+      - name: committed manifests/reference are byte-reproducible
+        run: git diff --exit-code -- corpus/manifests corpus/reference
+
+      - name: "gen verify (full: sha + feature recount + rebuild determinism)"
+        working-directory: harness/generator
+        run: python3 -m gen verify
+
+      - name: full-corpus LO convert check (fresh CSV)
+        run: |
+          # committed baseline/convert-check.csv would make the resumable script
+          # skip every id — start from a clean CSV in the workspace.
+          rm -f baseline/convert-check.csv
+          bash tools/convert_check.sh
+
+      - name: golden stability sample (25 ids, 2 fresh renders each)
+        run: |
+          ids=$(python3 - <<'PY'
+          import json
+          from pathlib import Path
+          FMT_ORDER = ["docx", "xlsx", "pptx", "odt", "ods", "odp"]
+          sub = [l.strip() for l in Path("corpus/pr-subset.txt").read_text(encoding="utf-8").splitlines()
+                 if l.strip() and not l.startswith("#")]
+          gen = sorted(json.loads(p.read_text(encoding="utf-8"))["id"]
+                       for p in Path("corpus/manifests").glob("*.json")
+                       if json.loads(p.read_text(encoding="utf-8"))["source"] == "generated")
+          def first_of(cat):  # same deterministic rule as pr-subset: format order, then nnn
+              return sorted((i for i in gen if i.rsplit("-", 2)[0] == cat),
+                            key=lambda i: (FMT_ORDER.index(i.rsplit("-", 2)[1]), i))[0]
+          # Sample rule (documented, deterministic): the 20 PR-subset ids + the first
+          # id of each deferred category (long-deck-300, huge-cell-text) + the next 3
+          # lexicographically smallest generated ids not already selected => 25.
+          sel = sub + [first_of("long-deck-300"), first_of("huge-cell-text")]
+          sel += [i for i in gen if i not in set(sel)][:3]
+          assert len(sel) == 25 and len(set(sel)) == 25, sel
+          print(",".join(sel))
+          PY
+          )
+          echo "stability ids: ${ids}"
+          echo "${ids}" > "$RUNNER_TEMP/stab_ids.txt"
+          python3 harness/render/golden.py stability --ids "${ids}" --repeats 2 --jobs 4
+
+      - name: summary + trend row (artifact only, never committed back)
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import csv, json, os, statistics, sys
+          from collections import defaultdict
+          from datetime import datetime, timezone
+          from pathlib import Path
+
+          csv_path = Path("baseline/convert-check.csv")
+          rows = list(csv.DictReader(open(csv_path, encoding="utf-8"))) if csv_path.exists() else []
+          n_ok = sum(1 for r in rows if r["status"] == "ok")
+          n_fail = len(rows) - n_ok
+          secs = sorted(int(r["seconds"]) for r in rows if r["seconds"].isdigit())
+          med = statistics.median(secs) if secs else ""
+          by_fmt = defaultdict(lambda: [0, 0])
+          for r in rows:
+              by_fmt[r["format"]][0] += 1
+              by_fmt[r["format"]][1] += r["status"] == "ok"
+
+          stab_path = Path("goldens/stability.json")
+          stab = json.loads(stab_path.read_text(encoding="utf-8")) if stab_path.exists() else {}
+          ss = stab.get("summary", {})
+          s_ok, s_fail = ss.get("ok", 0), ss.get("fail", 0)
+          failed_ids = ";".join(ss.get("failed_ids", []))
+
+          pin = dict(l.split("=", 1) for l in Path("docker/harness/pin.txt")
+                     .read_text(encoding="utf-8").splitlines() if "=" in l and not l.startswith("#"))
+          trend = Path("baseline/nightly-trend.csv")
+          header = ("run_ts,run_id,attempt,commit,runner,lo_build,fontset_hash,image_tag,"
+                    "manifests,convert_total,convert_ok,convert_fail,convert_median_s,"
+                    "stab_sample,stab_ok,stab_fail,stab_failed_ids")
+          if not trend.exists() or not trend.read_text().strip():
+              trend.write_text(header + "\n")
+          new_row = [datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                     os.environ["GITHUB_RUN_ID"], os.environ["GITHUB_RUN_ATTEMPT"],
+                     os.environ["GITHUB_SHA"][:12], os.environ["RUNNER_OS"],
+                     pin["lo_build"], pin["fontset_hash"], f"stichos-harness:{pin['image_tag']}",
+                     len(list(Path('corpus/manifests').glob('*.json'))),
+                     len(rows), n_ok, n_fail, med, s_ok + s_fail, s_ok, s_fail, failed_ids]
+          with open(trend, "a", encoding="utf-8") as f:
+              f.write(",".join(str(x) for x in new_row) + "\n")
+
+          sh = os.environ.get("GITHUB_STEP_SUMMARY", "")
+          if sh:
+              with open(sh, "a", encoding="utf-8") as f:
+                  f.write("## nightly harness summary\n\n")
+                  f.write(f"| pin | value |\n|---|---|\n| image | stichos-harness:{pin['image_tag']} |\n")
+                  f.write(f"| LO build | {pin['lo_build']} |\n| fontset_hash | `{pin['fontset_hash'][:23]}…` (INV-4 gate: PASS) |\n\n")
+                  f.write(f"### LO convert check — {n_ok}/{len(rows)} ok (median {med} s)\n\n")
+                  f.write("| format | checked | ok |\n|---|---|---|\n")
+                  for fmt in ("docx", "xlsx", "pptx", "odt", "ods", "odp"):
+                      if fmt in by_fmt:
+                          f.write(f"| {fmt} | {by_fmt[fmt][0]} | {by_fmt[fmt][1]} |\n")
+                  if n_fail:
+                      f.write("\nFailed ids:\n\n")
+                      for r in rows:
+                          if r["status"] != "ok":
+                              f.write(f"- `{r['id']}` ({r['format']})\n")
+                  f.write(f"\n### Golden stability sample — {s_ok} ok / {s_fail} fail (2 fresh renders each, page-hash sequences)\n\n")
+                  if stab:
+                      f.write(f"engine key: `{stab.get('engine_key', 'n/a')}`, dpi {stab.get('dpi')}, repeats {stab.get('repeats')}\n\n")
+                  if failed_ids:
+                      f.write(f"unstable ids: `{failed_ids}`\n")
+                  f.write("\n### Trend (baseline/nightly-trend.csv — artifact only, NOT committed back; see SA-8 note)\n\n")
+                  tail = trend.read_text(encoding="utf-8").splitlines()[-8:]
+                  if tail:
+                      f.write("| " + " | ".join(tail[0].split(",")) + " |\n")
+                      f.write("|" + "---|" * len(tail[0].split(",")) + "\n")
+                      for line in tail[1:]:
+                          f.write("| " + " | ".join(line.split(",")) + " |\n")
+          sys.exit(1 if (n_fail or s_fail) else 0)
+          PY
+
+      - name: upload artifacts (fresh convert CSV + stability report + trend)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-${{ github.run_number }}-harness
+          path: |
+            baseline/convert-check.csv
+            goldens/stability.json
+            baseline/nightly-trend.csv
+          if-no-files-found: warn
+
+  platforms:
+    # "Nightly green on 3 platforms" (M0 gate) = this platform-agnostic job:
+    # manifest-only verify + metrics tests on ubuntu/macos/windows.
+    # The pinned fidelity image (LibreOffice + poppler + fixed fonts) is
+    # linux-only by design (SA-3, D15). LO-on-Windows/macOS engine probes are
+    # Phase 1 work (ENG-05), explicitly NOT part of the M0 gate.
+    name: platforms (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: install harness dev deps (dev-only, never shipped — concept §6)
+        run: pip install -r harness/requirements-dev.txt
+      - name: gen verify --no-blobs (manifests are the git truth; blobs gitignored)
+        working-directory: harness/generator
+        run: python -m gen verify --no-blobs
+      - name: metrics test suite
+        run: python -m pytest harness/metrics/tests -q

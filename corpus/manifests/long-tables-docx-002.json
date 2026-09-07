@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "id": "long-tables-docx-002",
+  "title": "Long tables docx 002",
+  "source": "generated",
+  "generator": {
+    "name": "harness/generator",
+    "version": "0.1.0"
+  },
+  "format": "docx",
+  "categories": [
+    "long-tables"
+  ],
+  "features": {
+    "w:tbl": 1,
+    "w:drawing": 0,
+    "w:fldSimple": 0,
+    "w:commentReference": 0,
+    "w:comment": 0,
+    "w:instrText": 0
+  },
+  "reference_text": "corpus/reference/long-tables-docx-002.txt",
+  "expected": {
+    "page_count_min": null,
+    "page_count_max": null
+  },
+  "render": {
+    "dpis": [
+      150
+    ],
+    "engines": [
+      "soffice-26.2.5"
+    ]
+  },
+  "notes": "real table stress: one Table Grid table, 70 data rows x 4 cols plus a merged header row (python-docx merge across the row emits w:gridSpan on the surviving cell), intro + outro paragraphs around it so LibreOffice paginates past two pages; every cell carries r{r}c{c}-word text and all cell strings are in the reference text.",
+  "sha256": "5e27bdc5e28ebd85ec301386c112f7d9dca8612452184c392bd7bee6ac13a542"
+}

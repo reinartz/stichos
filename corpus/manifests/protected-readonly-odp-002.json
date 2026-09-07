@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "id": "protected-readonly-odp-002",
+  "title": "Protected readonly odp 002",
+  "source": "generated",
+  "generator": {
+    "name": "harness/generator",
+    "version": "0.1.0"
+  },
+  "format": "odp",
+  "categories": [
+    "protected-readonly"
+  ],
+  "features": {
+    "table:table": 0,
+    "draw:frame": 2,
+    "text:note": 0,
+    "text:field": 0,
+    "office:annotation": 0
+  },
+  "reference_text": "corpus/reference/protected-readonly-odp-002.txt",
+  "expected": {
+    "page_count_min": null,
+    "page_count_max": null
+  },
+  "render": {
+    "dpis": [
+      150
+    ],
+    "engines": [
+      "soffice-26.2.5"
+    ]
+  },
+  "notes": "ODF has no first-class readonly flag — same settings.xml heuristic as 001, but the PROTECTSECTIONS BOOLEAN IS FLIPPED TO TRUE (001 ships false): a consumer that only checks 'does the item exist' cannot tell the two decks apart, one that parses the boolean can — asserted 'boolean\">true<'. Same honest caveats (feature toggle, not a read-only bit; no password digest; LO tolerance of the item name under the Impress set UNVERIFIED, LO not run here). Different slide copy; reference text is the two visible strings; the only nonzero normative counter stays draw:frame=2.",
+  "sha256": "6346ffda1501885979b1da059d377057147458af07027b8c392dc990b8e05165"
+}

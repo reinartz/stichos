@@ -1,0 +1,8 @@
+comments-annotations pptx 002
+reviewed line alpha
+reviewed line beta
+reviewed line gamma
+Alpha note: wording checked against the spec.
+Beta note: number here is provisional.
+Gamma note: please re-render at 150 dpi.
+Deck-wide note from the second reviewer.

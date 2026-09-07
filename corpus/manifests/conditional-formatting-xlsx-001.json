@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "id": "conditional-formatting-xlsx-001",
+  "title": "Conditional formatting xlsx 001",
+  "source": "generated",
+  "generator": {
+    "name": "harness/generator",
+    "version": "0.1.0"
+  },
+  "format": "xlsx",
+  "categories": [
+    "conditional-formatting"
+  ],
+  "features": {
+    "w:tbl": 0,
+    "w:drawing": 0,
+    "w:fldSimple": 0,
+    "w:commentReference": 0,
+    "w:comment": 0,
+    "w:instrText": 0
+  },
+  "reference_text": "corpus/reference/conditional-formatting-xlsx-001.txt",
+  "expected": {
+    "page_count_min": null,
+    "page_count_max": null
+  },
+  "render": {
+    "dpis": [
+      150
+    ],
+    "engines": [
+      "soffice-26.2.5"
+    ]
+  },
+  "notes": "two real openpyxl rules on A1:A20 (values 1..20): a two-stop colorScale (min FFFFFF -> max 63BE7B) and a cellIs greaterThan 10 rule with a solid red fill (hits 11..20) — both written as genuine <conditionalFormatting>/<cfRule> blocks in sheet1.xml, asserted to survive the _freeze_modified zip rewrite (exactly 2 <cfRule> after the rewrite).",
+  "sha256": "0626c0f180b28a247d312b51be9748a2d6e28c082c238947e9fc7950af168164"
+}

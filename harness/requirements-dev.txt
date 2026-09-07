@@ -1,0 +1,17 @@
+# stichos harness dev-only Python deps (HAR).
+# NEVER shipped: the product is Rust with zero hard external deps (concept §6, D3);
+# LibreOffice/poppler are spawned as subprocesses, never linked or packaged.
+# These pins are for CI (python 3.12) + local harness work only.
+# Pinned from the measured local env (python 3.14.6, 2026-09-05; all wheels also
+# exist for 3.12). License class of every entry: MIT/Apache-2.0/BSD/ISC
+# (odfpy deliberately unused — GPLv2; ODF is hand-written zip+XML, see harness/generator/README.md).
+
+python-docx==1.2.0
+openpyxl==3.1.5
+python-pptx==1.0.2
+jsonschema==4.26.0
+scikit-image==0.26.0
+pillow==12.2.0
+numpy==2.4.4
+pytest==8.4.2
+pyyaml==6.0.3

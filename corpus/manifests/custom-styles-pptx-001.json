@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "id": "custom-styles-pptx-001",
+  "title": "Custom styles pptx 001",
+  "source": "generated",
+  "generator": {
+    "name": "harness/generator",
+    "version": "0.1.0"
+  },
+  "format": "pptx",
+  "categories": [
+    "custom-styles"
+  ],
+  "features": {
+    "w:tbl": 0,
+    "w:drawing": 0,
+    "w:fldSimple": 0,
+    "w:commentReference": 0,
+    "w:comment": 0,
+    "w:instrText": 0
+  },
+  "reference_text": "corpus/reference/custom-styles-pptx-001.txt",
+  "expected": {
+    "page_count_min": null,
+    "page_count_max": null
+  },
+  "render": {
+    "dpis": [
+      150
+    ],
+    "engines": [
+      "soffice-26.2.5"
+    ]
+  },
+  "notes": "PPTX has no named-paragraph-style API in python-pptx (style defs live in the theme/slideLayout chain, not as named per-paragraph styles like docx w:styles), so every variation here is DIRECT formatting: four paragraphs whose runs carry literal a:rPr size (32/28/18/12pt), b/i flags and srgbClr fills (ink 101A2E, slate 93A0B8, vermilion E2483A) — asserted in slide1.xml. Nothing references a custom layout or master placeholder; a style-table reader finds only the default python-pptx theme parts and must fall back to run-level properties.",
+  "sha256": "3d093b8f2036b48a347cfb0d989d1383f61b841fd2acb3c2b5a69497db8b6c79"
+}

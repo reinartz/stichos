@@ -1,0 +1,3 @@
+protected-readonly docx 001
+This document sets read-only enforcement in word/settings.xml.
+Editors should treat the body as final.

@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "id": "formulas-cached-xlsx-001",
+  "title": "Formulas with cached values xlsx 001",
+  "source": "generated",
+  "generator": {
+    "name": "harness/generator",
+    "version": "0.1.0"
+  },
+  "format": "xlsx",
+  "categories": [
+    "formulas-cached"
+  ],
+  "features": {
+    "w:tbl": 0,
+    "w:drawing": 0,
+    "w:fldSimple": 0,
+    "w:commentReference": 0,
+    "w:comment": 0,
+    "w:instrText": 0
+  },
+  "reference_text": "corpus/reference/formulas-cached-xlsx-001.txt",
+  "expected": {
+    "page_count_min": null,
+    "page_count_max": null
+  },
+  "render": {
+    "dpis": [
+      150
+    ],
+    "engines": [
+      "soffice-26.2.5"
+    ]
+  },
+  "notes": "real SUM/AVERAGE/MIN/MAX formulas over D1:D5 (2,4,6,8,10); openpyxl emits <f> with an empty <v></v> (no cached value), so the results 30/6/2/10 (computed in python) are injected into sheet1.xml by a zip rewrite — cached-value readers see the values without recalculating, LibreOffice still recalculates identically on open; recount asserts all four <f> nodes carry a non-empty <v> sibling.",
+  "sha256": "53841d098dd815b9fce621a2171e084dc5ad113e2e6726a9f055edc839ae0872"
+}

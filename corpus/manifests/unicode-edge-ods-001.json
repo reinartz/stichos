@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "id": "unicode-edge-ods-001",
+  "title": "Unicode edge cells ods 001",
+  "source": "generated",
+  "generator": {
+    "name": "harness/generator",
+    "version": "0.1.0"
+  },
+  "format": "ods",
+  "categories": [
+    "unicode-edge"
+  ],
+  "features": {
+    "table:table": 1,
+    "draw:frame": 0,
+    "text:note": 0,
+    "text:field": 0,
+    "office:annotation": 0
+  },
+  "reference_text": "corpus/reference/unicode-edge-ods-001.txt",
+  "expected": {
+    "page_count_min": null,
+    "page_count_max": null
+  },
+  "render": {
+    "dpis": [
+      150
+    ],
+    "engines": [
+      "soffice-26.2.5"
+    ]
+  },
+  "notes": "real codepoint edge content in ODS cells: the full docx unicode-edge constant set (imported _UE_* from .docx — ligature glyphs U+FB01..FB04, ZWJ family emoji U+1F468/200D/…, decomposed combining stacks, U+00A0 sentence, U+00AD soft hyphens, math double-struck U+1D54F/U+1D550, bold math digits U+1D7CF.., VS15/VS16 heart pair, LRM/RLM bidi sandwich with Hebrew, leading U+FEFF) — ten constants, one per cell in column A rows 1..10; the nominal A1..A6 window cannot hold ten one-per-cell, so the column extends to A10, placement recorded here. Cells store the raw codepoints un-normalized in office:string-value AND the display text:p (ODF repeats the string twice on disk — both must survive). Reference text is the byte-exact inserted codepoints. LibreOffice font coverage varies per glyph class: tofu boxes for missing glyphs are a REAL fidelity finding, not a generator bug. The normative counter reads table:table=1.",
+  "sha256": "37099a77656e1c57795a263d7effe0151b85e4ecce28068a21bedb3c08f4ad41"
+}

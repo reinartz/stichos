@@ -1,0 +1,3 @@
+embedded-ole docx 002
+This paragraph precedes an embedded OLE object (legacy w:pict with o:ole).
+Body line after the embedded object.

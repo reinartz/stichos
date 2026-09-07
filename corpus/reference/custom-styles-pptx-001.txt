@@ -1,0 +1,4 @@
+custom-styles pptx 001
+Bold ink headline run at 28pt.
+Italic slate body run at 18pt.
+Regular vermilion caption at 12pt.

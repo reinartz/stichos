@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "id": "unicode-edge-docx-001",
+  "title": "Unicode edge cases docx 001",
+  "source": "generated",
+  "generator": {
+    "name": "harness/generator",
+    "version": "0.1.0"
+  },
+  "format": "docx",
+  "categories": [
+    "unicode-edge"
+  ],
+  "features": {
+    "w:tbl": 0,
+    "w:drawing": 0,
+    "w:fldSimple": 0,
+    "w:commentReference": 0,
+    "w:comment": 0,
+    "w:instrText": 0
+  },
+  "reference_text": "corpus/reference/unicode-edge-docx-001.txt",
+  "expected": {
+    "page_count_min": null,
+    "page_count_max": null
+  },
+  "render": {
+    "dpis": [
+      150
+    ],
+    "engines": [
+      "soffice-26.2.5"
+    ]
+  },
+  "notes": "real codepoint edge content: precomposed ligature GLYPHS in the text stream (eﬃciently oﬄine = U+FB03/U+FB04, plus U+FB01/U+FB02 in 'ﬁle'/'ﬂag') — actual characters, NOT a w:ligatures rPr typographic setting; ZWJ family emoji U+1F468 U+200D U+1F469 U+200D U+1F467 U+200D U+1F466 (4-codepoint sequence); decomposed combining stacks (e+U+0301, a+U+0302+U+0301); U+00A0 non-breaking spaces between every word of one sentence; soft hyphens U+00AD inside one long word. Reference text is the byte-exact inserted codepoints. LibreOffice font coverage varies per glyph class: missing glyphs rendering as tofu .notdef boxes is a REAL fidelity finding, not a generator bug.",
+  "sha256": "07cb7937239d8be928a9e95491bbb22987491eb1973f92be66fce96af2fac68e"
+}

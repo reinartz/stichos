@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "id": "scanned-ocr-docx-001",
+  "title": "Scanned page docx 001",
+  "source": "generated",
+  "generator": {
+    "name": "harness/generator",
+    "version": "0.1.0"
+  },
+  "format": "docx",
+  "categories": [
+    "scanned-ocr"
+  ],
+  "features": {
+    "w:tbl": 0,
+    "w:drawing": 1,
+    "w:fldSimple": 0,
+    "w:commentReference": 0,
+    "w:comment": 0,
+    "w:instrText": 0
+  },
+  "reference_text": "corpus/reference/scanned-ocr-docx-001.txt",
+  "expected": {
+    "page_count_min": null,
+    "page_count_max": null
+  },
+  "render": {
+    "dpis": [
+      150
+    ],
+    "engines": [
+      "soffice-26.2.5"
+    ]
+  },
+  "notes": "scanned-page emulation: a 300px-wide synthetic raster (off-white paper gray, gray pseudo-text word bars, seeded per-pixel noise) rendered with PIL and embedded as a real PNG media part via python-docx add_picture at 6.5in full-page width, with one caption line below. The image has NO text layer (bars, not glyphs), so there is no OCR truth inside the picture: reference_text is the caption ONLY — the honest near-None case; the noise seed derives from the fixture-seeded ctx.rng.",
+  "sha256": "7dafbf019e27d8237afb0d5a93e715db5b616ba69c12412732875d352bf42d66"
+}

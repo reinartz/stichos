@@ -1,0 +1,2 @@
+Locked note A1 Locked note B1
+Unlocked note A2 Locked note B2

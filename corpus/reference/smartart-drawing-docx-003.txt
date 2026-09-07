@@ -1,0 +1,5 @@
+smartart-drawing docx 003
+Two DrawingML shapes stand in for a diagram below.
+A synthetic diagramData reference follows.
+Group node: plan
+Group node: review

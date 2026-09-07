@@ -1,0 +1,5 @@
+footnotes-endnotes docx 002
+Body claim 1 cites footnote of type 1.
+Body claim E1 cites endnote of type 1.
+Footnote 1 text: supporting note for alpha.
+Endnote 1 text: endmatter for alpha.

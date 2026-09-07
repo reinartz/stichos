@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "id": "merged-cells-docx-002",
+  "title": "Merged cells grid 2",
+  "source": "generated",
+  "generator": {
+    "name": "harness/generator",
+    "version": "0.1.0"
+  },
+  "format": "docx",
+  "categories": [
+    "merged-cells"
+  ],
+  "features": {
+    "w:tbl": 2,
+    "w:drawing": 0,
+    "w:fldSimple": 0,
+    "w:commentReference": 0,
+    "w:comment": 0,
+    "w:instrText": 0
+  },
+  "reference_text": "corpus/reference/merged-cells-docx-002.txt",
+  "expected": {
+    "page_count_min": null,
+    "page_count_max": null
+  },
+  "render": {
+    "dpis": [
+      150
+    ],
+    "engines": [
+      "soffice-26.2.5"
+    ]
+  },
+  "notes": "block 2x2 merge + two h-merges; merged region text may repeat across span in extraction.",
+  "sha256": "b6ccd7d52d55e0ea8af03fd9932f45f540ac2e647c64a67c2532bfb6e5c4e3f4"
+}

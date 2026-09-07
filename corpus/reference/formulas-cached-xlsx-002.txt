@@ -1,0 +1,6 @@
+base-7
+base-11
+7
+11
+triple-of-7 21
+triple-of-11 33

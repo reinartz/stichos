@@ -1,0 +1,14 @@
+{
+  "image": "stichos-harness:26.2.5",
+  "image_id": "sha256:ded77b6fce12480f971ee4cb68077fe59c99dc1235c9a6a57e0fc8a391516efb",
+  "lo_version": "26.2.5.2",
+  "poppler_version": "24.02.0-1ubuntu9.9",
+  "fontset_hash": "sha256:6f26ae4f9bdea927cffa0984d48adcb3e4b60b3fbe263c6a44440a5628927509",
+  "pandoc": "pandoc 3.7.0.2",
+  "host": {
+    "hostname": "worker",
+    "kernel": "7.1.5-201.fc44.x86_64",
+    "python": "3.14.6"
+  },
+  "captured_at": "2026-09-05T11:30:48Z"
+}

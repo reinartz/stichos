@@ -1,0 +1,27 @@
+# HAR-07 PR subset — one fixture per generated category (20 of 22).
+# Deferred (heavy for PR loops, run nightly only): long-deck-300, huge-cell-text
+# — exactly the exclusion frozen in corpus/PLAN.md §3 ("PR-subset (HAR-07) excludes ...").
+# Selection rule (deterministic): per included category, the lowest fixture whose
+# format comes first in PLAN.md §3 column order (docx, xlsx, pptx, odt, ods, odp),
+# then lowest nnn. Generated fixtures only; curated additions do not alter this list.
+# Validated by .github/workflows/pr.yml (20 ids, one per category, deferred == {long-deck-300, huge-cell-text}).
+cjk-text-docx-001
+comments-annotations-docx-001
+conditional-formatting-xlsx-001
+custom-styles-docx-001
+embedded-ole-docx-001
+footnotes-endnotes-docx-001
+formulas-cached-xlsx-001
+headers-fields-docx-001
+image-textwrap-docx-001
+long-tables-docx-001
+merged-cells-docx-001
+numbering-restarts-docx-001
+protected-readonly-docx-001
+rtl-sheets-xlsx-001
+rtl-text-docx-001
+scanned-ocr-docx-001
+smartart-drawing-docx-001
+toc-fields-docx-001
+tracked-changes-docx-001
+unicode-edge-docx-001

@@ -1,0 +1,4 @@
+embedded-ole ods 002 second host sheet
+quiet row one no object here
+carry row embedded picture cell
+trailing row under the frame

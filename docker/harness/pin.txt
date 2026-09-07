@@ -1,0 +1,18 @@
+# Machine-readable pins for the stichos harness image (HAR-03 / SA-3).
+# SINGLE SOURCE OF TRUTH for the nightly CI gates (.github/workflows/nightly.yml):
+# image tag, LO version and fontset_hash are checked against THIS file.
+# Prose + measured evidence: docker/harness/README.md.
+# Change only through the engine-upgrade gate (HAR-08): new pin => full corpus
+# re-run + human review; fontset_hash is part of the golden identity (INV-4).
+
+image_tag=26.2.5
+base_digest=ubuntu@sha256:33ceb71981b602c1a7443a53469e4dba065f7503eab3078a2d7a57a2ab987517
+lo_version=26.2.5
+lo_build=26.2.5.2
+poppler_version=24.02.0-1ubuntu9.9
+fontset_hash=sha256:6f26ae4f9bdea927cffa0984d48adcb3e4b60b3fbe263c6a44440a5628927509
+
+# Not pinned (provenance only, recorded in README.md): local image id
+# sha256:ded77b6fce12480f971ee4cb68077fe59c99dc1235c9a6a57e0fc8a391516efb —
+# the image is intentionally NOT byte-reproducible (build-info.built_at), so CI
+# gates on fontset_hash + version strings, never on image bytes.

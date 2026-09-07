@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "id": "huge-cell-text-odt-001",
+  "title": "Huge cell text odt 001",
+  "source": "generated",
+  "generator": {
+    "name": "harness/generator",
+    "version": "0.1.0"
+  },
+  "format": "odt",
+  "categories": [
+    "huge-cell-text"
+  ],
+  "features": {
+    "table:table": 1,
+    "draw:frame": 0,
+    "text:note": 0,
+    "text:field": 0,
+    "office:annotation": 0
+  },
+  "reference_text": "corpus/reference/huge-cell-text-odt-001.txt",
+  "expected": {
+    "page_count_min": null,
+    "page_count_max": null
+  },
+  "render": {
+    "dpis": [
+      150
+    ],
+    "engines": [
+      "soffice-26.2.5"
+    ]
+  },
+  "notes": "real huge single-string text (not an image or overflow hack): one text:p holding the deterministic 60,000-char string 'lorem ipsum ' * 5000, plus a 2x2 table:table (table:name HugeCell) whose r1c1 cell holds 'filler ' * 1500 (10,500 chars) as its office:string-value and text:p; other cells are short r{r}c{c} markers. Reference text is the exact same strings, byte-for-byte as inserted. Deflate compresses the repetitive lorem hard: saved blob is 2216 bytes, far under the 10 MB cap. The 2x2 table is a real table:table, so the normative counter reads table:table=1. Overflow/wrap/pagination behavior at render time is the fixture's point.",
+  "sha256": "2ff588e7c5eb4cb1083838909d687070251cb4311b3f8f44f5b11213ba25073d"
+}

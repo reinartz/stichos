@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "id": "cjk-text-odt-001",
+  "title": "CJK text odt 001",
+  "source": "generated",
+  "generator": {
+    "name": "harness/generator",
+    "version": "0.1.0"
+  },
+  "format": "odt",
+  "categories": [
+    "cjk-text"
+  ],
+  "features": {
+    "table:table": 0,
+    "draw:frame": 0,
+    "text:note": 0,
+    "text:field": 0,
+    "office:annotation": 0
+  },
+  "reference_text": "corpus/reference/cjk-text-odt-001.txt",
+  "expected": {
+    "page_count_min": null,
+    "page_count_max": null
+  },
+  "render": {
+    "dpis": [
+      150
+    ],
+    "engines": [
+      "soffice-26.2.5"
+    ]
+  },
+  "notes": "real CJK fixture: 静夜思 (Li Bai, Quiet Night Thought) as five CJK paragraphs, every CJK paragraph styled with the named paragraph style \"GP CJK\" whose text-properties set style:font-name-asian=\"Noto Serif CJK SC\" plus fo:language=\"zh\" fo:country=\"CN\" (the asian font-name slot, not the latin fo:font-name). Honest caveat: one shared style tags zh/CN even in 002, so Japanese and Korean text are zh-tagged — font substitution for kana/Hangul is renderer-font dependent (Noto CJK covers all three scripts when installed). Reference text is the exact character strings; no normative ODF counter matches, feature counts stay 0.",
+  "sha256": "a953920f3eb17d4f9a03ed93d94c19836dbdcaa473754f60ba4c7d394ef42c53"
+}

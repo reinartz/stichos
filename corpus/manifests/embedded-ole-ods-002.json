@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "id": "embedded-ole-ods-002",
+  "title": "Embedded OLE object ods 002",
+  "source": "generated",
+  "generator": {
+    "name": "harness/generator",
+    "version": "0.1.0"
+  },
+  "format": "ods",
+  "categories": [
+    "embedded-ole"
+  ],
+  "features": {
+    "table:table": 1,
+    "draw:frame": 1,
+    "text:note": 0,
+    "text:field": 0,
+    "office:annotation": 0
+  },
+  "reference_text": "corpus/reference/embedded-ole-ods-002.txt",
+  "expected": {
+    "page_count_min": null,
+    "page_count_max": null
+  },
+  "render": {
+    "dpis": [
+      150
+    ],
+    "engines": [
+      "soffice-26.2.5"
+    ]
+  },
+  "notes": "legacy OLE embed in ODF, second instance: same CFB-stub part and same as-char in-cell draw:frame > draw:object machinery, different PLACEMENT and copy — a FOUR-row table EmbedsB (001: three rows, table Embeds) with the embed cell in ROW THREE (001: row two) and two quiet rows in between, frame OleObject2 at 6cm x 4cm (001: OleObject1, 5cm square), every visible label different. Same honest caveats (thin cell-frame grammar, LO not run, stub renders as icon or nothing, frame is pass-through content never text truth); normative counters stay table:table=1, draw:frame=1; reference text covers the seven visible cell strings.",
+  "sha256": "8b4d449685790520ded27703652c612b973177b49848408f76e275daa5b72092"
+}

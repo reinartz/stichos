@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "id": "image-textwrap-pptx-001",
+  "title": "Image overlap pptx 001",
+  "source": "generated",
+  "generator": {
+    "name": "harness/generator",
+    "version": "0.1.0"
+  },
+  "format": "pptx",
+  "categories": [
+    "image-textwrap"
+  ],
+  "features": {
+    "w:tbl": 0,
+    "w:drawing": 0,
+    "w:fldSimple": 0,
+    "w:commentReference": 0,
+    "w:comment": 0,
+    "w:instrText": 0
+  },
+  "reference_text": "corpus/reference/image-textwrap-pptx-001.txt",
+  "expected": {
+    "page_count_min": null,
+    "page_count_max": null
+  },
+  "render": {
+    "dpis": [
+      150
+    ],
+    "engines": [
+      "soffice-26.2.5"
+    ]
+  },
+  "notes": "honest category divergence: PPTX has NO text-wrap concept (wrap is a wordprocessing feature — nothing like w:wrap in DrawingML), so this is a z-order overlap test, not a text-wrap test. An opaque solid-ink 64x48 PNG (deterministic PIL bytes) is placed first, then a word-wrapped text frame overlapping its lower-right corner is added second — later shapes sit above earlier ones in the shape tree, so the frame paints on top of the picture (asserted: p:pic precedes the p:sp in slide1.xml). The picture carries no text; reference_text is the three frame lines.",
+  "sha256": "46718b70520136a463a335c433289c25a0eedbb21027fdbf1ac8d7ab8fc2b230"
+}

@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "id": "custom-styles-docx-002",
+  "title": "Custom styles docx 002",
+  "source": "generated",
+  "generator": {
+    "name": "harness/generator",
+    "version": "0.1.0"
+  },
+  "format": "docx",
+  "categories": [
+    "custom-styles"
+  ],
+  "features": {
+    "w:tbl": 0,
+    "w:drawing": 0,
+    "w:fldSimple": 0,
+    "w:commentReference": 0,
+    "w:comment": 0,
+    "w:instrText": 0
+  },
+  "reference_text": "corpus/reference/custom-styles-docx-002.txt",
+  "expected": {
+    "page_count_min": null,
+    "page_count_max": null
+  },
+  "render": {
+    "dpis": [
+      150
+    ],
+    "engines": [
+      "soffice-26.2.5"
+    ]
+  },
+  "notes": "real 3-deep basedOn chain in word/styles.xml: GP Base basedOn Normal -> GP Mid basedOn GP Base -> GP Leaf basedOn GP Mid (size 12pt + italic + w:color 0B6655 resolve by inheritance), plus a custom CHARACTER style GP Char with w:u w:val=\"single\" applied to one run via w:rStyle; all applied to body paragraphs/runs. styles.xml chain and underline asserted after save.",
+  "sha256": "fcc71aa732b28d409c4b549e11dee714ffe0df695f8db9e57877fc1811e4c2a9"
+}

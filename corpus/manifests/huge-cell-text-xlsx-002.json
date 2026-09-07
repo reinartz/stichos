@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "id": "huge-cell-text-xlsx-002",
+  "title": "Huge cell text xlsx 002",
+  "source": "generated",
+  "generator": {
+    "name": "harness/generator",
+    "version": "0.1.0"
+  },
+  "format": "xlsx",
+  "categories": [
+    "huge-cell-text"
+  ],
+  "features": {
+    "w:tbl": 0,
+    "w:drawing": 0,
+    "w:fldSimple": 0,
+    "w:commentReference": 0,
+    "w:comment": 0,
+    "w:instrText": 0
+  },
+  "reference_text": "corpus/reference/huge-cell-text-xlsx-002.txt",
+  "expected": {
+    "page_count_min": null,
+    "page_count_max": null
+  },
+  "render": {
+    "dpis": [
+      150
+    ],
+    "engines": [
+      "soffice-26.2.5"
+    ]
+  },
+  "notes": "500 unique deterministic strings of ~200 chars each in A1:A500 — a string-volume stress for the workbook's string storage: this openpyxl build stores them inline (t=\"inlineStr\", no sharedStrings.xml part), MS/Excel writers would use a sharedStrings table, so readers must handle both paths; all 500 lines are in the reference text, no truncation allowed.",
+  "sha256": "94da461c524759ac4aad1bdf00306bfce090732c6fec59bbc3022d565235abbe"
+}

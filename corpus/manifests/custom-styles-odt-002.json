@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "id": "custom-styles-odt-002",
+  "title": "Custom styles odt 002",
+  "source": "generated",
+  "generator": {
+    "name": "harness/generator",
+    "version": "0.1.0"
+  },
+  "format": "odt",
+  "categories": [
+    "custom-styles"
+  ],
+  "features": {
+    "table:table": 0,
+    "draw:frame": 0,
+    "text:note": 0,
+    "text:field": 0,
+    "office:annotation": 0
+  },
+  "reference_text": "corpus/reference/custom-styles-odt-002.txt",
+  "expected": {
+    "page_count_min": null,
+    "page_count_max": null
+  },
+  "render": {
+    "dpis": [
+      150
+    ],
+    "engines": [
+      "soffice-26.2.5"
+    ]
+  },
+  "notes": "real ODF named styles: 3-level style:parent-style-name inheritance chain GP Base (12pt) -> GP Mid (italic) -> GP Leaf (14pt), plus a CHARACTER-family style GP Char (style:family=\"character\", fo:font-weight bold) applied inline via text:span text:style-name. None of the five normative ODF counters match style elements, so feature counts stay 0; reference text is every visible paragraph string (style names themselves are not visible text).",
+  "sha256": "fa50ce0a5cc12a3087e2d4667ba5903dfff27ed8fb38cc8e96cf9d4f24ca7ecf"
+}

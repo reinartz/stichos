@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "id": "numbering-restarts-odp-002",
+  "title": "Numbering restarts odp 002",
+  "source": "generated",
+  "generator": {
+    "name": "harness/generator",
+    "version": "0.1.0"
+  },
+  "format": "odp",
+  "categories": [
+    "numbering-restarts"
+  ],
+  "features": {
+    "table:table": 0,
+    "draw:frame": 2,
+    "text:note": 0,
+    "text:field": 0,
+    "office:annotation": 0
+  },
+  "reference_text": "corpus/reference/numbering-restarts-odp-002.txt",
+  "expected": {
+    "page_count_min": null,
+    "page_count_max": null
+  },
+  "render": {
+    "dpis": [
+      150
+    ],
+    "engines": [
+      "soffice-26.2.5"
+    ]
+  },
+  "notes": "ODP list numbering, second instance: THREE lists on TWO list styles instead of 001's two-on-one — Alpha (4 items) on L1 with NO restart attribute, Bravo (3) on L1 with text:continue-numbering=\"false\", Charlie (3) on a SECOND style L2 (text:num-format=\"A\", lettered markers, 001 only ever shows decimal) also restart-pinned, so restart flags ×2 (001 ×1) and marker formats ×2 meet on one slide; uneven sizes 4+3+3 (001: 5+5). Same honest default-false restart semantics as 001, same draw:frame=2 (no counter matches list elements); reference text is the 10 item strings + title, markers stay render-derived.",
+  "sha256": "9ed5b3e91181f8e775ccc60da42d464c3662e994d8cb4b22b01a3094b21977c8"
+}

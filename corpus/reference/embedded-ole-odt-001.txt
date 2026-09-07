@@ -1,0 +1,3 @@
+embedded-ole odt 001
+This paragraph precedes an embedded legacy OLE object part.
+Body line after the embedded object.

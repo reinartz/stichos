@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "id": "comments-annotations-pptx-001",
+  "title": "Slide comments pptx 001",
+  "source": "generated",
+  "generator": {
+    "name": "harness/generator",
+    "version": "0.1.0"
+  },
+  "format": "pptx",
+  "categories": [
+    "comments-annotations"
+  ],
+  "features": {
+    "w:tbl": 0,
+    "w:drawing": 0,
+    "w:fldSimple": 0,
+    "w:commentReference": 0,
+    "w:comment": 0,
+    "w:instrText": 0
+  },
+  "reference_text": "corpus/reference/comments-annotations-pptx-001.txt",
+  "expected": {
+    "page_count_min": null,
+    "page_count_max": null
+  },
+  "render": {
+    "dpis": [
+      150
+    ],
+    "engines": [
+      "soffice-26.2.5"
+    ]
+  },
+  "notes": "python-pptx has NO comments API, so the comment layer is injected post-save by a zip rewrite: ppt/comments/authors1.xml (one p15:cavAuthor 'stichos-bot') and ppt/comments/comments1.xml (three p15:cmt entries, authorId=0, fixed dateTime 2026-01-01T00:00:00Z, no wall-clock), plus the relationship chain from ppt/_rels/presentation.xml.rels (MS 2018/10 comments + commentsAuthors relationship types) and Content_Types overrides for both parts. This is the MINIMAL viable shape: synthetic parts modeled on PowerPoint's modern p15 cavAuthors/cmts layout — not validated against a schema, and the slide carries NO cmAuthorId/run-level anchors, so renderers may show nothing or drop the parts; tolerance varies by consumer and is part of what the fixture probes. Comment texts are part of the reference text.",
+  "sha256": "73dc6919458f6f33d9fc9be7bcc8d777d6ba23a604655e08c23cf73b9e4e9f65"
+}

@@ -1,0 +1,3 @@
+custom-styles odt 001
+Body paragraph one rendered through GP Body.
+Body paragraph two rendered through GP Body.

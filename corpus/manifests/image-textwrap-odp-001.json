@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "id": "image-textwrap-odp-001",
+  "title": "Image overlap odp 001",
+  "source": "generated",
+  "generator": {
+    "name": "harness/generator",
+    "version": "0.1.0"
+  },
+  "format": "odp",
+  "categories": [
+    "image-textwrap"
+  ],
+  "features": {
+    "table:table": 0,
+    "draw:frame": 2,
+    "text:note": 0,
+    "text:field": 0,
+    "office:annotation": 0
+  },
+  "reference_text": "corpus/reference/image-textwrap-odp-001.txt",
+  "expected": {
+    "page_count_min": null,
+    "page_count_max": null
+  },
+  "render": {
+    "dpis": [
+      150
+    ],
+    "engines": [
+      "soffice-26.2.5"
+    ]
+  },
+  "notes": "honest category divergence (same call as the pptx counterpart): presentation formats have NO text-wrap concept — wrap is a wordprocessing feature — so this is a z-order overlap test, not a text-wrap test. A deterministic opaque solid-ink 64x48 PNG (PIL, no rng) sits at Pictures/wrap1.png (manifest media-type image/png) in draw:frame > draw:image, placed by automatic graphic style gpPic (fo:x/fo:y 1in, 4in x 2.2in, draw:z-index=0); the presentation:body frame (named graphic style gp1: fo:x 0.5in, fo:y 1.9in, 9in x 5in, draw:z-index=1) covers x 0.5..9.5in y 1.9..6.9in and therefore overlaps the picture's lower-right corner region 1..5 x 1.9..3.2in. Later document order + higher draw:z-index both say the text frame paints on top (asserted: WrapPic1 precedes Body1). Honest caveats: gp1 is fill-less so whether the frame is transparent over the raster is renderer policy, and LibreOffice was not run here. The picture carries no text; reference text is the three frame lines. Normative counters read draw:frame=2.",
+  "sha256": "318b67727297937c5a6ba7ebcc7d8af8dcb71d70ea230d440cd200971905be0a"
+}

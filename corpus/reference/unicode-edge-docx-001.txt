@@ -1,0 +1,6 @@
+unicode-edge docx 001
+eﬃciently oﬄine — a ﬁle and a ﬂag
+Family emoji (ZWJ sequence): 👨‍👩‍👧‍👦 end
+dejá vu café stack ấ
+Non breaking spaces keep this sentence on one line.
+one long word: ex­traor­di­nary­hy­phe­nat­ic­al­ly ends here.

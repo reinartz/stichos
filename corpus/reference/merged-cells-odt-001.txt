@@ -1,0 +1,4 @@
+merged-cells odt 001
+A1 B1 C1
+B2 C2
+A3 C3

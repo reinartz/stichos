@@ -1,0 +1,5 @@
+custom-styles pptx 002
+Vermilion italic headline run at 24pt.
+Bold ink sub-headline run, same 24pt size.
+Italic slate body run at 14pt.
+Regular ink footer run at 10pt.

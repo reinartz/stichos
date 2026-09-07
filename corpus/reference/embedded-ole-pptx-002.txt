@@ -1,0 +1,3 @@
+embedded-ole pptx 002
+Second deck, same plumbing, different payload: the .bin part is PNG bytes here.
+The v:shape still declares Type=Embed — the mismatch is the probe.

@@ -1,0 +1,3 @@
+embedded-ole odp 002
+The embed rides the FIRST slide here, not the second.
+Second page keeps a plain body frame — no object on it.

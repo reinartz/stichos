@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "id": "numbering-restarts-pptx-002",
+  "title": "Numbering restarts pptx 002",
+  "source": "generated",
+  "generator": {
+    "name": "harness/generator",
+    "version": "0.1.0"
+  },
+  "format": "pptx",
+  "categories": [
+    "numbering-restarts"
+  ],
+  "features": {
+    "w:tbl": 0,
+    "w:drawing": 0,
+    "w:fldSimple": 0,
+    "w:commentReference": 0,
+    "w:comment": 0,
+    "w:instrText": 0
+  },
+  "reference_text": "corpus/reference/numbering-restarts-pptx-002.txt",
+  "expected": {
+    "page_count_min": null,
+    "page_count_max": null
+  },
+  "render": {
+    "dpis": [
+      150
+    ],
+    "engines": [
+      "soffice-26.2.5"
+    ]
+  },
+  "notes": "two text frames, roles SWAPPED versus 001 (001: A=buChar bullets, B=buAutoNum): here frame A (FOUR paragraphs, 001 has three) carries a:buAutoNum type=arabicParenR — a different autonum format, '1)' not '1.' — and frame B (three) carries a:buFont Arial + a:buChar '&#8211;' (en-dash glyph, not the bullet U+2022 of 001), raw-XML injected as in 001. The per-text-body restart semantics are the point and are unchanged: frame A starts at '1)' with no flag to set, no cross-frame continue mode exists in DrawingML. reference_text lists the seven paragraph strings (six in 001); markers stay render-side.",
+  "sha256": "893cd47430ddd6f329c971883e81efe37e55a334a54932d0fc012d5bf0b63542"
+}

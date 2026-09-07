@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "id": "cjk-text-xlsx-001",
+  "title": "CJK text xlsx 001",
+  "source": "generated",
+  "generator": {
+    "name": "harness/generator",
+    "version": "0.1.0"
+  },
+  "format": "xlsx",
+  "categories": [
+    "cjk-text"
+  ],
+  "features": {
+    "w:tbl": 0,
+    "w:drawing": 0,
+    "w:fldSimple": 0,
+    "w:commentReference": 0,
+    "w:comment": 0,
+    "w:instrText": 0
+  },
+  "reference_text": "corpus/reference/cjk-text-xlsx-001.txt",
+  "expected": {
+    "page_count_min": null,
+    "page_count_max": null
+  },
+  "render": {
+    "dpis": [
+      150
+    ],
+    "engines": [
+      "soffice-26.2.5"
+    ]
+  },
+  "notes": "four Chinese lines of Li Bai's Quiet Night Thought (床前明月光…) in A1:A4 with plain integer row numbers 1..4 in B1:B4, plus the first line of the Korean anthem 애국가 (동해물과 백두산이 마르고 닳도록) in C1; strings stored exactly as written (no transliteration, normalization or escaping by the generator), CJK per-char F1 rule applies downstream per C9 §10.6.",
+  "sha256": "9fb7c1285fc86aa5583c18b509ba65990cf56c65ea995edaf1edc1c3881972f9"
+}

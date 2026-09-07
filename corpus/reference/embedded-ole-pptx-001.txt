@@ -1,0 +1,3 @@
+embedded-ole pptx 001
+This slide carries an embedded OLE object (mc:AlternateContent with v:shape o:ole).
+Body line after the embedded object.

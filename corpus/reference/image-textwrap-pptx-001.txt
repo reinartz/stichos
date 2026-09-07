@@ -1,0 +1,3 @@
+image-textwrap pptx 001
+This text frame overlaps the opaque picture block from the lower-right corner:
+z-order decides visibility, not wrap — the frame added last paints on top.

@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "id": "custom-styles-docx-001",
+  "title": "Custom styles docx 001",
+  "source": "generated",
+  "generator": {
+    "name": "harness/generator",
+    "version": "0.1.0"
+  },
+  "format": "docx",
+  "categories": [
+    "custom-styles"
+  ],
+  "features": {
+    "w:tbl": 0,
+    "w:drawing": 0,
+    "w:fldSimple": 0,
+    "w:commentReference": 0,
+    "w:comment": 0,
+    "w:instrText": 0
+  },
+  "reference_text": "corpus/reference/custom-styles-docx-001.txt",
+  "expected": {
+    "page_count_min": null,
+    "page_count_max": null
+  },
+  "render": {
+    "dpis": [
+      150
+    ],
+    "engines": [
+      "soffice-26.2.5"
+    ]
+  },
+  "notes": "real custom paragraph styles defined in word/styles.xml via doc.styles.add_style(builtin=False): GP Body basedOn Normal (w:basedOn w:val=\"Normal\", size override) and GP Head basedOn Heading 1 (w:basedOn w:val=\"Heading1\", own w:color 6B3FA0); both styles are applied to body paragraphs via w:pPr/w:pStyle. styles.xml content asserted after save.",
+  "sha256": "566f8c353a5668607b7d368f40ead5e4c6eb33003bfe096a33f2f778aa2b4c3b"
+}

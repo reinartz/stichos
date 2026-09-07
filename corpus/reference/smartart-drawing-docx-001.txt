@@ -1,0 +1,4 @@
+smartart-drawing docx 001
+Two DrawingML shapes stand in for a diagram below.
+SmartArt node: intake process
+SmartArt node: output check

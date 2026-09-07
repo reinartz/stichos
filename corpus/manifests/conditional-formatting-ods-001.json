@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "id": "conditional-formatting-ods-001",
+  "title": "Conditional formatting ods 001",
+  "source": "generated",
+  "generator": {
+    "name": "harness/generator",
+    "version": "0.1.0"
+  },
+  "format": "ods",
+  "categories": [
+    "conditional-formatting"
+  ],
+  "features": {
+    "table:table": 1,
+    "draw:frame": 0,
+    "text:note": 0,
+    "text:field": 0,
+    "office:annotation": 0
+  },
+  "reference_text": "corpus/reference/conditional-formatting-ods-001.txt",
+  "expected": {
+    "page_count_min": null,
+    "page_count_max": null
+  },
+  "render": {
+    "dpis": [
+      150
+    ],
+    "engines": [
+      "soffice-26.2.5"
+    ]
+  },
+  "notes": "real ODF 1.2 conditional formats (ODF 1.2 §9.4, the LO 4.x on-disk shape that replaced the ODF 1.1 style:map workaround): one table:conditional-format (table:target-range-address \"Numbers.A1:Numbers.A10\") with a single table:condition test \"this-cell() > 10\" applying the named cell style GP Bad (fo:background-color #FFC7CE). table:conditional-format sits under office:spreadsheet after the table element; conditions are table:condition elements with table:test (OpenFormula with this-cell(), semicolon argument separator), table:apply-style and table:base-cell-address. LO-tolerance items NOT verified here (LibreOffice is not run in this environment, so they are recorded, not claimed): (a) table:apply-style pointing at a NAMED style — LO's own writer usually emits automatic styles there, named-style references are valid style-name references but LO round-trip tolerance is unverified; (b) address qualification — target-range-address is table-qualified (Numbers.A1:Numbers.A10) while base-cell-address is unqualified (A1), matching LO's on-disk form as best known; (c) whether the conditional-format element must sit after vs before the tables — emitted after; (d) LO evaluation of the exact this-cell()/contains()/DATE() test strings at render time. Reference text is the plain stored cell strings (condition colors are display-time, never text); the normative counter reads table:table=1.",
+  "sha256": "180dc7baf5e210d4798161b4eb8bf908161c0d918b9366d38000d146291a921c"
+}

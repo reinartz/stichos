@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "id": "rtl-text-pptx-001",
+  "title": "RTL text pptx 001",
+  "source": "generated",
+  "generator": {
+    "name": "harness/generator",
+    "version": "0.1.0"
+  },
+  "format": "pptx",
+  "categories": [
+    "rtl-text"
+  ],
+  "features": {
+    "w:tbl": 0,
+    "w:drawing": 0,
+    "w:fldSimple": 0,
+    "w:commentReference": 0,
+    "w:comment": 0,
+    "w:instrText": 0
+  },
+  "reference_text": "corpus/reference/rtl-text-pptx-001.txt",
+  "expected": {
+    "page_count_min": null,
+    "page_count_max": null
+  },
+  "render": {
+    "dpis": [
+      150
+    ],
+    "engines": [
+      "soffice-26.2.5"
+    ]
+  },
+  "notes": "real RTL slide content in DrawingML: one right-aligned Arabic paragraph (the 28-letter alphabet string shared with docx rtl-text 001) with a:pPr algn=\"r\" + rtl=\"1\", three buChar-bulleted Hebrew paragraphs (strings shared with docx rtl-text 002, same rtl/algn flags), and a mixed-direction note paragraph whose embedded Latin run «stichos» is the only run marked a:rPr rtl=\"0\" — the LTR island inside the RTL context. Hebrew runs carry a:cs typeface=\"Noto Sans Hebrew\" (python-pptx has no bidi API; flags set on raw oxml attributes). reference_text is the exact inserted strings in logical order; bidi reordering is a render-time concern.",
+  "sha256": "6ec7b7982f080194b0f6faeb52ad085dee876a1966df5f9db5857c4793475db8"
+}

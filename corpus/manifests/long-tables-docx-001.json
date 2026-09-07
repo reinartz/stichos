@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "id": "long-tables-docx-001",
+  "title": "Long tables docx 001",
+  "source": "generated",
+  "generator": {
+    "name": "harness/generator",
+    "version": "0.1.0"
+  },
+  "format": "docx",
+  "categories": [
+    "long-tables"
+  ],
+  "features": {
+    "w:tbl": 1,
+    "w:drawing": 0,
+    "w:fldSimple": 0,
+    "w:commentReference": 0,
+    "w:comment": 0,
+    "w:instrText": 0
+  },
+  "reference_text": "corpus/reference/long-tables-docx-001.txt",
+  "expected": {
+    "page_count_min": null,
+    "page_count_max": null
+  },
+  "render": {
+    "dpis": [
+      150
+    ],
+    "engines": [
+      "soffice-26.2.5"
+    ]
+  },
+  "notes": "real table stress: one plain Table Grid table with 70 rows x 4 cols, every cell carrying r{r}c{c}-word text, intro + outro paragraphs around it so LibreOffice paginates past two pages; all cell strings are in the reference text.",
+  "sha256": "24d4c1bdf6848015d185f763f6503d5024998ac483b85cca7b2066250a0cfacd"
+}

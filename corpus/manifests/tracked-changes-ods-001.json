@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "id": "tracked-changes-ods-001",
+  "title": "Tracked changes ods 001",
+  "source": "generated",
+  "generator": {
+    "name": "harness/generator",
+    "version": "0.1.0"
+  },
+  "format": "ods",
+  "categories": [
+    "tracked-changes"
+  ],
+  "features": {
+    "table:table": 1,
+    "draw:frame": 0,
+    "text:note": 0,
+    "text:field": 0,
+    "office:annotation": 0
+  },
+  "reference_text": "corpus/reference/tracked-changes-ods-001.txt",
+  "expected": {
+    "page_count_min": null,
+    "page_count_max": null
+  },
+  "render": {
+    "dpis": [
+      150
+    ],
+    "engines": [
+      "soffice-26.2.5"
+    ]
+  },
+  "notes": "real ODF spreadsheet revisions: the same text:changed-region machinery as the odt counterpart (ODF 1.2 §2.4) but inside table:table-cell content — text:delete ct2 (dc:creator bot-a, fixed dc:date 2026-01-01T00:00:00) sits inline between the runs of the first cell's text:p, and text:insert ct1 wraps the whole inserted text:p of the second cell; both cells' office:string-value carry the ACCEPTED view. Reference text states the ACCEPTED view: inserted paragraph text included, deleted fragment excluded (same convention as the docx/odt tracked-changes fixtures). Honest caveats: whether LibreOffice shows or hides the revision marks is a per-view show-changes setting, and LO's per-cell change bookkeeping beyond the region elements is not emitted — neither verified (LibreOffice is not run in this environment). changed-region/insert/delete match no normative counter except table:table=1.",
+  "sha256": "aa91f9e3f428bdc2e67f43144f7ea170c8fc0b81e162f171a7347e74f5a51e51"
+}

@@ -1,0 +1,7 @@
+footnotes-endnotes odt 001
+Body claim 1 cites a footnote marker of type 1.
+Body claim 2 cites a footnote marker of type 2.
+Body claim 3 cites a footnote marker of type 3.
+Footnote 1 text: supporting note for alpha.
+Footnote 2 text: supporting note for beta.
+Footnote 3 text: supporting note for gamma.

@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "id": "comments-annotations-ods-002",
+  "title": "Comments and annotations ods 002",
+  "source": "generated",
+  "generator": {
+    "name": "harness/generator",
+    "version": "0.1.0"
+  },
+  "format": "ods",
+  "categories": [
+    "comments-annotations"
+  ],
+  "features": {
+    "table:table": 1,
+    "draw:frame": 0,
+    "text:note": 0,
+    "text:field": 0,
+    "office:annotation": 4
+  },
+  "reference_text": "corpus/reference/comments-annotations-ods-002.txt",
+  "expected": {
+    "page_count_min": null,
+    "page_count_max": null
+  },
+  "render": {
+    "dpis": [
+      150
+    ],
+    "engines": [
+      "soffice-26.2.5"
+    ]
+  },
+  "notes": "real ODF sheet comments, second instance: FOUR annotations anno1..anno4 (001: three) on a table named ReviewNotes (001: Commented) over four different cell labels (Costs/Ratio/Outlook/Budget), dc:creators cycling bot-c/bot-a/bot-d/bot-c — three distinct authors with one repeat, a partition 001's two-author alternation never produces (asserted). Same cell-anchored point-annotation machinery (office:annotation right after the cell's text:p, fixed dc:date, no annotation-end), same honest caveat about renderer comment-bubble policy and LO not being run here. Normative counters: office:annotation=4, table:table=1. Reference text is the four labels plus all four comment bodies.",
+  "sha256": "e0f6a9503d32538cf7a96e6958dd7bb221ebfa38e200fb44d2726f37760a321d"
+}

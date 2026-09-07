@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "id": "footnotes-endnotes-odt-002",
+  "title": "Footnotes and endnotes odt 002",
+  "source": "generated",
+  "generator": {
+    "name": "harness/generator",
+    "version": "0.1.0"
+  },
+  "format": "odt",
+  "categories": [
+    "footnotes-endnotes"
+  ],
+  "features": {
+    "table:table": 0,
+    "draw:frame": 0,
+    "text:note": 2,
+    "text:field": 0,
+    "office:annotation": 0
+  },
+  "reference_text": "corpus/reference/footnotes-endnotes-odt-002.txt",
+  "expected": {
+    "page_count_min": null,
+    "page_count_max": null
+  },
+  "render": {
+    "dpis": [
+      150
+    ],
+    "engines": [
+      "soffice-26.2.5"
+    ]
+  },
+  "notes": "real ODF notes: inline text:note (text:id etn1..etn2, text:note-class=\"endnote\") with text:note-citation + text:note-body/text:p, splitting the body paragraph around the note. Citation markers are authored digits: LibreOffice may render citations differently (numbering/format), so the reference text covers the two body halves and the note bodies only, never the citation digit.",
+  "sha256": "8987777669b90e2bf096d92492640d17e9e17691559acf46f7ec6cde68fa943b"
+}

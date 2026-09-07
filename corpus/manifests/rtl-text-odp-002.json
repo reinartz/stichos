@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "id": "rtl-text-odp-002",
+  "title": "RTL text odp 002",
+  "source": "generated",
+  "generator": {
+    "name": "harness/generator",
+    "version": "0.1.0"
+  },
+  "format": "odp",
+  "categories": [
+    "rtl-text"
+  ],
+  "features": {
+    "table:table": 0,
+    "draw:frame": 2,
+    "text:note": 0,
+    "text:field": 0,
+    "office:annotation": 0
+  },
+  "reference_text": "corpus/reference/rtl-text-odp-002.txt",
+  "expected": {
+    "page_count_min": null,
+    "page_count_max": null
+  },
+  "render": {
+    "dpis": [
+      150
+    ],
+    "engines": [
+      "soffice-26.2.5"
+    ]
+  },
+  "notes": "real RTL slide, second instance — all content strings differ from 001 (the 001 Arabic sentence and the «hello stichos» island are asserted absent): a second Arabic sentence plus three DIFFERENT Hebrew bullets on the same GP RTL named style (fo:text-align=\"end\" + fo:direction=\"rtl\"), with the middle bullet embedding the LTR island «rendering probe 002» in a GP LTR text:span. Same text:list machinery, same GP RTL×4 / span×1 / list-item×3 asserts, same honest caveats (direction via fo:direction only, bidi is renderer-side, LO not run); counters stay draw:frame=2.",
+  "sha256": "ccc60cf325a279b33fa2a169640ae279ed00fc1d89fe0bd258860809236702e2"
+}

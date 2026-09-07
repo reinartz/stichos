@@ -1,0 +1,2 @@
+protected-readonly odt 001
+This document carries a settings.xml protection hint, not a real readonly flag.

@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "id": "image-textwrap-pptx-002",
+  "title": "Image overlap pptx 002",
+  "source": "generated",
+  "generator": {
+    "name": "harness/generator",
+    "version": "0.1.0"
+  },
+  "format": "pptx",
+  "categories": [
+    "image-textwrap"
+  ],
+  "features": {
+    "w:tbl": 0,
+    "w:drawing": 0,
+    "w:fldSimple": 0,
+    "w:commentReference": 0,
+    "w:comment": 0,
+    "w:instrText": 0
+  },
+  "reference_text": "corpus/reference/image-textwrap-pptx-002.txt",
+  "expected": {
+    "page_count_min": null,
+    "page_count_max": null
+  },
+  "render": {
+    "dpis": [
+      150
+    ],
+    "engines": [
+      "soffice-26.2.5"
+    ]
+  },
+  "notes": "honest category divergence (same call as 001): PPTX has NO text-wrap concept, so this is a z-order overlap test. 002 mirrors 001's geometry instead of repeating it: an opaque SLATE 96x72 PNG (deterministic PIL bytes, different size and fill from 001's ink 64x48) is placed at the RIGHT (4.6in, 2.4in, 3.6in x 2.6in) with a pic:descr alt-text string, and a four-line word-wrapped frame added SECOND enters from the upper-left (1.0in, 1.2in), overlapping the picture's upper-left corner — the opposite corner from 001. Later shape still paints on top (asserted: p:pic precedes the p:sp). The picture carries no text; reference_text is the four frame lines (three in 001).",
+  "sha256": "1b797a49ee32fdd19e6e38071479c3e036534fb80d1411b49a391db0afbef71b"
+}

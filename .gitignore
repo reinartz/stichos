@@ -1,0 +1,15 @@
+# scratch / regenerable
+out/
+__pycache__/
+*.pyc
+.venv/
+target/
+
+# harness data (blobs live in external object store; local caches stay out of git)
+corpus/blobs/
+harness/.cache/
+goldens/
+baseline/out/
+
+# tool scratch
+.tools/

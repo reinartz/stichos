@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "id": "protected-readonly-xlsx-001",
+  "title": "Protected read-only xlsx 001",
+  "source": "generated",
+  "generator": {
+    "name": "harness/generator",
+    "version": "0.1.0"
+  },
+  "format": "xlsx",
+  "categories": [
+    "protected-readonly"
+  ],
+  "features": {
+    "w:tbl": 0,
+    "w:drawing": 0,
+    "w:fldSimple": 0,
+    "w:commentReference": 0,
+    "w:comment": 0,
+    "w:instrText": 0
+  },
+  "reference_text": "corpus/reference/protected-readonly-xlsx-001.txt",
+  "expected": {
+    "page_count_min": null,
+    "page_count_max": null
+  },
+  "render": {
+    "dpis": [
+      150
+    ],
+    "engines": [
+      "soffice-26.2.5"
+    ]
+  },
+  "notes": "real sheetProtection (sheet=\"1\", no password hash) via ws.protection.sheet=True, plus password-less workbook structure lock (wb.security lockStructure=True); A1 is the one locked cell (inherits locked=1 from the Normal cell style), A2:A3 carry explicit applyProtection locked=0 xf entries — verified in styles.xml/sheet1.xml. Password-less protection is a UI hint, not security; weakness is intentional fixture content, not a generator bug.",
+  "sha256": "cc901b5969473e009bdc264b4f18146cc7bd4c3ec3c01c070ec8a9b787b2c0fb"
+}

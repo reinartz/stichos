@@ -1,0 +1,4 @@
+smartart-drawing docx 002
+Two DrawingML shapes stand in for a diagram below.
+Group node: plan
+Group node: review

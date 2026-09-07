@@ -1,0 +1,131 @@
+# stichos PR gate (SA-8: HAR-07 + DIS-01 flavor + SEC-02-for-python)
+#
+# M0 reality: no Cargo workspace exists yet, and corpus/blobs/ is gitignored
+# (corpus/PLAN.md §6) — so this gate is platform-agnostic, manifest-only:
+#   gen verify --no-blobs · metrics pytest · taxonomy/PR-subset lint · yaml+json gates.
+# The fidelity (LibreOffice image) run lives in nightly.yml (linux-only by design, SA-3/D15).
+# cargo-deny is a ready-but-skipped placeholder below: it self-activates via the
+# hashFiles('Cargo.toml') condition when the workspace lands (CORE-01, plan §3.3).
+name: pr
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+concurrency:
+  group: pr-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: install harness dev deps (dev-only, never shipped — concept §6)
+        run: pip install -r harness/requirements-dev.txt
+
+      - name: gen verify --no-blobs (manifest-only; blobs are not in git)
+        working-directory: harness/generator
+        run: python3 -m gen verify --no-blobs
+
+      - name: metrics test suite
+        run: python3 -m pytest harness/metrics/tests -q
+
+      - name: manifest taxonomy lint (ids/categories vs corpus/PLAN.md §2)
+        run: |
+          python3 - <<'PY'
+          import json, re, sys
+          from pathlib import Path
+          plan = Path("corpus/PLAN.md").read_text(encoding="utf-8")
+          sec = plan.split("## 2. Category taxonomy")[1].split("## 3.")[0]
+          taxonomy = set(re.findall(r"^\|\s*`([a-z0-9]+(?:-[a-z0-9]+)*)`\s*\|", sec, flags=re.M))
+          if not taxonomy:
+              sys.exit("FATAL: could not parse taxonomy table from corpus/PLAN.md §2")
+          bad = 0
+          for mp in sorted(Path("corpus/manifests").glob("*.json")):
+              m = json.loads(mp.read_text(encoding="utf-8"))
+              if mp.stem != m["id"]:
+                  print(f"FAIL {mp}: filename != id"); bad += 1
+              if not m["categories"]:
+                  print(f"FAIL {m['id']}: empty categories"); bad += 1
+              for c in m["categories"]:
+                  if c not in taxonomy:
+                      print(f"FAIL {m['id']}: category {c!r} not in PLAN.md §2 taxonomy"); bad += 1
+              head = m["id"].rsplit("-", 2)[0]
+              if head != m["categories"][0]:
+                  print(f"FAIL {m['id']}: id head {head!r} != primary category {m['categories'][0]!r}"); bad += 1
+          print(f"taxonomy lint: {len(taxonomy)} categories in PLAN.md §2, {bad} problem(s)")
+          sys.exit(1 if bad else 0)
+          PY
+
+      - name: PR-subset lint (corpus/pr-subset.txt, HAR-07)
+        run: |
+          python3 - <<'PY'
+          import json, sys
+          from pathlib import Path
+          ids = [l.strip() for l in Path("corpus/pr-subset.txt").read_text(encoding="utf-8").splitlines()
+                 if l.strip() and not l.startswith("#")]
+          bad = []
+          if len(ids) != 20:
+              bad.append(f"expected exactly 20 ids, got {len(ids)}")
+          if len(set(ids)) != len(ids):
+              bad.append("duplicate ids")
+          for i in ids:
+              if not Path(f"corpus/manifests/{i}.json").exists():
+                  bad.append(f"{i}: manifest missing")
+          gen_cats = {json.loads(p.read_text(encoding="utf-8"))["categories"][0]
+                      for p in Path("corpus/manifests").glob("*.json")
+                      if json.loads(p.read_text(encoding="utf-8"))["source"] == "generated"}
+          cats = {i.rsplit("-", 2)[0] for i in ids}
+          if len(cats) != len(ids):
+              bad.append("ids do not cover one distinct category each")
+          deferred = gen_cats - cats
+          if deferred != {"long-deck-300", "huge-cell-text"}:
+              bad.append(f"deferred categories {sorted(deferred)} != ['huge-cell-text', 'long-deck-300'] (PLAN.md §3)")
+          for b in bad:
+              print("FAIL", b)
+          sys.exit(1 if bad else 0)
+          PY
+
+      - name: yaml + json syntax gates
+        run: |
+          python3 - <<'PY'
+          import json, sys
+          from pathlib import Path
+          import yaml
+          bad = []
+          for p in Path(".").rglob("*.json"):
+              if ".git/" in str(p):
+                  continue
+              try:
+                  json.loads(p.read_text(encoding="utf-8"))
+              except Exception as e:
+                  bad.append(f"{p}: {e}")
+          ymls = sorted(Path(".").rglob("*.yml")) + sorted(Path(".").rglob("*.yaml"))
+          for p in ymls:
+              if ".git/" in str(p):
+                  continue
+              try:
+                  list(yaml.safe_load_all(p.read_text(encoding="utf-8")))
+              except Exception as e:
+                  bad.append(f"{p}: {e}")
+          for b in bad:
+              print("FAIL", b)
+          print(f"syntax gates: {len(bad)} bad file(s) in {sum(1 for p in Path('.').rglob('*.json') if '.git/' not in str(p))} json + {len(ymls)} yaml")
+          sys.exit(1 if bad else 0)
+          PY
+
+      # SEC-02 (plan §3.3): cargo-deny is READY but SKIPPED at M0 — there is no Cargo
+      # workspace yet. deny.toml at repo root carries the license allow-list, the
+      # C-renderer -sys bans (pdfium/MuPDF/LOKit) and the advisory gate. This step
+      # self-activates the moment Cargo.toml lands (CORE-01); no CI edit needed.
+      - name: cargo-deny (auto-activates at CORE-01 when Cargo.toml exists)
+        if: ${{ hashFiles('Cargo.toml') != '' }}
+        uses: EmbarkStudios/cargo-deny-action@v2
+        with:
+          command: check bans licenses advisories sources

@@ -1,0 +1,11 @@
+numbering-restarts odp 002
+Alpha item 1
+Alpha item 2
+Alpha item 3
+Alpha item 4
+Bravo item 1
+Bravo item 2
+Bravo item 3
+Charlie item 1
+Charlie item 2
+Charlie item 3

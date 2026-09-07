@@ -1,0 +1,3 @@
+tracked-changes odt 001
+Base text remains after the deletion.
+Inserted paragraph by bot-a covering the design section.

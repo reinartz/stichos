@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "id": "scanned-ocr-pptx-002",
+  "title": "Scanned slide pptx 002",
+  "source": "generated",
+  "generator": {
+    "name": "harness/generator",
+    "version": "0.1.0"
+  },
+  "format": "pptx",
+  "categories": [
+    "scanned-ocr"
+  ],
+  "features": {
+    "w:tbl": 0,
+    "w:drawing": 0,
+    "w:fldSimple": 0,
+    "w:commentReference": 0,
+    "w:comment": 0,
+    "w:instrText": 0
+  },
+  "reference_text": "corpus/reference/scanned-ocr-pptx-002.txt",
+  "expected": {
+    "page_count_min": null,
+    "page_count_max": null
+  },
+  "render": {
+    "dpis": [
+      150
+    ],
+    "engines": [
+      "soffice-26.2.5"
+    ]
+  },
+  "notes": "scanned-slide emulation, second instance: differs from 001 in three visible ways — the raster is the shared _sc_scan_png recipe MIRRORED horizontally on top of the per-fixture ctx.rng noise seed (different pixel stream, same bar texture), the caption text box carries TWO lines (001: one) with different wording, and the reference text therefore lists both caption strings. Still the honest near-None case: the picture has no text layer, the caption is the only text truth.",
+  "sha256": "20e3a88ea36fffd94b9fa5b6fe43a2064aacad58ab7ec28afefd770680e38cba"
+}

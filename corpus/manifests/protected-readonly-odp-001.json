@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "id": "protected-readonly-odp-001",
+  "title": "Protected readonly odp 001",
+  "source": "generated",
+  "generator": {
+    "name": "harness/generator",
+    "version": "0.1.0"
+  },
+  "format": "odp",
+  "categories": [
+    "protected-readonly"
+  ],
+  "features": {
+    "table:table": 0,
+    "draw:frame": 2,
+    "text:note": 0,
+    "text:field": 0,
+    "office:annotation": 0
+  },
+  "reference_text": "corpus/reference/protected-readonly-odp-001.txt",
+  "expected": {
+    "page_count_min": null,
+    "page_count_max": null
+  },
+  "render": {
+    "dpis": [
+      150
+    ],
+    "engines": [
+      "soffice-26.2.5"
+    ]
+  },
+  "notes": "ODF has no first-class readonly flag — settings.xml heuristic, honest stub (same approach as protected-readonly-odt-001, Impress flavor). Real ODF document protection lives in settings.xml (office:document-settings, config:config-item-set), and application-level items there are feature toggles, not a document-wide read-only bit; no password digest is emitted anywhere. This fixture adds a well-formed settings.xml part (media type text/xml, manifest entry) with an OpenOffice.org/Impress config-item-set carrying a ProtectSections boolean false — a protection-flavored marker a renderer may legitimately ignore, and LO's exact tolerance of this item name under the Impress set is UNVERIFIED (LibreOffice is not run in this environment). Reference text covers only the two visible slide strings; no normative ODF counter matches settings/config elements, so the only nonzero counter is draw:frame=2.",
+  "sha256": "45ae7f8c09c80751d8b75c3e652dcf7c0d1d5c494244c4fdd4115bf3ae2b1bd0"
+}

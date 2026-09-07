@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <rect width="512" height="512" fill="#101A2E"/>
+  <g stroke="#FBF7EE" stroke-opacity="0.07" stroke-width="2">
+    <path d="M64 0V512M128 0V512M192 0V512M256 0V512M320 0V512M384 0V512M448 0V512M0 64H512M0 128H512M0 192H512M0 256H512M0 320H512M0 384H512M0 448H512"/>
+  </g>
+  <rect x="88" y="50" width="256" height="336" rx="18" fill="#FBF7EE" opacity="0.18"/>
+  <rect x="128" y="86" width="272" height="352" rx="18" fill="#FBF7EE"/>
+  <g fill="#93A0B8">
+    <rect x="170" y="142" width="188" height="20" rx="10"/>
+    <rect x="170" y="186" width="188" height="20" rx="10"/>
+    <rect x="170" y="230" width="152" height="20" rx="10"/>
+    <rect x="170" y="274" width="188" height="20" rx="10"/>
+    <rect x="170" y="318" width="120" height="20" rx="10"/>
+  </g>
+  <path d="M176 262 L240 326 L372 172" fill="none" stroke="#E2483A" stroke-width="34" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- printer's crop marks + registration target -->
+  <g stroke="#FBF7EE" stroke-opacity="0.5" stroke-width="6" stroke-linecap="square">
+    <path d="M112 86h-26M128 70v-26M400 86h26M384 70v-26M112 438h-26M128 454v26M400 438h26M384 454v26"/>
+  </g>
+  <g stroke="#E2483A" stroke-opacity="0.75" stroke-width="5" fill="none">
+    <circle cx="60" cy="452" r="16"/><path d="M60 428v48M36 452h48"/>
+  </g>
+</svg>

@@ -1,0 +1,11 @@
+unicode edge odp
+eﬃciently oﬄine — a ﬁle and a ﬂag
+👨‍👩‍👧‍👦
+dejá vu café stack ấ
+Non breaking spaces keep this sentence on one line.
+one long word: ex­traor­di­nary­hy­phe­nat­ic­al­ly ends here.
+Sans double-struck variables: 𝕏 and 𝕐.
+Mathematical bold digits: 𝟏𝟐𝟑.
+VS15 text heart ❤︎ next to VS16 emoji heart ❤️.
+‎open LRM ‏עברית‏ close RLM tail‎
+﻿paragraph that starts with a zero-width no-break space

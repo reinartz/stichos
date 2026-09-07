@@ -1,0 +1,130 @@
+run: 127 matched, 0 already in csv, 127 to do; image=stichos-harness:26.2.5
+  cjk-text-ods-001                     rt=1 ret=1 f1s=0.9114 pandoc=no-pandoc-reader f1p=- ppm=0.067s
+  cjk-text-odp-001                     rt=1 ret=0 f1s=0.6667 pandoc=no-pandoc-reader f1p=- ppm=0.068s
+  cjk-text-docx-002                    rt=1 ret=1 f1s=1.0000 pandoc=ok f1p=1.0000 ppm=0.067s
+  cjk-text-docx-001                    rt=1 ret=1 f1s=1.0000 pandoc=ok f1p=1.0000 ppm=0.070s
+  cjk-text-odt-002                     rt=1 ret=1 f1s=1.0000 pandoc=ok f1p=1.0000 ppm=0.061s
+  cjk-text-xlsx-001                    rt=1 ret=1 f1s=1.0000 pandoc=no-pandoc-reader f1p=- ppm=0.064s
+  cjk-text-odt-001                     rt=1 ret=1 f1s=1.0000 pandoc=ok f1p=1.0000 ppm=0.072s
+  cjk-text-pptx-001                    rt=1 ret=1 f1s=0.9444 pandoc=fail-rc21 f1p=- ppm=0.083s  ERR: pandoc: Unknown input format pptx
+  comments-annotations-odp-001         rt=1 ret=0 f1s=0.0488 pandoc=no-pandoc-reader f1p=- ppm=0.059s
+  comments-annotations-docx-001        rt=1 ret=1 f1s=0.6957 pandoc=ok f1p=0.6957 ppm=0.066s
+  comments-annotations-ods-001         rt=1 ret=1 f1s=0.2222 pandoc=no-pandoc-reader f1p=- ppm=0.059s
+  comments-annotations-docx-002        rt=1 ret=1 f1s=0.6847 pandoc=ok f1p=0.6847 ppm=0.074s
+  comments-annotations-xlsx-001        rt=1 ret=1 f1s=0.3333 pandoc=no-pandoc-reader f1p=- ppm=0.057s
+  comments-annotations-odt-001         rt=1 ret=1 f1s=0.6889 pandoc=ok f1p=0.6889 ppm=0.071s
+  conditional-formatting-ods-001       rt=1 ret=1 f1s=0.8696 pandoc=no-pandoc-reader f1p=- ppm=0.058s
+  comments-annotations-pptx-001        rt=1 ret=1 f1s=0.4615 pandoc=fail-rc21 f1p=- ppm=0.075s  ERR: pandoc: Unknown input format pptx
+  conditional-formatting-xlsx-002      rt=1 ret=1 f1s=1.0000 pandoc=no-pandoc-reader f1p=- ppm=0.061s
+  conditional-formatting-xlsx-001      rt=1 ret=1 f1s=1.0000 pandoc=no-pandoc-reader f1p=- ppm=0.063s
+  conditional-formatting-ods-002       rt=1 ret=1 f1s=0.6667 pandoc=no-pandoc-reader f1p=- ppm=0.060s
+  custom-styles-docx-001               rt=1 ret=1 f1s=1.0000 pandoc=ok f1p=1.0000 ppm=0.064s
+  custom-styles-ods-001                rt=1 ret=1 f1s=0.5333 pandoc=no-pandoc-reader f1p=- ppm=0.062s
+  custom-styles-docx-002               rt=1 ret=1 f1s=1.0000 pandoc=ok f1p=1.0000 ppm=0.064s
+  custom-styles-odp-001                rt=1 ret=0 f1s=0.0000 pandoc=no-pandoc-reader f1p=- ppm=0.061s
+  custom-styles-odt-001                rt=1 ret=1 f1s=1.0000 pandoc=ok f1p=1.0000 ppm=0.070s
+  custom-styles-xlsx-001               rt=1 ret=1 f1s=0.5000 pandoc=no-pandoc-reader f1p=- ppm=0.062s
+  custom-styles-pptx-001               rt=1 ret=1 f1s=1.0000 pandoc=fail-rc21 f1p=- ppm=0.083s  ERR: pandoc: Unknown input format pptx
+  custom-styles-odt-002                rt=1 ret=1 f1s=1.0000 pandoc=ok f1p=1.0000 ppm=0.070s
+  embedded-ole-docx-001                rt=1 ret=0 f1s=1.0000 pandoc=ok f1p=1.0000 ppm=0.066s
+  embedded-ole-ods-001                 rt=1 ret=0 f1s=0.6452 pandoc=no-pandoc-reader f1p=- ppm=0.064s
+  embedded-ole-odp-001                 rt=1 ret=0 f1s=0.0000 pandoc=no-pandoc-reader f1p=- ppm=0.102s
+  embedded-ole-docx-002                rt=1 ret=0 f1s=1.0000 pandoc=ok f1p=1.0000 ppm=0.064s
+  embedded-ole-odt-001                 rt=1 ret=1 f1s=0.9730 pandoc=ok f1p=1.0000 ppm=0.072s
+  embedded-ole-xlsx-001                rt=1 ret=1 f1s=0.8000 pandoc=no-pandoc-reader f1p=- ppm=0.058s
+  footnotes-endnotes-docx-001          rt=1 ret=1 f1s=0.9045 pandoc=ok f1p=0.9045 ppm=0.091s
+  embedded-ole-pptx-001                rt=1 ret=1 f1s=1.0000 pandoc=fail-rc21 f1p=- ppm=0.082s  ERR: pandoc: Unknown input format pptx
+  footnotes-endnotes-docx-002          rt=1 ret=1 f1s=0.9091 pandoc=ok f1p=0.9091 ppm=0.071s
+  formulas-cached-ods-002              rt=1 ret=1 f1s=0.2857 pandoc=no-pandoc-reader f1p=- ppm=0.106s
+  formulas-cached-ods-001              rt=1 ret=1 f1s=0.5882 pandoc=no-pandoc-reader f1p=- ppm=0.061s
+  footnotes-endnotes-odt-001           rt=1 ret=1 f1s=0.9189 pandoc=ok f1p=0.9189 ppm=0.080s
+  footnotes-endnotes-odt-002           rt=1 ret=1 f1s=0.9211 pandoc=ok f1p=0.9211 ppm=0.113s
+  formulas-cached-xlsx-001             rt=1 ret=1 f1s=1.0000 pandoc=no-pandoc-reader f1p=- ppm=0.058s
+  formulas-cached-ods-003              rt=1 ret=1 f1s=0.2857 pandoc=no-pandoc-reader f1p=- ppm=0.058s
+  formulas-cached-xlsx-002             rt=1 ret=1 f1s=0.8750 pandoc=no-pandoc-reader f1p=- ppm=0.104s
+  formulas-cached-xlsx-003             rt=1 ret=1 f1s=0.8750 pandoc=no-pandoc-reader f1p=- ppm=0.058s
+  headers-fields-odt-002               rt=1 ret=1 f1s=1.0000 pandoc=ok f1p=1.0000 ppm=1.070s
+  headers-fields-docx-001              rt=1 ret=1 f1s=0.9940 pandoc=ok f1p=1.0000 ppm=1.235s
+  headers-fields-docx-002              rt=1 ret=1 f1s=0.9910 pandoc=ok f1p=1.0000 ppm=1.249s
+  headers-fields-odt-001               rt=1 ret=1 f1s=0.9990 pandoc=ok f1p=1.0000 ppm=1.062s
+  huge-cell-text-ods-001               rt=1 ret=1 f1s=0.0047 pandoc=no-pandoc-reader f1p=- ppm=0.854s
+  huge-cell-text-xlsx-001              rt=1 ret=1 f1s=0.0007 pandoc=no-pandoc-reader f1p=- ppm=0.058s
+  huge-cell-text-ods-002               rt=1 ret=1 f1s=0.8178 pandoc=no-pandoc-reader f1p=- ppm=2.819s
+  huge-cell-text-odt-001               rt=1 ret=1 f1s=1.0000 pandoc=ok f1p=0.9998 ppm=3.764s
+  huge-cell-text-docx-001              rt=1 ret=1 f1s=1.0000 pandoc=ok f1p=0.9998 ppm=4.449s
+  image-textwrap-docx-001              rt=1 ret=1 f1s=1.0000 pandoc=ok f1p=0.9945 ppm=0.102s
+  image-textwrap-docx-002              rt=1 ret=1 f1s=1.0000 pandoc=ok f1p=0.9972 ppm=0.143s
+  image-textwrap-odp-001               rt=1 ret=0 f1s=0.0000 pandoc=no-pandoc-reader f1p=- ppm=0.063s
+  huge-cell-text-xlsx-002              rt=1 ret=1 f1s=0.7059 pandoc=no-pandoc-reader f1p=- ppm=3.164s
+  image-textwrap-odt-001               rt=1 ret=1 f1s=0.9899 pandoc=ok f1p=0.9899 ppm=0.120s
+  image-textwrap-pptx-001              rt=1 ret=1 f1s=1.0000 pandoc=fail-rc21 f1p=- ppm=0.077s  ERR: pandoc: Unknown input format pptx
+  long-tables-docx-001                 rt=1 ret=1 f1s=1.0000 pandoc=ok f1p=0.9901 ppm=0.403s
+  long-tables-docx-002                 rt=1 ret=1 f1s=1.0000 pandoc=ok f1p=0.5907 ppm=0.409s
+  long-tables-ods-001                  rt=1 ret=1 f1s=0.9926 pandoc=no-pandoc-reader f1p=- ppm=0.529s
+  long-tables-odt-001                  rt=1 ret=1 f1s=1.0000 pandoc=ok f1p=0.9920 ppm=0.415s
+  long-deck-300-odp-001                rt=1 ret=0 f1s=0.0000 pandoc=no-pandoc-reader f1p=- ppm=16.417s
+  long-tables-xlsx-001                 rt=1 ret=1 f1s=1.0000 pandoc=no-pandoc-reader f1p=- ppm=0.837s
+  merged-cells-docx-001                rt=1 ret=1 f1s=1.0000 pandoc=ok f1p=0.4595 ppm=0.064s
+  long-deck-300-pptx-001               rt=1 ret=1 f1s=0.4000 pandoc=fail-rc21 f1p=- ppm=20.149s  ERR: pandoc: Unknown input format pptx
+  long-tables-xlsx-002                 rt=1 ret=1 f1s=1.0000 pandoc=no-pandoc-reader f1p=- ppm=0.848s
+  long-deck-300-pptx-002               rt=1 ret=1 f1s=0.4000 pandoc=fail-rc21 f1p=- ppm=20.377s  ERR: pandoc: Unknown input format pptx
+  merged-cells-odt-001                 rt=1 ret=1 f1s=0.8889 pandoc=ok f1p=0.7692 ppm=0.059s
+  merged-cells-docx-002                rt=1 ret=1 f1s=1.0000 pandoc=ok f1p=0.3789 ppm=0.069s
+  merged-cells-ods-002                 rt=1 ret=1 f1s=0.5714 pandoc=no-pandoc-reader f1p=- ppm=0.117s
+  merged-cells-ods-001                 rt=1 ret=1 f1s=0.8235 pandoc=no-pandoc-reader f1p=- ppm=0.065s
+  merged-cells-xlsx-001                rt=1 ret=1 f1s=1.0000 pandoc=no-pandoc-reader f1p=- ppm=0.061s
+  merged-cells-xlsx-003                rt=1 ret=1 f1s=1.0000 pandoc=no-pandoc-reader f1p=- ppm=0.109s
+  merged-cells-xlsx-002                rt=1 ret=1 f1s=1.0000 pandoc=no-pandoc-reader f1p=- ppm=0.064s
+  merged-cells-pptx-001                rt=1 ret=1 f1s=1.0000 pandoc=fail-rc21 f1p=- ppm=0.086s  ERR: pandoc: Unknown input format pptx
+  numbering-restarts-docx-002          rt=1 ret=1 f1s=0.8675 pandoc=ok f1p=0.8675 ppm=0.078s
+  numbering-restarts-odp-001           rt=1 ret=0 f1s=0.0385 pandoc=no-pandoc-reader f1p=- ppm=0.065s
+  numbering-restarts-docx-001          rt=1 ret=1 f1s=0.8684 pandoc=ok f1p=0.8684 ppm=0.080s
+  numbering-restarts-odt-001           rt=1 ret=1 f1s=0.6970 pandoc=ok f1p=0.8684 ppm=0.079s
+  protected-readonly-odp-001           rt=1 ret=0 f1s=0.1290 pandoc=no-pandoc-reader f1p=- ppm=0.064s
+  numbering-restarts-odt-002           rt=1 ret=1 f1s=0.7037 pandoc=ok f1p=0.8710 ppm=0.072s
+  numbering-restarts-pptx-001          rt=1 ret=1 f1s=0.7000 pandoc=fail-rc21 f1p=- ppm=0.087s  ERR: pandoc: Unknown input format pptx
+  protected-readonly-docx-001          rt=1 ret=1 f1s=1.0000 pandoc=ok f1p=1.0000 ppm=0.065s
+  protected-readonly-xlsx-001          rt=1 ret=1 f1s=1.0000 pandoc=no-pandoc-reader f1p=- ppm=0.059s
+  protected-readonly-ods-001           rt=1 ret=1 f1s=0.6667 pandoc=no-pandoc-reader f1p=- ppm=0.067s
+  protected-readonly-pptx-001          rt=1 ret=1 f1s=1.0000 pandoc=fail-rc21 f1p=- ppm=0.090s  ERR: pandoc: Unknown input format pptx
+  protected-readonly-odt-001           rt=1 ret=1 f1s=1.0000 pandoc=ok f1p=1.0000 ppm=0.068s
+  rtl-sheets-ods-002                   rt=1 ret=1 f1s=0.2667 pandoc=no-pandoc-reader f1p=- ppm=0.118s
+  rtl-sheets-xlsx-002                  rt=1 ret=1 f1s=0.3333 pandoc=no-pandoc-reader f1p=- ppm=0.109s
+  rtl-sheets-xlsx-001                  rt=1 ret=1 f1s=0.0000 pandoc=no-pandoc-reader f1p=- ppm=0.064s
+  rtl-sheets-ods-001                   rt=1 ret=1 f1s=0.0000 pandoc=no-pandoc-reader f1p=- ppm=0.067s
+  rtl-text-odp-001                     rt=1 ret=0 f1s=0.0000 pandoc=no-pandoc-reader f1p=- ppm=0.057s
+  rtl-text-docx-002                    rt=1 ret=1 f1s=0.4167 pandoc=ok f1p=1.0000 ppm=0.070s
+  rtl-text-docx-001                    rt=1 ret=1 f1s=0.2093 pandoc=ok f1p=1.0000 ppm=0.064s
+  rtl-text-odt-001                     rt=1 ret=1 f1s=0.6250 pandoc=ok f1p=1.0000 ppm=0.073s
+run: 127 matched, 97 already in csv, 30 to do; image=stichos-harness:26.2.5
+  rtl-text-pptx-001                    rt=1 ret=1 f1s=0.4146 pandoc=fail-rc21 f1p=- ppm=0.090s  ERR: pandoc: Unknown input format pptx
+  scanned-ocr-odp-001                  rt=1 ret=0 f1s=0.0000 pandoc=no-pandoc-reader f1p=- ppm=0.054s
+  rtl-text-odt-002                     rt=1 ret=1 f1s=0.6122 pandoc=ok f1p=0.9388 ppm=0.068s
+  scanned-ocr-docx-001                 rt=1 ret=1 f1s=1.0000 pandoc=ok f1p=0.9231 ppm=0.719s
+  smartart-drawing-docx-001            rt=1 ret=1 f1s=1.0000 pandoc=ok f1p=0.7500 ppm=0.066s
+  smartart-drawing-docx-002            rt=1 ret=1 f1s=1.0000 pandoc=ok f1p=0.8000 ppm=0.068s
+  scanned-ocr-pptx-001                 rt=1 ret=1 f1s=1.0000 pandoc=fail-rc21 f1p=- ppm=0.175s  ERR: pandoc: Unknown input format pptx
+  scanned-ocr-odt-001                  rt=1 ret=1 f1s=1.0000 pandoc=ok f1p=0.9091 ppm=0.745s
+  smartart-drawing-docx-003            rt=1 ret=1 f1s=1.0000 pandoc=ok f1p=0.8500 ppm=0.100s
+  smartart-drawing-pptx-001            rt=1 ret=1 f1s=0.7500 pandoc=fail-rc21 f1p=- ppm=0.076s  ERR: pandoc: Unknown input format pptx
+  smartart-drawing-pptx-002            rt=1 ret=1 f1s=0.7273 pandoc=fail-rc21 f1p=- ppm=0.075s  ERR: pandoc: Unknown input format pptx
+  toc-fields-docx-001                  rt=1 ret=0 f1s=1.0000 pandoc=ok f1p=0.9000 ppm=0.078s
+  toc-fields-docx-002                  rt=1 ret=0 f1s=1.0000 pandoc=ok f1p=0.9000 ppm=0.079s
+  tracked-changes-docx-001             rt=1 ret=1 f1s=0.9167 pandoc=ok f1p=1.0000 ppm=0.062s
+  toc-fields-odt-002                   rt=1 ret=1 f1s=0.8947 pandoc=ok f1p=0.8947 ppm=0.087s
+  toc-fields-odt-001                   rt=1 ret=1 f1s=0.8710 pandoc=ok f1p=0.8710 ppm=0.082s
+  tracked-changes-docx-002             rt=1 ret=1 f1s=0.9375 pandoc=ok f1p=1.0000 ppm=0.065s
+  tracked-changes-ods-001              rt=1 ret=1 f1s=0.6957 pandoc=no-pandoc-reader f1p=- ppm=0.062s
+  tracked-changes-docx-003             rt=1 ret=1 f1s=0.9375 pandoc=ok f1p=0.8824 ppm=0.062s
+  tracked-changes-odt-001              rt=1 ret=1 f1s=0.6923 pandoc=ok f1p=0.6923 ppm=0.062s
+  tracked-changes-xlsx-001             rt=1 ret=1 f1s=1.0000 pandoc=no-pandoc-reader f1p=- ppm=0.056s
+  tracked-changes-odt-002              rt=1 ret=1 f1s=0.7647 pandoc=ok f1p=0.7647 ppm=0.061s
+  unicode-edge-docx-001                rt=1 ret=1 f1s=0.9589 pandoc=ok f1p=1.0000 ppm=0.073s
+  unicode-edge-docx-002                rt=1 ret=1 f1s=0.8219 pandoc=ok f1p=1.0000 ppm=0.074s
+  unicode-edge-odp-001                 rt=1 ret=0 f1s=0.0000 pandoc=no-pandoc-reader f1p=- ppm=0.052s
+  unicode-edge-ods-001                 rt=1 ret=1 f1s=0.8759 pandoc=no-pandoc-reader f1p=- ppm=0.090s
+  unicode-edge-odt-002                 rt=1 ret=1 f1s=0.8219 pandoc=ok f1p=1.0000 ppm=0.073s
+  unicode-edge-odt-001                 rt=1 ret=1 f1s=0.9589 pandoc=ok f1p=1.0000 ppm=0.074s
+  unicode-edge-xlsx-001                rt=1 ret=1 f1s=0.8276 pandoc=no-pandoc-reader f1p=- ppm=0.061s
+  unicode-edge-pptx-001                rt=1 ret=1 f1s=0.9863 pandoc=fail-rc21 f1p=- ppm=0.095s  ERR: pandoc: Unknown input format pptx
+run done: ok=25 with-errors=5 ids=['rtl-text-pptx-001', 'scanned-ocr-pptx-001', 'smartart-drawing-pptx-001', 'smartart-drawing-pptx-002', 'unicode-edge-pptx-001']

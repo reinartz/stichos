@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "id": "long-tables-xlsx-002",
+  "title": "Long tables xlsx 002",
+  "source": "generated",
+  "generator": {
+    "name": "harness/generator",
+    "version": "0.1.0"
+  },
+  "format": "xlsx",
+  "categories": [
+    "long-tables"
+  ],
+  "features": {
+    "w:tbl": 0,
+    "w:drawing": 0,
+    "w:fldSimple": 0,
+    "w:commentReference": 0,
+    "w:comment": 0,
+    "w:instrText": 0
+  },
+  "reference_text": "corpus/reference/long-tables-xlsx-002.txt",
+  "expected": {
+    "page_count_min": null,
+    "page_count_max": null
+  },
+  "render": {
+    "dpis": [
+      150
+    ],
+    "engines": [
+      "soffice-26.2.5"
+    ]
+  },
+  "notes": "same 200x5 grid as 001 plus column F: a real =B{r}*2 formula on every data row (199 cells). Column B holds the integer row index r in this variant (a string would make =B{r}*2 a #VALUE! error, so 002 deviates from the v{r}_{c} pattern in column B only). openpyxl writes formulas without cached values; the cached <v> (2*r, pre-computed in python) is injected by a zip rewrite so cached-value readers and recalc-on-load renderers agree; recount asserts every <f> has a <v>.",
+  "sha256": "dde9032593304c6378dce77751551610c9e11d8c63a41b92cf1254ecad9f46a2"
+}

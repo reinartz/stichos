@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "id": "long-deck-300-pptx-002",
+  "title": "Long deck 300 pptx 002",
+  "source": "generated",
+  "generator": {
+    "name": "harness/generator",
+    "version": "0.1.0"
+  },
+  "format": "pptx",
+  "categories": [
+    "long-deck-300"
+  ],
+  "features": {
+    "w:tbl": 0,
+    "w:drawing": 0,
+    "w:fldSimple": 0,
+    "w:commentReference": 0,
+    "w:comment": 0,
+    "w:instrText": 0
+  },
+  "reference_text": "corpus/reference/long-deck-300-pptx-002.txt",
+  "expected": {
+    "page_count_min": null,
+    "page_count_max": null
+  },
+  "render": {
+    "dpis": [
+      150
+    ],
+    "engines": [
+      "soffice-26.2.5"
+    ]
+  },
+  "notes": "300-slide pagination/theme stress; deck size is the feature. Same single blank layout (slide_layouts[6]) on all 300 slides, but the textbox position ALTERNATES between two placements — odd slides at (0.6in, 0.6in), even slides at (1.2in, 2.2in) — so geometry varies while the layout chain stays constant; each slide carries a 'Slide {i}' title line plus three buChar bullets drawn from a fixed 12-phrase NATO cycle. reference_text is the exact title+bullets of every slide in order (1200 lines).",
+  "sha256": "332a98b4796d315fd020acb9dbef40f14bcc377e2035f756ef6d681506694196"
+}

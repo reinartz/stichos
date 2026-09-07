@@ -1,0 +1,3 @@
+Product Amount
+Coffee 12.5
+Tin 1234.5

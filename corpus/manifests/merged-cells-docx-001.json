@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "id": "merged-cells-docx-001",
+  "title": "Merged cells grid 1",
+  "source": "generated",
+  "generator": {
+    "name": "harness/generator",
+    "version": "0.1.0"
+  },
+  "format": "docx",
+  "categories": [
+    "merged-cells"
+  ],
+  "features": {
+    "w:tbl": 1,
+    "w:drawing": 0,
+    "w:fldSimple": 0,
+    "w:commentReference": 0,
+    "w:comment": 0,
+    "w:instrText": 0
+  },
+  "reference_text": "corpus/reference/merged-cells-docx-001.txt",
+  "expected": {
+    "page_count_min": null,
+    "page_count_max": null
+  },
+  "render": {
+    "dpis": [
+      150
+    ],
+    "engines": [
+      "soffice-26.2.5"
+    ]
+  },
+  "notes": "real h-merge (gridSpan) + v-merge (vMerge continuation); python-docx merge.",
+  "sha256": "ed444fa1a5c9339ba914121c605eeda6ba2c4d1dedb6a2740537ec9b2795172e"
+}

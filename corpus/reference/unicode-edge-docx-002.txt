@@ -1,0 +1,6 @@
+unicode-edge docx 002
+Sans double-struck variables: 𝕏 and 𝕐.
+Mathematical bold digits: 𝟏𝟐𝟑.
+VS15 text heart ❤︎ next to VS16 emoji heart ❤️.
+‎open LRM ‏עברית‏ close RLM tail‎
+﻿paragraph that starts with a zero-width no-break space

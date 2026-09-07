@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "id": "protected-readonly-docx-001",
+  "title": "Protected read-only docx 001",
+  "source": "generated",
+  "generator": {
+    "name": "harness/generator",
+    "version": "0.1.0"
+  },
+  "format": "docx",
+  "categories": [
+    "protected-readonly"
+  ],
+  "features": {
+    "w:tbl": 0,
+    "w:drawing": 0,
+    "w:fldSimple": 0,
+    "w:commentReference": 0,
+    "w:comment": 0,
+    "w:instrText": 0
+  },
+  "reference_text": "corpus/reference/protected-readonly-docx-001.txt",
+  "expected": {
+    "page_count_min": null,
+    "page_count_max": null
+  },
+  "render": {
+    "dpis": [
+      150
+    ],
+    "engines": [
+      "soffice-26.2.5"
+    ]
+  },
+  "notes": "real w:documentProtection (w:edit=\"readOnly\" w:enforcement=\"1\") injected into word/settings.xml via gen.core zip_read/zip_write; body text is plain python-docx content.",
+  "sha256": "8dd6dc282c36fed4e858f874da4d88ad434b50a88687e0377bfd039d710bb3d7"
+}

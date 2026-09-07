@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "id": "rtl-sheets-xlsx-002",
+  "title": "RTL sheet view 2",
+  "source": "generated",
+  "generator": {
+    "name": "harness/generator",
+    "version": "0.1.0"
+  },
+  "format": "xlsx",
+  "categories": [
+    "rtl-sheets"
+  ],
+  "features": {
+    "w:tbl": 0,
+    "w:drawing": 0,
+    "w:fldSimple": 0,
+    "w:commentReference": 0,
+    "w:comment": 0,
+    "w:instrText": 0
+  },
+  "reference_text": "corpus/reference/rtl-sheets-xlsx-002.txt",
+  "expected": {
+    "page_count_min": null,
+    "page_count_max": null
+  },
+  "render": {
+    "dpis": [
+      150
+    ],
+    "engines": [
+      "soffice-26.2.5"
+    ]
+  },
+  "notes": "mixed-workbook case: sheet 'RTL' has sheetView rightToLeft=1 plus one column-level right alignment on column B (column_dimensions alignment), sheet 'LTR' is explicitly left-to-right — extractors must not assume one bidi view direction per workbook; numeric values are real, no formulas.",
+  "sha256": "0b51a7c54cc6641a21b414fbde6f934dae200a1d796e49e6d4229e796239fcba"
+}

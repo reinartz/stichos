@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "id": "cjk-text-docx-002",
+  "title": "CJK text docx 002",
+  "source": "generated",
+  "generator": {
+    "name": "harness/generator",
+    "version": "0.1.0"
+  },
+  "format": "docx",
+  "categories": [
+    "cjk-text"
+  ],
+  "features": {
+    "w:tbl": 0,
+    "w:drawing": 0,
+    "w:fldSimple": 0,
+    "w:commentReference": 0,
+    "w:comment": 0,
+    "w:instrText": 0
+  },
+  "reference_text": "corpus/reference/cjk-text-docx-002.txt",
+  "expected": {
+    "page_count_min": null,
+    "page_count_max": null
+  },
+  "render": {
+    "dpis": [
+      150
+    ],
+    "engines": [
+      "soffice-26.2.5"
+    ]
+  },
+  "notes": "real public-domain East Asian text: three Bashō haiku (古池や 蛙飛びこむ 水の音 / 五月雨を あつめて早し 最上川 / 閑さや 岩にしみ入る 蝉の声) with eastAsia hint \"Noto Serif CJK JP\", plus the first line of the Korean 애국가 (동해 물과 백두산이 마르고 닳도록, public domain) with eastAsia hint \"Noto Serif CJK KR\"; eastAsia rFonts injected as raw w:rPr via parse_xml. Reference text is the exact inserted strings including the inter-phrase spaces; CJK per-char tokenization (C9 §10.6) applies downstream.",
+  "sha256": "5fbf8005223203a67d3abb64bc60878687eb12d48dbdbd6ec7fff776c4a4e428"
+}

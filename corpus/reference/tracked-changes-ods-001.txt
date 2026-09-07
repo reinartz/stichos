@@ -1,0 +1,2 @@
+Base cell text remains after the deletion.
+Inserted cell paragraph by bot-a.

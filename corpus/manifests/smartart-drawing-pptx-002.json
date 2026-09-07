@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "id": "smartart-drawing-pptx-002",
+  "title": "SmartArt-like drawing pptx 002",
+  "source": "generated",
+  "generator": {
+    "name": "harness/generator",
+    "version": "0.1.0"
+  },
+  "format": "pptx",
+  "categories": [
+    "smartart-drawing"
+  ],
+  "features": {
+    "w:tbl": 0,
+    "w:drawing": 0,
+    "w:fldSimple": 0,
+    "w:commentReference": 0,
+    "w:comment": 0,
+    "w:instrText": 0
+  },
+  "reference_text": "corpus/reference/smartart-drawing-pptx-002.txt",
+  "expected": {
+    "page_count_min": null,
+    "page_count_max": null
+  },
+  "render": {
+    "dpis": [
+      150
+    ],
+    "engines": [
+      "soffice-26.2.5"
+    ]
+  },
+  "notes": "python-pptx cannot emit diagrams: one p:graphicFrame carrying a wpg:wgp group of three wps:wsp txbx-text shapes, PLUS a second p:graphicFrame whose a:graphicData (uri drawingml/2006/diagram) carries dgm:relIds to a synthetic diagram part: ppt/diagrams/data1.xml (minimal dgm:dataRoot with a ptLst of two text nodes — no layout/colors/quickStyle parts), wired by a diagramData relationship in ppt/slides/_rels/slide1.xml.rels and a Content_Types override. Synthetic, not MS SmartArt — no MS tool produced these parts; LibreOffice may ignore the diagram reference entirely, so the dgm node strings stay OUT of reference text while the three group shape labels (real DrawingML) are reference text.",
+  "sha256": "5e6433f047ebc13d87a099577ac7c4c270e391e91e84c32331fea3b836cc2317"
+}

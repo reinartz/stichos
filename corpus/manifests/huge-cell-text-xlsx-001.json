@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "id": "huge-cell-text-xlsx-001",
+  "title": "Huge cell text xlsx 001",
+  "source": "generated",
+  "generator": {
+    "name": "harness/generator",
+    "version": "0.1.0"
+  },
+  "format": "xlsx",
+  "categories": [
+    "huge-cell-text"
+  ],
+  "features": {
+    "w:tbl": 0,
+    "w:drawing": 0,
+    "w:fldSimple": 0,
+    "w:commentReference": 0,
+    "w:comment": 0,
+    "w:instrText": 0
+  },
+  "reference_text": "corpus/reference/huge-cell-text-xlsx-001.txt",
+  "expected": {
+    "page_count_min": null,
+    "page_count_max": null
+  },
+  "render": {
+    "dpis": [
+      150
+    ],
+    "engines": [
+      "soffice-26.2.5"
+    ]
+  },
+  "notes": "one giant cell A1 at the ECMA-376 cell-length maximum of 32,767 chars ('lorem ipsum ' repeated, truncated to exactly 32767), plus two short neighbour cells (B1, A2) that an extractor must still surface un-truncated next to the giant cell; 48k chars in one cell is impossible in a spec-valid xlsx (openpyxl truncates silently at 32767 — asserted here at exactly the max), so the reference text holds the full 32,767-char stored value; the fixture size IS the category, truncation-tolerance probe for string readers.",
+  "sha256": "181d1c432f4a292871cb9635d78640f248ffcbe5e0a878c9ba294f68562157b8"
+}

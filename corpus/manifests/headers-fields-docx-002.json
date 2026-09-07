@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "id": "headers-fields-docx-002",
+  "title": "Headers and fields docx 002",
+  "source": "generated",
+  "generator": {
+    "name": "harness/generator",
+    "version": "0.1.0"
+  },
+  "format": "docx",
+  "categories": [
+    "headers-fields"
+  ],
+  "features": {
+    "w:tbl": 0,
+    "w:drawing": 0,
+    "w:fldSimple": 0,
+    "w:commentReference": 0,
+    "w:comment": 0,
+    "w:instrText": 0
+  },
+  "reference_text": "corpus/reference/headers-fields-docx-002.txt",
+  "expected": {
+    "page_count_min": null,
+    "page_count_max": null
+  },
+  "render": {
+    "dpis": [
+      150
+    ],
+    "engines": [
+      "soffice-26.2.5"
+    ]
+  },
+  "notes": "real complex fields (fldChar begin / w:instrText / separate / cached run / end): PAGE + NUMPAGES fields with cached results in the first-page header; footer carries a DATE field (instr 'DATE \\@ \"yyyy-MM-dd\"') with fixed cached value 2026-01-01. Body has 60 fixed-text paragraphs so LibreOffice paginates past two pages; header/footer strings are excluded from reference text because renderers re-evaluate fields per page. Fields live in header/footer parts, so w:instrText in word/document.xml stays 0.",
+  "sha256": "b6c445527aa65687c62eb079b95d244bb9e20e625bc3903afaa3506d6c0f06fc"
+}

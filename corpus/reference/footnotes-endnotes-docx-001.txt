@@ -1,0 +1,11 @@
+footnotes-endnotes docx 001
+Body claim 1 cites footnote of type 1.
+Body claim 2 cites footnote of type 2.
+Body claim 3 cites footnote of type 3.
+Body claim E1 cites endnote of type 1.
+Body claim E2 cites endnote of type 2.
+Footnote 1 text: supporting note for alpha.
+Footnote 2 text: supporting note for beta.
+Footnote 3 text: supporting note for gamma.
+Endnote 1 text: endmatter for alpha.
+Endnote 2 text: endmatter for beta.

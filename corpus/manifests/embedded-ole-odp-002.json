@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "id": "embedded-ole-odp-002",
+  "title": "Embedded OLE object odp 002",
+  "source": "generated",
+  "generator": {
+    "name": "harness/generator",
+    "version": "0.1.0"
+  },
+  "format": "odp",
+  "categories": [
+    "embedded-ole"
+  ],
+  "features": {
+    "table:table": 0,
+    "draw:frame": 3,
+    "text:note": 0,
+    "text:field": 0,
+    "office:annotation": 0
+  },
+  "reference_text": "corpus/reference/embedded-ole-odp-002.txt",
+  "expected": {
+    "page_count_min": null,
+    "page_count_max": null
+  },
+  "render": {
+    "dpis": [
+      150
+    ],
+    "engines": [
+      "soffice-26.2.5"
+    ]
+  },
+  "notes": "legacy OLE embed in ODP, second instance: the object is placed on PAGE ONE next to the title (001 puts it on page two beside the body) under frame OleObjectB (asserted before page2) with automatic style gpOleB (fo:x 6.2in, fo:y 3.4in, 3in x 3in, z-index 2) — same CFB-stub part, same draw:object attributes, different placement dimension. All three visible strings differ from 001. Same honest caveats as 001 (stub payload, thin grammar, LO tolerance unverified); normative counters stay draw:frame=3.",
+  "sha256": "d6257dd3199cda4e24e4ad18482a517735e2f9d2e1dc2cb5c762587ba12c660a"
+}

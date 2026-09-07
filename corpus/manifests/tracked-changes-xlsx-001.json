@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "id": "tracked-changes-xlsx-001",
+  "title": "Tracked changes xlsx 001",
+  "source": "generated",
+  "generator": {
+    "name": "harness/generator",
+    "version": "0.1.0"
+  },
+  "format": "xlsx",
+  "categories": [
+    "tracked-changes"
+  ],
+  "features": {
+    "w:tbl": 0,
+    "w:drawing": 0,
+    "w:fldSimple": 0,
+    "w:commentReference": 0,
+    "w:comment": 0,
+    "w:instrText": 0
+  },
+  "reference_text": "corpus/reference/tracked-changes-xlsx-001.txt",
+  "expected": {
+    "page_count_min": null,
+    "page_count_max": null
+  },
+  "render": {
+    "dpis": [
+      150
+    ],
+    "engines": [
+      "soffice-26.2.5"
+    ]
+  },
+  "notes": "openpyxl has no revisions API, so the xlsx change-tracking layer (§18.16.8 worksheetRevisions, ECMA-376 part 1) is injected post-save by a zip rewrite: a minimal <worksheetRevisions> block with 2 <revision> records (revisionType deleteCell + insertCell, authorId=0, date 2026-01-01T00:00:00Z, r:id 1/2) appended before </worksheet> in sheet1.xml, with the r namespace declared on the injected element (openpyxl's sheet root omits xmlns:r). Synthetic revision records, NOT Excel-authored history: there is no author table and no workbook-level revision history (xl/revisions/*.xml, CT_Workbook/revision §18.2.11), so authorId 0 is dangling and the cell grid holds only the current-state values; LO/Excel tolerance of this minimal shape varies. Reference text = the surviving cell values only.",
+  "sha256": "45bc9bf9aa9e44e1315616b2d76d8f0a6dd93849c4a0fe6cb5c7f60287b2c5bb"
+}

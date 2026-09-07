@@ -1,0 +1,6 @@
+image-textwrap docx 001
+Before picture:  after picture.
+Wrap line 01: fixed filler sentence that flows around the picture edge and keeps the wrap boundary exercised across several lines.
+Wrap line 02: fixed filler sentence that flows around the picture edge and keeps the wrap boundary exercised across several lines.
+Wrap line 03: fixed filler sentence that flows around the picture edge and keeps the wrap boundary exercised across several lines.
+Wrap line 04: fixed filler sentence that flows around the picture edge and keeps the wrap boundary exercised across several lines.
