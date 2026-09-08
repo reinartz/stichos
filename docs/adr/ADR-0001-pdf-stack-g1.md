@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Status | **proposed** — decision-support only (SA-9 / PDF-01); **the human owner decides** |
+| Status | **accepted** (2026-09-08, project owner) — lopdf + pdf-writer pure-Rust core, qpdf shell-out rung, pdfium deferred to G5 (was: **proposed**, decision-support only, SA-9/PDF-01) |
 | Gate | G1 = OQ1 (plan §6.4; concept §18-1): license split pure-Rust vs shell-out vs AGPL-in-process |
 | Decide by | **W0** (plan §6.4; §6.3 W0 contains PDF-01) |
 | Decision owner | **project owner** (G1 is listed human-bound in `docs/phase0-execution.md`) |
@@ -107,3 +107,12 @@ would force a §16 entry (plan §9 closing note).
 - G1/G5/D2/D8/OQ1 — `project_plan.md` §3.3/§6.4, `project_concept.md` §16/§18-1; bans — `deny.toml`;
   render/text-quality evidence — `baseline/report-v1.md`; Fedora-host-missing-qpdf — measured, `docs/phase0-execution.md`
 - All **legal interpretation** rows: unverified, not legal advice; counsel is the named escalation.
+
+## Decision (owner, 2026-09-08)
+
+**Accepted as recommended:** lopdf + pdf-writer as the pure-Rust core for `adapters-pdf`
+(PDF-02/03), with qpdf as a shell-out validation rung (Apache-2.0, CLI-only — D2/D8 preserved)
+and mutool/gs as optional D11 ladder rungs. pdfium stays deferred behind G5, to be decided by
+the PDF-04 word-bbox experiment; AGPL-in-process remains banned (deny.toml unchanged).
+G1 closed → the dual MIT/Apache-2.0 licensing path is unblocked for GOV-05; OQ1 resolved in
+`project_concept.md` §18; recorded as D19 in the §16 decision log.

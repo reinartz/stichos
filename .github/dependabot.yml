@@ -11,6 +11,13 @@ updates:
       time: "02:30"
       timezone: "UTC"
     open-pull-requests-limit: 5
+    ignore:
+      # pillow + numpy are FIXTURE-CRITICAL pins (PNG rasterizer pixels / scanned-ocr noise
+      # seed) — bumping them can shift corpus sha256. Treat like an engine pin (HAR-08):
+      # bump deliberately -> gen build -> gen verify -> python:3.12-slim cross-check ->
+      # re-render goldens. Dependabot PRs for these are closed by policy.
+      - dependency-name: "pillow"
+      - dependency-name: "numpy"
     commit-message:
       prefix: "chore(harness)"
     labels: ["dependencies", "harness"]

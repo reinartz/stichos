@@ -1,11 +1,12 @@
 # stichos — Project Plan
 
-**Status:** Phase 0 (M0) executing · derived from [`project_concept.md`](project_concept.md) (decisions D1–D17, phases §14)
+**Status:** Phase 0 (M0) executing · derived from [`project_concept.md`](project_concept.md) (decisions D1–D20, phases §14)
 **Last updated:** 2026-09-08 — runbook stages SA-1..SA-10 done (`docs/phase0-execution.md`): 151-fixture corpus +
 goldens, baseline report-v1 published, reproducible `fontset_hash`. Repo live: `github.com/reinartz/stichos`
 (private, D18; pushed 2026-09-07). **Nightly ×3 green (run 34221533557** after two determinism fixes, runbook
-CI bug-fix log**).** M0 exit gate now blocked only on human-bound items: GOV-02 registrations, GOV-01 counsel
-opinion, golden approval (SA-6 — against the re-keyed store), G1 call.
+CI bug-fix log**).** SA-6 golden approval ✅ (owner 2026-09-08) · **G1 ✅ decided: lopdf + pdf-writer
+(D19, ADR-0001 accepted)** · OQ5 domain part ✅ (skip `stichos.com`, no homepage, `stichos.dev` only — D20).
+M0 exit gate now blocked only on: GOV-01 counsel opinion + GOV-02 registration sweep.
 **Rule:** this file is a plan, not a decision record. If a plan choice contradicts the concept,
 resolve it in `project_concept.md` §16 (decision log) first, then reflect it here.
 Traceability: every task cites the concept section (§) or decision (D) it implements.
@@ -388,7 +389,7 @@ design ADRs before implementation and are staffed by the strongest kernel person
 
 | Gate | Question | Decide by | Blocks | Concept ref |
 |---|---|---|---|---|
-| G1 | OQ1 license split: pure-Rust only vs shell-out vs AGPL-in-process | W0 | PDF-02 raster path, `cargo deny` allow-list, dual-license choice | §18-1, D2 |
+| G1 | OQ1 license split: pure-Rust only vs shell-out vs AGPL-in-process — **DECIDED 2026-09-08 (owner): lopdf + pdf-writer, qpdf shell-out (ADR-0001 accepted, D19)** | W0 ✅ | PDF-02 raster path, `cargo deny` allow-list, dual-license choice | §18-1, D2 |
 | G2 | OQ3 `gp` alias yes/no | W2 (before API-04 CLI freeze) | C7 tool/CLI naming | §18-3 |
 | G3 | OQ2 Word tier for non-Windows users (Aspose/Syncfusion vs hosted worker vs none) | W3 start | COM-5 scope, M2 marketing claims | §18-2 |
 | G4 | OQ4 own apt/rpm repos vs GitHub Releases + winget/Homebrew | W4 | DIS-08 | §18-4 |

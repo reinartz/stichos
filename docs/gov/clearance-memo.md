@@ -37,7 +37,7 @@
 **Distinctiveness assessment.** `stichos` is a closed compound of a descriptive printing term. For **software that renders/proofs office documents (classes 9, 42)** it reads as **suggestive** (metaphor from print production), but distinctiveness is **thin**: the term is a dictionary headword, the trade usage "galley proof" is common, and at least one third party (stichos.org) already applies it to manuscript-proofing software. Expect weaker protection than an arbitrary mark; classic-descriptive refusals possible only for proofing-services claims.
 
 **Risk flags.**
-1. **stichos.org (live product, registered 2026-07-06)** — direct concept-space collision (journal production proofing/rendering). Prior-in-time user in an adjacent field; not visible in registry-only checks done 2026-08-30.
+1. **stichos.org (live product, registered 2026-07-06)** — direct concept-space collision (journal production proofing/rendering). Prior-in-time user in an adjacent field; not visible in registry-only checks done 2026-08-30. *[Update 2026-09-08, measured RDAP 404: the registration has lapsed — domain free again. The levships product's use history (adoption date, whether truly abandoned) still requires counsel analysis before any TM filing.]*
 2. levships "stichos" SaaS — commercial software use of the name, possibly a demo; nature of the offering needs investigation.
 3. `stichos.com` registered since 2016, parked at NameBright (see registration-checklist) — domain-side squat risk, not necessarily a mark.
 

@@ -1,8 +1,8 @@
 # stichos — Project Concept & Decision Record
 
 **Tagline:** proof before publish.
-**Status:** concept agreed · naming agreed · Phase 0 harness live (`docs/phase0-execution.md`); Rust implementation not started; M0 gate pending human items
-**Last updated:** 2026-09-08 (D18 added; status refreshed with measured runbook/CI state)
+**Status:** concept agreed · naming agreed · Phase 0 harness live (`docs/phase0-execution.md`), nightly ×3 green; Rust implementation not started; M0 gate pending GOV-01 opinion + GOV-02 sweep
+**Last updated:** 2026-09-08 (D18–D20; OQ1/OQ5 resolved; measured identity re-check)
 **Project root:** `/localdata/workspace/stichos`
 **Related:** [`brand.md`](brand.md) — identity, colour, typography, logo usage
 
@@ -308,9 +308,14 @@ no `ai`/`gpt`/`agent`; must survive as a CLI token (lowercase, no hyphen, ≤11 
 aloud); **must not collide with a distro package name** (apt/dnf is the primary channel); free on all
 three language registries so the install story needs no `@scope/`, `python3-` or `-rs` suffixes.
 
-**Still to do:** trademark search in classes 9 and 42 (EUIPO/USPTO/WIPO Madrid); register GitHub presence
-(private repo under owner's personal account — D18, no org) + all registries + domain **the same day**; `apt-cache`/`dnf`/`brew`/`choco` searches on the five targets;
-MCP registry + skill-marketplace id check.
+**Still to do:** trademark search in classes 9 and 42 (EUIPO/USPTO/WIPO Madrid); registries + domain
+**the same day** (GitHub presence done 2026-09-07 — private repo on personal account, D18);
+`apt-cache`/`dnf`/`brew`/`choco` searches on the five targets (done, GOV-03); MCP registry + skill-marketplace
+id check (`io.github.reinartz/stichos`, 0 collisions measured).
+**Re-measured 2026-09-08:** `stichos.org` RDAP **404 — free again** (the 2026-07-06 registration lapsed;
+levships use-history still for counsel, clearance-memo §3); `stichos.dev` still free; GitHub handle
+`stichos`/`Stichos` now **taken** (dormant personal account) — the org path is closed, `reinartz/stichos`
+stands (D18). Domain decision (OQ5): **skip `stichos.com`, no homepage planned; `stichos.dev` only** (D20).
 
 ---
 
@@ -393,7 +398,9 @@ Crate layout: `core` (IR + patch engine, dep-free) · `adapters-ooxml` · `adapt
 | D15 | Pinned engines, N and N-1 supported, golden corpus gates upgrades | LO releases change layout | — |
 | D16 | Three-tier mark + Inter/JetBrains Mono + vermilion accent | 16px survival measured, not assumed | — |
 | D17 | Rhai for the long-tail escape hatch | pure Rust keeps cross-compiling C-free | need for a JS sandbox |
-| D18 | GitHub presence = **private repo under owner's personal account** (`reinartz/stichos`); no org | owner call 2026-09-07; solo private phase needs no org; MCP namespace follows owner handle (`io.github.reinartz/stichos`) | public launch; or squat of the still-unclaimed `stichos` handle forces the call |
+| D18 | GitHub presence = **private repo under owner's personal account** (`reinartz/stichos`); no org | owner call 2026-09-07; solo private phase needs no org; MCP namespace follows owner handle (`io.github.reinartz/stichos`) | public launch; or squat of the still-unclaimed `stichos` handle forces the call — **measured 2026-09-08: handle `Stichos` taken (dormant personal account), org path closed — D18 stands** |
+| D19 | PDF stack: **lopdf + pdf-writer** pure-Rust core, qpdf shell-out rung, mutool/gs optional D11 rungs, pdfium deferred to G5 | G1 accepted by owner 2026-09-08 (ADR-0001); D2/D8 preserved, AGPL never in-process | G5 experiment (PDF-04 word-bbox) shows pure-Rust extraction insufficient for LIN-01 |
+| D20 | Web identity: **`stichos.dev` only**; no homepage planned; **skip `stichos.com`** | owner call 2026-09-08 (OQ5 domain part); `.com` parked at NameBright since 2016, no need to buy or monitor | a marketing site becomes a requirement |
 
 ---
 
@@ -415,12 +422,13 @@ Crate layout: `core` (IR + patch engine, dep-free) · `adapters-ooxml` · `adapt
 
 ## 18. Open questions
 
-1. License split: MIT/Apache-2.0 dual (recommended) vs AGPL-forced if MuPDF/qpdf features are needed
-   in-process (else shell out to CLI tools).
+1. ~~License split~~ **RESOLVED 2026-09-08 (G1, owner):** lopdf + pdf-writer pure-Rust core, qpdf shell-out;
+   AGPL never in-process (ADR-0001 accepted; D19).
 2. Word-rendering tier for non-Windows users: paid Aspose/Syncfusion path or a hosted Word worker?
 3. Is a `gp` short binary alias wanted for the CLI, or `stichos` spelled out everywhere?
 4. Distribution: build our own apt/rpm repos, or rely on GitHub Releases + winget/Homebrew only?
-5. Trademark classes to file in, and whether to secure `stichos.com` (currently registered).
+5. Trademark classes to file in (open — counsel). ~~whether to secure `stichos.com`~~ **RESOLVED 2026-09-08:**
+   skip; no homepage planned, `stichos.dev` only (D20).
 
 ---
 

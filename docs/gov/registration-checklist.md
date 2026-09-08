@@ -19,15 +19,38 @@
 
 **Delta vs 2026-08-30:** all registry slots still free (no change). `.com` still taken at NameBright (no change; expiry 2027-08-22). **New risk:** `.org` was registered 2026-07-06 and now hosts a same-space product — naming strategy (OQ5) must account for it.
 
+**Re-measured 2026-09-08 (curl, same method):** `stichos.org` RDAP **404 = free again** (the 2026-07-06 registration lapsed; levships use-history still for counsel — clearance-memo §3). `stichos.dev` still **404 free**. `api.github.com/users/stichos` now **200** — `Stichos`, personal account created 2018 (renamed into the name; GitHub handles are case-insensitive): the org/handle path is **closed**; `reinartz/stichos` stands (D18).
+
 ## 2. Same-day action checklist (human, in order)
 
-1. ✅ **Done 2026-09-07** — private repo created under the personal account `reinartz` (owner decision — no GitHub org; concept D18): `github.com/reinartz/stichos`, first push `b4948f9`. **Note:** GitHub users/orgs share one namespace, so the handle `stichos` itself stays **unclaimed** (404 measured 2026-09-03) — the personal-account route cannot lock it; re-check before any public push and open the org then if still free (or disputed).
-2. **Publish defensive crate `stichos` 0.0.1 to crates.io.** Squat-proof even if empty. Placeholder README: *"This crate name is reserved by the stichos project. No functionality is published yet."* Set `publish = false` on real workspace crates later to avoid accidents.
-3. **Publish `stichos` 0.0.1 placeholder to npm** (`npm publish` of a stub with `"private": false`, description "Name reserved — stichos"). npm has no reservation mechanism; a published version is the only squat-proof.
-4. **Upload `stichos` 0.0.1 placeholder to PyPI** with the same reserved-name README.
+1. ✅ **Done 2026-09-07** — private repo created under the personal account `reinartz` (owner decision — no GitHub org; concept D18): `github.com/reinartz/stichos`, first push `b4948f9`. **Note (re-checked 2026-09-08):** the handle `Stichos` is now **taken** (dormant personal account) — the org path is closed; D18 stands permanently.
+2. **Publish defensive crate `stichos` 0.0.1 to crates.io.** Squat-proof even if empty. Placeholder README: *"This crate name is reserved by the stichos project. No functionality is published yet."* Set `publish = false` on real workspace crates later to avoid accidents. Commands:
+   ```bash
+   cargo new /tmp/stichos-reserve --name stichos && cd /tmp/stichos-reserve
+   # Cargo.toml: description = "Name reserved by the stichos project - no functionality published yet."
+   # README.md: the reserved-name text above
+   cargo login <API token from https://crates.io/settings/tokens>   # crates.io login via GitHub is one click
+   cargo publish        # 0.0.1; yank later only if ever needed
+   ```
+3. **Publish `stichos` 0.0.1 placeholder to npm** (`npm publish` of a stub with `"private": false`, description "Name reserved — stichos"). npm has no reservation mechanism; a published version is the only squat-proof. Commands:
+   ```bash
+   mkdir -p /tmp/npm-stichos && cd /tmp/npm-stichos
+   printf '{"name":"stichos","version":"0.0.1","description":"Name reserved - stichos. No functionality published yet.","main":"index.js"}\n' > package.json
+   echo 'module.exports = {};' > index.js
+   npm adduser        # email-verified account; 2FA/OTP required at publish
+   npm publish --access public
+   ```
+4. **Upload `stichos` 0.0.1 placeholder to PyPI** with the same reserved-name README. Commands:
+   ```bash
+   mkdir -p /tmp/pypi-stichos && cd /tmp/pypi-stichos
+   printf '[project]\nname = "stichos"\nversion = "0.0.1"\ndescription = "Name reserved - stichos. No functionality published yet."\nreadme = "README.md"\nrequires-python = ">=3.9"\n\n[build-system]\nrequires = ["setuptools"]\nbuild-backend = "setuptools.build_meta"\n' > pyproject.toml
+   echo "Name reserved by the stichos project. No functionality is published yet." > README.md
+   python3 -m pip install --user build twine && python3 -m build
+   twine upload dist/*    # API token from https://pypi.org/manage/account/token/ ; PyPI mandates 2FA
+   ```
 5. **Register `stichos.dev`** (confirmed unregistered today; RDAP 404). Recommended primary domain.
-6. **Decide on `stichos.com` (OQ5):** parked at NameBright since 2016, expires 2027-08-22. Options: make an offer via NameBright, skip, or monitor. Record the decision in project_concept.md §16 — do not buy without a budget call.
+6. ✅ **RESOLVED 2026-09-08 (OQ5 domain part, D20):** `stichos.com` — **skip**; no homepage planned; web identity is `stichos.dev` only. No offer, no purchase, no monitoring.
 7. **MCP registry stub:** open a tracking issue in `modelcontextprotocol/registry` (or prepare the `server.schema.json` entry PR) for `io.github.reinartz/stichos` (namespace follows the owning GitHub account — D18); registry shows 0 collisions today.
-8. **Flag to counsel immediately:** `stichos.org` + levships "stichos" (see `clearance-memo.md` §3) — do not file trademarks until analyzed.
+8. **Flag to counsel (scope updated 2026-09-08):** `stichos.org` RDAP now **404 — domain free again** (registration lapsed), but the levships "stichos" product **use history** (adopted ≤2026-07, possibly abandoned) still needs analysis — do not file trademarks until counsel weighs it (see `clearance-memo.md` §3).
 
 **Note:** publish the defensive crates/npm/PyPI placeholders **even if empty** — squat-proofing is the only reason; every registry above is free **as of 2026-09-03** and free names in these registries get squatted quickly.
