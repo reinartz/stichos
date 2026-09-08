@@ -33,5 +33,5 @@
     ]
   },
   "notes": "two real openpyxl NamedStyle definitions registered on the workbook: 'GP Money' with a currency number_format (\"$\"#,##0.00) applied to the B2:D3 numeric range, and 'GP Head' (bold ink-vs-paper font + solid 101A2E fill) applied to the A1:D1 header row; wb.named_styles contains both (asserted), and after save both style names are asserted present in xl/styles.xml. Reference text lists the raw stored values, not the currency-formatted rendering.",
-  "sha256": "9f89a7715576c57c9836e3d853853d91fe27d7f015d26adc0c4d47d7c244be20"
+  "sha256": "1cdef243b1588074d4eb26214830d99f9fecb5e0df2b7d66968ff8afa1d3f21e"
 }

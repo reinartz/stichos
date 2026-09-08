@@ -110,7 +110,7 @@ def tail(s: str, n: int = 180) -> str:
 def load_fixtures(ids: list[str] | None) -> list[dict]:
     out = []
     for m in sorted(MANIFESTS.glob("*.json")):
-        fx = json.loads(m.read_text())
+        fx = json.loads(m.read_text(encoding="utf-8"))
         if ids and fx["id"] not in ids:
             continue
         out.append(fx)
@@ -119,11 +119,11 @@ def load_fixtures(ids: list[str] | None) -> list[dict]:
 
 def golden_page_counts() -> dict[str, int]:
     """fixture id -> approved/staged golden page count, from store record.json."""
-    env = json.loads(ENVJSON.read_text())
+    env = json.loads(ENVJSON.read_text(encoding="utf-8"))
     ekey = f"{env['engine']}-{env['engine_version']}-{env['fontset_hash'].split(':')[1][:16]}"
     out = {}
     for rp in (STORE / ekey).glob("*/record.json"):
-        rec = json.loads(rp.read_text())
+        rec = json.loads(rp.read_text(encoding="utf-8"))
         out[rec["fixture"]] = len(rec["pages"])
     return out
 
@@ -325,14 +325,14 @@ def measure_one(fx: dict, gp_pages: dict[str, int]) -> dict:
 def read_done_ids(path: Path) -> set[str]:
     if not path.exists():
         return set()
-    with path.open(newline="") as f:
+    with path.open(newline="", encoding="utf-8") as f:
         return {r["id"] for r in csv.DictReader(f)}
 
 
 def append_row(path: Path, row: dict) -> None:
     with _LOCK:
         new = not path.exists()
-        with path.open("a", newline="") as f:
+        with path.open("a", newline="", encoding="utf-8") as f:
             w = csv.DictWriter(f, fieldnames=CSV_COLS)
             if new:
                 w.writeheader()
@@ -342,7 +342,7 @@ def append_row(path: Path, row: dict) -> None:
 # ---------------------------------------------------------------- run
 
 def capture_runenv() -> dict:
-    env = json.loads(ENVJSON.read_text()) if ENVJSON.exists() else {}
+    env = json.loads(ENVJSON.read_text(encoding="utf-8")) if ENVJSON.exists() else {}
     pv = sh(["pandoc", "--version"], 30).stdout.splitlines()[0]
     img = sh(["docker", "image", "inspect", "-f", "{{.Id}}", IMAGE], 30).stdout.strip()
     host = {
@@ -372,7 +372,7 @@ def cmd_run(args) -> int:
     if not todo:
         return 0
     if not RUNENV.exists():
-        RUNENV.write_text(json.dumps(capture_runenv(), indent=2) + "\n")
+        RUNENV.write_text(json.dumps(capture_runenv(), indent=2) + "\n", encoding="utf-8")
     gp = golden_page_counts()
     ok = fail = 0
     fails: list[str] = []
@@ -655,13 +655,13 @@ def cmd_report(args) -> int:
     if not RAW_CSV.exists():
         log("no baseline-raw.csv — run first")
         return 2
-    with RAW_CSV.open(newline="") as f:
+    with RAW_CSV.open(newline="", encoding="utf-8") as f:
         rows = list(csv.DictReader(f))
     if not rows:
         log("baseline-raw.csv empty")
         return 2
     rows.sort(key=lambda r: r["id"])
-    runenv = json.loads(RUNENV.read_text()) if RUNENV.exists() else {}
+    runenv = json.loads(RUNENV.read_text(encoding="utf-8")) if RUNENV.exists() else {}
     a = agg(rows)
     by_cat = {c: agg([r for r in rows if r["category"] == c])
               for c in sorted({r["category"] for r in rows})}
@@ -679,7 +679,7 @@ def cmd_report(args) -> int:
         "worst_f1_pandoc": [{"id": r["id"], "f1": fnum(r["f1_pandoc"])} for r in worst(rows, "f1_pandoc", 10)],
         "fixtures": rows,
     }
-    (BASEDIR / "report-v1.json").write_text(json.dumps(machine, indent=2) + "\n")
+    (BASEDIR / "report-v1.json").write_text(json.dumps(machine, indent=2) + "\n", encoding="utf-8")
 
     L: list[str] = []
     L += ["# Baseline report v1 (HAR-06)", ""]
@@ -737,7 +737,7 @@ def cmd_report(args) -> int:
         "by pandoc (see methodology).*", ""]
     L += md_table(rows)
     L += [""] + interpretation(rows, a) + [""]
-    (BASEDIR / "report-v1.md").write_text("\n".join(L))
+    (BASEDIR / "report-v1.md").write_text("\n".join(L), encoding="utf-8")
     log(f"report-v1.md ({a['n']} fixtures) + report-v1.json written to {BASEDIR}")
     return 0
 

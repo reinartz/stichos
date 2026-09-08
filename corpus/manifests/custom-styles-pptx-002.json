@@ -33,5 +33,5 @@
     ]
   },
   "notes": "PPTX has no named-paragraph-style API in python-pptx (same divergence as 001: everything is DIRECT run formatting). 002 differs from 001 in shape, not just words: FIVE paragraphs (001 has four), a 40/24/24/14/10pt ladder whose REPEATED 24pt step defeats size-histogram collapsing, b/i flags in a different order (title plain, headline italic, sub-head bold), and vermilion E2483A promoted from 001's 12pt caption to the 24pt headline while ink 101A2E/slate 93A0B8 stay on the rest — asserted in slide1.xml (sz=4000/2400/1400/1000, E2483A on the headline run). A style-table reader still finds only the default theme parts.",
-  "sha256": "94c03e6e7bc9ae019110263f06a62ff93eadb988e49765452804981900dd4ee4"
+  "sha256": "cea54236799ba831ff50272447457859d897b7d38e3a2ceb44cd467aebdc798c"
 }

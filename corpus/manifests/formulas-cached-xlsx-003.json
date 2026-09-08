@@ -33,5 +33,5 @@
     ]
   },
   "notes": "three real formula flavours with injected caches: IF(A1>40,...) -> string 'big' (needs t=\"str\" on the cell, added during the zip rewrite), A2&\"s\" string concatenation -> 'cats' (t=\"str\"), and =A1/100 displayed through a real number_format 0% (renders 50%, raw cached value 0.5 in <v>); reference text uses the raw stored values, not the formatted rendering. Recount asserts all three <f> nodes carry a <v> sibling.",
-  "sha256": "29f754b34c0cb5f02b041637059c3aa9472dbd7b5dbe2457ef6ed4657b113741"
+  "sha256": "72634b697807d87793068a2491f3674787db7d3c343c302b48b911775d118dd3"
 }

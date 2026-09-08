@@ -33,5 +33,5 @@
     ]
   },
   "notes": "real cross-sheet references: 'Refs'!B1/B2 hold =Data!A1*3 / =Data!A2*3 over Data!A1=7, A2=11; caches 21/33 (computed in python) injected into xl/worksheets/sheet2.xml — a cached-value extractor that only reads its own sheet still gets the numbers from <v>, cross-sheet resolution only needed for recalc; recount asserts both <f> nodes carry a <v> sibling.",
-  "sha256": "b3829086acb4930d2d06a8589b8020247e06aad12ef33597d4a4c77f5983cb7e"
+  "sha256": "7d9cdfc7695bf8aa50b07b650245f7a04e232c83b368064174b80da73dd9c949"
 }

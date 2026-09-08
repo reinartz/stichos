@@ -33,5 +33,5 @@
     ]
   },
   "notes": "real w:documentProtection (w:edit=\"readOnly\" w:enforcement=\"1\") injected into word/settings.xml via gen.core zip_read/zip_write; body text is plain python-docx content.",
-  "sha256": "8dd6dc282c36fed4e858f874da4d88ad434b50a88687e0377bfd039d710bb3d7"
+  "sha256": "d99d11c197c2a7a9eaa51f533260e4c576dbd3cd1d4c98cfa88eaa81f62fc8d7"
 }

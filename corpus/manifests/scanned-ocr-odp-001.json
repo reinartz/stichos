@@ -32,5 +32,5 @@
     ]
   },
   "notes": "scanned-slide emulation in ODP: the shared PIL/numpy scan recipe (_sc_scan_png imported from the docx builder — off-white paper gray, gray pseudo-text word bars, seeded per-pixel noise from the fixture-seeded ctx.rng) stored as real PNG bytes at Pictures/scan1.png (manifest media-type image/png), shown FULL-PAGE (automatic graphic style gpScan: fo:x/fo:y 0in, svg 10in x 7.5in) in draw:frame > draw:image (xlink type=simple, show=embed actuate=onLoad), z-index 0; a presentation:title frame (named style dp1, z-index 1) above it carries the one caption line so it stays visible over the raster. The picture has no text layer (bars, not glyphs), so there is no OCR truth inside it: reference text is the caption line 'Slide 1 — scanned fixture' ONLY — the honest near-None case. Normative counters read draw:frame=2.",
-  "sha256": "d8401a35ffcd213aa81af680a2648c56761937000c8cc1a35f82ae0d11ddb01c"
+  "sha256": "b193b3969b3dde0370dcf50e02965152c4031bcc85a9de88f03de6fe4a393063"
 }

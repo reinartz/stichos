@@ -32,5 +32,5 @@
     ]
   },
   "notes": "real codepoint edge content (same string constants as docx unicode-edge, imported from .docx): mathematical double-struck (sans) letters U+1D54F/U+1D550 outside the BMP; mathematical bold digit numerals U+1D7CF/U+1D7D0/U+1D7D1 (non-ASCII digit forms that break naive isdigit/number extraction); U+2764 heart paired with VS15 U+FE0E (text) vs VS16 U+FE0F (emoji) — same base codepoint, different presentation; a bidi sandwich of LRM U+200E + RLM U+200F-wrapped Hebrew inside an LTR paragraph; and U+FEFF zero-width no-break space as the FIRST character of a paragraph. Reference text is the byte-exact inserted codepoints. LibreOffice font coverage varies per glyph class: missing glyphs rendering as tofu .notdef boxes is a REAL fidelity finding, not a generator bug.",
-  "sha256": "37c272e38bad865fed58ee2abcca2bca8caed2e1ea7ab5b6f1723b2ae7de38a6"
+  "sha256": "b8022e9d1c8782a937a25c3557cef06742a227d3f5bbd70872058000a6eec07b"
 }

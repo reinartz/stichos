@@ -32,5 +32,5 @@
     ]
   },
   "notes": "real ODF named styles: named paragraph styles in styles.xml office:styles: \"GP Body\" (style:family=\"paragraph\", fo:font-size 12pt) and \"GP Head\" (family paragraph, style:parent-style-name=\"GP Body\", bold 16pt), applied from content.xml via text:p text:style-name (named, not automatic, styles). None of the five normative ODF counters match style elements, so feature counts stay 0; reference text is every visible paragraph string (style names themselves are not visible text).",
-  "sha256": "3b39a8d6d17b9adfa998fb174280277c8fcb7e9474f9a6a278b9c4e280ea0950"
+  "sha256": "308e2ffc5ce89b5ecbc35c535ab7a507033ce224b7af8dd15d993b00179e35b9"
 }

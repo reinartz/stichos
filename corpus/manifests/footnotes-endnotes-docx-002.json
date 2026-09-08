@@ -33,5 +33,5 @@
     ]
   },
   "notes": "real footnotes/endnotes support: word/footnotes.xml + word/endnotes.xml added with the ECMA-376 separator convention inside the parts (w:footnote/w:endnote ids -1 (w:separator) and 0 (w:continuationSeparator)) plus real notes ids 2..2; settings.xml w:footnotePr/w:endnotePr intentionally omitted (minimum viable per ECMA: separators live in the notes parts). [Content_Types].xml overrides and document.xml.rels footnotes/endnotes relationships added; body references via w:footnoteReference/w:endnoteReference runs wrapped onto anchor runs via zip_read/zip_write. LibreOffice renders footnote and endnote text into the PDF text layer, so the note strings are part of the reference text.",
-  "sha256": "dc92c05a9e5583c40dd102690c683703a628c1d4e9626c32ca46ce048348e4cd"
+  "sha256": "13b73547329001d279f464461b74d19562b07f7e8cf6e081b4bf2870c8703c84"
 }

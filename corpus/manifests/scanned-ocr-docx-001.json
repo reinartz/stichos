@@ -33,5 +33,5 @@
     ]
   },
   "notes": "scanned-page emulation: a 300px-wide synthetic raster (off-white paper gray, gray pseudo-text word bars, seeded per-pixel noise) rendered with PIL and embedded as a real PNG media part via python-docx add_picture at 6.5in full-page width, with one caption line below. The image has NO text layer (bars, not glyphs), so there is no OCR truth inside the picture: reference_text is the caption ONLY — the honest near-None case; the noise seed derives from the fixture-seeded ctx.rng.",
-  "sha256": "7dafbf019e27d8237afb0d5a93e715db5b616ba69c12412732875d352bf42d66"
+  "sha256": "94fb5c48123458b35de81479ef41ec11213c2b9846a8fff5d098c022dad1decd"
 }

@@ -33,5 +33,5 @@
     ]
   },
   "notes": "real package-level embedding plumbing, stub payload: word/embeddings/object1.bin added (the bin part is a hand-built minimal compound file (D0CF11E0A1B11AE1 magic, v3, 512-byte sectors: header + Root Entry directory sector + one FAT sector, no payload streams) because olefile is read-only; a real CFB container, but an OLE stub with no server payload); body carries a legacy w:pict with v:shape o:ole=rId9 plus an o:OLEObject child (Type=Embed, DrawAspect=Icon) — no w:drawing used, so the w:drawing metric stays 0; document.xml.rels oleObject relationship + Content_Types oleObject override added via zip_read/zip_write. LibreOffice may show an icon or render nothing for the stub; the embed carries no text truth, so reference_text covers only the body text.",
-  "sha256": "c21d39c80b82e5ab826f827f476c9186544dee2c2652061e2be7a1b03abb1c69"
+  "sha256": "693f8b8f0b9deb7aceab9dcda6a43ca5935deed78c3b7e60afc0dadb62cd51fa"
 }

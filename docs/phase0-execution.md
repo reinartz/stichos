@@ -5,11 +5,25 @@
 reproducible `fontset_hash` · CI nightly green on 3 platforms · GOV-01..03 name-hygiene sweep done.
 
 **Gate status (2026-09-08):** ≥150 fixtures ✅ (151/151, report-v1) · baseline report ✅ · `fontset_hash` ✅ ·
-nightly ×3 ❌ measured on GitHub (`reinartz/stichos`, pushed 2026-09-07; runs 34151493872 + 34200949975):
-ubuntu+macos ✅, `harness` ❌ (CI-rebuilt fixture sha256 ≠ committed manifests — docx zip bytes not reproducible
-across environments, host py3.14 vs CI py3.12/openpyxl) and `windows-latest` ❌ (`gen verify` UnicodeDecodeError:
-`open()` without `encoding='utf-8'` → cp1252). Two CI bugs to fix before this gate can go green ·
+nightly ×3 ❌ measured on GitHub (`reinartz/stichos`, runs 34151493872 + 34200949975): ubuntu+macos ✅,
+`harness` ❌ + `windows-latest` ❌ — **fixed 2026-09-08, see CI bug-fix log below; awaiting nightly re-run** ·
 GOV-01/03 research ✅, GOV-01 legal opinion + GOV-02 registrations ⏳ human-bound.
+
+**CI bug-fix log (2026-09-08):** two root causes, both measured.
+(1) `harness` byte-repro step: `normalize_zip` wrote ZIP_DEFLATED, so blob sha256 depended on the zlib build
+(host `1.3.1.zlib-ng` vs ubuntu-runner stock zlib) → container now ZIP_STORED with `create_system=3` pinned
+(stored bytes are compressor-independent — INV-4 across environments). Five manifest `notes` fields embedded
+pre-normalize tmp sizes and one wall-clock value (also environment-dependent) → builders now measure the FINAL
+normalized blob; clock value removed from prose (assert kept). Pinned `lxml`/`et_xmlfile` (they serialize the
+XML bytes; were unpinned). Re-ran on host: `gen build` 151/151, `gen verify` 0 problems (incl. rebuild
+determinism), dedup OK, `convert_check.sh` 151/151 ok (LO accepts STORED containers), goldens re-rendered
+151/151 + stability ×2 151/151 ok. **Store is re-keyed on the new fixture_sha — owner golden approval (SA-6)
+must be done against the new store.** Baseline numbers stand (uncompressed content identical; report-v1 embeds
+no fixture sha).
+(2) `windows-latest` UnicodeDecodeError: locale-default text I/O (cp1252) on utf-8 manifests (CJK fixtures) →
+explicit `encoding="utf-8"` on every text read/write in generator, baseline, golden, nightly inline steps.
+Bonus: `tools/convert_check.sh` reads the image tag from `docker/harness/pin.txt` (was hardcoded; the stale
+local tag `galleyproof-harness` masked this).
 
 **Human-bound items (agent delivers research/checklists only):** trademark legal opinion (GOV-01),
 registrations & payments (GOV-02), GitHub private-repo creation under the personal account (`reinartz/stichos`, D18)

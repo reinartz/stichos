@@ -80,7 +80,7 @@ def page_sort_key(p: Path) -> tuple:
 def env_info(force: bool = False) -> dict:
     """fontset_hash (tools/fontset_hash.sh) + engine_version (soffice --version)."""
     if not force and ENVJSON.exists():
-        info = json.loads(ENVJSON.read_text())
+        info = json.loads(ENVJSON.read_text(encoding="utf-8"))
         if info.get("image") == IMAGE:
             return info
     r = subprocess.run(["bash", str(ROOT / "tools" / "fontset_hash.sh"), IMAGE],
@@ -105,7 +105,7 @@ def env_info(force: bool = False) -> dict:
         "measured_at": now_iso(),
     }
     GOLDENS.mkdir(parents=True, exist_ok=True)
-    ENVJSON.write_text(json.dumps(info, indent=2) + "\n")
+    ENVJSON.write_text(json.dumps(info, indent=2) + "\n", encoding="utf-8")
     return info
 
 
@@ -122,7 +122,7 @@ def engine_key(info: dict) -> str:
 def load_fixtures(ids: list[str] | None, category: str | None) -> list[dict]:
     out = []
     for m in sorted(MANIFESTS.glob("*.json")):
-        fx = json.loads(m.read_text())
+        fx = json.loads(m.read_text(encoding="utf-8"))
         if ids and fx["id"] not in ids:
             continue
         if category and category not in fx.get("categories", []):
@@ -204,7 +204,7 @@ def publish(fx: dict, fixture_sha: str, res: dict, dpi: int, info: dict, state: 
     }
     d = store_path(info, fixture_sha)
     d.mkdir(parents=True, exist_ok=True)
-    (d / "record.json").write_text(json.dumps(rec, indent=2) + "\n")
+    (d / "record.json").write_text(json.dumps(rec, indent=2) + "\n", encoding="utf-8")
     return d / "record.json"
 
 
@@ -252,14 +252,14 @@ def cmd_render(args) -> int:
 
 def _load_stability() -> dict:
     if STABILITY_JSON.exists():
-        return json.loads(STABILITY_JSON.read_text())
+        return json.loads(STABILITY_JSON.read_text(encoding="utf-8"))
     return {}
 
 
 def _save_stability(doc: dict) -> None:
     with _STAB_LOCK:
         tmp = STABILITY_JSON.with_suffix(".tmp")
-        tmp.write_text(json.dumps(doc, indent=2) + "\n")
+        tmp.write_text(json.dumps(doc, indent=2) + "\n", encoding="utf-8")
         tmp.replace(STABILITY_JSON)
 
 
@@ -292,7 +292,7 @@ def cmd_stability(args) -> int:
         if n == 1:
             # 1 re-render: compare against the stored candidate/approved record.
             rp = store_path(info, fixture_sha) / "record.json"
-            stored = json.loads(rp.read_text()) if rp.exists() else None
+            stored = json.loads(rp.read_text(encoding="utf-8")) if rp.exists() else None
             stored_match = (stored is not None and stored["pages"] == runs[0])
             seq_ok = bool(stored_match)
         else:
@@ -336,7 +336,7 @@ def _load_records(info: dict) -> dict[str, dict]:
     if not root.exists():
         return out
     for rp in root.glob("*/record.json"):
-        rec = json.loads(rp.read_text())
+        rec = json.loads(rp.read_text(encoding="utf-8"))
         out[rec["fixture"]] = rec
     return out
 
@@ -353,7 +353,7 @@ def cmd_approve(args) -> int:
     if not ids:
         log("nothing to approve")
         return 2
-    approvals = json.loads(APPROVALS_JSON.read_text()) if APPROVALS_JSON.exists() else []
+    approvals = json.loads(APPROVALS_JSON.read_text(encoding="utf-8")) if APPROVALS_JSON.exists() else []
     known = {a["fixture"] for a in approvals if a.get("engine_key") == engine_key(info)}
     promoted, refused = [], []
     for fid in ids:
@@ -370,7 +370,7 @@ def cmd_approve(args) -> int:
             continue
         rec["state"] = "approved"
         (store_path(info, rec["fixture_sha"]) / "record.json").write_text(
-            json.dumps(rec, indent=2) + "\n")
+            json.dumps(rec, indent=2) + "\n", encoding="utf-8")
         golden_key = "sha256:" + hashlib.sha256(
             ("\n".join(rec["pages"])).encode()).hexdigest()  # content hash of approved raster set
         approvals.append({
@@ -388,7 +388,7 @@ def cmd_approve(args) -> int:
         })
         promoted.append(fid)
     tmp = APPROVALS_JSON.with_suffix(".tmp")
-    tmp.write_text(json.dumps(approvals, indent=2) + "\n")
+    tmp.write_text(json.dumps(approvals, indent=2) + "\n", encoding="utf-8")
     tmp.replace(APPROVALS_JSON)
     for fid, why in refused:
         log(f"  refused {fid}: {why}")
@@ -423,7 +423,7 @@ def cmd_verify(args) -> int:
         print(json.dumps({"fixture": args.id, "ok": False,
                           "error": f"no stored record under {engine_key(info)}"}, indent=2))
         return 2
-    rec = json.loads(rp.read_text())
+    rec = json.loads(rp.read_text(encoding="utf-8"))
     res = render_once(fx, rec["dpi"], GOLDENS / ".verify" / args.id)
     pages_match = res["page_shas"] == rec["pages"]
     pdf_match = res["pdf_sha"] == rec["pdf_sha"]

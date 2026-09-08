@@ -32,5 +32,5 @@
     ]
   },
   "notes": "scanned-page emulation in ODF: synthetic 300x360 raster (off-white paper gray, gray pseudo-text word bars, seeded per-pixel noise — same PIL/numpy recipe as the docx fixture, noise seed derived from the fixture-seeded ctx.rng) stored as real PNG bytes at Pictures/scan1.png (manifest media-type image/png), shown in a draw:frame > draw:image (xlink:type=\"simple\", 16cm x 22cm as-char anchor) with one caption line below. The picture has no text layer (bars, not glyphs), so there is no OCR truth inside it: reference text is the caption ONLY — the honest near-None case.",
-  "sha256": "8f7f1c7a6a3cc1c063cbd8caa2a57a66ac36352d3314a00c6bf1382832d1fabe"
+  "sha256": "eeb49eee880e46af7a5dec7b941174aac31b3c5de3a356dce1c30387c5acda7d"
 }

@@ -32,5 +32,5 @@
     ]
   },
   "notes": "OpenFormula cells with NATIVE cached values (the xlsx counterpart needs a zip rewrite because openpyxl cannot emit <v>; here table:formula and the cached office:value/string-value are authored together, no patching): cross-table references: table Data A1/A2 hold of:=[.Other.A1]*3 / of:=[.Other.A2]*3 over table Other's A1=7, A2=11, with the results 21/33 cached in the formula cells themselves — a cached-value reader gets the numbers without resolving the cross-table address. The text:p child is the display string of the cached result — exactly what a cached-value extractor reads without recalculating. Honest caveat: LibreOffice recalculates of: formulas on load and reproduces these exact results, so recalc-vs-cache agree. The normative counter reads table:table=2; text:field stays 0 (table:formula is not a text:field).",
-  "sha256": "80d4c49b1370e78ecc5a2330fb345994b46be1b174c0dfaa981c784d7be82d3c"
+  "sha256": "8ffabdd962d617d0bbaa7c15a28ac4b01510ecb42f99fa65f5038dec52cc4edf"
 }

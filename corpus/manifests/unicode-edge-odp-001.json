@@ -32,5 +32,5 @@
     ]
   },
   "notes": "one text:p per unicode-edge string (same _UE_* codepoints as docx/odt/ods unicode-edge fixtures): ligature glyphs, ZWJ family emoji, combining stacks, NBSP sentence, soft hyphens, math alphanumerics, VS15/VS16 heart pair, LRM/RLM bidi sandwich, leading U+FEFF. Tofu/substitution under LibreOffice is a REAL fidelity finding for the baseline report, not a generator bug.",
-  "sha256": "25ffd98ba76e6b6b1148220d5adf69040c06d84cf00f949541a6be778d0ed128"
+  "sha256": "f565792df5bc45e2a262af91baa801e75cb0b71300e036636a6002ddf57ff852"
 }

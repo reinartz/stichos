@@ -31,6 +31,6 @@
       "soffice-26.2.5"
     ]
   },
-  "notes": "real huge single-string text (not an image or overflow hack): one text:p holding the deterministic 60,000-char string 'lorem ipsum ' * 5000, plus a 2x2 table:table (table:name HugeCell) whose r1c1 cell holds 'filler ' * 1500 (10,500 chars) as its office:string-value and text:p; other cells are short r{r}c{c} markers. Reference text is the exact same strings, byte-for-byte as inserted. Deflate compresses the repetitive lorem hard: saved blob is 2216 bytes, far under the 10 MB cap. The 2x2 table is a real table:table, so the normative counter reads table:table=1. Overflow/wrap/pagination behavior at render time is the fixture's point.",
-  "sha256": "2ff588e7c5eb4cb1083838909d687070251cb4311b3f8f44f5b11213ba25073d"
+  "notes": "real huge single-string text (not an image or overflow hack): one text:p holding the deterministic 60,000-char string 'lorem ipsum ' * 5000, plus a 2x2 table:table (table:name HugeCell) whose r1c1 cell holds 'filler ' * 1500 (10,500 chars) as its office:string-value and text:p; other cells are short r{r}c{c} markers. Reference text is the exact same strings, byte-for-byte as inserted. The repetitive lorem would compress hard, but the normalized container is STORED for cross-environment byte determinism (INV-4): saved blob is 85753 bytes, far under the 10 MB cap. The 2x2 table is a real table:table, so the normative counter reads table:table=1. Overflow/wrap/pagination behavior at render time is the fixture's point.",
+  "sha256": "956923104694c3266890d1cfbbc152c9dc3628611e746ebc1171ba99bba7f1bf"
 }

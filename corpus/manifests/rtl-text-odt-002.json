@@ -32,5 +32,5 @@
     ]
   },
   "notes": "real RTL fixture: named paragraph style GP RTL (style:paragraph-properties fo:text-align=\"end\" + style:text-properties fo:direction=\"rtl\"); three Hebrew bullets as text:list > text:list-item > GP RTL paragraphs, the second embedding an LTR run (text:span with character style GP LTR, fo:direction=\"ltr\") holding \"hello stichos\". Honest caveats: ODF has no dedicated paragraph-bidi attribute, so direction rides on fo:direction on the style text-properties and end-alignment via fo:text-align=\"end\" (mirror logic left-to-right renderers differ on); embedded LTR/bidi reordering is performed by the renderer's bidi engine, not stored as layout. No normative ODF counter matches; feature counts stay 0.",
-  "sha256": "c41c63533d815c45c103c4d5eadb572378199be51f762ddcde6e56083404d5dc"
+  "sha256": "3e9617ef68dcc3227dc071797671e1c389879d5c8a61b1c5ffec5cd478e9e097"
 }

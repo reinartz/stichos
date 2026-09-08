@@ -33,5 +33,5 @@
     ]
   },
   "notes": "four Chinese lines of Li Bai's Quiet Night Thought (床前明月光…) in A1:A4 with plain integer row numbers 1..4 in B1:B4, plus the first line of the Korean anthem 애국가 (동해물과 백두산이 마르고 닳도록) in C1; strings stored exactly as written (no transliteration, normalization or escaping by the generator), CJK per-char F1 rule applies downstream per C9 §10.6.",
-  "sha256": "9fb7c1285fc86aa5583c18b509ba65990cf56c65ea995edaf1edc1c3881972f9"
+  "sha256": "abb6c4df58097a11fee8c9fdefe1be85bad041975b4b85bc00313b973a520a82"
 }

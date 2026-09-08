@@ -33,5 +33,5 @@
     ]
   },
   "notes": "six real shared-string/inline cell values: typographic ligatures ﬁﬂ (compatibility codepoints, no font trickery), one ZWJ-joined family emoji (U+1F468/469/467/466 with U+200D separators), a decomposed e+U+0301 combining sequence, NBSP (U+00A0) inside a Latin sentence, CJK '床前明月光' (Quiet Night Thought line 1, per-char F1 rule applies downstream), and a Hebrew+Latin mixed run — one per cell A1..A6, no escaping or normalization applied by the generator.",
-  "sha256": "de37ae0c1f26be859f74cb9167b3d72e5bda54d3a98b3b003f07dc673cd47a5b"
+  "sha256": "8fe0a535921cbd2a3b034ac83d3cebf484b3f3a4addc5be271ae708d0a85e0c9"
 }

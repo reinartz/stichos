@@ -32,5 +32,5 @@
     ]
   },
   "notes": "real ODP list numbering: text:list-style \"L1\" in styles.xml office:styles (level 1 text:list-level-style-number, text:num-format=\"1\", text:start-value=\"1\"), used by two text:list of 5 text:list-item > text:p inside the presentation:body frame; the second list carries text:continue-numbering=\"false\" so its counter restarts at 1 (same list machinery as the odt numbering-restarts fixture, placed on a slide). ODF restart semantics stated honestly: text:continue-numbering DEFAULTS to false, so a sibling text:list sharing a list-style does not continue the previous counter anyway — the explicit text:continue-numbering=\"false\" pins it (continuation would require \"true\"). Reference text is the 10 exact item strings plus the deck title; the number markers are render-derived, never in the file as text. No normative counter matches list elements, so the only nonzero counter is draw:frame=2.",
-  "sha256": "ed503ae585d6899da51fbd74a2ea64dd318d6c8c6d54868e874711093df4bd48"
+  "sha256": "0914b384c08816916ff31f4d6f79f2ea589fea15c6cb150c5b2b19c5c3c4a81a"
 }

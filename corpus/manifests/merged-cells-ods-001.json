@@ -32,5 +32,5 @@
     ]
   },
   "notes": "real ODF spreadsheet merges (same covered-cell model as the odt merged builder, ODF 1.2 §9.4, under office:spreadsheet): one 3x3 table (table:name MergedGrid): A1 spans two rows (table:number-rows-spanned=\"2\") with a covered:table-cell placeholder in the same column of row 2, A3 spans two columns (table:number-columns-spanned=\"2\") with a covered:table-cell to its right in row 3; covered: is the mandated prefix for the table namespace URI. The normative counter reads table:table=1. Reference text lists each surviving cell's text once in row-major order (covered cells carry no text).",
-  "sha256": "cfd1c0d23ea1e6b5889173d2721eb809beb8e20d9fdcc5c9c60bf3819ff0e1a9"
+  "sha256": "d9355e3dc11c1b197051a388817bdbe87de133804a2b6b68e83fee38b45edf78"
 }

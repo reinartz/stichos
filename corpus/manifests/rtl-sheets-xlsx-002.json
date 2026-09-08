@@ -33,5 +33,5 @@
     ]
   },
   "notes": "mixed-workbook case: sheet 'RTL' has sheetView rightToLeft=1 plus one column-level right alignment on column B (column_dimensions alignment), sheet 'LTR' is explicitly left-to-right — extractors must not assume one bidi view direction per workbook; numeric values are real, no formulas.",
-  "sha256": "0b51a7c54cc6641a21b414fbde6f934dae200a1d796e49e6d4229e796239fcba"
+  "sha256": "942db6c67e3454d8f57abd307bd6e915f08e357f96e138f57f7ebd1f5df0c907"
 }

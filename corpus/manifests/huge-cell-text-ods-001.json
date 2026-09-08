@@ -31,6 +31,6 @@
       "soffice-26.2.5"
     ]
   },
-  "notes": "real spreadsheet text stress: ONE cell holding the deterministic 48,000-char string 'lorem ipsum ' * 4000 in both office:string-value and its display text:p. ODF has NO ECMA-376-style 32,767-char cell cap, so 48k in one cell is spec-legal here (the xlsx counterpart must pin at 32767) — readers that truncate at OOX limits are the fidelity finding this fixture hunts. Reference text is the exact same string(s), byte-for-byte as inserted, no truncation allowed. Deflate collapses the repetitive text hard: saved blob is 2187 bytes, far under the 10 MB cap. The normative counter reads table:table=1. Overflow/wrap/print-area behavior over the giant strings is the fixture's point.",
-  "sha256": "72b136294b97d0b02fe789330e8dd510d3904d1712110b16b910dbfe7a82ab10"
+  "notes": "real spreadsheet text stress: ONE cell holding the deterministic 48,000-char string 'lorem ipsum ' * 4000 in both office:string-value and its display text:p. ODF has NO ECMA-376-style 32,767-char cell cap, so 48k in one cell is spec-legal here (the xlsx counterpart must pin at 32767) — readers that truncate at OOX limits are the fidelity finding this fixture hunts. Reference text is the exact same string(s), byte-for-byte as inserted, no truncation allowed. The repetitive text would collapse hard under deflate, but the normalized container is STORED for cross-environment byte determinism (INV-4): saved blob is 100350 bytes, far under the 10 MB cap. The normative counter reads table:table=1. Overflow/wrap/print-area behavior over the giant strings is the fixture's point.",
+  "sha256": "840c3de294718ab76050b40ee462090e07a912860ecc7a879e639ecb886ea10c"
 }

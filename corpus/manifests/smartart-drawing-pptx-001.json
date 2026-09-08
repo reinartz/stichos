@@ -33,5 +33,5 @@
     ]
   },
   "notes": "python-pptx cannot emit diagrams: raw p:graphicFrame elements with wps:wsp shapes (rect + ellipse, wps:txbx/w:txbxContent text, same wps layout the docx builder uses) appended to the slide spTree via parse_xml — the pptx-scale mirror of docx smartart-drawing 001. LibreOffice renders shape txbx text into the PDF text layer, so the labels are reference text. DrawingML shapes only — no diagram parts, not MS-generated SmartArt.",
-  "sha256": "bfabbe6e2ba65652b074c475cae00109fd207a9e10a75ebe0a614d964a77764d"
+  "sha256": "17abc806ffbe59eb658f7d3d7ed09d475598d0faa21f6203fc3cd70429980fd0"
 }

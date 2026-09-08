@@ -32,5 +32,5 @@
     ]
   },
   "notes": "real ODF notes: inline text:note (text:id etn1..etn2, text:note-class=\"endnote\") with text:note-citation + text:note-body/text:p, splitting the body paragraph around the note. Citation markers are authored digits: LibreOffice may render citations differently (numbering/format), so the reference text covers the two body halves and the note bodies only, never the citation digit.",
-  "sha256": "8987777669b90e2bf096d92492640d17e9e17691559acf46f7ec6cde68fa943b"
+  "sha256": "89c2989dae15b9772abadacdd1334b792dee163866308d085e809b0e43ff4791"
 }

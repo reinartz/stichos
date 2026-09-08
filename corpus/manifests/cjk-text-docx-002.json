@@ -33,5 +33,5 @@
     ]
   },
   "notes": "real public-domain East Asian text: three Bashō haiku (古池や 蛙飛びこむ 水の音 / 五月雨を あつめて早し 最上川 / 閑さや 岩にしみ入る 蝉の声) with eastAsia hint \"Noto Serif CJK JP\", plus the first line of the Korean 애국가 (동해 물과 백두산이 마르고 닳도록, public domain) with eastAsia hint \"Noto Serif CJK KR\"; eastAsia rFonts injected as raw w:rPr via parse_xml. Reference text is the exact inserted strings including the inter-phrase spaces; CJK per-char tokenization (C9 §10.6) applies downstream.",
-  "sha256": "5fbf8005223203a67d3abb64bc60878687eb12d48dbdbd6ec7fff776c4a4e428"
+  "sha256": "ce4455bb21c03cb4717a6b3350ba6b92f65b86f2a2d0e0dd91300df9edc9a617"
 }

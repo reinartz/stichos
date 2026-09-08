@@ -1,6 +1,6 @@
 """docx category builders (python-docx + raw XML injection where needed)."""
 
-from ..core import BuildResult, builder, pin_docx_props
+from ..core import BuildResult, builder, normalize_zip, pin_docx_props
 
 
 @builder("merged-cells", "docx")
@@ -1657,6 +1657,8 @@ def huge_cell_text(ctx, nnn):
     assert f">{big}</w:t>" in xml, "60k paragraph not written as one w:t"
     assert f">{cell_big}</w:t>" in xml, "10k cell text not written as one w:t"
     assert xml.count(f">{big}</w:t>") == 1 and xml.count(f">{cell_big}</w:t>") == 1
+    normalize_zip(path)  # measure the FINAL container (pre-normalize zip bytes are
+    # environment-dependent: library deflate streams vary with the zlib build)
     size = path.stat().st_size
     assert size < 10 * 1024 * 1024, f"blob {size} bytes >= 10 MB"
 
@@ -1665,9 +1667,10 @@ def huge_cell_text(ctx, nnn):
         "the deterministic 60,000-char string 'lorem ipsum ' * 5000 in a single w:t run, plus "
         "a 3x2 Table Grid table whose cell(1,1) holds 'lorem ipsum ' * 834 (10,008 chars); "
         "other cells are short r{r}c{c} markers. Reference text is the exact same strings, "
-        "byte-for-byte as inserted. Deflate compresses the repetitive lorem hard: saved blob "
-        f"is {size} bytes, far under the 10 MB cap. Overflow/wrap/pagination behavior at "
-        "render time is the fixture's point."
+        "byte-for-byte as inserted. The repetitive lorem would compress hard, but the "
+        "normalized container is STORED for cross-environment byte determinism (INV-4): "
+        f"saved blob is {size} bytes, far under the 10 MB cap. Overflow/wrap/pagination "
+        "behavior at render time is the fixture's point."
     )
     return BuildResult(
         path=path, title=f"Huge cell text docx {nnn:03d}", reference_text=ref, notes=notes

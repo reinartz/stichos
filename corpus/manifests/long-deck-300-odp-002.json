@@ -32,5 +32,5 @@
     ]
   },
   "notes": "300-slide stress, second instance — the phase knob: bullets come from the SAME _LD_PHRASES 12-cycle but ROTATED BY +6 (slide 1 opens 'golf/hotel/india' where 001 opens 'alpha/bravo/charlie' — asserted), so per-slide text differs from 001 while the per-phrase count stays exactly 75 (asserted) and the deck remains index-comparable across instances; titles stay 'Slide {i}' so the delta is isolated to body text. Same 300 draw:page / 600 draw:frame geometry, same plain-text-p bullet honesty, same <12 MB and <60 s budgets asserted here, and reference_text is the rotated 1200 lines.",
-  "sha256": "7cadad37b8df4a48d5a2373ded0a4e4c6d5841a9e14022564789ed628e0a71b8"
+  "sha256": "eb3d3fecf01dbe311a508c7cf3b72b302513fc0b32dbd7efa2b8ac31323af519"
 }

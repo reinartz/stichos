@@ -33,5 +33,5 @@
     ]
   },
   "notes": "real ws.merge_cells across two worksheets ('Main' A1:B2, 'Second' B4:C6), one merge per sheet plus one normal cell per sheet; merge regions never cross sheet boundaries (xlsx has no cross-sheet merge) — the point is per-sheet merge state.",
-  "sha256": "5b0836d6dc1b87c1f34a1002f0fcf16d216aaabf76dce51b2d1b12929aac67c4"
+  "sha256": "a54154f83e8d3c211149a2bf05abe79514d1129e1c384fbb71513dc5a08200b4"
 }

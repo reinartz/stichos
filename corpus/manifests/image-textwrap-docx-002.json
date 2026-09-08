@@ -33,5 +33,5 @@
     ]
   },
   "notes": "real floating picture with square wrap: python-docx has no float API, so add_picture creates the image part/rels/inline drawing first, then word/document.xml is rewritten via zip_read/zip_write to upgrade wp:inline to wp:anchor (distT/B/L/R, simplePos, relativeHeight, behindDoc, locked, layoutInCell, allowOverlap, positionH/positionV) with wp:wrapSquare wrapSide=\"both\" and wp:extent 2in x 1.5in (1828800 x 1371600 EMU); the a:graphic/pic:pic payload and media rel are the real python-docx ones.",
-  "sha256": "57c80bb22753cdf3820d0ef11562f4cffafc319fdd80974668e683068e90330e"
+  "sha256": "b8be1235ba43f43365ecb0fced3e4b99e789d893d4b26f058166ecfea808dc98"
 }

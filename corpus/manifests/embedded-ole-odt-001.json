@@ -32,5 +32,5 @@
     ]
   },
   "notes": "legacy OLE embed in ODF: real binary part object.bin (hand-built minimal CFB v3 stub, imported _ole_cfb_stub from the docx builders) with manifest media-type application/x-ole-object, referenced by draw:frame (as-char anchor, svg 5cm x 5cm, draw:opacity=\"100%\") > draw:object (draw:mime-type + draw:object-type \"application/oleobject\", xlink:type simple, xlink:href object.bin, show=embed, actuate=onLoad). Honest caveat: the CFB stub carries no real payload/streams, so LibreOffice may show an icon placeholder or render nothing for the object — reference text covers only the three surrounding text paragraphs.",
-  "sha256": "a21892d1ef410623ec4390fc10b5b2dd27ae48fd7d3665de4f3967ce79739565"
+  "sha256": "c33ca38ae10c67cb17675c211426780a36963e15ac523e0cc1a3bc2fbaac110a"
 }

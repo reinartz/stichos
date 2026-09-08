@@ -33,5 +33,5 @@
     ]
   },
   "notes": "real sheetProtection (sheet=\"1\", no password hash) via ws.protection.sheet=True, plus password-less workbook structure lock (wb.security lockStructure=True); A1 is the one locked cell (inherits locked=1 from the Normal cell style), A2:A3 carry explicit applyProtection locked=0 xf entries — verified in styles.xml/sheet1.xml. Password-less protection is a UI hint, not security; weakness is intentional fixture content, not a generator bug.",
-  "sha256": "cc901b5969473e009bdc264b4f18146cc7bd4c3ec3c01c070ec8a9b787b2c0fb"
+  "sha256": "3862730b05c3064eab5d9086d80f099879d53bbfef42e6894e41f9a229a12032"
 }

@@ -33,5 +33,5 @@
     ]
   },
   "notes": "python-docx cannot emit diagrams: w:drawing with a wpg:wgp group of two wps:txbx text shapes, PLUS a second w:drawing whose a:graphicData (uri drawingml/2006/diagram) carries dgm:relIds to synthetic diagram parts: word/diagrams/data1.xml (dgm:dataRoot with ptLst nodes) + word/diagrams/layout1.xml (minimal dgm:layoutDefinition), with diagramData/diagramLayout relationships in document.xml.rels and Content_Types overrides added. Synthetic diagram parts, not MS-generated SmartArt (no MS produced these); LibreOffice may ignore them entirely, so the diagram node strings are kept OUT of the reference text; the two shape txbx labels are real DrawingML and ARE reference text.",
-  "sha256": "d642c6f29495ff9653c5341e76ff8a151927e959fbe15cf8693996be48259772"
+  "sha256": "31932342cb9813338aa3465a032dadfa772170f45095689c6f4e84d1a8c61b5b"
 }

@@ -33,5 +33,5 @@
     ]
   },
   "notes": "real python-pptx cell.merge on a 3x3 table: horizontal merge (0,0)+(0,1) emits gridSpan=2 with an hMerge=1 continuation cell, vertical merge (1,2)+(2,2) emits rowSpan=2 with a vMerge=1 continuation cell (both asserted in slide1.xml). Unlike xlsx, merging does NOT drop the covered cells' text — all nine a:t strings stay in the XML and the renderer only displays the origin cells (seven visible: R0C0, R0C2, R1C0, R1C1, R1C2, R2C0, R2C1; R0C1 and R2C2 are merge-hidden). reference_text lists all nine inserted strings; text extractors must decide which convention to follow and say so.",
-  "sha256": "524a75bd2449ccccfa20d4176d26f8f66534b640b0cf6774f5bf81f1c74485e0"
+  "sha256": "0549391984595092d56b44c9902c4b6b36eb9c8fd8ec053905a5e7b77e77eb42"
 }

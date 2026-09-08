@@ -32,5 +32,5 @@
     ]
   },
   "notes": "z-order overlap test, second instance — MIRROR of 001: a slate 96x72 PNG (different size AND fill from 001's ink 64x48, both deterministic PIL bytes) is placed at the RIGHT by automatic style gpPicB (5.4in/0.8in, 3.6in x 2.6in, z 0); the gp1 body frame (0.5in/1.9in, 9in x 5in, z 1) now overlaps the picture's UPPER-LEFT corner instead of the lower-right, with FOUR body lines (001: three). Document order + z-index still put the frame on top (asserted: WrapPicB precedes Body1). Same honest caveats as 001 (fill-less gp1, LO not run); reference text is the four frame lines; counters stay draw:frame=2.",
-  "sha256": "73264f9fd0149aea350859bc90fff87a9cae29fadfa724756e828c9e1661fa75"
+  "sha256": "b97f6aa64571b6782110da32dfb5a415b9b1c5cf77c780d0d423bf183c59d4cc"
 }

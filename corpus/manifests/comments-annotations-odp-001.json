@@ -32,5 +32,5 @@
     ]
   },
   "notes": "reviewer comments as 3 office:annotation elements (office:name anno1..anno3, alternating dc:creator bot-a/bot-b, fixed dc:date 2026-01-01T00:00:00) anchored inside the page's draw:notes (speaker-notes) paragraphs — NOT inside slide frames: Impress has no slide-comment model and inline annotation in a slide text box makes LibreOffice refuse the package (measured 2026-09-05: 'source file could not be loaded'; same file without annotations loads). The normative office:annotation counter scans content.xml and reads 3 next to draw:frame=2. Reference text is deck title + claim paragraphs only: default PDF export renders slides, not notes, so comment strings are expected NOT to appear in the render (F1 must not demand them).",
-  "sha256": "1406893a712702689ca0498976eb66dd3291b22687ddee9494e4f33cd76e0571"
+  "sha256": "87a6adc6fa2b314d213cd7fcc2a6d441fd27428feb0be21bb6d195f1a98ff764"
 }

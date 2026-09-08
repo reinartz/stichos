@@ -33,5 +33,5 @@
     ]
   },
   "notes": "one giant cell A1 at the ECMA-376 cell-length maximum of 32,767 chars ('lorem ipsum ' repeated, truncated to exactly 32767), plus two short neighbour cells (B1, A2) that an extractor must still surface un-truncated next to the giant cell; 48k chars in one cell is impossible in a spec-valid xlsx (openpyxl truncates silently at 32767 — asserted here at exactly the max), so the reference text holds the full 32,767-char stored value; the fixture size IS the category, truncation-tolerance probe for string readers.",
-  "sha256": "181d1c432f4a292871cb9635d78640f248ffcbe5e0a878c9ba294f68562157b8"
+  "sha256": "b502334132c3149f6fabb9d48fca4e7b1a12fb4b43c6fe62410188644addf97c"
 }

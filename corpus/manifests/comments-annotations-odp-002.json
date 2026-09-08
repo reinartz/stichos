@@ -32,5 +32,5 @@
     ]
   },
   "notes": "reviewer comments, second instance: FOUR office:annotation elements (001: three) named anno1..anno4 with fixed dc:date, cycled over THREE dc:creators (bot-b/bot-c/bot-a; 001 alternates two) so per-author note grouping has to re-shard, all still anchored inside the page's draw:notes paragraphs — the annotation-lesson from 001 holds: inline annotation in a slide text box makes LibreOffice refuse the package (measured 2026-09-05), notes placement is asserted (first annotation appears after <draw:notes>). Normative office:annotation counter reads 4 next to draw:frame=2. Reference text is deck title + the four statement paragraphs only; comment strings must NOT be demanded in the render.",
-  "sha256": "68c735e1e4b43324183d112387f35c004cbadce559a9ddc4fc3009759bc8228b"
+  "sha256": "2eaa4f6463e779ec1cfe42041b084e9342a6fcd8ed25a3c91d8b2a46bf3fbf49"
 }

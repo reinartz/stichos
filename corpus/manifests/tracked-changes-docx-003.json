@@ -33,5 +33,5 @@
     ]
   },
   "notes": "real w:ins/w:del tracked revisions (w:delText for the deleted run) wrapped around python-docx runs via zip_read/zip_write, plus a tracked table-row insertion marked by w:trPr/w:ins on the second row; all w:date fixed to 2026-01-01T00:00:00Z. Reference text keeps ins text and the inserted row, excludes delText.",
-  "sha256": "15e2afbf3a758c86d33a785207993121537a131656be022a6a0cfe25b6ac7b20"
+  "sha256": "afa622425f8f93d76f352e8ddd04cfc88324cbd38f00e443ac9c5ecf57b06ba7"
 }

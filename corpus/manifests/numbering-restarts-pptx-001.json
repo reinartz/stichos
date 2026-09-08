@@ -33,5 +33,5 @@
     ]
   },
   "notes": "two text frames on one slide with bullets injected as raw XML (python-pptx has no bullet API): frame A carries a:buFont Arial + a:buChar '&#8226;' on all three paragraphs, frame B carries a:buAutoNum type=arabicPeriod on its three paragraphs. The numbering restart between frames is IMPLICIT: DrawingML autonumbering state is per text-body, so frame B starts at '1.' with no restart flag to set — unlike docx numbering-restarts there is no numId/level to continue or reset, and no cross-frame continue mode exists. Bullet glyphs and numbers are formatting, not text: reference_text lists the six paragraph strings only.",
-  "sha256": "706c51ad7f53903343153cbde4681ae10a97b2e810248419e7fdf9d6406630ea"
+  "sha256": "80802adf865731a90c3ae1945b02eb079082be36cedca796e03593ad906b9e0c"
 }

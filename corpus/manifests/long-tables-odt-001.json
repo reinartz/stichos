@@ -32,5 +32,5 @@
     ]
   },
   "notes": "real table stress, hand-written ODF: one table:table with 120 table:table-rows x 4 table:table-cells, every cell carrying r{r}c{c} text, intro + closing text:p around it so LibreOffice paginates past two pages; all cell strings are in the reference text.",
-  "sha256": "38c306e4bb698a37a63b49889b866986a8bc661766aadc2a6d20fd3f84f32c13"
+  "sha256": "9f4f87cc131b6923ff53ea7177d1f27715d2f47888303cf9c173702e33b173ab"
 }

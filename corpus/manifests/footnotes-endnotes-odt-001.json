@@ -32,5 +32,5 @@
     ]
   },
   "notes": "real ODF notes: inline text:note (text:id ftn1..ftn3, text:note-class=\"footnote\") with text:note-citation + text:note-body/text:p, splitting the body paragraph around the note. Citation markers are authored digits: LibreOffice may render citations differently (numbering/format), so the reference text covers the two body halves and the note bodies only, never the citation digit.",
-  "sha256": "277f131873802aef5ff734d08d5006d811a2317a1d42f6bae687f31aaaa9a76c"
+  "sha256": "63cb7bdcbf8033a67c8a2579ac7472dc18a6ca2be0d634aa139966a229fbee96"
 }

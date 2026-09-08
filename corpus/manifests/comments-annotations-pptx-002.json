@@ -33,5 +33,5 @@
     ]
   },
   "notes": "second instance deepens the author dimension instead of repeating 001: authors1.xml carries TWO p15:cavAuthor entries (id 0 'bot-a', id 1 'bot-b'; 001 has the single 'stichos-bot'), comments1.xml carries FOUR p15:cmt entries (001: three) alternating authorId 0/1/0/1, all with the fixed dateTime 2026-01-01T00:00:00Z, ref ids keyed slide1-line1..4 over a four-line slide body. Same injection machinery as 001 (zip rewrite + MS 2018/10 relationship types + Content_Types overrides), same honest caveats: synthetic minimal-shape parts, no schema validation, no run-level anchors — renderers may show nothing or drop them. Comment texts are part of the reference text.",
-  "sha256": "c0267ec8fd1e3018bf40024f1900a6890496cb102420329b9786850ea785c686"
+  "sha256": "b884f502955b6c4891a90882eafcee07c56563e0ac7b2d0fb2d4ec174cb38f5c"
 }

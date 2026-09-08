@@ -33,5 +33,5 @@
     ]
   },
   "notes": "real public-domain Chinese tang poetry: Li Bai 静夜思 (床前明月光…故乡) and Meng Haoran 春晓 (春眠不觉晓…多少), 4 lines each, one paragraph per line; every run carries an explicit eastAsia font hint w:rFonts w:eastAsia=\"Noto Serif CJK SC\" injected as raw w:rPr via parse_xml (python-docx font.name only writes ascii/hAnsi). Reference text is the exact inserted strings; downstream F1 applies the C9 §10.6 CJK per-char tokenization rule.",
-  "sha256": "df823c3e1ec515730d0c0937a35f9b435f352b81564b57c375824eac004be245"
+  "sha256": "91c93392e69be97da8a76877e7411166f51d5b012377a988210a9fef02079b16"
 }

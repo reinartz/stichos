@@ -122,21 +122,28 @@ def sha256_file(p: Path) -> str:
 
 
 def normalize_zip(path: Path) -> None:
-    """Sorted entries, fixed date_time, fixed attrs. ODF special case: `mimetype`
-    entry goes FIRST, STORED (ODF §3.1.1), the rest sorted + deflated. In-package
-    timestamps are the builder's job (pin core.xml/meta.xml via FIXED_DT)."""
+    """Sorted entries, fixed date_time, fixed attrs, ZIP_STORED. Entries are
+    stored UNCOMPRESSED on purpose: deflate streams differ across zlib builds
+    (host zlib-ng vs CI stock zlib — nightly run 34200949975), so container
+    bytes must not depend on a compressor to stay byte-reproducible across
+    environments (INV-4). `create_system=3` pins the Unix creator byte (ZipInfo
+    defaults to the build host's OS). ODF special case: `mimetype` entry goes
+    FIRST, STORED (ODF §3.1.1). In-package timestamps are the builder's job
+    (pin core.xml/meta.xml via FIXED_DT)."""
     with zipfile.ZipFile(path) as zf:
         entries = {i.filename: zf.read(i.filename) for i in zf.infolist()}
-    with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED) as zf:
+    with zipfile.ZipFile(path, "w", zipfile.ZIP_STORED) as zf:
         names = sorted(n for n in entries if n != "mimetype")
         if "mimetype" in entries:
             zi = zipfile.ZipInfo("mimetype", date_time=FIXED_ZIP_DT)
             zi.compress_type = zipfile.ZIP_STORED
+            zi.create_system = 3
             zi.external_attr = 0o644 << 16
             zf.writestr(zi, entries["mimetype"])
         for name in names:
             zi = zipfile.ZipInfo(name, date_time=FIXED_ZIP_DT)
-            zi.compress_type = zipfile.ZIP_DEFLATED
+            zi.compress_type = zipfile.ZIP_STORED
+            zi.create_system = 3
             zi.external_attr = 0o644 << 16
             zf.writestr(zi, entries[name])
 
@@ -175,7 +182,7 @@ def pin_pptx_props(prs) -> None:
 
 
 def _load_schema() -> dict:
-    return json.loads((CORPUS / "schema" / "fixture.schema.json").read_text())
+    return json.loads((CORPUS / "schema" / "fixture.schema.json").read_text(encoding="utf-8"))
 
 
 def _manifest(fid: str, fmt: str, cat: str, res: BuildResult, sha: str) -> dict:
@@ -214,7 +221,8 @@ def build_one(cat: str, fmt: str, nnn: int, out: Path | None = None) -> dict:
     if out is None:
         mdir = CORPUS / "manifests"
         mdir.mkdir(parents=True, exist_ok=True)
-        (mdir / f"{fid}.json").write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + "\n")
+        (mdir / f"{fid}.json").write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + "\n",
+                                          encoding="utf-8")
         if res.reference_text is not None:
             rdir = CORPUS / "reference"
             rdir.mkdir(parents=True, exist_ok=True)
@@ -287,7 +295,7 @@ def verify_all(no_blobs: bool = False) -> list[str]:
     blob sha, feature recount and rebuild determinism are skipped."""
     problems: list[str] = []
     for mp in sorted((CORPUS / "manifests").glob("*.json")):
-        m = json.loads(mp.read_text())
+        m = json.loads(mp.read_text(encoding="utf-8"))
         fid = m["id"]
         try:
             jsonschema.validate(m, _load_schema())

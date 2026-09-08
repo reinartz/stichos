@@ -32,5 +32,5 @@
     ]
   },
   "notes": "real ODF named styles: 3-level style:parent-style-name inheritance chain GP Base (12pt) -> GP Mid (italic) -> GP Leaf (14pt), plus a CHARACTER-family style GP Char (style:family=\"character\", fo:font-weight bold) applied inline via text:span text:style-name. None of the five normative ODF counters match style elements, so feature counts stay 0; reference text is every visible paragraph string (style names themselves are not visible text).",
-  "sha256": "fa50ce0a5cc12a3087e2d4667ba5903dfff27ed8fb38cc8e96cf9d4f24ca7ecf"
+  "sha256": "7e79525a43f87bf44dfa947e70c0beed8a8da8d5e150da9f6ac5ced1547aa9a7"
 }

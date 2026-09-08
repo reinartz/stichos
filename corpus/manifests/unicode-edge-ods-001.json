@@ -32,5 +32,5 @@
     ]
   },
   "notes": "real codepoint edge content in ODS cells: the full docx unicode-edge constant set (imported _UE_* from .docx — ligature glyphs U+FB01..FB04, ZWJ family emoji U+1F468/200D/…, decomposed combining stacks, U+00A0 sentence, U+00AD soft hyphens, math double-struck U+1D54F/U+1D550, bold math digits U+1D7CF.., VS15/VS16 heart pair, LRM/RLM bidi sandwich with Hebrew, leading U+FEFF) — ten constants, one per cell in column A rows 1..10; the nominal A1..A6 window cannot hold ten one-per-cell, so the column extends to A10, placement recorded here. Cells store the raw codepoints un-normalized in office:string-value AND the display text:p (ODF repeats the string twice on disk — both must survive). Reference text is the byte-exact inserted codepoints. LibreOffice font coverage varies per glyph class: tofu boxes for missing glyphs are a REAL fidelity finding, not a generator bug. The normative counter reads table:table=1.",
-  "sha256": "37099a77656e1c57795a263d7effe0151b85e4ecce28068a21bedb3c08f4ad41"
+  "sha256": "e24694bcfc2a31dfc61c810dd2681abdb636d7cc73aba8d4eccbc03f09882d33"
 }

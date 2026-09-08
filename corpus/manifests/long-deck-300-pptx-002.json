@@ -33,5 +33,5 @@
     ]
   },
   "notes": "300-slide pagination/theme stress; deck size is the feature. Same single blank layout (slide_layouts[6]) on all 300 slides, but the textbox position ALTERNATES between two placements — odd slides at (0.6in, 0.6in), even slides at (1.2in, 2.2in) — so geometry varies while the layout chain stays constant; each slide carries a 'Slide {i}' title line plus three buChar bullets drawn from a fixed 12-phrase NATO cycle. reference_text is the exact title+bullets of every slide in order (1200 lines).",
-  "sha256": "332a98b4796d315fd020acb9dbef40f14bcc377e2035f756ef6d681506694196"
+  "sha256": "8d418009bb4074d85cc79315ea0da1c2d47c3d9d9d90a817c5e9be1bb7ebcf20"
 }

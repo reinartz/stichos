@@ -33,5 +33,5 @@
     ]
   },
   "notes": "real codepoint edge content: precomposed ligature GLYPHS in the text stream (eﬃciently oﬄine = U+FB03/U+FB04, plus U+FB01/U+FB02 in 'ﬁle'/'ﬂag') — actual characters, NOT a w:ligatures rPr typographic setting; ZWJ family emoji U+1F468 U+200D U+1F469 U+200D U+1F467 U+200D U+1F466 (4-codepoint sequence); decomposed combining stacks (e+U+0301, a+U+0302+U+0301); U+00A0 non-breaking spaces between every word of one sentence; soft hyphens U+00AD inside one long word. Reference text is the byte-exact inserted codepoints. LibreOffice font coverage varies per glyph class: missing glyphs rendering as tofu .notdef boxes is a REAL fidelity finding, not a generator bug.",
-  "sha256": "07cb7937239d8be928a9e95491bbb22987491eb1973f92be66fce96af2fac68e"
+  "sha256": "e764cc0bc05608299398f1b14d90a36bf14bbdb7ed5beabdff9ae357e79cf759"
 }

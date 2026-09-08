@@ -33,5 +33,5 @@
     ]
   },
   "notes": "real package-level OLE plumbing modeled on how PowerPoint writes legacy embeds: ppt/embeddings/object1.bin is the hand-built minimal CFB stub imported from the docx builder (D0CF11E0A1B11AE1 magic, v3 header + Root Entry dir sector + FAT sector, no payload streams — olefile is read-only), declared with the oleObject relationship type in ppt/slides/_rels/slide1.xml.rels and a Content_Types override. The slide carries an mc:AlternateContent whose mc:Choice Requires=\"v\" holds a v:shape with o:ole=rIdN + o:OLEObject child (Type=Embed, DrawAspect=Icon) and an empty mc:Fallback; the p:sld root gains xmlns:mc + mc:Ignorable=\"v o\" via zip rewrite. Synthetic layout, not schema-validated: LibreOffice may show an icon, render nothing, or drop the parts — tolerance varies by consumer and is what the fixture probes. The embed carries no text truth, so reference_text covers only the three body lines.",
-  "sha256": "dc00e3b7a8f560fdead9ec101635e9c0dc36a94e86c9e1202aa6df2f8379033d"
+  "sha256": "b65daa895b680af64b8eddccbc0cae83bab23e4725259271c605478a04d63212"
 }

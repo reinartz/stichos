@@ -33,5 +33,5 @@
     ]
   },
   "notes": "real single-sheet stress grid: 200 rows x 5 cols on 'Main', row 1 is the header (h1..h5) and rows 2..200 carry deterministic string values v{r}_{c}; no formulas, no merged cells — the point is volume a text extractor must not truncate. All 1000 strings are in the reference text (header line + 199 data lines).",
-  "sha256": "e1f7d6d6fb3c1c7dfa58d7cbc2cbea164da9466a5c09b421d7600e0612db2831"
+  "sha256": "44e51a3f8d9089c4d3c860a19047ac48468836f1cd8ba623071cd5e39ba723c4"
 }

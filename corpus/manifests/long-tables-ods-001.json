@@ -32,5 +32,5 @@
     ]
   },
   "notes": "real ODF spreadsheet stress: one table:table (table:name LongGrid) under office:spreadsheet with 150 table:table-rows x 4 table:table-cells, every cell carrying r{r}c{c} string text; the reference text is all 600 cell strings in row-major order. The normative counter reads table:table=1; print/pagination behavior over a long sheet is the fixture's point.",
-  "sha256": "cc7f0d6b425e1896e61484f45668b1d08b3b48210d67c0195624a0e516e9d497"
+  "sha256": "adb249aa41a3f134bf777e34dc0f146e0ce7421e54c56186366696a07b810f38"
 }

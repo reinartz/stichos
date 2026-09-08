@@ -33,5 +33,5 @@
     ]
   },
   "notes": "python-docx cannot emit diagrams: raw w:drawing with two separate inline wps:wsp shapes (rect + ellipse) carrying wps:txbx text, injected via parse_xml. LibreOffice renders shape txbx text into the PDF text layer, so the labels are reference text. DrawingML shapes only — no diagram parts, not MS-generated SmartArt.",
-  "sha256": "638893100488032a372e8fd5d4dd29ba643699f2548670e4f2c6d00b6992f272"
+  "sha256": "826b0328db57d246874a6cfa4f666b1188545d80277f6c38c7479f26902bce7a"
 }

@@ -33,5 +33,5 @@
     ]
   },
   "notes": "real comments support: word/comments.xml part with 3 w:comment elements (ids 0..2, authors bot-a/bot-b, fixed w:date), [Content_Types].xml override and document.xml.rels relationship added, w:commentRangeStart/w:commentRangeEnd + w:commentReference wrapped around anchor runs in the body via zip_read/zip_write; comment texts are also part of the reference text.",
-  "sha256": "11fea02fd50840bba7d9666d39978c395edd339fc72582e9d0339517f5daa54a"
+  "sha256": "4fdce08e3a462a1523aa9d70bd934a76d01472aadfd0b0667f9c4adc7bf4a9d8"
 }

@@ -32,5 +32,5 @@
     ]
   },
   "notes": "real anchored picture with text around it: deterministic solid-color 160x120 PNG (PIL, no rng needed) at Pictures/wrap1.png (manifest media-type image/png) inside draw:frame > draw:image, paragraph-anchored (text:anchor-type=\"paragraph\") via an automatic family=\"graphic\" style GpFloat1 carrying style:paragraph-anchor + paragraph-relative x/y positions and style:wrap-influence-on-position=\"once\"; the frame sits inside a paragraph whose runs continue after it, six filler paragraphs follow. Honest caveat: ODF wrap semantics (whether text actually flows beside the frame) are renderer-policy territory — LibreOffice wrap behavior may vary with anchor/wrap settings; reference text is every visible paragraph string in order.",
-  "sha256": "c56080ab250f6134694dcc40a2356fe2b17c936a35012280b774f3e1c7945e02"
+  "sha256": "7a804064c266070fcc7d28e77b5982ddcdc2fbb58e9807fc3b97015f06c9ac80"
 }

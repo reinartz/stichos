@@ -32,5 +32,5 @@
     ]
   },
   "notes": "real ODF master-page header/footer in styles.xml (style:master-page \"Standard\", A4 page-layout pm1): footer carries a text:date-time field with text:fixed=\"true\" and fixed cached text 2026-01-01 (office:date-value pinned, deterministic). Honest caveats: (a) the normative text:field counter scans content.xml only, so these styles.xml field elements count 0 in the manifest; (b) the page fields are generic text:field user-field elements carrying cached display text, not dedicated text:page-number/text:page-count — LibreOffice shows the cached values; (c) header/footer strings are excluded from the reference text because renderers re-evaluate/re-position header content per page.",
-  "sha256": "d875e784c3c0104550d0443ce4fd205440dc01a06746132ba67a6c1b50c8ea82"
+  "sha256": "14c1038d4adcf7854967c9a2f3fa3aa51681280c5bea645ac8fc0f6aa2fc9913"
 }

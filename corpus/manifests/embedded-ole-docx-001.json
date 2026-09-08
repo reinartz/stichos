@@ -33,5 +33,5 @@
     ]
   },
   "notes": "real package-level embedding plumbing, stub payload: word/embeddings/object1.bin added (the bin part is a 1x1 PNG byte stub declared with the oleObject relationship type and oleObject content type — the type/content mismatch is intentional: an honest stub, no CFB structure inside); body carries a legacy w:pict with v:shape o:ole=rId9 plus an o:OLEObject child (Type=Embed, DrawAspect=Icon) — no w:drawing used, so the w:drawing metric stays 0; document.xml.rels oleObject relationship + Content_Types oleObject override added via zip_read/zip_write. LibreOffice may show an icon or render nothing for the stub; the embed carries no text truth, so reference_text covers only the body text.",
-  "sha256": "b1ec838e07ce54d44f2c3e98f859b180eba282cc706c158d2381e4bdc12bdf63"
+  "sha256": "780bf19a0be5c7187b5f96944fadad7bc91708fd7fa7de11659e410c643c3bed"
 }

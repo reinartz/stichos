@@ -33,5 +33,5 @@
     ]
   },
   "notes": "real package-level embed plumbing with a shapeless payload: xl/embeddings/object1.bin (hand-built minimal CFB, same builder as the docx fixture: D0CF11E0A1B11AE1 magic, v3, 512-byte sectors, header + Root Entry directory sector + one FAT sector, no server streams) added via zip rewrite after openpyxl save, plus a workbook-part oleObject relationship in xl/_rels/workbook.xml.rels and a Content_Types oleObject override for /xl/embeddings/object1.bin. The embed is present but NOT referenced by a visible drawing — there is no xl/drawings part and no legacy OLE object on the sheet — so this fixture probes pass-through behavior: walkers that only follow sheet drawings never see it, container-level readers must still enumerate the part. No text truth in the embed; reference_text covers the three sheet cells only.",
-  "sha256": "9fbfe0d941ee13e0bc5a43afc5233a70bc3b5ca2f0ed208f4699ed5f149fc663"
+  "sha256": "11ee089809d747325a2f81b3920e43c2d0fb50186c8f752c574820078389cbdb"
 }

@@ -32,5 +32,5 @@
     ]
   },
   "notes": "real ODF sheet comments: three office:annotation blocks (office:name anno1..anno3, dc:creator alternating bot-a/bot-b/bot-a, fixed dc:date 2026-01-01T00:00:00), each holding its comment body as text:p and anchored inside a table:table-cell right after the cell's text:p — the on-disk position LibreOffice writes spreadsheet notes (ODF permits office:annotation inside cell content). Point anchors: no office:annotation-end or draw:annotation-name markers exist. The normative office:annotation counter scans content.xml, so the manifest must read office:annotation=3 next to table:table=1. Reference text is every visible string: the three cell labels plus all three comment bodies. Honest caveat: whether a renderer shows/exports comment bubbles is a per-renderer setting; LibreOffice was not run here, so its exact sheet-comment serialization (LO names notes by cell address) is not byte-compared.",
-  "sha256": "e1e206dac220d6c988d83c0603e5de88d8b3aa1381f910039fac078f58c79f0e"
+  "sha256": "f4ba521cd34697695e925d69b9b4b130d3fbe0e516e676af90107aff5b34830d"
 }

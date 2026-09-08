@@ -33,5 +33,5 @@
     ]
   },
   "notes": "real RTL Hebrew paragraphs (w:bidi + w:jc right in w:pPr, w:rFonts w:cs=\"Noto Sans Hebrew\" per run): greeting עברית שלום plus three simple unencumbered sentences (המדען הקטן קרא ספר גדול …), then one mixed-direction test paragraph where the embedded Latin run «stichos» is marked w:rtl w:val=\"0\" inside the RTL paragraph. Reference text is the exact inserted strings in logical order; bidi reordering is a render-time concern.",
-  "sha256": "a4bb06b64c47fb80d6a78315c8bcb8b7e02f3d5faaa62b34214cb4c16b0c784b"
+  "sha256": "ce805c36dbf3c6665aa0ff04e9b78a75f6964e48856b0f46e3315e1b2183ae9f"
 }

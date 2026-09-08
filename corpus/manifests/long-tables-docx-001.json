@@ -33,5 +33,5 @@
     ]
   },
   "notes": "real table stress: one plain Table Grid table with 70 rows x 4 cols, every cell carrying r{r}c{c}-word text, intro + outro paragraphs around it so LibreOffice paginates past two pages; all cell strings are in the reference text.",
-  "sha256": "24d4c1bdf6848015d185f763f6503d5024998ac483b85cca7b2066250a0cfacd"
+  "sha256": "b4e897d7c5925b42dea916fa3fef8931756928d1ce9f173b81bea241cc2ede25"
 }

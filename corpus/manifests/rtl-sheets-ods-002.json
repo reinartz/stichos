@@ -32,5 +32,5 @@
     ]
   },
   "notes": "real ODF RTL sheet: table \"RTL\" is applied table:style-name=\"GP RTL Table\", a NAMED style (style:family=\"table\") declared in styles.xml whose style:table-properties sets table:writing-mode=\"rl-tb\" — sheet-level RTL is per-table, not per-document; the second table \"LTR\" is explicitly left-to-right via GP LTR Table (table:writing-mode=\"lr-tb\"), so extractors must read the writing mode per table, not assume one direction per document. Prices are real float cells (office:value-type=\"float\" office:value=...) whose text:p shows the number; Arabic headers المنتج/السعر with three Arabic product rows mirror the xlsx rtl-sheets content. Honest caveats: writing-mode mirrors the sheet layout (column order and scroll direction); in-cell bidi of the Arabic strings is performed by the renderer's bidi engine, not stored as layout. Reference text is the visible cell strings in row-major order; the normative counter reads table:table=2.",
-  "sha256": "79584b584edf03313fd20d6e5a04bec303bae2b219483c8b93acc59c14fb1ca4"
+  "sha256": "47915fe2b90eeed0182846ffec0652649d1db2dd351ccced2e5811a1e81509a8"
 }

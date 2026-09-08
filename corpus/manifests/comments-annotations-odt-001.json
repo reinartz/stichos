@@ -32,5 +32,5 @@
     ]
   },
   "notes": "real ODF comments: 4 inline office:annotation elements (office:name anno1..anno4, alternating dc:creator bot-a/bot-b, fixed dc:date 2026-01-01T00:00:00), each holding the annotation body as text:p and anchored inline between the runs of its claim paragraph (point annotation — no annotation-start/end, so only the four annotation elements exist). The normative office:annotation counter scans content.xml, so the manifest must read office:annotation=4. Reference text includes every annotation body string (all visible strings, annotation text included) — honest caveat: PDF export may omit comment bubbles unless the renderer is told to export annotations.",
-  "sha256": "03292e60c190dc4b7aeb2f231496e962dceabb492f0a136f1fb2ea303213f2d7"
+  "sha256": "04124fa8b5bd3f1910e67b5dc4a4d4dcf75023ced6b2f33f5e315f959888a552"
 }

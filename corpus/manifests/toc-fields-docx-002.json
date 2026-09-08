@@ -33,5 +33,5 @@
     ]
   },
   "notes": "real w:fldSimple TOC field (instr \" TOC \\o \"1-3\" \\h \\z \\u \") injected via raw python-docx oxml parse_xml; placeholder run only — no cached field results and no w:fldChar/instrText begin-separate-end sequence (python-docx does not evaluate fields).",
-  "sha256": "bcc899d05d7619b3719ddf35737f27bd4705b5e474fb7a01cc29226391705677"
+  "sha256": "1a11cedd6652a094e290298cb916046aff2e997bc3a3f4fef07725e423c97be0"
 }

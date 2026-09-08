@@ -33,5 +33,5 @@
     ]
   },
   "notes": "the same six edge strings as docx unicode-edge docx-001 (constants imported from the docx module, so the two fixtures are codepoint-identical by construction) spread as six paragraphs in one text frame: precomposed ligature glyphs U+FB01..U+FB04, the ZWJ family emoji sequence (U+1F468/469/467/466 joined by U+200D), decomposed combining stacks (e+U+0301, a+U+0302+U+0301), NBSP-separated sentence, soft hyphens U+00AD inside one long word — stored byte-exact in the a:t runs, no normalization by the generator. LibreOffice font coverage varies per glyph class: tofu .notdef boxes are a REAL fidelity finding, not a generator bug.",
-  "sha256": "f1f914a41e05ffdd2248aed61ae1a7c2ab906614c0d44c77d5b9d3a7a20966e1"
+  "sha256": "f587a4bdda5d69490b7340e0572f3e8a67b3a3cec95c1603d0967f4da44106cd"
 }

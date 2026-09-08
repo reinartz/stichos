@@ -157,8 +157,8 @@ jobs:
           header = ("run_ts,run_id,attempt,commit,runner,lo_build,fontset_hash,image_tag,"
                     "manifests,convert_total,convert_ok,convert_fail,convert_median_s,"
                     "stab_sample,stab_ok,stab_fail,stab_failed_ids")
-          if not trend.exists() or not trend.read_text().strip():
-              trend.write_text(header + "\n")
+          if not trend.exists() or not trend.read_text(encoding="utf-8").strip():
+              trend.write_text(header + "\n", encoding="utf-8")
           new_row = [datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
                      os.environ["GITHUB_RUN_ID"], os.environ["GITHUB_RUN_ATTEMPT"],
                      os.environ["GITHUB_SHA"][:12], os.environ["RUNNER_OS"],

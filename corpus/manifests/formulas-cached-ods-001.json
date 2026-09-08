@@ -32,5 +32,5 @@
     ]
   },
   "notes": "OpenFormula cells with NATIVE cached values (the xlsx counterpart needs a zip rewrite because openpyxl cannot emit <v>; here table:formula and the cached office:value/string-value are authored together, no patching): B1/B2/B3 carry of:=SUM([.A1:.A4]) / of:=AVERAGE([.A1:.A4]) / of:=MIN([.A1:.A4]) over A1:A4 = 1,2,3,4, each with its cached float (office:value 10 / 2.5 / 1) and a display text:p showing the same number. The text:p child is the display string of the cached result — exactly what a cached-value extractor reads without recalculating. Honest caveat: LibreOffice recalculates of: formulas on load and reproduces these exact results, so recalc-vs-cache agree. The normative counter reads table:table=1; text:field stays 0 (table:formula is not a text:field).",
-  "sha256": "8b0de952fbed434ce50ccf207a3e1ef51f4f7df4e5c86064c756a69a351c01cc"
+  "sha256": "29f53414f28f4be007c613c9e1bbc4a5be98ec311300f9db6110116a73f6959f"
 }

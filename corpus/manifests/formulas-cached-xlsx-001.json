@@ -33,5 +33,5 @@
     ]
   },
   "notes": "real SUM/AVERAGE/MIN/MAX formulas over D1:D5 (2,4,6,8,10); openpyxl emits <f> with an empty <v></v> (no cached value), so the results 30/6/2/10 (computed in python) are injected into sheet1.xml by a zip rewrite — cached-value readers see the values without recalculating, LibreOffice still recalculates identically on open; recount asserts all four <f> nodes carry a non-empty <v> sibling.",
-  "sha256": "53841d098dd815b9fce621a2171e084dc5ad113e2e6726a9f055edc839ae0872"
+  "sha256": "8440bbd499c9c517c2c45a550d76a53872e3d3744f09fdda2faa3a8d752639d3"
 }

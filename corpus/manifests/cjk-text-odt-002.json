@@ -32,5 +32,5 @@
     ]
   },
   "notes": "real CJK fixture: Bashō haiku 古池や 蛙飛びこむ 水の音 (Japanese kana+kanji) and an 애국가 line 동해물과 백두산이 마르고 닳도록 (Korean Hangul), every CJK paragraph styled with the named paragraph style \"GP CJK\" whose text-properties set style:font-name-asian=\"Noto Serif CJK SC\" plus fo:language=\"zh\" fo:country=\"CN\" (the asian font-name slot, not the latin fo:font-name). Honest caveat: one shared style tags zh/CN even in 002, so Japanese and Korean text are zh-tagged — font substitution for kana/Hangul is renderer-font dependent (Noto CJK covers all three scripts when installed). Reference text is the exact character strings; no normative ODF counter matches, feature counts stay 0.",
-  "sha256": "e659fc824ac01ac33d3f1126d217a13d4763c8e064f06f43fb60b62fd6f3b28e"
+  "sha256": "7c26ac7d496c08480a4b65ddab90ab25bda2b0c7e5dd1cb0e4d8a4e7f743a01d"
 }

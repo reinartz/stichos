@@ -33,5 +33,5 @@
     ]
   },
   "notes": "real table stress: one Table Grid table, 70 data rows x 4 cols plus a merged header row (python-docx merge across the row emits w:gridSpan on the surviving cell), intro + outro paragraphs around it so LibreOffice paginates past two pages; every cell carries r{r}c{c}-word text and all cell strings are in the reference text.",
-  "sha256": "5e27bdc5e28ebd85ec301386c112f7d9dca8612452184c392bd7bee6ac13a542"
+  "sha256": "2b459952028cc7492eb87a7ad736a5ef9a2c28961b366fdc9e413884f1d08293"
 }

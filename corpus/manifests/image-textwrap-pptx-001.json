@@ -33,5 +33,5 @@
     ]
   },
   "notes": "honest category divergence: PPTX has NO text-wrap concept (wrap is a wordprocessing feature — nothing like w:wrap in DrawingML), so this is a z-order overlap test, not a text-wrap test. An opaque solid-ink 64x48 PNG (deterministic PIL bytes) is placed first, then a word-wrapped text frame overlapping its lower-right corner is added second — later shapes sit above earlier ones in the shape tree, so the frame paints on top of the picture (asserted: p:pic precedes the p:sp in slide1.xml). The picture carries no text; reference_text is the three frame lines.",
-  "sha256": "46718b70520136a463a335c433289c25a0eedbb21027fdbf1ac8d7ab8fc2b230"
+  "sha256": "c64754ccc138203fd5d860492120e3c0893f5e0c232372841d0b13fe7e35cd6e"
 }

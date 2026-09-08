@@ -33,5 +33,5 @@
     ]
   },
   "notes": "real 3-deep basedOn chain in word/styles.xml: GP Base basedOn Normal -> GP Mid basedOn GP Base -> GP Leaf basedOn GP Mid (size 12pt + italic + w:color 0B6655 resolve by inheritance), plus a custom CHARACTER style GP Char with w:u w:val=\"single\" applied to one run via w:rStyle; all applied to body paragraphs/runs. styles.xml chain and underline asserted after save.",
-  "sha256": "fcc71aa732b28d409c4b549e11dee714ffe0df695f8db9e57877fc1811e4c2a9"
+  "sha256": "a30cbb11d4aa0411b75f30d0cd9458eb7c69584122ac502cde66f063bf0186f1"
 }

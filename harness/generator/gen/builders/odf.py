@@ -16,7 +16,7 @@ import zipfile
 from pathlib import Path
 from xml.sax.saxutils import escape
 
-from ..core import FIXED_ZIP_DT, BuildResult, builder
+from ..core import FIXED_ZIP_DT, BuildResult, builder, normalize_zip
 
 MIME = {
     "odt": "application/vnd.oasis.opendocument.text",
@@ -1188,6 +1188,7 @@ def huge_cell_text(ctx, nnn):
     cx = zipfile.ZipFile(path).read("content.xml").decode("utf-8")
     assert cx.count(f">{big}</text:p>") == 1, "60k paragraph not written as one text:p"
     assert cx.count(f">{cell_big}</text:p>") == 1, "10.5k cell text not written as one text:p"
+    normalize_zip(path)  # measure the FINAL (deterministic, STORED) container
     size = path.stat().st_size
     assert size < 10 * 1024 * 1024, f"blob {size} bytes >= 10 MB"
     notes = (
@@ -1195,8 +1196,9 @@ def huge_cell_text(ctx, nnn):
         "deterministic 60,000-char string 'lorem ipsum ' * 5000, plus a 2x2 table:table "
         "(table:name HugeCell) whose r1c1 cell holds 'filler ' * 1500 (10,500 chars) as its "
         "office:string-value and text:p; other cells are short r{r}c{c} markers. Reference "
-        "text is the exact same strings, byte-for-byte as inserted. Deflate compresses the "
-        f"repetitive lorem hard: saved blob is {size} bytes, far under the 10 MB cap. The "
+        "text is the exact same strings, byte-for-byte as inserted. The repetitive lorem "
+        "would compress hard, but the normalized container is STORED for cross-environment "
+        f"byte determinism (INV-4): saved blob is {size} bytes, far under the 10 MB cap. The "
         "2x2 table is a real table:table, so the normative counter reads table:table=1. "
         "Overflow/wrap/pagination behavior at render time is the fixture's point."
     )
@@ -2240,12 +2242,15 @@ def huge_cell_text_ods(ctx, nnn):
     assert cx.count("<table:table-row>") == rows_n
     if nnn == 1:
         assert cx.count(f">{big}</text:p>") == 1, "48k cell text not written as one text:p"
+    normalize_zip(path)  # measure the FINAL (deterministic, STORED) container
     size = path.stat().st_size
     assert size < 10 * 1024 * 1024, f"blob {size} bytes >= 10 MB"
     notes = (
         f"real spreadsheet text stress: {feat}. {caveat}. Reference text is the exact same "
-        "string(s), byte-for-byte as inserted, no truncation allowed. Deflate collapses the "
-        f"repetitive text hard: saved blob is {size} bytes, far under the 10 MB cap. The "
+        "string(s), byte-for-byte as inserted, no truncation allowed. The repetitive text "
+        "would collapse hard under deflate, but the normalized container is STORED for "
+        f"cross-environment byte determinism (INV-4): saved blob is {size} bytes, far under "
+        "the 10 MB cap. The "
         "normative counter reads table:table=1. Overflow/wrap/print-area behavior over the "
         "giant strings is the fixture's point."
     )
@@ -3187,6 +3192,7 @@ def long_deck_300_odp(ctx, nnn):
         p1 = cx[cx.index('draw:name="page1"'): cx.index('draw:name="page2"')]
         assert "<text:p>golf</text:p>" in p1 and "<text:p>india</text:p>" in p1
         assert "<text:p>alpha</text:p>" not in p1, "phase offset not applied to slide 1"
+    normalize_zip(path)  # measure the FINAL (deterministic, STORED) container
     size = path.stat().st_size
     assert size < 12 * 1024 * 1024, f"blob {size} bytes >= 12 MB"
     elapsed = time.monotonic() - t0
@@ -3202,9 +3208,10 @@ def long_deck_300_odp(ctx, nnn):
         "text:p — no bullet glyph is in the file, bullet markers are renderer/style "
         "territory, and LibreOffice was not run here. reference_text is the exact "
         "title+bullets of every slide in order (1200 lines). The normative counters read "
-        f"draw:frame=600; the raw ~240 KB content.xml deflates hard: saved blob is {size} "
-        f"bytes, far under the 12 MB cap, and generation (build+asserts) finished in "
-        f"{elapsed:.1f} s, under the 60 s budget asserted in the builder."
+        f"draw:frame=600; the raw ~240 KB content.xml is carried uncompressed in the "
+        f"normalized STORED container (cross-env byte determinism, INV-4): saved blob is "
+        f"{size} bytes, far under the 12 MB cap; generation (build+asserts) is asserted "
+        "< 60 s at build time (no clock value recorded here — machine-dependent)."
     )
     if nnn == 2:
         notes = (

@@ -32,5 +32,5 @@
     ]
   },
   "notes": "real ODF spreadsheet revisions: the same text:changed-region machinery as the odt counterpart (ODF 1.2 §2.4) but inside table:table-cell content — text:delete ct2 (dc:creator bot-a, fixed dc:date 2026-01-01T00:00:00) sits inline between the runs of the first cell's text:p, and text:insert ct1 wraps the whole inserted text:p of the second cell; both cells' office:string-value carry the ACCEPTED view. Reference text states the ACCEPTED view: inserted paragraph text included, deleted fragment excluded (same convention as the docx/odt tracked-changes fixtures). Honest caveats: whether LibreOffice shows or hides the revision marks is a per-view show-changes setting, and LO's per-cell change bookkeeping beyond the region elements is not emitted — neither verified (LibreOffice is not run in this environment). changed-region/insert/delete match no normative counter except table:table=1.",
-  "sha256": "aa91f9e3f428bdc2e67f43144f7ea170c8fc0b81e162f171a7347e74f5a51e51"
+  "sha256": "766f38697704f52dd9d11ea1d2cb1c164851199a87dd97f7f3c4ddb354f83ce4"
 }

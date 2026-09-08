@@ -32,5 +32,5 @@
     ]
   },
   "notes": "legacy OLE embed in ODP: real binary part object.bin (hand-built minimal CFB v3 stub, shared _ole_cfb_stub, manifest media-type application/x-ole-object, package-root href) referenced on PAGE 2 by draw:frame > draw:object (draw:mime-type + draw:object-type \"application/oleobject\", xlink type=simple show=embed actuate=onLoad), custom-placed by automatic graphic style gpOle (fo:x 5.6in, fo:y 2.2in, 4in x 3in). Deck skeleton is the working minimal odp shape: draw:page slots (10in x 7.5in, draw:master-page-name mp1) with presentation:class=\"title\"/\"body\" text frames styled by named dp1/gp1 from styles.xml. Honest caveats: the CFB stub carries no payload streams, so LibreOffice may show an icon placeholder or render nothing, and a presentation with no layout/presentation-styles part is at the thin end of the ODF grammar — LO was not run here, tolerance unverified; reference text covers only the three visible text lines (title, lead, tail). The normative counters read draw:frame=3 on this fixture.",
-  "sha256": "4d0c06499b505c1ea54e5c8e776df0127b6f4403b98ab9cfa7f69ed27d0482b9"
+  "sha256": "4e28d1b9792b38fd3fea0e1ef8a1d5c1ed063a18dcfdedf99e49a374248e67e9"
 }

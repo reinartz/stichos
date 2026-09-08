@@ -33,5 +33,5 @@
     ]
   },
   "notes": "two real openpyxl rules on A1:A10 (values with duplicates 5/9/12): a genuine iconSet rule with the built-in 3TrafficLights1 set (num cfvos 0/10/20, showValue) plus a formula rule COUNTIF($A$1:$A$10,A1)>1 highlighting duplicates in yellow — real <cfRule type=\"iconSet\"/>/<cfRule type=\"expression\"/> XML, asserted (2 <cfRule> + the iconSet id) to survive the _freeze_modified zip rewrite.",
-  "sha256": "c364070081f96c0b9eeae2ccb6352f427e47666bcfc6c4bdd0c4a2d00f26fc06"
+  "sha256": "808af9063a75e60a91d6442f2cce5abaf6ce664b58eab90d11a63ed60f835bd6"
 }

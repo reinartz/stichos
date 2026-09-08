@@ -33,5 +33,5 @@
     ]
   },
   "notes": "same 200x5 grid as 001 plus column F: a real =B{r}*2 formula on every data row (199 cells). Column B holds the integer row index r in this variant (a string would make =B{r}*2 a #VALUE! error, so 002 deviates from the v{r}_{c} pattern in column B only). openpyxl writes formulas without cached values; the cached <v> (2*r, pre-computed in python) is injected by a zip rewrite so cached-value readers and recalc-on-load renderers agree; recount asserts every <f> has a <v>.",
-  "sha256": "dde9032593304c6378dce77751551610c9e11d8c63a41b92cf1254ecad9f46a2"
+  "sha256": "20780481a39866713865c275a30e2752cb92bb508e151c9a27746e4c599b1531"
 }

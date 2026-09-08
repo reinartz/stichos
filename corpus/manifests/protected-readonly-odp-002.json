@@ -32,5 +32,5 @@
     ]
   },
   "notes": "ODF has no first-class readonly flag — same settings.xml heuristic as 001, but the PROTECTSECTIONS BOOLEAN IS FLIPPED TO TRUE (001 ships false): a consumer that only checks 'does the item exist' cannot tell the two decks apart, one that parses the boolean can — asserted 'boolean\">true<'. Same honest caveats (feature toggle, not a read-only bit; no password digest; LO tolerance of the item name under the Impress set UNVERIFIED, LO not run here). Different slide copy; reference text is the two visible strings; the only nonzero normative counter stays draw:frame=2.",
-  "sha256": "6346ffda1501885979b1da059d377057147458af07027b8c392dc990b8e05165"
+  "sha256": "6401f75c052d457be77e221339141865600651214d1fb422dfee8b35a760adc8"
 }

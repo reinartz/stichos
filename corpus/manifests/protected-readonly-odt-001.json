@@ -32,5 +32,5 @@
     ]
   },
   "notes": "ODF has no first-class readonly flag — settings.xml heuristic, honest stub. Real ODF document protection lives in settings.xml (office:document-settings, config:config-item-set), and even there Writer-level items are feature toggles (ProtectBookmarks/ProtectSections/...), not a document-wide read-only bit; a real password hash (config:document-passwordprotected-style) is not emitted here. This fixture adds a well-formed settings.xml part (media type text/xml, manifest entry) with an OpenOffice.org/Writer config-item-set carrying ProtectSections boolean false: a protection-flavored marker a renderer may legitimately ignore. Reference text covers only the two body paragraphs; no normative ODF counter matches settings/config elements, so feature counts stay 0.",
-  "sha256": "edaf005e947b34326f78c4c1823367308b2b6218ea285299de9942d2833ddc03"
+  "sha256": "87e47c48a04b1ba4d9f5082c687e11d71d7ac769111436e1da04552a13662ff0"
 }

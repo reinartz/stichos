@@ -32,5 +32,5 @@
     ]
   },
   "notes": "real RTL fixture: named paragraph style GP RTL (style:paragraph-properties fo:text-align=\"end\" + style:text-properties fo:direction=\"rtl\"); three Arabic sentences as GP RTL paragraphs. Honest caveats: ODF has no dedicated paragraph-bidi attribute, so direction rides on fo:direction on the style text-properties and end-alignment via fo:text-align=\"end\" (mirror logic left-to-right renderers differ on); embedded LTR/bidi reordering is performed by the renderer's bidi engine, not stored as layout. No normative ODF counter matches; feature counts stay 0.",
-  "sha256": "4b893898c286984329b8b185e13348f1d24bdfbb2ad5d08cbe1716ba5a822148"
+  "sha256": "439091e7f21126087af3f446e9ce04ff93c4489e266a7851bbf40ed253233cb1"
 }

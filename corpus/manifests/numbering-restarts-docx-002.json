@@ -33,5 +33,5 @@
     ]
   },
   "notes": "real numbering part, raw XML: word/numbering.xml replaced with one abstractNum declaring three levels — lvl 0 lowerLetter \"%1.\", lvl 1 lowerRoman \"%2.\", lvl 2 decimal \"%3.\" (a/i/1) — and two w:num instances: numId 1 plain over an 8-item tree list, numId 2 with w:lvlOverride w:startOverride=1 on all three levels so the second list restarts at a./i./1; body paragraphs carry w:pPr/w:numPr with w:ilvl 0..2. Template numbering part dropped (its abstractNums served only unapplied built-in list styles). Reference text is the exact item strings; list markers are render-derived.",
-  "sha256": "be1bea3c8fa356cc92ae5ecefe44169b93dc44abf12cb538a453304e9699c27a"
+  "sha256": "2461422c6d75990e713c86f8785335df6ee82dfa20d2ae30938c6e6670af2588"
 }

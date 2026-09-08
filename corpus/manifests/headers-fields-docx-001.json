@@ -33,5 +33,5 @@
     ]
   },
   "notes": "real complex fields (fldChar begin / w:instrText / separate / cached run / end): PAGE + NUMPAGES fields with cached results in the first-page header. Body has 60 fixed-text paragraphs so LibreOffice paginates past two pages; header/footer strings are excluded from reference text because renderers re-evaluate fields per page. Fields live in header/footer parts, so w:instrText in word/document.xml stays 0.",
-  "sha256": "f7114e61470bba44e2b7bc4680bd94beb59b7ce386ed67b435b032f68e39f167"
+  "sha256": "91c5adeb67cdbc19826f70ecffd43758f23f946e5d38fae5e986d29804db5fc4"
 }

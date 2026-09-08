@@ -32,5 +32,5 @@
     ]
   },
   "notes": "real CJK fixture: 静夜思 (Li Bai, Quiet Night Thought) as five CJK paragraphs, every CJK paragraph styled with the named paragraph style \"GP CJK\" whose text-properties set style:font-name-asian=\"Noto Serif CJK SC\" plus fo:language=\"zh\" fo:country=\"CN\" (the asian font-name slot, not the latin fo:font-name). Honest caveat: one shared style tags zh/CN even in 002, so Japanese and Korean text are zh-tagged — font substitution for kana/Hangul is renderer-font dependent (Noto CJK covers all three scripts when installed). Reference text is the exact character strings; no normative ODF counter matches, feature counts stay 0.",
-  "sha256": "a953920f3eb17d4f9a03ed93d94c19836dbdcaa473754f60ba4c7d394ef42c53"
+  "sha256": "b290a46132ff109a3cac128fe9d4aa97ab1df4dbe564b1cebc273829732426d1"
 }

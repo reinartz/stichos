@@ -32,5 +32,5 @@
     ]
   },
   "notes": "named styles, second instance — the dimension probed is inheritance DEPTH: styles.xml carries a THREE-level paragraph chain GP Body2 (16pt) <- GP Mid2 (20pt italic) <- GP Head2 (bold 30pt) where 001 has a single parent hop, plus a second character style GP Char2 (fo:font-weight bold; 001's GP Char is italic), and the body exercises the MIDDLE style's inheritance explicitly. GP Body/GP Head/GP Char (001 names) are asserted absent, all four visible strings differ. Same honest caveats (rendering policy LO-side, LO not run); no normative counter matches style elements, draw:frame=2 stands; reference text = every visible paragraph string.",
-  "sha256": "ccf79d2b28f4178081ab6f407090de22984c83ccd7222e191af78787144c7aa3"
+  "sha256": "9864b62096e2ccfda0addb1bd550363909ccd803c761c153a4a499684cc84f94"
 }

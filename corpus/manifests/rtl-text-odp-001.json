@@ -32,5 +32,5 @@
     ]
   },
   "notes": "real RTL slide: the Arabic sentence هذا اختبار للنص العربي في ملف الثبوت. plus three Hebrew bullets (strings shared with the odt rtl-text fixtures) ride the named paragraph style GP RTL (style:paragraph-properties fo:text-align=\"end\" + style:text-properties fo:direction=\"rtl\"); the second bullet embeds an LTR run via text:span with the GP LTR character style (fo:direction=\"ltr\") holding \"hello stichos\"; the Hebrew list is a real text:list > text:list-item chain inside the presentation:body frame, the plain deck title sits in the title frame. Honest caveats: ODF has no dedicated paragraph-bidi attribute, direction rides on fo:direction and end-alignment on fo:text-align=\"end\" (mirror logic differs left-to-right), and bidi reordering is performed by the renderer's bidi engine, not stored as layout — LibreOffice was not run here. Reference text is the exact inserted strings in logical order. The normative counters read draw:frame=2.",
-  "sha256": "d3a724bf830a7b48bd4bce4a1d2bc64c98cd6796b024173ea53d2f674b1de9e4"
+  "sha256": "ad452d12b4e73fb3a676c784fb382a14b047dbc3950c7a47729884bfffe7c628"
 }

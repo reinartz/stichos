@@ -32,5 +32,5 @@
     ]
   },
   "notes": "real ODF covered-cell merges (ODF 1.2 §9.4): table:number-rows-spanned=\"2\" on cell A1 with a covered:table-cell placeholder in the same column of row 2, plus table:number-columns-spanned=\"2\" on A3 with a covered:table-cell to its right in row 3; covered: is the mandated prefix for the table namespace URI. Reference text lists each surviving cell's text once in row-major order (covered cells carry no text).",
-  "sha256": "76a216e289cb0564783992140afa1f6b6547acb9d5db18792fd599d85670d2ab"
+  "sha256": "317446271a130273afc8762f7d5a90a9afc81a86577e8bcb389d9dbb076fd924"
 }

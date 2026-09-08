@@ -33,5 +33,5 @@
     ]
   },
   "notes": "real ws.merge_cells 3x2 region A1:B3; all six cells (every corner) were written pre-merge as a value-conflict probe — openpyxl's merge keeps the top-left value only and the other five are not present in sheet XML, so reference_text lists the survivors (top-left + one normal cell) only.",
-  "sha256": "d5102481c0ccb37d1d0f2dd6e6bd0d30a3609df1bcf355f7e7bf7ef637004749"
+  "sha256": "37353343f1c2977eb43b4563ba37f972b30dd14623828ca73b38bd174f80f17f"
 }

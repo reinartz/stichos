@@ -33,5 +33,5 @@
     ]
   },
   "notes": "four real openpyxl Comment objects (author stichos-bot, fixed texts) on A1, A2, A3 and B2: openpyxl emits the CT_Comments part (authors table + commentList with ref/authorId) as xl/comments/comment1.xml (Excel itself would name it xl/comments1.xml; same part type), plus the legacy VML shape layer xl/drawings/commentsDrawing1.vml and the sheet-level relationship; comment parts carry no timestamp, so no wall-clock leaks. Comment texts are part of the reference text. Note: the metrics OOX key table is wordprocessing-only (w:*), so features{} shows zero w:comment/w:commentReference counts for xlsx — expected, the framework fills features from metrics, builders never set it.",
-  "sha256": "d734bf1833e98ce7af0295ce0a58088af8d6466c44e276954d2239597b2a881e"
+  "sha256": "8afbc179405bfe1be3fc7d5b4e583d45bae1b312d4a8d77469c51c15432ae42b"
 }

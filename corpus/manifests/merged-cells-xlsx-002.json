@@ -33,5 +33,5 @@
     ]
   },
   "notes": "real ws.merge_cells: two disjoint regions A1:B2 and D3:E4 plus three unmerged normal cells; pre-merge corner values outside each top-left are dropped by openpyxl, reference_text lists surviving strings only.",
-  "sha256": "c75c1bb736e7c164672a2ec85cbdaaf79e1fab2f2a2b671275d18285a29929d2"
+  "sha256": "506f22cb89ddf11eb36dca8b030708d8d81f0990e660386c2f40e5d3229339ac"
 }

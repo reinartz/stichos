@@ -32,5 +32,5 @@
     ]
   },
   "notes": "OpenFormula cells with NATIVE cached values (the xlsx counterpart needs a zip rewrite because openpyxl cannot emit <v>; here table:formula and the cached office:value/string-value are authored together, no patching): IF cell: A1=9 (float), B1 carries of:=IF([.A1]>5;\"big\";\"small\") with a STRING cache — office:value-type=\"string\" office:string-value=\"big\" (no office:value) and display text:p \"big\"; the OpenFormula argument separator is the semicolon. The text:p child is the display string of the cached result — exactly what a cached-value extractor reads without recalculating. Honest caveat: LibreOffice recalculates of: formulas on load and reproduces these exact results, so recalc-vs-cache agree. The normative counter reads table:table=1; text:field stays 0 (table:formula is not a text:field).",
-  "sha256": "a8feb5d7ec94d7b96b4c320cb6823d485e0a81f9cc5a4d8f1b88ca9f66d49c8c"
+  "sha256": "094550e42a1d34ad7099417ec5d61d8033ac2dc43f6185d9c3daa490005d4e0b"
 }

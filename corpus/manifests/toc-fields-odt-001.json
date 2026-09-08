@@ -32,5 +32,5 @@
     ]
   },
   "notes": "real text:table-of-content with text:toc-source (outline level 2) and a text:toc-body holding a single placeholder paragraph (unpopulated TOC; LibreOffice does not auto-update on load), plus 8 text:h headings with text:outline-level 1/2 whose custom paragraph styles also carry style:default-outline-level. Honest caveat: none of TOC/headings/hyperlink are in the five normative ODF counters (table:table, draw:frame, text:note, text:field, office:annotation), so feature counts stay 0.",
-  "sha256": "92af4095a78a3ca9b2285ca048e593a86bc762ade2697e97159d423334e088be"
+  "sha256": "abd7b2e0aef0a49b0cd0c285cf836535a511ee6eedf24801198dbf5db1af8d26"
 }

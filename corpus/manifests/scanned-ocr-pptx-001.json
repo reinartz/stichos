@@ -33,5 +33,5 @@
     ]
   },
   "notes": "scanned-slide emulation on the docx scanned-ocr pattern: the same synthetic raster generator (_sc_scan_png imported from the docx builder — off-white paper gray, gray pseudo-text word bars, seeded per-pixel noise from the fixture-seeded ctx.rng) is embedded via add_picture stretched to the FULL slide (slide_width x slide_height), with one caption text box near the bottom. The raster has NO text layer (bars, not glyphs), so there is no OCR truth inside the picture: reference_text is the caption ONLY — the honest near-None case.",
-  "sha256": "f3966a9a60ef912492de3b31d9187fdea621f42a30c9e589af62889cb69cb97f"
+  "sha256": "e479539f507006152a9704b62657693c76de1f5a0bf55a81b096fdfa07ffc69f"
 }

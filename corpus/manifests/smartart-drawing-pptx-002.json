@@ -33,5 +33,5 @@
     ]
   },
   "notes": "python-pptx cannot emit diagrams: one p:graphicFrame carrying a wpg:wgp group of three wps:wsp txbx-text shapes, PLUS a second p:graphicFrame whose a:graphicData (uri drawingml/2006/diagram) carries dgm:relIds to a synthetic diagram part: ppt/diagrams/data1.xml (minimal dgm:dataRoot with a ptLst of two text nodes — no layout/colors/quickStyle parts), wired by a diagramData relationship in ppt/slides/_rels/slide1.xml.rels and a Content_Types override. Synthetic, not MS SmartArt — no MS tool produced these parts; LibreOffice may ignore the diagram reference entirely, so the dgm node strings stay OUT of reference text while the three group shape labels (real DrawingML) are reference text.",
-  "sha256": "5e6433f047ebc13d87a099577ac7c4c270e391e91e84c32331fea3b836cc2317"
+  "sha256": "1196d12e0a8da4b4012821d997c0d738ace3b303d0fbca5b989699da4a694304"
 }

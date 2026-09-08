@@ -33,5 +33,5 @@
     ]
   },
   "notes": "real python-pptx cell.merge on a 4x3 table, deliberately unlike 001's two single-axis merges: a 2x2 BLOCK merge (0,0)+(1,1) puts gridSpan=2 AND rowSpan=2 on one origin (covered cells carry the hMerge+vMerge combination), and a bottom-row merge (3,0)+(3,2) emits gridSpan=3 with two hMerge=1 continuation cells — assertions count gridSpan=2 x2 / gridSpan=3 x1 / rowSpan=2 x2 / hMerge x4 / vMerge x2 in slide1.xml. As in 001, covered cells keep their a:t text (all twelve T{r}{c} strings stay in the XML, seven cells visible), so extraction convention is again the probe. reference_text lists all twelve inserted strings.",
-  "sha256": "5d49b5f489eaf92a82c18d92b2b934b80133dc5b618142182e7edea31275c9f7"
+  "sha256": "8e6897fb93043a023541ec2aebba17fa7f80af9072fc6b2b3a7eb6ab172d2e16"
 }

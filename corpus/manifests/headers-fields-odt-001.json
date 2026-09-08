@@ -32,5 +32,5 @@
     ]
   },
   "notes": "real ODF master-page header/footer in styles.xml (style:master-page \"Standard\", A4 page-layout pm1): header carries two text:field elements (text:field-name page-number / page-count, integer value-type, cached display \"1 / 1\"). Honest caveats: (a) the normative text:field counter scans content.xml only, so these styles.xml field elements count 0 in the manifest; (b) the page fields are generic text:field user-field elements carrying cached display text, not dedicated text:page-number/text:page-count — LibreOffice shows the cached values; (c) header/footer strings are excluded from the reference text because renderers re-evaluate/re-position header content per page.",
-  "sha256": "ace2f73febea95055a6cf9083af301532d475d8b5a9cd00ac2f17864c528f876"
+  "sha256": "0b5c75362d727c7b91a9dda57bbaba709b000a0c96f189586c1b897b58f999eb"
 }

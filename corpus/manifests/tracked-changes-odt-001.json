@@ -32,5 +32,5 @@
     ]
   },
   "notes": "real ODF tracked revisions (ODF 1.2 §2.4): single author bot-a on both regions; text:changed-region ids ct1..ct2 with 1 text:insert (wrapping a whole inserted text:p) and 1 text:delete (inline in the base paragraph, deleted words carried as text inside text:delete), each with office:change-info (dc:creator + fixed dc:date 2026-01-01T00:00:00). Reference text states the ACCEPTED view: inserted paragraph text is included, deleted fragment text is excluded (matches the docx tracked-changes convention). None of the five normative ODF counters match changed-region/insert/delete, so feature counts stay 0; whether LibreOffice shows or hides the revision marks at render time is a per-view setting.",
-  "sha256": "17c824ec08a2cd9da92530411ec4e62717a9a6a5acbc2c78ea1f2027b039425a"
+  "sha256": "5aca0b84bfc0564cf0752405fd2aa1d4f31f34fe89fb62e8d6018bedc7aad4de"
 }

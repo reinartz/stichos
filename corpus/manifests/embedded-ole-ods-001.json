@@ -32,5 +32,5 @@
     ]
   },
   "notes": "legacy OLE embed in ODF, spread-sheet placement: real binary part object.bin (hand-built minimal CFB v3 stub, shared _ole_cfb_stub helper, manifest media-type application/x-ole-object, package-root href) referenced by draw:frame > draw:object (draw:mime-type + draw:object-type \"application/oleobject\", xlink show=embed actuate=onLoad, svg 5cm x 5cm) placed inside a table:table-cell text:p with text:anchor-type=\"as-char\" — the in-cell frame slot LibreOffice itself uses for cell-anchored media; the cell keeps a plain-text label run next to the frame so its text survives even if the object is dropped. Placement decision, stated honestly: cell-hosted draw frames are the LO on-disk shape for images in ODS, but ODF 1.2's cell content grammar for frames is thin — embed reachability varies by reader and LibreOffice is not run here, so downstream tests must treat the frame as pass-through content (never text truth). The CFB stub carries no payload streams, so an icon placeholder or nothing may render. The normative counters read table:table=1 and draw:frame=1. Reference text covers only the four visible cell strings.",
-  "sha256": "57ad4c14c6f1e5cd8291ea148d30e8e639e2701bd901d725cf375c398a8aa590"
+  "sha256": "0c6f03e87c293dd70eace59d12cebd064b78fc263aac6731ea75a035a2421418"
 }

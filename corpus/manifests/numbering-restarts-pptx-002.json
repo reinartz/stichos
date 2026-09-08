@@ -33,5 +33,5 @@
     ]
   },
   "notes": "two text frames, roles SWAPPED versus 001 (001: A=buChar bullets, B=buAutoNum): here frame A (FOUR paragraphs, 001 has three) carries a:buAutoNum type=arabicParenR — a different autonum format, '1)' not '1.' — and frame B (three) carries a:buFont Arial + a:buChar '&#8211;' (en-dash glyph, not the bullet U+2022 of 001), raw-XML injected as in 001. The per-text-body restart semantics are the point and are unchanged: frame A starts at '1)' with no flag to set, no cross-frame continue mode exists in DrawingML. reference_text lists the seven paragraph strings (six in 001); markers stay render-side.",
-  "sha256": "893cd47430ddd6f329c971883e81efe37e55a334a54932d0fc012d5bf0b63542"
+  "sha256": "55c2176aa07e4f19ab8147f278720891728c077efb4ce8a512076158afc9ea0c"
 }

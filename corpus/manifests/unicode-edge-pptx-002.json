@@ -33,5 +33,5 @@
     ]
   },
   "notes": "second instance exercises a DIFFERENT edge family than 001 (001 = BMP ligatures/ZWJ/combining/NBSP/soft-hyphen, shared with docx-001): here the docx-002 family constants — mathematical double-struck letters U+1D54F/U+1D550 (astral plane), mathematical bold digits U+1D7CF..D7D1 (non-ASCII numerals that break naive isdigit), U+2764 with VS15 U+FE0E vs VS16 U+FE0F side by side, an LRM U+200E/RLM U+200F bidi sandwich wrapping Hebrew, and a paragraph whose FIRST character is U+FEFF — spread as six paragraphs in one text frame, byte-exact in a:t runs. Tofu/substitution under LibreOffice remains a REAL fidelity finding.",
-  "sha256": "5eba554b8bc82cc56b8c930592f57304ba27b85d8e78d27e26a2de8845fc2ee9"
+  "sha256": "784f56b40117d7f72a9a278526404bb32b92023993b6821287be19191b6bbe65"
 }

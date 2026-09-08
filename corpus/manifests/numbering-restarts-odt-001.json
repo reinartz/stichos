@@ -32,5 +32,5 @@
     ]
   },
   "notes": "real ODF list numbering: text:list-style \"L1\" in styles.xml (level 1 text:list-level-style-number, text:num-format=\"1\", text:start-value=\"1\"), two text:list of 5 text:list-items each referencing it; the second list carries text:continue-numbering=\"false\" so its counter restarts at 1. ODF restart semantics stated honestly: text:continue-numbering DEFAULTS to false, so a sibling text:list sharing a list-style does not continue the previous counter anyway — the explicit text:continue-numbering=\"false\" pins the restart (continuation would require \"true\"); text:start-value on the level style sets the per-level start. Reference text is the exact item strings only — the number markers are render-derived, never in the file as text. No normative counter matches list elements, so feature counts stay 0.",
-  "sha256": "1651b55d9b6be430d80526e6d5c60482bdd28261321f4a5e32ae1938e5102a5a"
+  "sha256": "afc959a453e7809c2c4199c07ed6ae4cb0d13eae2e5976153425b448aa6cd531"
 }

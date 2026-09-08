@@ -33,5 +33,5 @@
     ]
   },
   "notes": "real RTL slide content in DrawingML: one right-aligned Arabic paragraph (the 28-letter alphabet string shared with docx rtl-text 001) with a:pPr algn=\"r\" + rtl=\"1\", three buChar-bulleted Hebrew paragraphs (strings shared with docx rtl-text 002, same rtl/algn flags), and a mixed-direction note paragraph whose embedded Latin run «stichos» is the only run marked a:rPr rtl=\"0\" — the LTR island inside the RTL context. Hebrew runs carry a:cs typeface=\"Noto Sans Hebrew\" (python-pptx has no bidi API; flags set on raw oxml attributes). reference_text is the exact inserted strings in logical order; bidi reordering is a render-time concern.",
-  "sha256": "6ec7b7982f080194b0f6faeb52ad085dee876a1966df5f9db5857c4793475db8"
+  "sha256": "3ec3fe07ba3d3ed9041586de36cc83dd883d08a8a4683accdab3b175be087162"
 }

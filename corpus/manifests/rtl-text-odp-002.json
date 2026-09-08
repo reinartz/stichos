@@ -32,5 +32,5 @@
     ]
   },
   "notes": "real RTL slide, second instance — all content strings differ from 001 (the 001 Arabic sentence and the «hello stichos» island are asserted absent): a second Arabic sentence plus three DIFFERENT Hebrew bullets on the same GP RTL named style (fo:text-align=\"end\" + fo:direction=\"rtl\"), with the middle bullet embedding the LTR island «rendering probe 002» in a GP LTR text:span. Same text:list machinery, same GP RTL×4 / span×1 / list-item×3 asserts, same honest caveats (direction via fo:direction only, bidi is renderer-side, LO not run); counters stay draw:frame=2.",
-  "sha256": "ccc60cf325a279b33fa2a169640ae279ed00fc1d89fe0bd258860809236702e2"
+  "sha256": "ed6c8b6fd48a29a9dd3a4c81b5231e1695215e21c05bed3b0f06b47e0dad7c37"
 }

@@ -32,5 +32,5 @@
     ]
   },
   "notes": "real ODF sheet protection at cell granularity: the table:table (table:name Locked) carries table:protected=\"true\" and one cell opts back in to editing with table:protect=\"false\" (ODF 1.2 §9.4: table:protect toggles protection of a single cell inside a protected table). No table:protection-key digest or digest-algorithm attribute is emitted — the fixture is password-less by design. Honest caveats: ODF sheet protection is advisory and renderer-policy — LibreOffice will open the sheet flagged protected but, without a protection-key, unprotecting needs no password; whether a render engine honors table:protected at all, and its tolerance of a boolean-only protected flag without key attributes, is UNVERIFIED (LibreOffice is not run in this environment). Reference text is the four cell strings; the normative counter reads table:table=1.",
-  "sha256": "3d3e1799ae7971e38fc7a1625c70ba266ad495815796f96ae5f2be9661eb4f9d"
+  "sha256": "ee60ea70235ea8324161da64fb59463e6e73a31765404611daf5d7668d69cccc"
 }

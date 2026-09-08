@@ -32,5 +32,5 @@
     ]
   },
   "notes": "real CJK cells in ODF: the four verse lines of 静夜思 (Quiet Night Thought: 床前明月光，/ 疑是地上霜。/ 举头望明月，/ 低头思故乡。) in A1:A4, an 애국가 line 동해물과 백두산이 마르고 닳도록 in B1 and the Bashō haiku 古池や 蛙飛びこむ 水の音 in C1, exact strings byte-for-byte (same content as the odt/xlsx cjk fixtures). Every cell text:p references the named paragraph style \"GP CJK\" (shared with the odt builder) whose text-properties set style:font-name-asian=\"Noto Serif CJK SC\" — the asian font-name slot, not the latin fo:font-name. Honest caveats: the one shared style tags zh/CN for all three scripts, so kana/Hangul substitution is renderer-font dependent (Noto CJK covers all three when installed); cell strings are stored un-normalized. The normative counter reads table:table=1. Reference text is the six visible cell strings in row-major order.",
-  "sha256": "81716ac37b408dc5b582944007d9e081d250af7b76065d10c69134f7af5ec530"
+  "sha256": "9e40f76e90031fa1738915ec5da72c2839252589818724fc5d5d39fc90824fe4"
 }
