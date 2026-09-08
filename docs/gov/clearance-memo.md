@@ -42,3 +42,9 @@
 3. `stichos.com` registered since 2016, parked at NameBright (see registration-checklist) — domain-side squat risk, not necessarily a mark.
 
 **A real clearance search must cover:** classes **9** and **42** (also consider 41 for publishing services) in EUIPO, USPTO, WIPO MM designations, UKIPO, and national DE registers; TMview phonetic/similar sweeps; US common-law and domain/company-registry sweep (state SOS, OpenCorporates); investigation of the stichos.org operator (adoption date, territory, goods overlap); GitHub/npm/crates.io as evidence of prior software use. **No filing until stichos.org is analyzed.**
+
+> **Outcome 2026-09-08:** the project owner decided **not to file any trademark** — this is an open-source
+> project; squat-proofing is done through registries + the GitHub repo (GOV-02), not registration
+> (`project_concept.md` D21). The counsel-gate in this memo is retired; the analysis above stands as
+> reference should D21's revisit trigger ever fire (commercialization or a confusingly-identical
+> commercial competitor).

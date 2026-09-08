@@ -5,8 +5,8 @@
 goldens, baseline report-v1 published, reproducible `fontset_hash`. Repo live: `github.com/reinartz/stichos`
 (private, D18; pushed 2026-09-07). **Nightly ×3 green (run 34221533557** after two determinism fixes, runbook
 CI bug-fix log**).** SA-6 golden approval ✅ (owner 2026-09-08) · **G1 ✅ decided: lopdf + pdf-writer
-(D19, ADR-0001 accepted)** · OQ5 domain part ✅ (skip `stichos.com`, no homepage, `stichos.dev` only — D20).
-M0 exit gate now blocked only on: GOV-01 counsel opinion + GOV-02 registration sweep.
+(D19, ADR-0001 accepted)** · OQ5 ✅ fully resolved (skip `stichos.com`/no homepage — D20; no TM filing — D21).
+M0 exit gate now blocked only on: the **GOV-02 registration sweep**.
 **Rule:** this file is a plan, not a decision record. If a plan choice contradicts the concept,
 resolve it in `project_concept.md` §16 (decision log) first, then reflect it here.
 Traceability: every task cites the concept section (§) or decision (D) it implements.
@@ -319,7 +319,7 @@ COM-6 logon-agent packaging: MSI component + task-scheduler XML + docs (§9 unat
 
 | ID | Task | Deps | Deliverable | p-w |
 |---|---|---|---|---|
-| GOV-01 | Trademark search classes 9 + 42 (EUIPO/USPTO/WIPO Madrid) — gate before any public push (§12) | — | clearance memo | 1.5 |
+| GOV-01 | Trademark search classes 9 + 42 (EUIPO/USPTO/WIPO Madrid) — gate before any public push (§12) — **DONE 2026-09-08: memo delivered (SA-1); owner decision: NO filing for the OSS project (D21), counsel-gate retired** | — | clearance memo | 1.5 |
 | GOV-02 | Same-day registration sweep: GitHub **private repo under owner's personal account** (`reinartz/stichos`, no org — D18), crates.io/npm/PyPI (defensive), `stichos.dev`, MCP registry + skill-marketplace ids (`io.github.reinartz/stichos`) | GOV-01 | registrations | 0.5 |
 | GOV-03 | Distro collision check: `apt-cache`/`dnf`/`brew`/`choco` on the five targets (§12) | — | results table | 0.5 |
 | GOV-04 | Open-question board: OQ2 (Word tier: Aspose vs hosted worker — decide before COM-5 scope locks), OQ5; owner + due date per OQ | — | tracked decisions | 0.5 |

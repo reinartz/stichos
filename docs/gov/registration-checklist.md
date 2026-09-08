@@ -51,6 +51,8 @@
 5. **Register `stichos.dev`** (confirmed unregistered today; RDAP 404). Recommended primary domain.
 6. ✅ **RESOLVED 2026-09-08 (OQ5 domain part, D20):** `stichos.com` — **skip**; no homepage planned; web identity is `stichos.dev` only. No offer, no purchase, no monitoring.
 7. **MCP registry stub:** open a tracking issue in `modelcontextprotocol/registry` (or prepare the `server.schema.json` entry PR) for `io.github.reinartz/stichos` (namespace follows the owning GitHub account — D18); registry shows 0 collisions today.
-8. **Flag to counsel (scope updated 2026-09-08):** `stichos.org` RDAP now **404 — domain free again** (registration lapsed), but the levships "stichos" product **use history** (adopted ≤2026-07, possibly abandoned) still needs analysis — do not file trademarks until counsel weighs it (see `clearance-memo.md` §3).
+8. ✅ **CLOSED 2026-09-08 (concept D21):** owner decision — **no trademark filing** for this open-source
+   project; counsel flag retired, risk accepted knowingly (the `stichos.org` registration has lapsed;
+   `clearance-memo.md` retained as reference).
 
 **Note:** publish the defensive crates/npm/PyPI placeholders **even if empty** — squat-proofing is the only reason; every registry above is free **as of 2026-09-03** and free names in these registries get squatted quickly.

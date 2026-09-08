@@ -9,7 +9,8 @@ nightly ×3 ✅ measured green on GitHub, run 34221533557 (2026-09-08): `harness
 all success (pinned image + pin gates, corpus rebuild byte-repro vs committed manifests, convert 151/151,
 stability sample, verify+pytest ×3) — fixes detailed in the CI bug-fix log below ·
 GOV-01/03 research ✅ · golden approval (SA-6) ✅ owner 2026-09-08 · G1 ✅ ACCEPTED (lopdf+pdf-writer,
-ADR-0001, D19) · remaining human-bound: **GOV-01 counsel opinion + GOV-02 registration sweep**.
+ADR-0001, D19) · **GOV-01 ✅ CLOSED 2026-09-08 — owner decision: no TM filing (D21)** · remaining:
+**GOV-02 registration sweep** (checklist steps 2–5, 7) — the only M0 blocker left.
 
 **CI bug-fix log (2026-09-08):** two root causes, both measured.
 (1) `harness` byte-repro step: `normalize_zip` wrote ZIP_DEFLATED, so blob sha256 depended on the zlib build
@@ -35,9 +36,11 @@ switched (docx/odf/pptx builders incl. the mirror paths). Proof: full 151-fixtur
 python:3.12-slim+pinned-deps vs committed manifests = **0 drift** (and 0 on host); `gen verify` 0 problems;
 convert-check 151/151; goldens re-rendered + stability 151/151 ok.
 
-**Human-bound items (agent delivers research/checklists only):** trademark legal opinion (GOV-01),
-registrations & payments (GOV-02), GitHub private-repo creation under the personal account (`reinartz/stichos`, D18)
-for CI push, G1 license decision (final call).
+**Human-bound items (agent delivers research/checklists only):** ~~trademark legal opinion (GOV-01)~~ **closed
+2026-09-08: owner decision — no trademark filing for this OSS project (concept D21)**; registrations &
+payments (GOV-02) — **remaining**; ~~GitHub private-repo creation under the personal account
+(`reinartz/stichos`, D18) for CI push~~ **done 2026-09-07**; ~~G1 license decision (final call)~~ **accepted
+2026-09-08 (D19)**.
 
 **Environment (measured 2026-09-03):** Fedora 44 host; docker 29.6.2, podman 5.8.4, LibreOffice
 26.2.5.2, pandoc 3.7.0.2, pdftoppm + gs 10.06, python 3.14 (PIL/numpy/skimage), rust 1.98, git,
