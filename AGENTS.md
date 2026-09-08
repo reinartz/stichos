@@ -1,6 +1,7 @@
 # stichos
 
-Pre-implementation repo: concept, decision record, and brand assets only. No code yet.
+Phase 0 repo: concept, decision record, brand assets, plus the M0 Python fidelity harness
+(`harness/`, `corpus/`, `docker/`, `baseline/`, `.github/`). No Rust source yet.
 Do not scaffold the Rust workspace or add source files unless explicitly asked.
 
 ## Source of truth

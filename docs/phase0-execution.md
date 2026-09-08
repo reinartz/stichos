@@ -4,8 +4,11 @@
 **Gate (all must pass):** harness runs ≥150 fixtures × engines · baseline report published (HAR-06) ·
 reproducible `fontset_hash` · CI nightly green on 3 platforms · GOV-01..03 name-hygiene sweep done.
 
-**Gate status (2026-09-07):** ≥150 fixtures ✅ (151/151, report-v1) · baseline report ✅ · `fontset_hash` ✅ ·
-nightly ×3 ⏳ (workflows ready; local repo has no remote/commits — needs the private GitHub repo on the personal account, D18, checklist step 1) ·
+**Gate status (2026-09-08):** ≥150 fixtures ✅ (151/151, report-v1) · baseline report ✅ · `fontset_hash` ✅ ·
+nightly ×3 ❌ measured on GitHub (`reinartz/stichos`, pushed 2026-09-07; runs 34151493872 + 34200949975):
+ubuntu+macos ✅, `harness` ❌ (CI-rebuilt fixture sha256 ≠ committed manifests — docx zip bytes not reproducible
+across environments, host py3.14 vs CI py3.12/openpyxl) and `windows-latest` ❌ (`gen verify` UnicodeDecodeError:
+`open()` without `encoding='utf-8'` → cp1252). Two CI bugs to fix before this gate can go green ·
 GOV-01/03 research ✅, GOV-01 legal opinion + GOV-02 registrations ⏳ human-bound.
 
 **Human-bound items (agent delivers research/checklists only):** trademark legal opinion (GOV-01),

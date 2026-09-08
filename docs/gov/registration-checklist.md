@@ -21,7 +21,7 @@
 
 ## 2. Same-day action checklist (human, in order)
 
-1. **Create private repo `stichos` under the personal account `reinartz`** (owner decision 2026-09-07 — no GitHub org; concept D18). CI push target = `github.com/reinartz/stichos`; verify the repo exists and CI accepts a push. **Note:** GitHub users/orgs share one namespace, so the handle `stichos` itself stays **unclaimed** (404 measured 2026-09-03) — the personal-account route cannot lock it; re-check before any public push and open the org then if still free (or disputed).
+1. ✅ **Done 2026-09-07** — private repo created under the personal account `reinartz` (owner decision — no GitHub org; concept D18): `github.com/reinartz/stichos`, first push `b4948f9`. **Note:** GitHub users/orgs share one namespace, so the handle `stichos` itself stays **unclaimed** (404 measured 2026-09-03) — the personal-account route cannot lock it; re-check before any public push and open the org then if still free (or disputed).
 2. **Publish defensive crate `stichos` 0.0.1 to crates.io.** Squat-proof even if empty. Placeholder README: *"This crate name is reserved by the stichos project. No functionality is published yet."* Set `publish = false` on real workspace crates later to avoid accidents.
 3. **Publish `stichos` 0.0.1 placeholder to npm** (`npm publish` of a stub with `"private": false`, description "Name reserved — stichos"). npm has no reservation mechanism; a published version is the only squat-proof.
 4. **Upload `stichos` 0.0.1 placeholder to PyPI** with the same reserved-name README.

@@ -1,10 +1,11 @@
 # stichos — Project Plan
 
 **Status:** Phase 0 (M0) executing · derived from [`project_concept.md`](project_concept.md) (decisions D1–D17, phases §14)
-**Last updated:** 2026-09-07 — runbook stages SA-1..SA-10 done (`docs/phase0-execution.md`): 151-fixture corpus + goldens,
-baseline report-v1 published, reproducible `fontset_hash`, CI workflows written. M0 exit gate now blocked only on
-human-bound items: GitHub private repo on personal account (`reinartz/stichos`, D18) + first push (CI has never run),
-GOV-02 registrations, GOV-01 counsel opinion, golden approval (SA-6), G1 call.
+**Last updated:** 2026-09-08 — runbook stages SA-1..SA-10 done (`docs/phase0-execution.md`): 151-fixture corpus +
+goldens, baseline report-v1 published, reproducible `fontset_hash`. Repo live: `github.com/reinartz/stichos`
+(private, D18; pushed 2026-09-07). M0 exit gate now blocked on: nightly ×3 red — 2/4 jobs (fixture sha256 not
+CI-reproducible + Windows cp1252 decode bug, runbook gate status) — plus human-bound GOV-02 registrations,
+GOV-01 counsel opinion, golden approval (SA-6), G1 call.
 **Rule:** this file is a plan, not a decision record. If a plan choice contradicts the concept,
 resolve it in `project_concept.md` §16 (decision log) first, then reflect it here.
 Traceability: every task cites the concept section (§) or decision (D) it implements.

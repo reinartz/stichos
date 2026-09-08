@@ -1,8 +1,8 @@
 # stichos — Project Concept & Decision Record
 
 **Tagline:** proof before publish.
-**Status:** concept agreed · naming agreed · implementation not started
-**Last updated:** 2026-09-07 (D18 added)
+**Status:** concept agreed · naming agreed · Phase 0 harness live (`docs/phase0-execution.md`); Rust implementation not started; M0 gate pending human items
+**Last updated:** 2026-09-08 (D18 added; status refreshed with measured runbook/CI state)
 **Project root:** `/localdata/workspace/stichos`
 **Related:** [`brand.md`](brand.md) — identity, colour, typography, logo usage
 
@@ -426,7 +426,7 @@ Crate layout: `core` (IR + patch engine, dep-free) · `adapters-ooxml` · `adapt
 
 ## 19. Next actions
 
-1. Stand up the fidelity harness (Phase 0) and the fixture corpus.
+1. ~~Stand up the fidelity harness (Phase 0) and the fixture corpus.~~ Done 2026-09-07 (runbook SA-1..SA-10); M0 gate closure pending human items + 2 CI bugs (`docs/phase0-execution.md` gate status).
 2. Cargo workspace scaffold with engine trait + probe/`doctor` fixture probe.
 3. `render_document` / `inspect_region` returning MCP image blocks + structured manifest.
 4. Deterministic layout linter before any VLM-in-the-loop.
