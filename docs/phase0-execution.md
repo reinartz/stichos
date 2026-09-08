@@ -5,8 +5,9 @@
 reproducible `fontset_hash` · CI nightly green on 3 platforms · GOV-01..03 name-hygiene sweep done.
 
 **Gate status (2026-09-08):** ≥150 fixtures ✅ (151/151, report-v1) · baseline report ✅ · `fontset_hash` ✅ ·
-nightly ×3 ❌ measured on GitHub (`reinartz/stichos`, runs 34151493872 + 34200949975): ubuntu+macos ✅,
-`harness` ❌ + `windows-latest` ❌ — **fixed 2026-09-08, see CI bug-fix log below; awaiting nightly re-run** ·
+nightly ×3 ✅ measured green on GitHub, run 34221533557 (2026-09-08): `harness` + `platforms` ubuntu/macos/windows
+all success (pinned image + pin gates, corpus rebuild byte-repro vs committed manifests, convert 151/151,
+stability sample, verify+pytest ×3) — fixes detailed in the CI bug-fix log below ·
 GOV-01/03 research ✅, GOV-01 legal opinion + GOV-02 registrations ⏳ human-bound.
 
 **CI bug-fix log (2026-09-08):** two root causes, both measured.
