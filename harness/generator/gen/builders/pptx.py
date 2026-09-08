@@ -2,7 +2,7 @@
 
 import re
 
-from ..core import BuildResult, builder, pin_pptx_props, zip_read, zip_write
+from ..core import BuildResult, builder, pin_pptx_props, png_rgb_bytes, zip_read, zip_write
 
 _CMT_NS = "http://schemas.microsoft.com/office/powerpoint/2012/main"
 _CMT_CT = "application/vnd.openxmlformats-officedocument.presentationml.comments+xml"
@@ -107,7 +107,7 @@ def image_textwrap(ctx, nnn):
     slide = _blank_slide(prs)
     if nnn == 1:
         png = ctx.tmp / "block.png"
-        Image.new("RGB", (64, 48), (16, 26, 46)).save(png, "PNG")
+        png.write_bytes(png_rgb_bytes(Image.new("RGB", (64, 48), (16, 26, 46))))
         slide.shapes.add_picture(str(png), Inches(1), Inches(1), Inches(4), Inches(2.2))
         lines = [
             f"image-textwrap pptx {nnn:03d}",
@@ -120,7 +120,7 @@ def image_textwrap(ctx, nnn):
         # slate one of a different size, text frame enters from the UPPER-LEFT, four lines
         # instead of three, and the picture gets an explicit alt-text name.
         png = ctx.tmp / "block-b.png"
-        Image.new("RGB", (96, 72), (147, 160, 184)).save(png, "PNG")
+        png.write_bytes(png_rgb_bytes(Image.new("RGB", (96, 72), (147, 160, 184))))
         pic = slide.shapes.add_picture(str(png), Inches(4.6), Inches(2.4), Inches(3.6), Inches(2.6))
         pic._element.nvPicPr.cNvPr.set("descr", "slate overlap block")
         lines = [
@@ -952,7 +952,7 @@ def scanned_ocr(ctx, nnn):
         from PIL import Image, ImageOps
 
         with Image.open(png) as im:
-            ImageOps.mirror(im).save(png, "PNG")
+            png.write_bytes(png_rgb_bytes(ImageOps.mirror(im)))
         captions = [
             "Slide 1 — scanned fixture, second pass",
             "raster-only body: the truth here is the noise, not the bars",

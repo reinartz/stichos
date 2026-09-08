@@ -1,6 +1,6 @@
 """docx category builders (python-docx + raw XML injection where needed)."""
 
-from ..core import BuildResult, builder, normalize_zip, pin_docx_props
+from ..core import BuildResult, builder, normalize_zip, pin_docx_props, png_rgb_bytes
 
 
 @builder("merged-cells", "docx")
@@ -940,7 +940,7 @@ def _sc_scan_png(path, seed):
     rng = np.random.default_rng(seed)
     arr = np.asarray(img).astype(np.int16)
     arr = np.clip(arr + rng.integers(-6, 7, size=arr.shape, dtype=np.int16), 0, 255)
-    Image.fromarray(arr.astype("uint8"), "RGB").save(path, "PNG")
+    path.write_bytes(png_rgb_bytes(Image.fromarray(arr.astype("uint8"), "RGB")))
 
 
 @builder("scanned-ocr", "docx")
@@ -985,7 +985,7 @@ def _itw_png(path, w, h):
     draw.rectangle([4, 4, w - 5, h - 5], outline=(147, 160, 184), width=3)
     draw.line([4, 4, w - 5, h - 5], fill=(147, 160, 184), width=2)
     draw.line([4, h - 5, w - 5, 4], fill=(147, 160, 184), width=2)
-    img.save(path, "PNG")
+    path.write_bytes(png_rgb_bytes(img))
 
 
 @builder("image-textwrap", "docx")

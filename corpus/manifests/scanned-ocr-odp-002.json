@@ -32,5 +32,5 @@
     ]
   },
   "notes": "scanned-slide emulation, second instance: differs from 001 visibly — the shared _sc_scan_png raster is MIRRORED horizontally on top of the per-fixture ctx.rng seed (different pixel stream), it is placed HALF-PAGE by automatic style gpScanB (0.5in/0.5in, 6in x 4.5in; 001 is full-bleed 10in x 7.5in via gpScan), and the title frame carries a TWO-line caption (001: one line), both lines listed in reference text. Still the honest near-None case (no text layer in the raster); normative counters stay draw:frame=2.",
-  "sha256": "6baa7959e41a0ba60fd2fea643c327a1a1678ed06abd8c1cf480ee1949c31e18"
+  "sha256": "c9bc701b56c86387828b23802ca3fc76a05f7afb5c55417cdb4aa485e76fb605"
 }

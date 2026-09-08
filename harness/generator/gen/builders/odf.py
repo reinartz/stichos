@@ -16,7 +16,7 @@ import zipfile
 from pathlib import Path
 from xml.sax.saxutils import escape
 
-from ..core import FIXED_ZIP_DT, BuildResult, builder, normalize_zip
+from ..core import FIXED_ZIP_DT, BuildResult, builder, normalize_zip, png_rgb_bytes
 
 MIME = {
     "odt": "application/vnd.oasis.opendocument.text",
@@ -883,8 +883,7 @@ def image_textwrap(ctx, nnn):
     img = Image.new("RGB", (160, 120), (244, 241, 234))
     draw = ImageDraw.Draw(img)
     draw.rectangle([3, 3, 156, 116], outline=(147, 160, 184), width=4)
-    buf = io.BytesIO()
-    img.save(buf, "PNG")
+    buf = io.BytesIO(png_rgb_bytes(img))
     title = f"image-textwrap odt {nnn:03d}"
     head = "Text before the anchored picture in the same paragraph."
     tail = " text after the anchored picture."
@@ -2466,7 +2465,7 @@ def scanned_ocr_odp(ctx, nnn):
         from PIL import Image, ImageOps
 
         with Image.open(png_path) as im:
-            ImageOps.mirror(im).save(png_path, "PNG")
+            png_path.write_bytes(png_rgb_bytes(ImageOps.mirror(im)))
         caption = "Slide 1 — scanned fixture (second scan)\nraster-only body over half the slide"
         automatic = (
             '<style:style style:name="gpScanB" style:family="graphic">'
@@ -2573,8 +2572,7 @@ def image_textwrap_odp(ctx, nnn):
             ' xlink:show="embed" xlink:actuate="onLoad"/>'
             "</draw:frame>"
         )
-    buf = io.BytesIO()
-    img.save(buf, "PNG")
+    buf = io.BytesIO(png_rgb_bytes(img))
     body_frame = _odp_textbox("Body1", "body", "gp1", _odp_paras(lines), z=1)
     content = _odp_page("page1", pic_frame + body_frame)
     ref = "\n".join(lines)

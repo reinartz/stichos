@@ -24,6 +24,14 @@ no fixture sha).
 explicit `encoding="utf-8"` on every text read/write in generator, baseline, golden, nightly inline steps.
 Bonus: `tools/convert_check.sh` reads the image tag from `docker/harness/pin.txt` (was hardcoded; the stale
 local tag `galleyproof-harness` masked this).
+**Round 2 (same day, run 34214500425):** windows ✅; `harness` still red — only the 13 image-bearing manifests
+(image-textwrap + scanned-ocr) drifted. Isolated in a python:3.12-slim container (CI-equivalent): pixels and
+IHDR identical, only the PIL-written PNG **IDAT** differed — Pillow 12.2.0's cp314 vs cp312 wheels bundle
+different zlib/libspng builds. Fix: `core.png_rgb_bytes()` — PIL draws, container hand-encoded (fixed IHDR,
+filter-0 scanlines, zlib **level 0** stored blocks = pure RFC-1951, no encoder choices). All 8 PIL→PNG sites
+switched (docx/odf/pptx builders incl. the mirror paths). Proof: full 151-fixture rebuild in
+python:3.12-slim+pinned-deps vs committed manifests = **0 drift** (and 0 on host); `gen verify` 0 problems;
+convert-check 151/151; goldens re-rendered + stability 151/151 ok.
 
 **Human-bound items (agent delivers research/checklists only):** trademark legal opinion (GOV-01),
 registrations & payments (GOV-02), GitHub private-repo creation under the personal account (`reinartz/stichos`, D18)

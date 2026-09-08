@@ -121,6 +121,36 @@ def sha256_file(p: Path) -> str:
     return h.hexdigest()
 
 
+def png_rgb_bytes(img) -> bytes:
+    """Deterministic PNG container for PIL-drawn images (INV-4).
+
+    Pixels come from PIL (same pinned version rasterizes identically), but the
+    file is hand-encoded: fixed IHDR, one IDAT of filter-0 scanlines compressed
+    with zlib level 0. Stored-deflate blocks are a pure RFC-1951 format — no
+    encoder choices — so the bytes are identical across zlib/Pillow wheel
+    builds. (Nightly 34214500425: Pillow 12.2.0 cp314 vs cp312 wheels produced
+    different IDAT for identical pixels; only PIL's own PNG encoder is bypassed.)"""
+    import struct
+    import zlib
+
+    if img.mode != "RGB":
+        img = img.convert("RGB")
+    w, h = img.size
+    raw = img.tobytes()
+    rows = b"".join(b"\x00" + raw[y * w * 3:(y + 1) * w * 3] for y in range(h))
+    co = zlib.compressobj(0)
+    idat = co.compress(rows) + co.flush()
+
+    def chunk(typ: bytes, data: bytes) -> bytes:
+        return (struct.pack(">I", len(data)) + typ + data
+                + struct.pack(">I", zlib.crc32(typ + data) & 0xFFFFFFFF))
+
+    return (b"\x89PNG\r\n\x1a\n"
+            + chunk(b"IHDR", struct.pack(">IIBBBBB", w, h, 8, 2, 0, 0, 0))
+            + chunk(b"IDAT", idat)
+            + chunk(b"IEND", b""))
+
+
 def normalize_zip(path: Path) -> None:
     """Sorted entries, fixed date_time, fixed attrs, ZIP_STORED. Entries are
     stored UNCOMPRESSED on purpose: deflate streams differ across zlib builds

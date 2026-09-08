@@ -33,5 +33,5 @@
     ]
   },
   "notes": "honest category divergence (same call as 001): PPTX has NO text-wrap concept, so this is a z-order overlap test. 002 mirrors 001's geometry instead of repeating it: an opaque SLATE 96x72 PNG (deterministic PIL bytes, different size and fill from 001's ink 64x48) is placed at the RIGHT (4.6in, 2.4in, 3.6in x 2.6in) with a pic:descr alt-text string, and a four-line word-wrapped frame added SECOND enters from the upper-left (1.0in, 1.2in), overlapping the picture's upper-left corner — the opposite corner from 001. Later shape still paints on top (asserted: p:pic precedes the p:sp). The picture carries no text; reference_text is the four frame lines (three in 001).",
-  "sha256": "692e5d5723c9d5a6be1589cc5ccfa27ebadba5deb8d860776c896c839637f972"
+  "sha256": "411cdd3af375fb1b22ed0f986fb255757be1ad2210eab4903c95db6d9571c691"
 }

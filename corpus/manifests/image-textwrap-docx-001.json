@@ -33,5 +33,5 @@
     ]
   },
   "notes": "real inline picture: run.add_picture emits w:drawing/wp:inline with a real PNG media part + document.xml.rels image relationship; surrounding text runs and paragraphs provide the inline flow. Inline-only (no floating anchor) in 001.",
-  "sha256": "83f9849b2f453e859fce8ad7fd9e2ed03e02e8bc54bbde0965acadf67e481120"
+  "sha256": "0e4a35f49de35ffa273a4b4a6ca8450cf303f9aa328675ba7f5353befbdc9e80"
 }
