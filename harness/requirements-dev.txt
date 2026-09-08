@@ -16,6 +16,6 @@ et_xmlfile==2.0.0
 jsonschema==4.26.0
 scikit-image==0.26.0
 pillow==12.2.0
-numpy==2.4.4
+numpy==2.5.2
 pytest==9.1.1
 pyyaml==6.0.3
