@@ -245,6 +245,18 @@ impl PatchExecutor for MockPatchExecutor {
         // Return the patch bytes as-is (identity transform for testing).
         Ok(patch.to_vec())
     }
+
+    fn apply_op(
+        &self,
+        _op: &crate::patch::PatchOp,
+    ) -> Result<crate::patch::ApplyResult, Vec<Diagnostic>> {
+        // Return a no-op result for testing.
+        Ok(crate::patch::ApplyResult {
+            diagnostics: Vec::new(),
+            changed_element_ids: Vec::new(),
+            fidelity_budget: crate::fidelity::FidelityBudget::default(),
+        })
+    }
 }
 
 // ---------------------------------------------------------------------------

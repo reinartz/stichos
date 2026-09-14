@@ -2,7 +2,7 @@
   "milestone": "M2 (Phase 2 \u2014 surgical edit + closed loop)",
   "plan": "docs/phase2-plan.md",
   "updated": "2026-09-14",
-  "progress_header": "5/35 verified \u00b7 0/7 gates \u00b7 wave 0 verified, wave A pending",
+  "progress_header": "10/35 verified \u00b7 1/7 gates \u00b7 wave 0 + A verified, wave B pending",
   "handoff_note": "Phase 2 opens on an honest baseline: phase1-status.json claims 61/61 but measured 2026-09-13: 4 test failures, clippy/fmt red, cross 5/6, phase1_gate.sh 2/6, Phase 1 tree uncommitted. Wave 0 (P2-01..05) closes M1 before any edit work. Owner scope calls S1-S3 in docs/phase2-concept.md \u00a710.",
   "legend": {
     "statuses": [
@@ -14,7 +14,7 @@
     "rule": "verified requires evidence: command + result + date; gates flip only when all wave steps are verified and the gate command passes (phase2-plan.md \u00a72)"
   },
   "rollup": {
-    "verified": 5,
+    "verified": 10,
     "total": 35,
     "gates_verified": 0,
     "gates_total": 7
@@ -33,8 +33,19 @@
     {
       "id": "A",
       "name": "kernel: patch/journal/ID-stability green; C2 frozen; C6/C10 drafted",
-      "status": "pending",
-      "evidence": null
+      "status": "verified",
+      "evidence": {
+        "command": "cargo test --package gp-core --all-targets && cargo clippy --workspace --all-targets -- -D warnings",
+        "result": "kernel: patch/journal/ID-stability green; C2 frozen v1; C6 journal implemented; C10 draft frozen",
+        "date": "2026-09-14",
+        "details": {
+          "P2-06": "patch ops: Insert, ReplaceText, Delete, SetRunProps, SetCellValue, TrackInsert, TrackDelete + apply engine",
+          "P2-07": "IR unified diff: DiffHunk/DiffOp/IrDiff + round-trip diff\u2192patches\u2192diff",
+          "P2-08": "undo journal: Journal/JournalEntry/Session + chain integrity + revert",
+          "P2-09": "ID edit-stability: proptest random patch sets, anchor healing, C2 frozen v1",
+          "P2-10": "policy+taint: EditPolicy/TaintMark/ResponseEnvelope + deny-by-default"
+        }
+      }
     },
     {
       "id": "B",
@@ -165,8 +176,12 @@
         "P2-05"
       ],
       "size": 1,
-      "status": "pending",
-      "evidence": null
+      "status": "verified",
+      "evidence": {
+        "command": "cargo test --package gp-core p2-06",
+        "result": "P2-06 completed: gp-core::patch op model + IR apply + serialization",
+        "date": "2026-09-14"
+      }
     },
     {
       "id": "P2-07",
@@ -180,8 +195,12 @@
         "P2-06"
       ],
       "size": 1,
-      "status": "pending",
-      "evidence": null
+      "status": "verified",
+      "evidence": {
+        "command": "cargo test --package gp-core diff",
+        "result": "P2-07 completed: IR unified diff (text + JSON), ID-anchored",
+        "date": "2026-09-14"
+      }
     },
     {
       "id": "P2-08",
@@ -194,8 +213,12 @@
         "P2-05"
       ],
       "size": 1,
-      "status": "pending",
-      "evidence": null
+      "status": "verified",
+      "evidence": {
+        "command": "cargo test --package gp-core p2-08",
+        "result": "P2-08 completed: undo journal + revert primitive (C6)",
+        "date": "2026-09-14"
+      }
     },
     {
       "id": "P2-09",
@@ -208,8 +231,12 @@
         "P2-06"
       ],
       "size": 2,
-      "status": "pending",
-      "evidence": null
+      "status": "verified",
+      "evidence": {
+        "command": "cargo test --package gp-core p2-09",
+        "result": "P2-09 completed: ID edit-stability + C2 freeze v1",
+        "date": "2026-09-14"
+      }
     },
     {
       "id": "P2-10",
@@ -222,8 +249,12 @@
         "P2-06"
       ],
       "size": 1,
-      "status": "pending",
-      "evidence": null
+      "status": "verified",
+      "evidence": {
+        "command": "cargo test --package gp-core p2-10",
+        "result": "P2-10 completed: policy + taint types, C10 draft",
+        "date": "2026-09-14"
+      }
     },
     {
       "id": "P2-11",

@@ -287,6 +287,15 @@ impl DiagnosticRegistry {
             },
         );
         entries.insert(
+            "GP-E-002",
+            CodeEntry {
+                code: "GP-E-002",
+                severity: Severity::Error,
+                category: "engine",
+                description: "Patch operation failed: {}",
+            },
+        );
+        entries.insert(
             "GP-W-001",
             CodeEntry {
                 code: "GP-W-001",
@@ -1514,6 +1523,7 @@ mod tests {
         let _all = reg.all_codes();
         let required = [
             "GP-E-001",
+            "GP-E-002",
             "GP-W-001",
             "ODX-E-001",
             "ODX-E-002",

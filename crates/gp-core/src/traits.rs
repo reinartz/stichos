@@ -4,6 +4,7 @@
 
 use crate::diagnostics::{Diagnostic, Severity};
 use crate::ir::TextWithBbox;
+use crate::patch::{ApplyResult, PatchOp};
 
 /// A type-only patch executor — no implementation in M1.
 /// Phase 2 will provide a byte-surgical patch executor.
@@ -13,6 +14,9 @@ pub trait PatchExecutor: Send + Sync {
 
     /// Apply a patch and return result diagnostics.
     fn apply(&self, patch: &[u8]) -> Result<Vec<u8>, Self::Error>;
+
+    /// Apply a typed patch operation to an IR document.
+    fn apply_op(&self, op: &PatchOp) -> Result<ApplyResult, Vec<Diagnostic>>;
 }
 
 /// Additional Codec methods

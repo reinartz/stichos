@@ -87,6 +87,12 @@ impl ElementId {
         &self.0
     }
 
+    /// Construct an ElementId from a raw string value.
+    #[allow(clippy::should_implement_trait)]
+    pub fn from_str(s: &str) -> Self {
+        Self(s.to_string())
+    }
+
     /// Validate that this ID matches the expected format.
     pub fn is_valid(&self) -> bool {
         // Simple check: starts with "id-" and rest are hex chars, at least 12 of them

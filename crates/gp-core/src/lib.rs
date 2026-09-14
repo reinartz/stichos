@@ -5,9 +5,12 @@
 //! engines, and linters implement.
 
 pub mod diagnostics;
+pub mod diff;
+pub mod edit_stability;
 pub mod fidelity;
 pub mod ir;
 pub mod macro_check;
+pub mod patch;
 pub mod store;
 pub mod testkit;
 pub mod traits;
