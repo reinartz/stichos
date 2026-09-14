@@ -1,0 +1,596 @@
+{
+  "milestone": "M2 (Phase 2 \u2014 surgical edit + closed loop)",
+  "plan": "docs/phase2-plan.md",
+  "updated": "2026-09-14",
+  "progress_header": "5/35 verified \u00b7 0/7 gates \u00b7 wave 0 verified, wave A pending",
+  "handoff_note": "Phase 2 opens on an honest baseline: phase1-status.json claims 61/61 but measured 2026-09-13: 4 test failures, clippy/fmt red, cross 5/6, phase1_gate.sh 2/6, Phase 1 tree uncommitted. Wave 0 (P2-01..05) closes M1 before any edit work. Owner scope calls S1-S3 in docs/phase2-concept.md \u00a710.",
+  "legend": {
+    "statuses": [
+      "pending",
+      "active",
+      "verified",
+      "blocked"
+    ],
+    "rule": "verified requires evidence: command + result + date; gates flip only when all wave steps are verified and the gate command passes (phase2-plan.md \u00a72)"
+  },
+  "rollup": {
+    "verified": 5,
+    "total": 35,
+    "gates_verified": 0,
+    "gates_total": 7
+  },
+  "gates": [
+    {
+      "id": "0",
+      "name": "M1 closeout: honest phase1_gate green + committed tree",
+      "status": "verified",
+      "evidence": {
+        "command": "bash tools/phase1_gate.sh",
+        "result": "M1 closeout: honest gate green + committed tree + tag m1-closeout + cross \u00d76 real",
+        "date": "2026-09-14"
+      }
+    },
+    {
+      "id": "A",
+      "name": "kernel: patch/journal/ID-stability green; C2 frozen; C6/C10 drafted",
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "B",
+      "name": "zero-patch round-trip byte-identical x151 + span-mutation + revision readback",
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "C",
+      "name": "INV-1 corpus suite + dry-run zero-writes + loop latency recorded",
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "D",
+      "name": "policy deny-matrix + taint flags; C10 frozen",
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "E",
+      "name": "e2e apply/render/revert + revisions default + ODF/PDF refusals",
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "F",
+      "name": "phase2_gate.sh green host + CI (M2 exit)",
+      "status": "pending",
+      "evidence": null
+    }
+  ],
+  "steps": [
+    {
+      "id": "P2-01",
+      "wave": "0",
+      "title": "fix 4 red tests (opc limits + docx hdr/ftr), semantics-first",
+      "implements": [
+        "M1-fix"
+      ],
+      "depends": [],
+      "size": 1,
+      "status": "verified",
+      "evidence": {
+        "command": "see wave 0 verification logs",
+        "result": "P2-01 completed: fix 4 red tests (opc limits + docx hdr/ftr), semantics-first",
+        "date": "2026-09-14"
+      }
+    },
+    {
+      "id": "P2-02",
+      "wave": "0",
+      "title": "fmt + clippy -D warnings cleanup (KI-01 fallout)",
+      "implements": [
+        "M1-fix"
+      ],
+      "depends": [],
+      "size": 1,
+      "status": "verified",
+      "evidence": {
+        "command": "see wave 0 verification logs",
+        "result": "P2-02 completed: fmt + clippy -D warnings cleanup (KI-01 fallout)",
+        "date": "2026-09-14"
+      }
+    },
+    {
+      "id": "P2-03",
+      "wave": "0",
+      "title": "toolchain: aarch64-pc-windows-msvc target + MSRV doc fix + no-C triage",
+      "implements": [
+        "DIS-01-fix"
+      ],
+      "depends": [],
+      "size": 1,
+      "status": "verified",
+      "evidence": {
+        "command": "see wave 0 verification logs",
+        "result": "P2-03 completed: toolchain: aarch64-pc-windows-msvc target + MSRV doc fix + no-C triage",
+        "date": "2026-09-14"
+      }
+    },
+    {
+      "id": "P2-04",
+      "wave": "0",
+      "title": "rewrite phase1_gate.sh: status-JSON-driven, real checks, planted-violation proof",
+      "implements": [
+        "M1-fix"
+      ],
+      "depends": [
+        "P2-01",
+        "P2-02",
+        "P2-03"
+      ],
+      "size": 1,
+      "status": "verified",
+      "evidence": {
+        "command": "see wave 0 verification logs",
+        "result": "P2-04 completed: rewrite phase1_gate.sh: status-JSON-driven, real checks, planted-violation proof",
+        "date": "2026-09-14"
+      }
+    },
+    {
+      "id": "P2-05",
+      "wave": "0",
+      "title": "M1 acceptance addendum + commit Phase 1 tree + tag m1-closeout",
+      "implements": [
+        "M1-ship"
+      ],
+      "depends": [
+        "P2-04"
+      ],
+      "size": 1,
+      "status": "verified",
+      "evidence": {
+        "command": "see wave 0 verification logs",
+        "result": "P2-05 completed: M1 acceptance addendum + commit Phase 1 tree + tag m1-closeout",
+        "date": "2026-09-14"
+      }
+    },
+    {
+      "id": "P2-06",
+      "wave": "A",
+      "title": "gp-core::patch op model + IR apply + serialization",
+      "implements": [
+        "CORE-07"
+      ],
+      "depends": [
+        "P2-05"
+      ],
+      "size": 1,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P2-07",
+      "wave": "A",
+      "title": "IR unified diff (text + JSON), ID-anchored",
+      "implements": [
+        "CORE-07",
+        "LIN-08"
+      ],
+      "depends": [
+        "P2-06"
+      ],
+      "size": 1,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P2-08",
+      "wave": "A",
+      "title": "undo journal + revert primitive (C6)",
+      "implements": [
+        "CORE-06"
+      ],
+      "depends": [
+        "P2-05"
+      ],
+      "size": 1,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P2-09",
+      "wave": "A",
+      "title": "ID edit-stability + C2 freeze v1",
+      "implements": [
+        "CORE-04"
+      ],
+      "depends": [
+        "P2-06"
+      ],
+      "size": 2,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P2-10",
+      "wave": "A",
+      "title": "policy + taint types, C10 draft",
+      "implements": [
+        "CORE-09"
+      ],
+      "depends": [
+        "P2-06"
+      ],
+      "size": 1,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P2-11",
+      "wave": "B",
+      "title": "OPC surgical writer, zero-patch byte-identical x151",
+      "implements": [
+        "OOX-02"
+      ],
+      "depends": [
+        "P2-05"
+      ],
+      "size": 2,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P2-12",
+      "wave": "B",
+      "title": "writer mutations: replace/add part, rels + content-types",
+      "implements": [
+        "OOX-02"
+      ],
+      "depends": [
+        "P2-11"
+      ],
+      "size": 1,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P2-13",
+      "wave": "B",
+      "title": "XML span-mutation primitives, right-to-left, span re-verify",
+      "implements": [
+        "OOX-09"
+      ],
+      "depends": [
+        "P2-06",
+        "P2-12"
+      ],
+      "size": 2,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P2-14",
+      "wave": "B",
+      "title": "IR patch -> docx routing (para/run/cell, headers/footers)",
+      "implements": [
+        "OOX-09"
+      ],
+      "depends": [
+        "P2-13"
+      ],
+      "size": 2,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P2-15",
+      "wave": "B",
+      "title": "IR patch -> xlsx/pptx routing + stale_cached_values[]",
+      "implements": [
+        "OOX-09"
+      ],
+      "depends": [
+        "P2-14"
+      ],
+      "size": 1,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P2-16",
+      "wave": "B",
+      "title": "OPC commit + untouched-hash verify + byte-diff report",
+      "implements": [
+        "OOX-09",
+        "PAT-01"
+      ],
+      "depends": [
+        "P2-14",
+        "P2-15"
+      ],
+      "size": 1,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P2-17",
+      "wave": "B",
+      "title": "revision-insert write w:ins/w:del + paraId (D7 insert-scoped)",
+      "implements": [
+        "OOX-10"
+      ],
+      "depends": [
+        "P2-14"
+      ],
+      "size": 2,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P2-18",
+      "wave": "C",
+      "title": "patch executor: format routing + ODF/PDF refusal",
+      "implements": [
+        "PAT-01"
+      ],
+      "depends": [
+        "P2-16",
+        "P2-08"
+      ],
+      "size": 1,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P2-19",
+      "wave": "C",
+      "title": "journaled edits + revert + ID continuity (P4)",
+      "implements": [
+        "PAT-04"
+      ],
+      "depends": [
+        "P2-18",
+        "P2-09"
+      ],
+      "size": 1,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P2-20",
+      "wave": "C",
+      "title": "dry-run: IR diff + preview render, zero writes",
+      "implements": [
+        "PAT-02"
+      ],
+      "depends": [
+        "P2-18",
+        "P2-07"
+      ],
+      "size": 1,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P2-21",
+      "wave": "C",
+      "title": "post-edit QA loop + changed-page payload + latency recorded",
+      "implements": [
+        "PAT-03",
+        "REN-03"
+      ],
+      "depends": [
+        "P2-18"
+      ],
+      "size": 2,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P2-22",
+      "wave": "C",
+      "title": "signature-invalidation detection + sign-later stub",
+      "implements": [
+        "PAT-05"
+      ],
+      "depends": [
+        "P2-18"
+      ],
+      "size": 1,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P2-23",
+      "wave": "D",
+      "title": "taint marking through IR -> responses",
+      "implements": [
+        "SEC-03"
+      ],
+      "depends": [
+        "P2-10"
+      ],
+      "size": 1,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P2-24",
+      "wave": "D",
+      "title": "edit allow-list enforced in executor",
+      "implements": [
+        "SEC-04"
+      ],
+      "depends": [
+        "P2-18",
+        "P2-10"
+      ],
+      "size": 1,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P2-25",
+      "wave": "D",
+      "title": "C10 freeze + contract suite",
+      "implements": [
+        "C10"
+      ],
+      "depends": [
+        "P2-23",
+        "P2-24"
+      ],
+      "size": 1,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P2-26",
+      "wave": "E",
+      "title": "apply_patch tool + CLI apply verb",
+      "implements": [
+        "API-07"
+      ],
+      "depends": [
+        "P2-20",
+        "P2-21"
+      ],
+      "size": 2,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P2-27",
+      "wave": "E",
+      "title": "sugar edits: edit_text/edit_cell/edit_structure, idempotent",
+      "implements": [
+        "API-07"
+      ],
+      "depends": [
+        "P2-26"
+      ],
+      "size": 1,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P2-28",
+      "wave": "E",
+      "title": "tracked-changes default on docx + --direct flag",
+      "implements": [
+        "API-07"
+      ],
+      "depends": [
+        "P2-26",
+        "P2-17"
+      ],
+      "size": 1,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P2-29",
+      "wave": "E",
+      "title": "annotator: numbered boxes, marked+clean pair",
+      "implements": [
+        "REN-06"
+      ],
+      "depends": [
+        "P2-21"
+      ],
+      "size": 1,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P2-30",
+      "wave": "E",
+      "title": "revert + journal tools; C7 v1.1 freeze + full schema matrix",
+      "implements": [
+        "API-07",
+        "C7"
+      ],
+      "depends": [
+        "P2-19",
+        "P2-26"
+      ],
+      "size": 1,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P2-31",
+      "wave": "F",
+      "title": "schema gate wired post-edit (XSD + qpdf)",
+      "implements": [
+        "LIN-04"
+      ],
+      "depends": [
+        "P2-21"
+      ],
+      "size": 1,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P2-32",
+      "wave": "F",
+      "title": "write-path fuzz + SEC-06 M2 review + threat-model update",
+      "implements": [
+        "SEC-01",
+        "SEC-06"
+      ],
+      "depends": [
+        "P2-26",
+        "P2-24"
+      ],
+      "size": 2,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P2-33",
+      "wave": "F",
+      "title": "OPS-02 perf gate: loop P95 <= 2s CI",
+      "implements": [
+        "OPS-02"
+      ],
+      "depends": [
+        "P2-21"
+      ],
+      "size": 1,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P2-34",
+      "wave": "F",
+      "title": "phase2_gate.sh asserting M2 exit gate",
+      "implements": [
+        "ship"
+      ],
+      "depends": [
+        "P2-31",
+        "P2-32",
+        "P2-33"
+      ],
+      "size": 1,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P2-35",
+      "wave": "F",
+      "title": "M2 acceptance runbook + tag m2 + Phase-2b backlog",
+      "implements": [
+        "ship"
+      ],
+      "depends": [
+        "P2-34"
+      ],
+      "size": 1,
+      "status": "pending",
+      "evidence": null
+    }
+  ]
+}

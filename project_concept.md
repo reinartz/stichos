@@ -1,7 +1,7 @@
 # stichos — Project Concept & Decision Record
 
 **Tagline:** proof before publish.
-**Status:** concept agreed · naming agreed · Phase 0 harness live (`docs/phase0-execution.md`), nightly ×3 green; Rust implementation not started; M0 gate pending GOV-02 sweep only
+**Status:** concept agreed · naming agreed · Phase 0 harness live (`docs/phase0-execution.md`), nightly ×3 green; Phase 1 Rust implementation in progress (9 crates scaffolded: gp-core, adapters-ooxml/odf/pdf, engines, lint, mcp, cli); M0 gate pending GOV-02 sweep only
 **Last updated:** 2026-09-08 (D18–D21; OQ1/OQ5 resolved; measured identity re-check)
 **Project root:** `/localdata/workspace/stichos`
 **Related:** [`brand.md`](brand.md) — identity, colour, typography, logo usage

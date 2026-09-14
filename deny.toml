@@ -1,11 +1,7 @@
 # cargo-deny policy — stichos (plan §3.3 external dependency policy; SEC-02)
 #
-# READY BUT SKIPPED: there is NO Cargo workspace at M0 (strict M0 scope,
-# docs/phase0-execution.md). This config lands with the corpus/CI work; the CI step
-# (.github/workflows/pr.yml, guarded by hashFiles('Cargo.toml')) self-activates when
-# the workspace lands at CORE-01. Until then `cargo deny check` is not runnable.
-#
-# Local check once CORE-01 lands:  cargo deny check bans licenses advisories sources
+# Local check:  cargo deny check bans licenses advisories sources
+# For 0.19.x config format.
 
 [graph]
 # DIS-01 cross-compile targets (plan §3.3 / D2): keep the tree free of
@@ -21,19 +17,11 @@ targets = [
 
 [advisories]
 db-urls = ["https://github.com/RustSec/advisory-db"]
-db-version = "2"
 # RustSec advisory gate (plan §3.3 "advisory gate").
-vulnerability = "deny"
-unmaintained = "warn"
-unsound = "deny"
-yanked = "warn"
-notice = "warn"
 ignore = []
 
 [licenses]
-unlicensed = "deny"
-# Plan §3.3 allow-list: MIT / Apache-2.0 / BSD / ISC / Unicode (Unicode-DFS-2016
-# is the SPDX id for the Unicode Terms of Fit for a Purpose / DFS license).
+# Plan §3.3 allow-list: MIT / Apache-2.0 / BSD / ISC / Unicode
 allow = [
     "MIT",
     "Apache-2.0",
@@ -42,48 +30,27 @@ allow = [
     "BSD-3-Clause",
     "ISC",
     "Unicode-DFS-2016",
+    "Unicode-3.0",
 ]
-copyleft = "deny"
-allow-osi-fsf-free = "neither"
-default = "deny"
 confidence-threshold = 0.8
-# Banned-pending-gate class (plan §3.3): AGPL never enters the tree; GPL/AGPL are
-# the copyleft tripwires. C-renderer bindings are blocked by [bans] below.
-deny = [
-    { license = "AGPL-3.0", hold_reason = "plan §3.3: any AGPL crate blocked outright" },
-    { license = "AGPL-3.0-only", hold_reason = "plan §3.3: any AGPL crate blocked outright" },
-    { license = "AGPL-3.0-or-later", hold_reason = "plan §3.3: any AGPL crate blocked outright" },
-    { license = "GPL-3.0", hold_reason = "copyleft; odfpy-class precedent — hand-write instead (harness/generator/README.md)" },
-    { license = "GPL-3.0-only", hold_reason = "copyleft; odfpy-class precedent" },
-    { license = "GPL-3.0-or-later", hold_reason = "copyleft; odfpy-class precedent" },
-]
 
 [[licenses.clarify]]
-# ring-style crates ship ISC/OpenSSL-ish double-licensed blobs; if ring is ever
-# pulled in transitively, keep this entry so the audit stays deterministic.
+# ring-style crates ship ISC/OpenSSL-ish double-licensed blobs.
 name = "ring"
 expression = "MIT AND ISC AND OpenSSL"
 license-files = [{ path = "LICENSE", hash = 0x01c0e8b7 }]
 
 [bans]
 multiple-versions = "warn"
-# no wildcard dependencies allowed in Cargo.toml manifests; note that the deny
-# list below matches crate names with `*` globs natively (cargo-deny skip/deny
-# entries both support glob patterns).
 wildcards = "deny"
 highlight = "all"
 # SEC-02 / plan §3.3 "Banned pending gate": NO C-linked renderer may enter the
-# tree until the PDF-01/OQ1 ADR lands. This protects D2 (cross-compile to the 6
-# DIS-01 targets) and D8 (engines are spawned subprocesses, never linked).
-# Add aliases here as new wrappers appear upstream; the gate is deny-by-name.
+# tree until the PDF-01/OQ1 ADR lands.
 deny = [
-    # pdfium (Chrome's PDF engine) — C library; any binding is a -sys hazard
     { crate = "pdfium-render", reason = "C-renderer banned pending PDF-01/OQ1 ADR (plan §3.3, D2/D8)" },
     { crate = "pdfium*", reason = "any pdfium binding/-sys crate is a C-link + cross-compile hazard; gate is PDF-01/OQ1" },
-    # MuPDF (Artifex, AGPL software license on top of C code)
     { crate = "mupdf", reason = "C-renderer + AGPL upstream; banned pending PDF-01/OQ1 ADR (plan §3.3)" },
     { crate = "mupdf*", reason = "any MuPDF binding/-sys crate; gate is PDF-01/OQ1" },
-    # LOKit (LibreOfficeKit) — spawning soffice at runtime is the policy (D8), linking is not
     { crate = "lokit-dl", reason = "LOKit must be a spawned subprocess (D8), never linked; blocks D2 cross-compile" },
     { crate = "lokit*", reason = "any LibreOfficeKit binding; D8: soft dependency spawned at runtime" },
     { crate = "*officekit*", reason = "any LibreOfficeKit binding; D8: soft dependency spawned at runtime" },

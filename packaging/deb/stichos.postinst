@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# stichos postinst script — no post-install actions required.
+# Deb packaging scaffold; actual CI build is owner-bound.
+set -euo pipefail
+echo "stichos ${VERSION:-0.1.0} installed."

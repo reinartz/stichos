@@ -1,0 +1,11 @@
+Package: stichos
+Version: 0.1.0
+Section: utils
+Priority: optional
+Architecture: amd64 arm64
+Maintainer: stichos maintainers <stichos@reinartz.io>
+Description: Proof before publish — document inspection and rendering tool
+ stichos is a read-only tool for analyzing office documents.
+ It inspects structure, renders to images, and reports on layout quality.
+Recommends: libreoffice | libreoffice-core, poppler-utils, ghostscript
+Depends: ${misc:Depends}, ${shlibs:Depends}

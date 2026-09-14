@@ -1,0 +1,23 @@
+[package]
+name = "engines"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+gp-core = { path = "../gp-core", version = "0.1.0" }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+anyhow = { workspace = true }
+glob = { workspace = true }
+sha2 = { workspace = true }
+hex = { workspace = true }
+fastrand = { workspace = true }
+libc = { workspace = true }
+thiserror = { workspace = true }

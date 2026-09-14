@@ -1,0 +1,65 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/gp-core",
+    "crates/adapters-ooxml",
+    "crates/adapters-odf",
+    "crates/adapters-pdf",
+    "crates/adapters-ooxfuzz",
+    "crates/engines",
+    "crates/lint",
+    "crates/mcp",
+    "crates/cli",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+rust-version = "1.85"
+
+[workspace.lints.rust]
+dead_code = "warn"
+deprecated = "warn"
+unused = "warn"
+unused_imports = "warn"
+
+[workspace.lints.cargo]
+dead_code = "warn"
+deprecated = "warn"
+unused = "warn"
+unused_imports = "warn"
+
+[workspace.lints.rustdoc]
+dead_code = "warn"
+deprecated = "warn"
+unused = "warn"
+unused_imports = "warn"
+
+[workspace.dependencies]
+# serde ecosystem
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+serde_yaml = "0.9"
+# async runtime
+tokio = { version = "1", features = ["full"] }
+bytes = "1"
+# error handling
+thiserror = "2"
+anyhow = "1"
+# tracing
+tracing = "0.1"
+log = "0.4"
+# crypto / hashing
+sha2 = "0.10"
+hex = "0.4"
+base64 = "0.22"
+uuid = { version = "1", features = ["serde", "v4"] }
+# utility
+glob = "0.3"
+regex = "1"
+fastrand = "2"
+libc = "0.2"
+zip = { version = "2", default-features = false, features = ["deflate"] }
+tempfile = "3"
+tracing-subscriber = "0.3"

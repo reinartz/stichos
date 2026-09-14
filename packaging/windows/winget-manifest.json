@@ -1,0 +1,17 @@
+{
+  "id": "reinartz.stichos",
+  "name": "stichos",
+  "publisher": "reinartz",
+  "version": "0.1.0",
+  "license": "MIT OR Apache-2.0",
+  "homepage": "https://github.com/reinartz/stichos",
+  "shortDescription": "Proof before publish — document inspection tool",
+  "installers": [
+    {
+      "architecture": "x64",
+      "installerType": "msi",
+      "url": "stichos-0.1.0-x64.msi",
+      "sha256": "PLACEHOLDER"
+    }
+  ]
+}

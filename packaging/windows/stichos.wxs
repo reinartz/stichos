@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+  <Product Id="*" Name="stichos" Version="0.1.0" Manufacturer="reinartz" Language="1033">
+    <Package InstallerVersion="500" Compressed="yes" />
+    <MediaCollection Id="1" TemplateDir="." />
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <Directory Id="ProgramFiles64Folder">
+        <Directory Id="STICHOSFOLDER" Name="stichos">
+          <Component Id="Binary" Guid="*">
+            <File Id="stichos.exe" Source="stichos.exe" KeyPath="yes" />
+          </Component>
+        </Directory>
+      </Directory>
+    </Directory>
+    <Feature Id="Main" Title="stichos" Level="1">
+      <ComponentRef Id="Binary" />
+    </Feature>
+  </Product>
+</Wix>
