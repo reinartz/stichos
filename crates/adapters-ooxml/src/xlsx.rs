@@ -795,7 +795,7 @@ pub use super::opc::PartInfo;
 // ===========================================================================
 
 #[cfg(test)]
-mod test_fixtures {
+pub(crate) mod test_fixtures {
     use std::io::Write;
 
     /// Type alias for default file options with no extension.

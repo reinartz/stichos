@@ -28,8 +28,11 @@ name = "adapters-ooxml"
 version = "0.1.0"
 dependencies = [
  "gp-core",
+ "hex",
+ "proptest",
  "serde",
  "serde_json",
+ "sha2",
  "tempfile",
  "tracing",
  "zip",

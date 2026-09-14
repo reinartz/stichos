@@ -1303,7 +1303,7 @@ pub fn build_presentation_xml(slide_count: usize) -> Vec<u8> {
 // ===========================================================================
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::*;
     use std::fs;
 

@@ -270,6 +270,11 @@ impl XmlDocument {
     pub fn source(&self) -> &[u8] {
         &self.source
     }
+
+    /// Replace the source bytes (used after mutation).
+    pub fn set_source(&mut self, source: Vec<u8>) {
+        self.source = source;
+    }
 }
 
 // ---------------------------------------------------------------------------

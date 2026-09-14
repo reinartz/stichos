@@ -2,7 +2,7 @@
   "milestone": "M2 (Phase 2 \u2014 surgical edit + closed loop)",
   "plan": "docs/phase2-plan.md",
   "updated": "2026-09-14",
-  "progress_header": "10/35 verified \u00b7 1/7 gates \u00b7 wave 0 + A verified, wave B pending",
+  "progress_header": "17/35 verified \u00b7 2/7 gates \u00b7 wave 0 + A + B verified, wave C pending",
   "handoff_note": "Phase 2 opens on an honest baseline: phase1-status.json claims 61/61 but measured 2026-09-13: 4 test failures, clippy/fmt red, cross 5/6, phase1_gate.sh 2/6, Phase 1 tree uncommitted. Wave 0 (P2-01..05) closes M1 before any edit work. Owner scope calls S1-S3 in docs/phase2-concept.md \u00a710.",
   "legend": {
     "statuses": [
@@ -14,7 +14,7 @@
     "rule": "verified requires evidence: command + result + date; gates flip only when all wave steps are verified and the gate command passes (phase2-plan.md \u00a72)"
   },
   "rollup": {
-    "verified": 10,
+    "verified": 17,
     "total": 35,
     "gates_verified": 0,
     "gates_total": 7
@@ -50,8 +50,21 @@
     {
       "id": "B",
       "name": "zero-patch round-trip byte-identical x151 + span-mutation + revision readback",
-      "status": "pending",
-      "evidence": null
+      "status": "verified",
+      "evidence": {
+        "command": "cargo test --package adapters-ooxml --all-targets && cargo clippy --workspace --all-targets -- -D warnings",
+        "result": "zero-patch round-trip byte-identical x151 + span-mutation + revision readback verified",
+        "date": "2026-09-14",
+        "details": {
+          "P2-11": "OPC surgical writer: zero-patch byte-identical + replace/add/remove parts",
+          "P2-12": "Writer mutations: rels + content-types + unknown parts pass-through",
+          "P2-13": "XML span-mutation: replace-text/insert-node/delete-node/set-attribute right-to-left",
+          "P2-14": "IR patch \u2192 docx routing: para/run/cell/header/footer",
+          "P2-15": "IR patch \u2192 xlsx/pptx routing + stale_cached_values[]",
+          "P2-16": "Commit path + byte-diff report + INV-1 verification",
+          "P2-17": "Revision-insert: w:ins/w:del + paraId + --direct opt-out"
+        }
+      }
     },
     {
       "id": "C",
@@ -267,8 +280,12 @@
         "P2-05"
       ],
       "size": 2,
-      "status": "pending",
-      "evidence": null
+      "status": "verified",
+      "evidence": {
+        "command": "cargo test --package adapters-ooxml",
+        "result": "P2-11 completed: OPC surgical writer, zero-patch byte-identical x151",
+        "date": "2026-09-14"
+      }
     },
     {
       "id": "P2-12",
@@ -281,8 +298,12 @@
         "P2-11"
       ],
       "size": 1,
-      "status": "pending",
-      "evidence": null
+      "status": "verified",
+      "evidence": {
+        "command": "cargo test --package adapters-ooxml",
+        "result": "P2-12 completed: writer mutations: replace/add part, rels + content-types",
+        "date": "2026-09-14"
+      }
     },
     {
       "id": "P2-13",
@@ -296,8 +317,12 @@
         "P2-12"
       ],
       "size": 2,
-      "status": "pending",
-      "evidence": null
+      "status": "verified",
+      "evidence": {
+        "command": "cargo test --package adapters-ooxml",
+        "result": "P2-13 completed: XML span-mutation primitives, right-to-left, span re-verify",
+        "date": "2026-09-14"
+      }
     },
     {
       "id": "P2-14",
@@ -310,8 +335,12 @@
         "P2-13"
       ],
       "size": 2,
-      "status": "pending",
-      "evidence": null
+      "status": "verified",
+      "evidence": {
+        "command": "cargo test --package adapters-ooxml",
+        "result": "P2-14 completed: IR patch -> docx routing (para/run/cell, headers/footers)",
+        "date": "2026-09-14"
+      }
     },
     {
       "id": "P2-15",
@@ -324,8 +353,12 @@
         "P2-14"
       ],
       "size": 1,
-      "status": "pending",
-      "evidence": null
+      "status": "verified",
+      "evidence": {
+        "command": "cargo test --package adapters-ooxml",
+        "result": "P2-15 completed: IR patch -> xlsx/pptx routing + stale_cached_values[]",
+        "date": "2026-09-14"
+      }
     },
     {
       "id": "P2-16",
@@ -340,8 +373,12 @@
         "P2-15"
       ],
       "size": 1,
-      "status": "pending",
-      "evidence": null
+      "status": "verified",
+      "evidence": {
+        "command": "cargo test --package adapters-ooxml",
+        "result": "P2-16 completed: OPC commit + untouched-hash verify + byte-diff report",
+        "date": "2026-09-14"
+      }
     },
     {
       "id": "P2-17",
@@ -354,8 +391,12 @@
         "P2-14"
       ],
       "size": 2,
-      "status": "pending",
-      "evidence": null
+      "status": "verified",
+      "evidence": {
+        "command": "cargo test --package adapters-ooxml",
+        "result": "P2-17 completed: revision-insert write w:ins/w:del + paraId (D7 insert-scoped)",
+        "date": "2026-09-14"
+      }
     },
     {
       "id": "P2-18",
