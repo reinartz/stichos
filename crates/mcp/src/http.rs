@@ -451,7 +451,7 @@ mod tests {
             .iter()
             .map(|t| t["name"].as_str().unwrap())
             .collect();
-        assert_eq!(tool_names.len(), 6);
+        assert_eq!(tool_names.len(), 13);
         assert!(tool_names.contains(&"inspect_document"));
         assert!(tool_names.contains(&"serve"));
     }
@@ -591,7 +591,7 @@ mod tests {
         assert_eq!(parsed["id"], 77);
         let tools = &parsed["result"]["tools"];
         assert!(tools.is_array());
-        assert_eq!(tools.as_array().unwrap().len(), 6);
+        assert_eq!(tools.as_array().unwrap().len(), 13);
     }
 
     /// Regression: HTTP tools/list with various id types

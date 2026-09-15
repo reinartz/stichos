@@ -16,6 +16,7 @@ path = "src/main.rs"
 [dev-dependencies]
 serde_json = { workspace = true }
 zip = { workspace = true }
+tempfile = { workspace = true }
 
 [dependencies]
 gp-core = { path = "../gp-core", version = "0.1.0" }
@@ -33,3 +34,4 @@ tracing = { workspace = true }
 tracing-subscriber = { workspace = true, features = ["env-filter", "std"] }
 anyhow = { workspace = true }
 thiserror = { workspace = true }
+sha2 = { workspace = true }

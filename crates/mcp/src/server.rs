@@ -316,7 +316,7 @@ mod tests {
         let tools = result["tools"]
             .as_array()
             .expect("tools should be an array");
-        assert_eq!(tools.len(), 6, "expected 6 tools");
+        assert_eq!(tools.len(), 13, "expected 13 tools");
 
         // Verify first tool structure
         let first = &tools[0];
@@ -644,6 +644,6 @@ mod tests {
         assert_eq!(list_resp.id, Some(serde_json::json!(2)));
         let result = list_resp.result.unwrap();
         let tools = result["tools"].as_array().unwrap();
-        assert_eq!(tools.len(), 6);
+        assert_eq!(tools.len(), 13);
     }
 }

@@ -1,7 +1,7 @@
 //! Integration tests for the stichos CLI.
 //!
 //! These tests verify:
-//! - No `apply` subcommand (Phase 1 is read-only)
+//! - `apply` subcommand exists (Phase 2 Wave E)
 //! - Help output contains all expected commands
 //! - JSON output is valid for inspect, diff, doctor
 //! - Transport validation on serve
@@ -46,18 +46,18 @@ fn run_stichos_with_stdin(args: &[&str], stdin: &[u8]) -> (i32, String, String) 
     (output.status.code().unwrap_or(-1), stdout, stderr)
 }
 
-/// `apply` must NOT be a subcommand (Phase 1 is read-only).
+/// `apply` MUST be a subcommand (Phase 2 Wave E).
 #[test]
-fn test_no_apply_command() {
+fn test_apply_command() {
     let (_code, stdout, stderr) = run_stichos(&["--help"]);
     let output = format!("{}{}", stdout, stderr);
     assert!(
-        !output.contains("apply"),
-        "apply must not be a CLI verb in Phase 1"
+        output.contains("apply"),
+        "apply must be a CLI verb in Phase 2 Wave E"
     );
 }
 
-/// Help output lists all 5 expected commands and NOT apply.
+/// Help output lists all 6 expected commands including apply.
 #[test]
 fn test_help_snapshot() {
     let (code, stdout, stderr) = run_stichos(&["--help"]);
@@ -68,7 +68,7 @@ fn test_help_snapshot() {
     assert!(output.contains("diff"));
     assert!(output.contains("doctor"));
     assert!(output.contains("serve"));
-    assert!(!output.contains("apply"));
+    assert!(output.contains("apply"));
 }
 
 /// `inspect --json` outputs valid JSON with tool/status fields.

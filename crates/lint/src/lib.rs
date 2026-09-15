@@ -1,5 +1,6 @@
-//! lint: layout linter, SSIM comparison, payload budgeter, and font analysis for stichos.
+//! lint: layout linter, SSIM comparison, payload budgeter, font analysis, and schema validation for stichos.
 
+pub mod annotator;
 pub mod budget;
 pub mod c3;
 pub mod contrast;
@@ -10,5 +11,7 @@ pub mod encode;
 pub mod font;
 pub mod linter;
 pub mod page_delta;
+pub mod perf;
 pub mod sheet;
 pub mod ssim;
+pub mod validate;
