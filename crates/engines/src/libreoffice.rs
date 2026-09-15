@@ -6,11 +6,15 @@
 
 use std::io::Read;
 use std::io::Write;
+use std::os::unix::io::AsRawFd;
 use std::path::Path;
 use std::process::Command;
 use std::process::Stdio;
 use std::thread;
 use std::time::Duration;
+
+use libc::{c_int, pollfd};
+use libc::{dup, poll, POLLIN, POLLNVAL};
 
 use gp_core::diagnostics::Diagnostic;
 use gp_core::diagnostics::Severity;
@@ -86,15 +90,27 @@ impl InstancePool {
 
 /// Parse LO version from `--version` output.
 ///
-/// E.g. `"LibreOffice/7.5.0.3"` → `"7.5.0.3"`
+/// Handles formats like:
+/// - `"LibreOffice 7.5.0.3 (Build: 3)"` → `"7.5.0.3"`
+/// - `"LibreOffice/7.5.0.3"` → `"7.5.0.3"`
 pub fn parse_lo_version(output: &str) -> Option<String> {
     output
         .lines()
         .find(|l| l.starts_with("LibreOffice"))
         .and_then(|l| {
-            l.strip_prefix("LibreOffice")
-                .and_then(|v| v.split('/').next())
-                .and_then(|v| v.split_whitespace().next())
+            let rest = l.strip_prefix("LibreOffice")?;
+            // Handle both "LibreOffice X.Y.Z" and "LibreOffice/X.Y.Z"
+            let rest = rest
+                .strip_prefix('/')
+                .or_else(|| rest.strip_prefix(|c: char| c.is_whitespace()));
+            let rest = rest?;
+            // Version is the first whitespace-delimited token
+            // that looks like a version (starts with digit or 'v')
+            rest.split_whitespace()
+                .find(|w| {
+                    !w.is_empty()
+                        && (w.chars().next().unwrap().is_ascii_digit() || w.starts_with('v'))
+                })
                 .map(|v| v.to_string())
         })
 }
@@ -143,13 +159,79 @@ fn find_lo_binary() -> Option<String> {
         .map(String::from)
 }
 
+/// A File wrapper that does NOT close the underlying raw fd on drop.
+///
+/// Used to wrap duplicated file descriptors so that dropping the wrapper
+/// does not close the fd — the caller closes the dup explicitly to signal
+/// EOF to the reader thread.
+struct NoCloseFile(std::fs::File, libc::c_int);
+
+impl NoCloseFile {
+    /// Wrap a raw fd without closing it on drop.
+    /// Returns None if the fd is invalid (-1).
+    fn from_raw(raw: c_int) -> Option<Self> {
+        use std::os::unix::io::FromRawFd;
+        if raw < 0 {
+            return None;
+        }
+        Some(Self(unsafe { std::fs::File::from_raw_fd(raw) }, raw))
+    }
+}
+
+impl Drop for NoCloseFile {
+    fn drop(&mut self) {
+        // intentionally do nothing — caller closes the dup explicitly
+    }
+}
+
+impl Read for NoCloseFile {
+    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+        // If fd was already closed/invalid, return EOF immediately.
+        if self.1 < 0 {
+            return Ok(0);
+        }
+        // Use poll() to avoid blocking forever if the pipe is empty.
+        // This is important because poll() returns quickly when the
+        // fd is closed, allowing the read loop to detect EOF.
+        let mut pfd = pollfd {
+            fd: self.1,
+            events: POLLIN,
+            revents: 0,
+        };
+        // poll() returns 0 on timeout, < 0 on error, > 0 on readiness.
+        let rc = unsafe { poll(&mut pfd, 1, -1) };
+        if rc < 0 {
+            return Err(std::io::Error::last_os_error());
+        }
+        if pfd.revents & POLLNVAL != 0 {
+            // fd not open or invalid → EOF
+            return Ok(0);
+        }
+        if pfd.revents != 0 && pfd.revents & POLLIN == 0 {
+            // Hung up or error
+            return Ok(0);
+        }
+        self.0.read(buf)
+    }
+}
+
 /// Read all bytes from a reader in a separate thread.
-fn read_all_async<R: Read + Send + 'static>(mut reader: R) -> std::thread::JoinHandle<Vec<u8>> {
+///
+/// The reader must be a NoCloseFile so that dropping it doesn't close the
+/// fd — this allows the caller to close the duplicate fd explicitly to
+/// signal EOF to the reader thread (preventing pipe-deadlock when the
+/// child process fills pipe buffers and blocks on write()).
+fn read_all_async(mut reader: NoCloseFile) -> std::thread::JoinHandle<Vec<u8>> {
     thread::spawn(move || {
         let mut buf = Vec::new();
         let _ = reader.read_to_end(&mut buf);
         buf
     })
+}
+
+/// Wrap a raw fd in a NoCloseFile, panicking if the fd is invalid.
+fn noclose(raw: libc::c_int) -> NoCloseFile {
+    NoCloseFile::from_raw(raw).expect("from_raw: invalid fd")
 }
 
 impl LibreOfficeEngine {
@@ -200,6 +282,11 @@ impl LibreOfficeEngine {
     ///
     /// Returns (exit_code, stdout_bytes, stderr_bytes) on success.
     /// Returns Err(diagnostics) on timeout or spawn failure.
+    ///
+    /// Pipe-deadlock prevention: we create separate dup fds for the
+    /// main thread that are closed **before** join() to force EOF on
+    /// the reader threads — even when the child has filled pipe buffers
+    /// and is blocked on write() (the classic stdout+stderr deadlock).
     fn run_subprocess(cmd: &mut Command) -> Result<(i32, Vec<u8>, Vec<u8>), Vec<Diagnostic>> {
         let mut child = cmd
             .stdin(Stdio::piped())
@@ -214,18 +301,31 @@ impl LibreOfficeEngine {
                 )]
             })?;
 
-        let stdout = child.stdout.take().unwrap();
-        let stderr = child.stderr.take().unwrap();
+        // Create separate dup fds: one for the reader thread, one that
+        // the main thread holds to signal EOF via drop().  The NoCloseFile
+        // wrapper prevents drop from closing the fd, so the main thread
+        // can close it explicitly before join().
+        let stdout_raw = child.stdout.as_ref().unwrap().as_raw_fd();
+        let stderr_raw = child.stderr.as_ref().unwrap().as_raw_fd();
+        let stdout_reader = noclose(unsafe { dup(stdout_raw) });
+        let stdout_main = noclose(unsafe { dup(stdout_raw) });
+        let stderr_reader = noclose(unsafe { dup(stderr_raw) });
+        let stderr_main = noclose(unsafe { dup(stderr_raw) });
 
         // Spawn threads to read stdout/stderr concurrently
-        let stdout_handle = read_all_async(stdout);
-        let stderr_handle = read_all_async(stderr);
+        let stdout_handle = read_all_async(stdout_reader);
+        let stderr_handle = read_all_async(stderr_reader);
 
         // Poll with try_wait in a loop with timeout
         let deadline = std::time::Instant::now() + Duration::from_secs(LO_TIMEOUT_SECS);
         loop {
             match child.try_wait() {
                 Ok(Some(status)) => {
+                    // Close main-thread dup fds to signal EOF before join
+                    // (prevents hang if child subprocess children are still
+                    // writing to inherited pipe fds after parent exit).
+                    drop(stdout_main);
+                    drop(stderr_main);
                     let exit_code = status.code().unwrap_or(-1);
                     let stdout_bytes = stdout_handle.join().unwrap_or_default();
                     let stderr_bytes = stderr_handle.join().unwrap_or_default();
@@ -235,8 +335,14 @@ impl LibreOfficeEngine {
                     if std::time::Instant::now() >= deadline {
                         let _ = child.kill();
                         let _ = child.wait();
-                        let _ = stdout_handle.join().unwrap_or_default();
-                        let _ = stderr_handle.join().unwrap_or_default();
+                        // Close main-thread dup fds to signal EOF to
+                        // reader threads, preventing the pipe-deadlock
+                        // where reader threads block forever because
+                        // child subprocess children keep pipe write-ends open.
+                        drop(stdout_main);
+                        drop(stderr_main);
+                        let _stdout_bytes = stdout_handle.join().unwrap_or_default();
+                        let _stderr_bytes = stderr_handle.join().unwrap_or_default();
                         return Err(vec![Diagnostic::new(
                             "ENG-E-002",
                             Severity::Error,
@@ -247,8 +353,11 @@ impl LibreOfficeEngine {
                 }
                 Err(_) => {
                     let _ = child.kill();
-                    let _ = stdout_handle.join().unwrap_or_default();
-                    let _ = stderr_handle.join().unwrap_or_default();
+                    let _ = child.wait();
+                    drop(stdout_main);
+                    drop(stderr_main);
+                    let _stdout_bytes = stdout_handle.join().unwrap_or_default();
+                    let _stderr_bytes = stderr_handle.join().unwrap_or_default();
                     return Err(vec![Diagnostic::new(
                         "ENG-E-001",
                         Severity::Error,
@@ -515,6 +624,7 @@ fn fontset_hash_impl() -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::os::unix::io::FromRawFd;
 
     #[test]
     fn test_libreoffice_engine_creation() {
@@ -658,5 +768,117 @@ mod tests {
         assert_eq!(info.engine_id, "libreoffice");
         assert!(info.is_available);
         assert!(!info.capabilities.is_empty());
+    }
+
+    // -----------------------------------------------------------------------
+    // parse_lo_version edge-case tests (slash separator, v-prefix, etc.)
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn test_parse_lo_version_slash_separator() {
+        // LibreOffice/7.5.0.3 (slash instead of space)
+        let result = parse_lo_version("LibreOffice/7.5.0.3");
+        assert_eq!(result, Some("7.5.0.3".to_string()));
+
+        let result = parse_lo_version("LibreOffice/26.2.6.1 (Build: 1)");
+        assert_eq!(result, Some("26.2.6.1".to_string()));
+
+        let result = parse_lo_version("LibreOffice/3.0 something");
+        assert_eq!(result, Some("3.0".to_string()));
+    }
+
+    #[test]
+    fn test_parse_lo_version_v_prefix() {
+        let result = parse_lo_version("LibreOffice v2.0.0");
+        assert_eq!(result, Some("v2.0.0".to_string()));
+    }
+
+    #[test]
+    fn test_parse_lo_version_tab_separator() {
+        let result = parse_lo_version("LibreOffice\t7.5.0.3");
+        assert_eq!(result, Some("7.5.0.3".to_string()));
+    }
+
+    #[test]
+    fn test_parse_lo_version_multiline_mixed() {
+        let result = parse_lo_version("Header\nLibreOffice/7.6.0\nFooter");
+        assert_eq!(result, Some("7.6.0".to_string()));
+
+        let result = parse_lo_version("LibreOffice 1.0\nLibreOffice/2.0");
+        assert_eq!(result, Some("1.0".to_string()));
+    }
+
+    #[test]
+    fn test_parse_lo_version_empty_after_prefix() {
+        let result = parse_lo_version("LibreOffice");
+        assert!(result.is_none());
+
+        let result = parse_lo_version("LibreOffice/");
+        assert!(result.is_none());
+
+        let result = parse_lo_version("LibreOffice  ");
+        assert!(result.is_none());
+    }
+
+    // -----------------------------------------------------------------------
+    // NoCloseFile fd-leak / poll-EOF tests
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn test_noclosefile_reads_pipe_eof() {
+        // Create a pipe, write data, close the write end, then read via
+        // NoCloseFile — should see EOF after data.
+        let mut fds: [libc::c_int; 2] = [0; 2];
+        let rc = unsafe { libc::pipe2(fds.as_mut_ptr(), 0) };
+        assert_eq!(rc, 0, "pipe2 should succeed");
+        let read_fd = fds[0];
+        let write_fd = fds[1];
+
+        // Write data.
+        let data = b"hello from pipe";
+        {
+            let file = unsafe { std::fs::File::from_raw_fd(write_fd) };
+            let mut f = file;
+            let _ = f.write_all(data);
+            // file drops here, closing write_fd → pipe EOF
+        }
+
+        // Now read via NoCloseFile.
+        let ncf = NoCloseFile::from_raw(read_fd).expect("valid read fd");
+        let handle = read_all_async(ncf);
+        let result = handle.join().unwrap_or_default();
+        assert_eq!(result, data.to_vec(), "should read the written data");
+    }
+
+    #[test]
+    fn test_noclosefile_returns_zero_on_eof() {
+        // Create a pipe, close the write end, then read via NoCloseFile.
+        // poll() should detect the closed write end and return 0 bytes.
+        let mut fds: [libc::c_int; 2] = [0; 2];
+        let rc = unsafe { libc::pipe2(fds.as_mut_ptr(), 0) };
+        assert_eq!(rc, 0, "pipe2 should succeed");
+        let read_fd = fds[0];
+        let write_fd = fds[1];
+
+        // Close write end so read end sees EOF.
+        unsafe { libc::close(write_fd) };
+
+        let ncf = NoCloseFile::from_raw(read_fd).expect("valid fd");
+        let handle = read_all_async(ncf);
+        let result = handle.join().unwrap_or_default();
+        // Should return empty vec (write end closed → EOF).
+        assert!(
+            result.is_empty(),
+            "reading from closed pipe should yield empty data"
+        );
+    }
+
+    #[test]
+    fn test_noclosefile_from_raw_invalid_fd() {
+        // Invalid fd should return None.
+        assert!(
+            NoCloseFile::from_raw(-1).is_none(),
+            "invalid fd should return None"
+        );
     }
 }

@@ -10,7 +10,14 @@ use lint::diff;
 use lint::diff::IrDiff;
 
 /// Compare two documents and return structural + XML differences.
-pub fn diff_documents(a_path: &str, b_path: &str) -> Result<serde_json::Value> {
+///
+/// If `max_ops` is set, the ops array is truncated to that many entries
+/// and the `ir_diff.truncated` flag is set to `true`.
+pub fn diff_documents(
+    a_path: &str,
+    b_path: &str,
+    max_ops: Option<usize>,
+) -> Result<serde_json::Value> {
     let a_bytes = std::fs::read(a_path).with_context(|| format!("read {}", a_path))?;
     let b_bytes = std::fs::read(b_path).with_context(|| format!("read {}", b_path))?;
 
@@ -38,6 +45,9 @@ pub fn diff_documents(a_path: &str, b_path: &str) -> Result<serde_json::Value> {
         other => anyhow::bail!("unsupported document type for diff: {}", other),
     };
 
+    let total_ops = ir_diff.total_ops;
+    let truncated = max_ops.is_some_and(|m| total_ops > m);
+
     let ops_json: Vec<serde_json::Value> = ir_diff
         .ops
         .iter()
@@ -54,17 +64,23 @@ pub fn diff_documents(a_path: &str, b_path: &str) -> Result<serde_json::Value> {
         })
         .collect();
 
+    let ops_json: Vec<serde_json::Value> = match max_ops {
+        Some(limit) if total_ops > limit => ops_json.into_iter().take(limit).collect(),
+        _ => ops_json,
+    };
+
     Ok(serde_json::json!({
         "tool": "diff_documents",
         "path_a": a_path,
         "path_b": b_path,
         "document_type": a_type,
         "ir_diff": {
-            "total_ops": ir_diff.total_ops,
+            "total_ops": total_ops,
             "removed": ir_diff.removed,
             "added": ir_diff.added,
             "modified": ir_diff.modified,
             "identical": ir_diff.identical,
+            "truncated": truncated,
             "ops": ops_json,
         },
         "xml_diffs": Vec::<serde_json::Value>::new(),
@@ -219,4 +235,58 @@ fn parse_pdf(bytes: &[u8]) -> Result<Vec<u8>> {
         )
     })?;
     serde_json::to_vec(&pdf).map_err(|e| anyhow!("serialize PDF IR: {}", e))
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn test_truncation_logic() {
+        let ops = vec![
+            serde_json::json!({"op": "added", "id": "id-001", "kind": "Paragraph"}),
+            serde_json::json!({"op": "added", "id": "id-002", "kind": "Run"}),
+            serde_json::json!({"op": "removed", "id": "id-003", "kind": "Paragraph"}),
+            serde_json::json!({"op": "modified", "id": "id-004", "kind": "Run"}),
+            serde_json::json!({"op": "added", "id": "id-005", "kind": "Table"}),
+        ];
+        let total_ops = 5;
+
+        // No limit: keep all
+        let result = match None::<usize> {
+            Some(limit) if total_ops > limit => ops.iter().take(limit).cloned().collect(),
+            _ => ops.clone(),
+        };
+        assert_eq!(result.len(), 5);
+
+        // Limit 3: truncate to 3, set truncated flag
+        let truncated = total_ops > 3;
+        let result = match Some(3usize) {
+            Some(limit) if total_ops > limit => ops.iter().take(limit).cloned().collect(),
+            _ => ops.clone(),
+        };
+        assert_eq!(result.len(), 3);
+        assert!(truncated);
+
+        // Limit 10: no truncation needed
+        let truncated = total_ops > 10;
+        let result = match Some(10usize) {
+            Some(limit) if total_ops > limit => ops.iter().take(limit).cloned().collect(),
+            _ => ops.clone(),
+        };
+        assert_eq!(result.len(), 5);
+        assert!(!truncated);
+    }
+
+    #[test]
+    fn test_truncated_flag_logic() {
+        assert!(!max_ops_truncates(None, 0));
+        assert!(!max_ops_truncates(None, 5));
+        assert!(!max_ops_truncates(Some(10), 5));
+        assert!(max_ops_truncates(Some(3), 5));
+        assert!(max_ops_truncates(Some(5), 6));
+        assert!(!max_ops_truncates(Some(5), 5));
+    }
+
+    fn max_ops_truncates(max_ops: Option<usize>, total_ops: usize) -> bool {
+        max_ops.is_some_and(|m| total_ops > m)
+    }
 }
