@@ -18,7 +18,7 @@ crates/
   engines/                    # render engine abstraction (pandoc, libreoffice, probe, cache, mock)
   lint/                       # fidelity linting (budget, ssim, contrast, font, diff, cropper)
   mcp/                        # MCP protocol (jsonrpc, dispatch, server, tools, transport, http, spec)
-  cli/                        # the `stichos` binary (inspect, render, diff, doctor, serve)
+  cli/                        # the `stichos` binary (inspect, render, diff, doctor, serve, apply, edit, annotate, revert, journal, perf, schema, region)
   adapters-ooxfuzz/           # fuzzing harness for OOXML adapters
 ```
 
@@ -130,7 +130,7 @@ Render engine abstraction. Engines are spawned subprocesses, never linked.
 | `mock` | Mock engine for testing |
 | `main` | Stub (prints error, exits) |
 
-Engine identifiers: `libreoffice`, `pandoc`, `ms-office`.
+Engine identifiers: `libreoffice`, `pandoc`, `ms-office`. Phase 3 plans to add `chromium` and `typst`.
 
 ### lint
 
@@ -170,7 +170,8 @@ MCP (Model Context Protocol) server implementation. The only crate allowed to kn
 | `main` | Stub (prints error, exits) |
 
 Phase 1 read-only tools: `inspect_document`, `render_document`, `inspect_region`,
-`diff_documents`, `doctor`, `serve`.
+`diff_documents`, `doctor`, `serve`. Phase 2 added: `apply_patch`, `edit_text`, `edit_cell`,
+`edit_structure`, `annotate_pages`, `revert_document`, `journal`, `perf`.
 
 ### cli
 
@@ -185,10 +186,12 @@ The `stichos` binary. Entry point with CLI subcommands.
 | `doctor_tool` | `doctor` subcommand handler |
 | `region` | `region` subcommand handler |
 | `budget_enforcer` | INV-2 / C8 payload budget enforcement |
+| `apply_tool` | `apply` subcommand — surgical edits with tracked revisions (Phase 2 Wave D) |
+| `sugar_edits` | `edit` subcommand — sugar over apply (Phase 2 Wave D) |
+| `journal_tool` | `journal` / `revert` subcommands — session journaling for edits (Phase 2 Wave E) |
+| `perf_tool` | `perf` subcommand — edit→render→look latency measurement (Phase 2 Wave F) |
 
-Subcommands: `inspect`, `region`, `render`, `diff`, `doctor`, `serve`, `schema`.
-
-Note: `apply` is intentionally absent in Phase 1 (read-only ship).
+Subcommands: `inspect`, `region`, `render`, `diff`, `doctor`, `serve`, `schema`, `apply`, `edit`, `annotate`, `revert`, `journal`, `perf`.
 
 ### adapters-ooxfuzz
 

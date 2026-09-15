@@ -1,8 +1,8 @@
 # stichos
 
-Phase 0 repo: concept, decision record, brand assets, plus the M0 Python fidelity harness
-(`harness/`, `corpus/`, `docker/`, `baseline/`, `.github/`). No Rust source yet.
-Do not scaffold the Rust workspace or add source files unless explicitly asked.
+Phase 2 complete (9 Rust crates built and tested), Phase 3 active. Rust workspace lives in
+`crates/`; `harness/`, `corpus/`, `docker/`, `baseline/`, `.github/` hold the M0 Python fidelity
+harness and supporting material.
 
 ## Source of truth
 - `project_concept.md` — decisions D1–D17, architecture, verification log. Claims there are marked
@@ -25,5 +25,24 @@ Do not scaffold the Rust workspace or add source files unless explicitly asked.
 - Three icon tiers are measured, not decorative: Full ≥64px, Tight 16–48px, Glyph ≥20px (outline only). Don't merge tiers or "simplify".
 - Lockups must embed the Full-tier mark (Tight reads as a checkbox at lockup sizes).
 
-## Planned tech (once implementation starts)
-Rust, six targets; crate split `core` / `adapters-ooxml` / `adapters-odf` / `adapters-pdf` / `engines` / `lint` / `mcp` / `cli` (concept §14). Engines are spawned subprocesses, never linked; zero hard external deps.
+## Phase-3 status
+
+Wave 0 is **active**. Plan: `docs/phase3-plan.md`. Live status: `docs/phase3-status.json`.
+
+## Phase-3 tech
+
+9 Rust crates in the workspace (`crates/`):
+
+| Crate | Purpose |
+|-------|---------|
+| `gp-core` | Core types, IR, diagnostics, traits, content-addressed store |
+| `adapters-ooxml` | OOXML (docx, xlsx, pptx), OPC, XML parsing |
+| `adapters-odf` | ODF (odt, ods, odp), manifest, XML parsing |
+| `adapters-pdf` | PDF parsing (parser, text, form, annot, outline, metadata, qpdf) |
+| `engines` | Render engine abstraction (libreoffice, pandoc, ms-office; Phase 3 adds chromium, typst) |
+| `lint` | Fidelity linting (budget, ssim, contrast, font, diff, cropper) |
+| `mcp` | MCP protocol (jsonrpc, dispatch, server, tools, transport, http, spec) |
+| `cli` | `stichos` binary (inspect, render, diff, doctor, serve, apply, edit, annotate, revert, journal, perf, schema, region) |
+| `adapters-ooxfuzz` | Fuzzing harness for OOXML adapters (dev-only) |
+
+Engines are spawned subprocesses, never linked; zero hard external deps.

@@ -382,7 +382,7 @@ design ADRs before implementation and are staffed by the strongest kernel person
 | **W1** (w3–6) | CORE-03..11 · OOX-01/02/03 · HAR-02/05/06 · SEC-01/02 · ENG-01/02/03/07 | M0: baseline report published (HAR-06); IR v0 frozen (C1 draft) |
 | **W2** (w7–12) | OOX-04..08 · ODF-01..03 · PDF-02..07 · ENG-04/05/06/08 · REN-01..04 · LIN-01..03/06..08 · API-01..06 · DIS-02..04 · HAR-07 | **M1 ship**: read-only binary + MCP across 6 targets |
 | **W3** (w13–22) | OOX-09/10 · ODF-04/05 · PDF-03 · PAT-01..06 · API-07/08 · SEC-03/04 · LIN-04/05 · REN-05/06 · ENG-09(COM-1..6) · OPS-01/02 · SEC-06 | **M2 ship**: closed-loop editing; Windows Office tier live |
-| **W4** (w23–28) | ENG-10/11 · AUT-01..05 · API-09/10 · DIS-05..08 | **M3 ship**: creation |
+| **W4** (w23–28) | ENG-10/11 · AUT-01..05 · API-09/10 · DIS-05..08 (+ Phase-2b intake per S2: ODF-04/05, PDF-03; COM stays deferred; Typst=CLI shell-out per S3; see `docs/phase3-plan.md`) | **M3 ship**: creation |
 | **W5** (w29–35) | HUM-01..03 · OPS-03 · polish + corpus-driven hardening | **M4 ship**: human loop |
 
 ### 6.4 Decision gates (blocking; each has a decision-by wave and an owner)
@@ -392,7 +392,7 @@ design ADRs before implementation and are staffed by the strongest kernel person
 | G1 | OQ1 license split: pure-Rust only vs shell-out vs AGPL-in-process — **DECIDED 2026-09-08 (owner): lopdf + pdf-writer, qpdf shell-out (ADR-0001 accepted, D19)** | W0 ✅ | PDF-02 raster path, `cargo deny` allow-list, dual-license choice | §18-1, D2 |
 | G2 | OQ3 `gp` alias yes/no | W2 (before API-04 CLI freeze) | C7 tool/CLI naming | §18-3 |
 | G3 | OQ2 Word tier for non-Windows users (Aspose/Syncfusion vs hosted worker vs none) | W3 start | COM-5 scope, M2 marketing claims | §18-2 |
-| G4 | OQ4 own apt/rpm repos vs GitHub Releases + winget/Homebrew | W4 | DIS-08 | §18-4 |
+| G4 | OQ4 own apt/rpm repos vs GitHub Releases + winget/Homebrew — **DECIDED 2026-09-15 (owner): GitHub Releases + winget/Homebrew only, no own repos (phase3-concept §10 S4)** | W4 ✅ | DIS-08 | §18-4 |
 | G5 | pdfium bundling (only if G1 shows pure-Rust extraction insufficient for LIN-01) | after HAR-06 data | D2 "C stays out" invariant — needs D-log entry if reversed | §5.3, D2 |
 
 ---

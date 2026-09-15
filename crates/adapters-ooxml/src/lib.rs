@@ -7,6 +7,7 @@ pub mod census;
 pub mod commit;
 pub mod docx;
 pub mod docx_writer;
+pub mod executor;
 pub mod opc;
 pub mod pptx;
 pub mod pptx_writer;

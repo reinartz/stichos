@@ -428,7 +428,8 @@ Crate layout: `core` (IR + patch engine, dep-free) · `adapters-ooxml` · `adapt
    AGPL never in-process (ADR-0001 accepted; D19).
 2. Word-rendering tier for non-Windows users: paid Aspose/Syncfusion path or a hosted Word worker?
 3. Is a `gp` short binary alias wanted for the CLI, or `stichos` spelled out everywhere?
-4. Distribution: build our own apt/rpm repos, or rely on GitHub Releases + winget/Homebrew only?
+4. **RESOLVED 2026-09-15 (G4, owner):** GitHub Releases + winget/Homebrew only; no own apt/rpm repos
+   (`docs/phase3-concept.md` §10 S4; DIS-05/06/08 land in Phase 3 Wave G).
 5. **RESOLVED 2026-09-08:** no trademark filing for this open-source project (D21); skip `stichos.com`,
    `stichos.dev` only (D20).
 

@@ -10,8 +10,11 @@ lowercase `stichos`.
 ## Repo status
 
 Phase 0 / M0: the Python fidelity harness is live (151-fixture corpus + goldens, baseline
-report-v1, reproducible `fontset_hash`, nightly ×3 green). Phase 1 Rust implementation is in
-progress: workspace scaffolded (9 crates), IR, adapters, engines, lint, MCP, and CLI present.
+report-v1, reproducible `fontset_hash`, nightly ×3 green). Phase 1 / M1 (read-only ship) closed
+2026-09-14 (tag `m1-closeout`). Phase 2 / M2 (surgical edit + closed loop) functionally complete
+2026-09-15; closeout debt (clippy/fmt, uncommitted Waves C–F, misplaced `m2` tag) is Phase 3
+Wave 0. Phase 3 / M3 (creation + ODF/PDF write completion) planned:
+[`docs/phase3-plan.md`](docs/phase3-plan.md).
 
 ## Doc map
 
@@ -24,6 +27,11 @@ progress: workspace scaffolded (9 crates), IR, adapters, engines, lint, MCP, and
 | [`docs/phase1-concept.md`](docs/phase1-concept.md) | Phase 1 concept: read-only ship (M1), scope, gate |
 | [`docs/phase1-plan.md`](docs/phase1-plan.md) | Phase 1 plan: 61 agent-sized steps in 6 waves |
 | [`docs/phase1-status.json`](docs/phase1-status.json) | Phase 1 progress tracker (canonical step status) |
+| [`docs/phase2-concept.md`](docs/phase2-concept.md) · [`phase2-plan.md`](docs/phase2-plan.md) · [`phase2-status.json`](docs/phase2-status.json) | Phase 2 (M2): concept, 35 steps in 7 waves, progress tracker |
+| [`docs/m2-acceptance.md`](docs/m2-acceptance.md) | M2 acceptance report + Phase-2b backlog |
+| [`docs/phase3-concept.md`](docs/phase3-concept.md) | Phase 3 concept: creation + write-path completion (M3), scope, gate, owner calls S1–S4 |
+| [`docs/phase3-plan.md`](docs/phase3-plan.md) | Phase 3 plan: 33 agent-sized steps in 8 waves |
+| [`docs/phase3-status.json`](docs/phase3-status.json) | Phase 3 progress tracker (canonical step status) |
 | [`docs/gov/`](docs/gov/) | name hygiene: clearance memo, registration checklist, distro collisions |
 | [`docs/adr/`](docs/adr/) | architecture decision records (ADR-0001: PDF stack, accepted) |
 | [`harness/`](harness/) | M0 Python fidelity harness (dev-only, never shipped) |
