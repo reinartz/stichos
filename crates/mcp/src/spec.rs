@@ -145,6 +145,12 @@ pub const TOOLS: &[ToolSpec] = &[
                 required: false,
                 description: "Format hint",
             },
+            ParamDef {
+                name: "max_ops",
+                param_type: ParamType::Number,
+                required: false,
+                description: "Maximum number of diff operations to return (default unlimited)",
+            },
         ],
         idempotent: true,
         deprecated: false,
@@ -182,6 +188,316 @@ pub const TOOLS: &[ToolSpec] = &[
         deprecation_notice: None,
         schema_version: "1.0.0",
     },
+    ToolSpec {
+        name: "apply_patch",
+        description: "Apply a surgical patch to a document and return the result with diff, provenance, and fidelity budget.",
+        params: &[
+            ParamDef {
+                name: "path",
+                param_type: ParamType::String,
+                required: true,
+                description: "Path to the document file",
+            },
+            ParamDef {
+                name: "ops",
+                param_type: ParamType::StringArray,
+                required: true,
+                description: "JSON patch operations array (PatchOp variants)",
+            },
+            ParamDef {
+                name: "dry_run",
+                param_type: ParamType::Boolean,
+                required: false,
+                description: "If true, only compute preview (IR diff), no writes (default false)",
+            },
+            ParamDef {
+                name: "format",
+                param_type: ParamType::String,
+                required: false,
+                description: "Format hint (inferred from extension if omitted)",
+            },
+            ParamDef {
+                name: "session_id",
+                param_type: ParamType::String,
+                required: false,
+                description: "Journal session ID (auto-generated if omitted)",
+            },
+            ParamDef {
+                name: "direct",
+                param_type: ParamType::Boolean,
+                required: false,
+                description: "Apply directly without tracked-revisions (default false for docx)",
+            },
+            ParamDef {
+                name: "author",
+                param_type: ParamType::String,
+                required: false,
+                description: "Author name for revision markup (default: agent)",
+            },
+        ],
+        idempotent: false,
+        deprecated: false,
+        deprecation_notice: None,
+        schema_version: "1.1.0",
+    },
+    ToolSpec {
+        name: "edit_text",
+        description: "Replace text in an element by ID. Idempotent: same args produces same result.",
+        params: &[
+            ParamDef {
+                name: "path",
+                param_type: ParamType::String,
+                required: true,
+                description: "Path to the document file",
+            },
+            ParamDef {
+                name: "element_id",
+                param_type: ParamType::String,
+                required: true,
+                description: "Element ID to edit",
+            },
+            ParamDef {
+                name: "old_text",
+                param_type: ParamType::String,
+                required: true,
+                description: "Current text to replace",
+            },
+            ParamDef {
+                name: "new_text",
+                param_type: ParamType::String,
+                required: true,
+                description: "New text to insert",
+            },
+            ParamDef {
+                name: "dry_run",
+                param_type: ParamType::Boolean,
+                required: false,
+                description: "If true, only preview changes",
+            },
+            ParamDef {
+                name: "format",
+                param_type: ParamType::String,
+                required: false,
+                description: "Format hint",
+            },
+            ParamDef {
+                name: "direct",
+                param_type: ParamType::Boolean,
+                required: false,
+                description: "Apply directly without tracked-revisions (default false for docx)",
+            },
+            ParamDef {
+                name: "author",
+                param_type: ParamType::String,
+                required: false,
+                description: "Author name for revision markup (default: agent)",
+            },
+        ],
+        idempotent: true,
+        deprecated: false,
+        deprecation_notice: None,
+        schema_version: "1.1.0",
+    },
+    ToolSpec {
+        name: "edit_cell",
+        description: "Set a spreadsheet cell value by element ID. Idempotent: same args produces same result.",
+        params: &[
+            ParamDef {
+                name: "path",
+                param_type: ParamType::String,
+                required: true,
+                description: "Path to the spreadsheet file",
+            },
+            ParamDef {
+                name: "element_id",
+                param_type: ParamType::String,
+                required: true,
+                description: "Cell element ID",
+            },
+            ParamDef {
+                name: "value",
+                param_type: ParamType::String,
+                required: true,
+                description: "New cell value",
+            },
+            ParamDef {
+                name: "dry_run",
+                param_type: ParamType::Boolean,
+                required: false,
+                description: "If true, only preview changes",
+            },
+            ParamDef {
+                name: "format",
+                param_type: ParamType::String,
+                required: false,
+                description: "Format hint",
+            },
+            ParamDef {
+                name: "direct",
+                param_type: ParamType::Boolean,
+                required: false,
+                description: "Apply directly without tracked-revisions (default false for docx)",
+            },
+            ParamDef {
+                name: "author",
+                param_type: ParamType::String,
+                required: false,
+                description: "Author name for revision markup (default: agent)",
+            },
+        ],
+        idempotent: true,
+        deprecated: false,
+        deprecation_notice: None,
+        schema_version: "1.1.0",
+    },
+    ToolSpec {
+        name: "edit_structure",
+        description: "Insert or delete a structural element (paragraph, etc.) by element ID. Idempotent: same args produces same result.",
+        params: &[
+            ParamDef {
+                name: "path",
+                param_type: ParamType::String,
+                required: true,
+                description: "Path to the document file",
+            },
+            ParamDef {
+                name: "element_id",
+                param_type: ParamType::String,
+                required: true,
+                description: "Element ID for the operation",
+            },
+            ParamDef {
+                name: "action",
+                param_type: ParamType::String,
+                required: true,
+                description: "Action: insert or delete",
+            },
+            ParamDef {
+                name: "kind",
+                param_type: ParamType::String,
+                required: false,
+                description: "Element kind (e.g., paragraph) for insert",
+            },
+            ParamDef {
+                name: "dry_run",
+                param_type: ParamType::Boolean,
+                required: false,
+                description: "If true, only preview changes",
+            },
+            ParamDef {
+                name: "format",
+                param_type: ParamType::String,
+                required: false,
+                description: "Format hint",
+            },
+            ParamDef {
+                name: "direct",
+                param_type: ParamType::Boolean,
+                required: false,
+                description: "Apply directly without tracked-revisions (default false for docx)",
+            },
+            ParamDef {
+                name: "author",
+                param_type: ParamType::String,
+                required: false,
+                description: "Author name for revision markup (default: agent)",
+            },
+        ],
+        idempotent: true,
+        deprecated: false,
+        deprecation_notice: None,
+        schema_version: "1.1.0",
+    },
+    ToolSpec {
+        name: "annotate_pages",
+        description: "Annotate rendered pages with numbered lint boxes. Returns marked+clean image pairs.",
+        params: &[
+            ParamDef {
+                name: "path",
+                param_type: ParamType::String,
+                required: true,
+                description: "Path to the document file",
+            },
+            ParamDef {
+                name: "dpi",
+                param_type: ParamType::Number,
+                required: false,
+                description: "Render DPI for annotation (default 150)",
+            },
+            ParamDef {
+                name: "format",
+                param_type: ParamType::String,
+                required: false,
+                description: "Format hint",
+            },
+        ],
+        idempotent: true,
+        deprecated: false,
+        deprecation_notice: None,
+        schema_version: "1.1.0",
+    },
+    ToolSpec {
+        name: "revert_document",
+        description: "Revert a document to a previous journal entry. Returns byte-identical content from the target version.",
+        params: &[
+            ParamDef {
+                name: "path",
+                param_type: ParamType::String,
+                required: true,
+                description: "Path to the document file",
+            },
+            ParamDef {
+                name: "steps",
+                param_type: ParamType::Number,
+                required: false,
+                description: "Number of steps to revert (default 1)",
+            },
+            ParamDef {
+                name: "session_id",
+                param_type: ParamType::String,
+                required: false,
+                description: "Journal session ID",
+            },
+            ParamDef {
+                name: "format",
+                param_type: ParamType::String,
+                required: false,
+                description: "Format hint",
+            },
+        ],
+        idempotent: false,
+        deprecated: false,
+        deprecation_notice: None,
+        schema_version: "1.1.0",
+    },
+    ToolSpec {
+        name: "journal",
+        description: "List journal entries for a document session. Shows version chain with pre/post hashes.",
+        params: &[
+            ParamDef {
+                name: "path",
+                param_type: ParamType::String,
+                required: true,
+                description: "Path to the document file",
+            },
+            ParamDef {
+                name: "session_id",
+                param_type: ParamType::String,
+                required: false,
+                description: "Journal session ID (list current if omitted)",
+            },
+            ParamDef {
+                name: "format",
+                param_type: ParamType::String,
+                required: false,
+                description: "Format hint",
+            },
+        ],
+        idempotent: true,
+        deprecated: false,
+        deprecation_notice: None,
+        schema_version: "1.1.0",
+    },
 ];
 
 /// Check if a tool name is valid per C7.
@@ -203,18 +519,26 @@ pub fn active_tool_names() -> Vec<&'static str> {
         .collect()
 }
 
-/// Verify C7 compliance: all tools have schema_version "1.0.0" and are idempotent.
+/// Verify C7 compliance: read-only tools have version "1.0.0" and are idempotent;
+/// additive tools (v1.1+) may be non-idempotent but must be documented.
 pub fn verify_c7_compliance() -> Result<Vec<&'static str>, String> {
     let mut errors = Vec::new();
     for tool in TOOLS {
-        if tool.schema_version != "1.0.0" {
-            errors.push(format!(
-                "tool '{}' has version '{}', expected '1.0.0'",
-                tool.name, tool.schema_version
-            ));
-        }
-        if !tool.idempotent {
-            errors.push(format!("tool '{}' is not idempotent", tool.name));
+        match tool.schema_version {
+            "1.0.0" => {
+                if !tool.idempotent {
+                    errors.push(format!("tool '{}' (1.0.0) is not idempotent", tool.name));
+                }
+            }
+            "1.1.0" => {
+                // v1.1 additive: non-idempotent tools allowed
+            }
+            ver => {
+                errors.push(format!(
+                    "tool '{}' has unexpected version '{}', expected '1.0.0' or '1.1.0'",
+                    tool.name, ver
+                ));
+            }
         }
     }
     if errors.is_empty() {
@@ -226,12 +550,15 @@ pub fn verify_c7_compliance() -> Result<Vec<&'static str>, String> {
 
 #[cfg(test)]
 mod tests {
+    //! C7 v1.1 — Tool Schema Contract (additive freeze).
+    //! All changes since v1.0.0 are additive: new tools, new optional params.
+    //! Breaking changes require a minor version bump.
     use super::*;
 
-    // test_all_tools_defined — all 6 C7 tools present
+    // test_all_tools_defined — all 13 tools present (7 original + 3 sugar edits + annotate_pages + revert_document + journal)
     #[test]
     fn test_all_tools_defined() {
-        assert_eq!(TOOLS.len(), 6, "expected exactly 6 Phase 1 tools");
+        assert_eq!(TOOLS.len(), 13, "expected exactly 13 tools");
         let names: Vec<_> = TOOLS.iter().map(|t| t.name).collect();
         assert!(names.contains(&"inspect_document"));
         assert!(names.contains(&"render_document"));
@@ -239,24 +566,38 @@ mod tests {
         assert!(names.contains(&"diff_documents"));
         assert!(names.contains(&"doctor"));
         assert!(names.contains(&"serve"));
+        assert!(names.contains(&"apply_patch"));
+        assert!(names.contains(&"edit_text"));
+        assert!(names.contains(&"edit_cell"));
+        assert!(names.contains(&"edit_structure"));
+        assert!(names.contains(&"annotate_pages"));
+        assert!(names.contains(&"revert_document"));
+        assert!(names.contains(&"journal"));
     }
 
-    // test_all_tools_idempotent — all tools are idempotent
+    // test_all_tools_idempotent — read-only tools are idempotent (apply_patch is not)
     #[test]
     fn test_all_tools_idempotent() {
         for tool in TOOLS {
-            assert!(tool.idempotent, "tool '{}' must be idempotent", tool.name);
+            if tool.schema_version == "1.0.0" {
+                assert!(tool.idempotent, "tool '{}' must be idempotent", tool.name);
+            }
         }
     }
 
-    // test_all_tools_schema_version — all tools have version 1.0.0
+    // test_all_tools_schema_version — tools have version 1.0.0 or 1.1.0
     #[test]
     fn test_all_tools_schema_version() {
         for tool in TOOLS {
+            let expected = match tool.name {
+                "apply_patch" | "edit_text" | "edit_cell" | "edit_structure" | "annotate_pages"
+                | "revert_document" | "journal" => "1.1.0",
+                _ => "1.0.0",
+            };
             assert_eq!(
-                tool.schema_version, "1.0.0",
-                "tool '{}' version is '{}', expected '1.0.0'",
-                tool.name, tool.schema_version
+                tool.schema_version, expected,
+                "tool '{}' version is '{}', expected '{}'",
+                tool.name, tool.schema_version, expected
             );
         }
     }
@@ -270,6 +611,13 @@ mod tests {
         assert!(is_valid_tool("diff_documents"));
         assert!(is_valid_tool("doctor"));
         assert!(is_valid_tool("serve"));
+        assert!(is_valid_tool("apply_patch"));
+        assert!(is_valid_tool("edit_text"));
+        assert!(is_valid_tool("edit_cell"));
+        assert!(is_valid_tool("edit_structure"));
+        assert!(is_valid_tool("annotate_pages"));
+        assert!(is_valid_tool("revert_document"));
+        assert!(is_valid_tool("journal"));
     }
 
     // test_invalid_tool_name — unknown tool returns false
@@ -290,6 +638,13 @@ mod tests {
         assert!(get_tool("diff_documents").is_some());
         assert!(get_tool("doctor").is_some());
         assert!(get_tool("serve").is_some());
+        assert!(get_tool("apply_patch").is_some());
+        assert!(get_tool("edit_text").is_some());
+        assert!(get_tool("edit_cell").is_some());
+        assert!(get_tool("edit_structure").is_some());
+        assert!(get_tool("annotate_pages").is_some());
+        assert!(get_tool("revert_document").is_some());
+        assert!(get_tool("journal").is_some());
     }
 
     // test_get_tool_not_found — unknown name returns None
@@ -306,8 +661,8 @@ mod tests {
         let active = active_tool_names();
         assert_eq!(
             active.len(),
-            6,
-            "all 6 tools should be active (none deprecated)"
+            13,
+            "all 13 tools should be active (none deprecated)"
         );
         for name in &active {
             assert!(
@@ -330,8 +685,8 @@ mod tests {
         let names = result.unwrap();
         assert_eq!(
             names.len(),
-            6,
-            "all 6 tools should be active after compliance check"
+            13,
+            "all 13 tools should be active after compliance check"
         );
     }
 
@@ -343,8 +698,8 @@ mod tests {
             let value: serde_json::Value = serde_json::from_str(&json).expect("valid json");
             assert_eq!(value["name"], tool.name);
             assert_eq!(value["description"], tool.description);
-            assert_eq!(value["idempotent"], true);
-            assert_eq!(value["schema_version"], "1.0.0");
+            assert_eq!(value["idempotent"], tool.idempotent);
+            assert_eq!(value["schema_version"], tool.schema_version);
             assert_eq!(value["deprecated"], false);
         }
     }
@@ -373,13 +728,11 @@ mod tests {
         }
     }
 
-    // test_no_apply_tool — verify "apply" is not in TOOLS
+    // test_apply_patch_is_non_idempotent — verify apply_patch is not idempotent
     #[test]
-    fn test_no_apply_tool() {
-        let names: Vec<_> = TOOLS.iter().map(|t| t.name).collect();
-        assert!(
-            !names.contains(&"apply"),
-            "'apply' must not be a Phase 1 tool (read-only)"
-        );
+    fn test_apply_patch_is_non_idempotent() {
+        let tool = get_tool("apply_patch").expect("apply_patch tool must exist");
+        assert!(!tool.idempotent, "apply_patch must not be idempotent");
+        assert_eq!(tool.schema_version, "1.1.0");
     }
 }

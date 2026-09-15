@@ -6,13 +6,16 @@ use crate::diagnostics::{Diagnostic, Severity};
 use crate::ir::TextWithBbox;
 use crate::patch::{ApplyResult, PatchOp};
 
-/// A type-only patch executor — no implementation in M1.
-/// Phase 2 will provide a byte-surgical patch executor.
+/// A byte-surgical patch executor.
+///
+/// Phase 2 provides `SurgicalPatchExecutor` (in `gp_core::executor`) that
+/// routes format-specific writers for docx/xlsx/pptx and refuses ODF/PDF
+/// with explicit C3 codes.
 pub trait PatchExecutor: Send + Sync {
-    /// Type alias for patch result — returns diagnostics only.
+    /// Error type for patch application failures.
     type Error;
 
-    /// Apply a patch and return result diagnostics.
+    /// Apply a patch (JSON-encoded PatchOps) and return result bytes.
     fn apply(&self, patch: &[u8]) -> Result<Vec<u8>, Self::Error>;
 
     /// Apply a typed patch operation to an IR document.

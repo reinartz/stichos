@@ -304,6 +304,15 @@ impl DiagnosticRegistry {
                 description: "Unknown element '{}' in IR — ignored",
             },
         );
+        entries.insert(
+            "GP-E-003",
+            CodeEntry {
+                code: "GP-E-003",
+                severity: Severity::Warning,
+                category: "security",
+                description: "Digital signature detected in output; edit will invalidate it",
+            },
+        );
 
         // OOX (adapters-ooxml) codes
         entries.insert(
@@ -1524,6 +1533,7 @@ mod tests {
         let required = [
             "GP-E-001",
             "GP-E-002",
+            "GP-E-003",
             "GP-W-001",
             "ODX-E-001",
             "ODX-E-002",

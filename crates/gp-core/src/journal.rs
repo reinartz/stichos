@@ -152,12 +152,12 @@ impl Journal {
         let target_hash = ContentStore::key(target);
 
         // Store both blobs
-        self.store.store(source, "application/octet-stream").map_err(|e| {
-            e.to_diagnostics()
-        })?;
-        self.store.store(target, "application/octet-stream").map_err(|e| {
-            e.to_diagnostics()
-        })?;
+        self.store
+            .store(source, "application/octet-stream")
+            .map_err(|e| e.to_diagnostics())?;
+        self.store
+            .store(target, "application/octet-stream")
+            .map_err(|e| e.to_diagnostics())?;
 
         // Build parent_id from previous head
         let parent_id = self.session.head_id.clone();
@@ -241,6 +241,55 @@ impl Journal {
             crate::diagnostics::Severity::Info,
             format!("Reverted to entry {} (hash: {})", target_idx, target_hash),
         )])
+    }
+
+    /// Store arbitrary bytes in the content store and return the content hash.
+    pub fn store_blob(&mut self, data: &[u8]) -> Result<String, Vec<Diagnostic>> {
+        self.store
+            .store(data, "application/octet-stream")
+            .map_err(|e| e.to_diagnostics())
+    }
+
+    /// Retrieve bytes from the content store by their hash key.
+    pub fn retrieve_blob(&mut self, key: &str) -> Result<Vec<u8>, Vec<Diagnostic>> {
+        self.store.retrieve(key).map_err(|e| e.to_diagnostics())
+    }
+
+    /// Revert `steps` from head and return the document bytes.
+    ///
+    /// Unlike `revert()` which returns a diagnostic on success, this method
+    /// returns `Ok(bytes)` with the actual document content at the target version.
+    pub fn revert_to_bytes(&mut self, steps: usize) -> Result<Vec<u8>, Vec<Diagnostic>> {
+        let entries = self.session.entries.clone();
+        if entries.is_empty() {
+            return Err(vec![Diagnostic::new(
+                "GP-E-JRN001",
+                crate::diagnostics::Severity::Error,
+                "No entries to revert",
+            )]);
+        }
+
+        let target_idx = entries.len() - steps;
+
+        let (target_hash, head_id, truncate_idx) = if steps >= entries.len() {
+            // Reverting all entries — go to the original
+            let entry = &entries[0];
+            (entry.source_doc_id.clone(), entry.entry_id.clone(), 0)
+        } else {
+            // Return the target of the entry before target_idx (the state before undone entries)
+            let idx = target_idx - 1;
+            let entry = &entries[idx];
+            (entry.target_doc_id.clone(), entry.entry_id.clone(), idx)
+        };
+
+        // Update session head and truncate
+        self.session.head_id = Some(head_id);
+        self.session.entries.truncate(truncate_idx + 1);
+
+        // Retrieve the blob from the content store
+        self.store
+            .retrieve(&target_hash)
+            .map_err(|e| e.to_diagnostics())
     }
 
     /// Return the current head entry ID, if any.
@@ -401,8 +450,7 @@ mod tests {
         };
 
         let json = serde_json::to_string(&entry).expect("serialize");
-        let deserialized: JournalEntry =
-            serde_json::from_str(&json).expect("deserialize");
+        let deserialized: JournalEntry = serde_json::from_str(&json).expect("deserialize");
         assert_eq!(entry, deserialized);
     }
 
@@ -427,8 +475,7 @@ mod tests {
             "parent_id should be omitted when None: {}",
             json
         );
-        let deserialized: JournalEntry =
-            serde_json::from_str(&json).expect("deserialize");
+        let deserialized: JournalEntry = serde_json::from_str(&json).expect("deserialize");
         assert_eq!(deserialized.parent_id, None);
     }
 
