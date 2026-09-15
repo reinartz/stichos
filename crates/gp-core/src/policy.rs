@@ -100,9 +100,10 @@ impl EditPolicy {
         }
 
         // Rule 2: check glob-like match
-        let part_allowed = self.allowed_parts.iter().any(|pattern| {
-            glob_match(pattern, part)
-        });
+        let part_allowed = self
+            .allowed_parts
+            .iter()
+            .any(|pattern| glob_match(pattern, part));
 
         if !part_allowed {
             // Return all actions as denied
@@ -131,12 +132,7 @@ fn glob_match(pattern: &str, text: &str) -> bool {
     glob_match_inner(pattern.as_bytes(), 0, text.as_bytes(), 0)
 }
 
-fn glob_match_inner(
-    pattern: &[u8],
-    pi: usize,
-    text: &[u8],
-    ti: usize,
-) -> bool {
+fn glob_match_inner(pattern: &[u8], pi: usize, text: &[u8], ti: usize) -> bool {
     let mut p = pi;
     let mut t = ti;
     let plen = pattern.len();
@@ -418,10 +414,7 @@ mod tests {
         let denied = policy
             .evaluate(
                 "word/document.xml",
-                &[
-                    DeniedAction::DeletePart,
-                    DeniedAction::ExternalRelAdd,
-                ],
+                &[DeniedAction::DeletePart, DeniedAction::ExternalRelAdd],
             )
             .unwrap();
         assert_eq!(denied.len(), 1);
@@ -434,9 +427,7 @@ mod tests {
         assert_eq!(denied.len(), 1);
 
         // Matching part, no denied actions → empty
-        let denied = policy
-            .evaluate("word/document.xml", &[])
-            .unwrap();
+        let denied = policy.evaluate("word/document.xml", &[]).unwrap();
         assert!(denied.is_empty());
 
         // Glob ** matches across path
@@ -493,11 +484,7 @@ mod tests {
     #[test]
     fn test_taint_propagation() {
         // TaintMark serializes correctly with source_part
-        let mark = TaintMark::new(
-            true,
-            Some("slide1.xml".to_string()),
-            TaintKind::PdfText,
-        );
+        let mark = TaintMark::new(true, Some("slide1.xml".to_string()), TaintKind::PdfText);
         let json = serde_json::to_string(&mark).expect("serialize");
         let parsed: serde_json::Value = serde_json::from_str(&json).unwrap();
         assert_eq!(parsed["tainted"], true);
@@ -546,11 +533,7 @@ mod tests {
     fn test_response_envelope_builder() {
         let env = ResponseEnvelope::success()
             .with_taint(TaintMark::new(true, None, TaintKind::Unknown))
-            .with_diagnostic(Diagnostic::new(
-                "GP-W-001",
-                Severity::Warning,
-                "test",
-            ))
+            .with_diagnostic(Diagnostic::new("GP-W-001", Severity::Warning, "test"))
             .with_journal_id("j-42")
             .with_fidelity_budget(FidelityBudget::new().with_confidence(0.5));
 
@@ -573,7 +556,9 @@ mod tests {
     #[test]
     fn test_empty_policy_evaluates_to_all_denied() {
         let policy = EditPolicy::default();
-        let denied = policy.evaluate("any/part.xml", &[DeniedAction::DeletePart]).unwrap();
+        let denied = policy
+            .evaluate("any/part.xml", &[DeniedAction::DeletePart])
+            .unwrap();
         assert_eq!(denied.len(), 1);
     }
 
