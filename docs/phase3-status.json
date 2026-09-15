@@ -1,0 +1,404 @@
+{
+  "milestone": "M3 (Phase 3 — creation + write-path completion)",
+  "plan": "docs/phase3-plan.md",
+  "updated": "2026-09-15",
+  "progress_header": "0/33 verified · 0/8 gates",
+  "handoff_note": "Phase 3 opens on measured debt: phase2_gate.sh exit 1 (clippy 5 errors in cli, fmt 10 diffs/6 files), Waves C–F uncommitted (HEAD=3f1cb2a), m2 tag misplaced, 3 commits unpushed. Wave 0 closes it (S1). Owner scope calls S1–S4 recorded in docs/phase3-concept.md §10. Environment: pandoc 3.7.0.2 + chromium-browser + xmllint + soffice 26.2.6.1 present; typst/qpdf/verapdf absent (CI installs). ODF corpus = 69 fixtures.",
+  "legend": {
+    "statuses": [
+      "pending",
+      "active",
+      "verified",
+      "blocked"
+    ],
+    "rule": "verified requires evidence: command + result + date; gates flip only when all wave steps are verified and the gate command passes (phase3-plan.md §2)"
+  },
+  "rollup": {
+    "verified": 0,
+    "total": 33,
+    "gates_verified": 0,
+    "gates_total": 8
+  },
+  "gates": [
+    {
+      "id": "0",
+      "name": "Phase-2 debt: phase2_gate.sh exit 0 on committed tree; m2 == HEAD; pushed; clippy/fmt clean",
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "A",
+      "name": "chromium+typst engines probed/registered (C5); doctor honest; deny bans typst crate",
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "B",
+      "name": "ODF: zero-patch x69 + edit chains + census + RelaxNG gate; ODF refusals retired",
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "C",
+      "name": "PDF: append-only prefix invariant + annot/form e2e + signed refusal; PDF refusals retired",
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "D",
+      "name": "native creation: created docx/xlsx/pptx pass lint + schema + IR round-trip; template parts byte-identical",
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "E",
+      "name": "creation surface: 4 paths e2e (CLI+MCP); create-as-revisions read-back; dry_run zero writes",
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "F",
+      "name": "Rhai escape suite green; veraPDF runner honest-absent + CI-real; annotator legend tests",
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "G",
+      "name": "phase3_gate.sh green host + CI (M3 exit); fuzz 24h; corpus measurement table; release x6 + selfupdate proof; tag m3",
+      "status": "pending",
+      "evidence": null
+    }
+  ],
+  "steps": [
+    {
+      "id": "P3-01",
+      "wave": "0",
+      "title": "fix 5 clippy errors (cli) + cargo fmt (6 files), no behavior change",
+      "implements": ["M2-fix"],
+      "depends": [],
+      "size": 1,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P3-02",
+      "wave": "0",
+      "title": "commit Waves C–F; fix m2 tag to gate-green tip; push to origin",
+      "implements": ["M2-ship"],
+      "depends": ["P3-01"],
+      "size": 1,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P3-03",
+      "wave": "0",
+      "title": "m2-acceptance addendum + phase2-status evidence refresh + confirm governance sync",
+      "implements": ["M2-fix"],
+      "depends": ["P3-02"],
+      "size": 1,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P3-04",
+      "wave": "A",
+      "title": "ADR-0004 typst=CLI shell-out + engine ids chromium/typst in C5 + deny.toml typst ban",
+      "implements": ["ENG-11", "D3"],
+      "depends": ["P3-03"],
+      "size": 1,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P3-05",
+      "wave": "A",
+      "title": "Chromium runner: discovery, print-to-pdf/screenshot, isolation, timeout, probe",
+      "implements": ["ENG-10"],
+      "depends": ["P3-04"],
+      "size": 2,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P3-06",
+      "wave": "A",
+      "title": "Typst runner: CLI shell-out, version parse, probe with honest-absent path",
+      "implements": ["ENG-11"],
+      "depends": ["P3-04"],
+      "size": 1,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P3-07",
+      "wave": "A",
+      "title": "negotiation orders + doctor matrix extension (chromium/typst rows)",
+      "implements": ["ENG-04", "ENG-05"],
+      "depends": ["P3-05", "P3-06"],
+      "size": 1,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P3-08",
+      "wave": "B",
+      "title": "ODF surgical package writer: mimetype/manifest rules, zero-patch x69, encryption refusal",
+      "implements": ["ODF-01"],
+      "depends": ["P3-03"],
+      "size": 2,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P3-09",
+      "wave": "B",
+      "title": "ODF content.xml offset-based patch primitives, right-to-left, span re-verify",
+      "implements": ["ODF-04"],
+      "depends": ["P3-08"],
+      "size": 2,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P3-10",
+      "wave": "B",
+      "title": "IR patch → odt/ods/odp routing + executor wiring; retire ODF refusals",
+      "implements": ["ODF-04", "PAT-01"],
+      "depends": ["P3-09"],
+      "size": 2,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P3-11",
+      "wave": "B",
+      "title": "ODF census → budget + RelaxNG gate (xmllint, bundled ODF 1.2 rng)",
+      "implements": ["ODF-05", "LIN-04"],
+      "depends": ["P3-10"],
+      "size": 1,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P3-12",
+      "wave": "C",
+      "title": "PDF incremental writer core: append-only prefix invariant, refusals",
+      "implements": ["PDF-03"],
+      "depends": ["P3-03"],
+      "size": 2,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P3-13",
+      "wave": "C",
+      "title": "PDF mutation surface as increments: annot/form/metadata; signed-input refusal",
+      "implements": ["PDF-03", "PDF-05", "PDF-06"],
+      "depends": ["P3-12"],
+      "size": 1,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P3-14",
+      "wave": "C",
+      "title": "PDF executor wiring: retire refusals, journal/revert, increment = byte-diff report",
+      "implements": ["PAT-01", "PAT-02"],
+      "depends": ["P3-13"],
+      "size": 1,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P3-15",
+      "wave": "D",
+      "title": "docx creation skeleton writer: OPC new-package + valid WML skeleton from IR",
+      "implements": ["OOX-11"],
+      "depends": ["P3-03"],
+      "size": 2,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P3-16",
+      "wave": "D",
+      "title": "docx body coverage from IR: runs/numbering/tables/hdr-ftr/sections/media/links",
+      "implements": ["OOX-11"],
+      "depends": ["P3-15"],
+      "size": 2,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P3-17",
+      "wave": "D",
+      "title": "xlsx + pptx creation writers from IR",
+      "implements": ["OOX-11"],
+      "depends": ["P3-16"],
+      "size": 2,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P3-18",
+      "wave": "D",
+      "title": "template-based native creation: style parts byte-identical + C1 template metadata",
+      "implements": ["AUT-04", "C1"],
+      "depends": ["P3-16"],
+      "size": 1,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P3-19",
+      "wave": "E",
+      "title": "pandoc creation path: md/html → docx/odt via --reference-doc + QA envelope",
+      "implements": ["AUT-01"],
+      "depends": ["P3-03"],
+      "size": 1,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P3-20",
+      "wave": "E",
+      "title": "Chromium creation path: html → pdf with page options + lint",
+      "implements": ["AUT-02"],
+      "depends": ["P3-05"],
+      "size": 1,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P3-21",
+      "wave": "E",
+      "title": "Typst creation path: typ + offline template → pdf via runner",
+      "implements": ["AUT-03"],
+      "depends": ["P3-06"],
+      "size": 1,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P3-22",
+      "wave": "E",
+      "title": "create-as-revisions: md → existing docx lands w:ins/w:del (D7 suggestion mode)",
+      "implements": ["AUT-05"],
+      "depends": ["P3-16"],
+      "size": 2,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P3-23",
+      "wave": "E",
+      "title": "create_document tool + create verb: routes 4 paths, dry_run, arg schema",
+      "implements": ["API-10"],
+      "depends": ["P3-19", "P3-20", "P3-21", "P3-22"],
+      "size": 1,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P3-24",
+      "wave": "F",
+      "title": "Rhai script tool + ADR-0005 sandbox contract + C7 v1.2 freeze",
+      "implements": ["API-09", "D17", "C7"],
+      "depends": ["P3-23"],
+      "size": 2,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P3-25",
+      "wave": "F",
+      "title": "veraPDF runner: honest-absent probe + a11y lint section",
+      "implements": ["LIN-05"],
+      "depends": ["P3-03"],
+      "size": 1,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P3-26",
+      "wave": "F",
+      "title": "annotator completion: severity boxes + collision avoidance + legend JSON",
+      "implements": ["REN-06"],
+      "depends": [],
+      "size": 1,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P3-27",
+      "wave": "G",
+      "title": "write-path fuzz round 2 (ODF/PDF/creation/Rhai) + SEC-06 review + threat-model update",
+      "implements": ["SEC-01", "SEC-06"],
+      "depends": ["P3-24", "P3-10", "P3-13"],
+      "size": 2,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P3-28",
+      "wave": "G",
+      "title": "creation-path corpus measurement matrix + published table (C9); OPS-02 no regression",
+      "implements": ["C9", "OPS-02"],
+      "depends": ["P3-23", "P3-25"],
+      "size": 1,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P3-29",
+      "wave": "G",
+      "title": "selfupdate: ADR-0006 + Releases channel + verify-before-swap + rollback",
+      "implements": ["DIS-05"],
+      "depends": ["P3-03"],
+      "size": 2,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P3-30",
+      "wave": "G",
+      "title": "OCI profile image (LO+poppler+fonts+qpdf+typst+pandoc+verapdf) + doctor golden",
+      "implements": ["DIS-06"],
+      "depends": ["P3-06", "P3-25"],
+      "size": 1,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P3-31",
+      "wave": "G",
+      "title": "release automation: version bump, changelog, CI x6 targets, GitHub Release + manifests",
+      "implements": ["DIS-08"],
+      "depends": ["P3-29"],
+      "size": 1,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P3-32",
+      "wave": "G",
+      "title": "phase3_gate.sh: M3 exit assertions + planted-violation proof + CI job",
+      "implements": ["ship"],
+      "depends": ["P3-27", "P3-28", "P3-31", "P3-26"],
+      "size": 1,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P3-33",
+      "wave": "G",
+      "title": "M3 acceptance report + tag m3 + Phase 4 intake",
+      "implements": ["ship"],
+      "depends": ["P3-32"],
+      "size": 1,
+      "status": "pending",
+      "evidence": null
+    }
+  ]
+}
