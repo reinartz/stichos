@@ -151,3 +151,21 @@ jobs:
           rustup target add aarch64-pc-windows-msvc
       - name: cross-compile ×6 + no-C check
         run: bash tools/cross_check.sh
+
+  # OPS-02: edit→render→look P95 ≤ 2s perf gate
+  perf-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    if: ${{ hashFiles('Cargo.toml') != '' }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: install dependencies
+        run: pip install -r harness/requirements-dev.txt
+      - name: build stichos binary
+        run: cargo build --release --bin stichos
+      - name: OPS-02 P95 ≤ 2s perf gate
+        run: |
+          ./target/release/stichos perf --fixtures pr-subset --target 2000

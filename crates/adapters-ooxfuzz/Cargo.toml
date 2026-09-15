@@ -12,4 +12,6 @@ workspace = true
 gp-core = { path = "../gp-core", version = "0.1.0" }
 adapters-ooxml = { path = "../adapters-ooxml", version = "0.1.0" }
 adapters-pdf = { path = "../adapters-pdf", version = "0.1.0" }
+lint = { path = "../lint", version = "0.1.0" }
 zip = { workspace = true }
+serde_json = { workspace = true }
