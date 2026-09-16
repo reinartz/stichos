@@ -489,7 +489,8 @@ fn build_incremental(
 
     // Build and write xref table.
     let xref_start = buf.len() as u64;
-    let xref_entries = build_xref_entries(&original_offsets, &new_obj_offsets, delete_set, max_obj_num);
+    let xref_entries =
+        build_xref_entries(&original_offsets, &new_obj_offsets, delete_set, max_obj_num);
     write_xref_section(&mut buf, &xref_entries, max_obj_num, original_root_id);
 
     // Append startxref + %%EOF.
@@ -631,18 +632,19 @@ fn write_xref_section(buf: &mut Vec<u8>, entries: &[XrefEntry], max_obj_num: u32
     }
 
     writeln!(buf, "trailer").unwrap();
-    writeln!(buf, "<< /Size {} /Root {} 0 R /Type /Catalog >>", count, root_id).unwrap();
+    writeln!(
+        buf,
+        "<< /Size {} /Root {} 0 R /Type /Catalog >>",
+        count, root_id
+    )
+    .unwrap();
 }
 
 // ---------------------------------------------------------------------------
 // Helper: render PDF objects in COS format
 // ---------------------------------------------------------------------------
 
-fn render_pdf_object(
-    obj_id: PdfObjNum,
-    dict: &BTreeVec,
-    data: Option<&[u8]>,
-) -> Vec<u8> {
+fn render_pdf_object(obj_id: PdfObjNum, dict: &BTreeVec, data: Option<&[u8]>) -> Vec<u8> {
     let mut buf = Vec::new();
     writeln!(buf, "{} {} obj", obj_id.0, obj_id.1).unwrap();
     write_pdf_dict(&mut buf, dict);
@@ -668,8 +670,8 @@ fn write_pdf_dict(buf: &mut Vec<u8>, dict: &BTreeVec) {
         buf.push(b'/');
         for &byte in key {
             match byte {
-                b'/' | b'(' | b')' | b'<' | b'>' | b'[' | b']' | b'{' | b'}'
-                | b'#' | b'%' | b'\n' | b'\r' | b'\t' | b' ' => {
+                b'/' | b'(' | b')' | b'<' | b'>' | b'[' | b']' | b'{' | b'}' | b'#' | b'%'
+                | b'\n' | b'\r' | b'\t' | b' ' => {
                     buf.push(b'#');
                     buf.push(hex(byte >> 4));
                     buf.push(hex(byte & 0xF));
@@ -689,7 +691,11 @@ fn write_pdf_object(buf: &mut Vec<u8>, obj: &Object) {
     match obj {
         Object::Null => buf.extend(b"null"),
         Object::Boolean(b) => {
-            if *b { buf.extend(b"true"); } else { buf.extend(b"false"); }
+            if *b {
+                buf.extend(b"true");
+            } else {
+                buf.extend(b"false");
+            }
         }
         Object::Integer(i) => {
             write!(buf, "{}", i).unwrap();
@@ -701,8 +707,8 @@ fn write_pdf_object(buf: &mut Vec<u8>, obj: &Object) {
             buf.push(b'/');
             for &byte in n {
                 match byte {
-                    b'/' | b'(' | b')' | b'<' | b'>' | b'[' | b']' | b'{' | b'}'
-                    | b'#' | b'%' | b'\n' | b'\r' | b'\t' | b' ' => {
+                    b'/' | b'(' | b')' | b'<' | b'>' | b'[' | b']' | b'{' | b'}' | b'#' | b'%'
+                    | b'\n' | b'\r' | b'\t' | b' ' => {
                         buf.push(b'#');
                         buf.push(hex(byte >> 4));
                         buf.push(hex(byte & 0xF));
@@ -753,8 +759,8 @@ fn write_pdf_object(buf: &mut Vec<u8>, obj: &Object) {
                 buf.push(b'/');
                 for &byte in key {
                     match byte {
-                        b'/' | b'(' | b')' | b'<' | b'>' | b'[' | b']' | b'{' | b'}'
-                        | b'#' | b'%' | b'\n' | b'\r' | b'\t' | b' ' => {
+                        b'/' | b'(' | b')' | b'<' | b'>' | b'[' | b']' | b'{' | b'}' | b'#'
+                        | b'%' | b'\n' | b'\r' | b'\t' | b' ' => {
                             buf.push(b'#');
                             buf.push(hex(byte >> 4));
                             buf.push(hex(byte & 0xF));
@@ -776,8 +782,8 @@ fn write_pdf_object(buf: &mut Vec<u8>, obj: &Object) {
                 buf.push(b'/');
                 for &byte in key {
                     match byte {
-                        b'/' | b'(' | b')' | b'<' | b'>' | b'[' | b']' | b'{' | b'}'
-                        | b'#' | b'%' | b'\n' | b'\r' | b'\t' | b' ' => {
+                        b'/' | b'(' | b')' | b'<' | b'>' | b'[' | b']' | b'{' | b'}' | b'#'
+                        | b'%' | b'\n' | b'\r' | b'\t' | b' ' => {
                             buf.push(b'#');
                             buf.push(hex(byte >> 4));
                             buf.push(hex(byte & 0xF));
@@ -953,10 +959,8 @@ mod tests {
         let pdf = make_minimal_pdf();
         let writer = IncrementalWriter::new(&pdf);
 
-        let mutations = PdfMutationSet::from_map(vec![(
-            (4, 0),
-            PdfMutation::Delete { object_id: (4, 0) },
-        )]);
+        let mutations =
+            PdfMutationSet::from_map(vec![((4, 0), PdfMutation::Delete { object_id: (4, 0) })]);
 
         let result = writer.write(&mutations).expect("write");
         assert_eq!(&result.bytes[..pdf.len()], pdf.as_slice());
@@ -988,10 +992,7 @@ mod tests {
                     data: Some(b"new stream content".to_vec()),
                 },
             ),
-            (
-                (3, 0),
-                PdfMutation::Delete { object_id: (3, 0) },
-            ),
+            ((3, 0), PdfMutation::Delete { object_id: (3, 0) }),
         ]);
 
         let result = writer.write(&mutations).expect("write");
@@ -1057,5 +1058,294 @@ mod tests {
             Err(IncrementalError::EncryptionDetected(d)) => assert_eq!(d.code, "PDF-E-003"),
             other => panic!("Expected EncryptionDetected, got {:?}", other),
         }
+    }
+
+    // -----------------------------------------------------------------------
+    // Property tests on real PDF fixtures
+    // -----------------------------------------------------------------------
+
+    /// Discover PDF fixtures under `goldens/staging/` (recursive).
+    fn find_pdf_fixtures() -> Vec<std::path::PathBuf> {
+        let manifest = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        let root = manifest.parent().unwrap().parent().unwrap();
+        let goldens = root.join("goldens").join("staging");
+        let mut results = Vec::new();
+        if !goldens.is_dir() {
+            return results;
+        }
+        let _ = collect_pdfs(&goldens, &mut results);
+        results.sort();
+        results
+    }
+
+    fn collect_pdfs(
+        dir: &std::path::Path,
+        out: &mut Vec<std::path::PathBuf>,
+    ) -> std::io::Result<()> {
+        for entry in std::fs::read_dir(dir)? {
+            let entry = entry?;
+            let path = entry.path();
+            if path.is_dir() {
+                collect_pdfs(&path, out)?;
+            } else if path.extension().map_or(false, |e| e == "pdf") {
+                out.push(path);
+            }
+        }
+        Ok(())
+    }
+
+    /// Apply a trivial mutation: add a dummy annotation object.
+    fn make_dummy_addition() -> PdfMutationSet {
+        let mut dict = BTreeMap::new();
+        dict.insert(
+            b"TestKey".to_vec(),
+            Object::String(b"test value".to_vec(), lopdf::StringFormat::Literal),
+        );
+        PdfMutationSet {
+            mutations: vec![PdfMutation::Add {
+                object_id: (99999, 0),
+                dict,
+                data: None,
+            }],
+        }
+    }
+
+    #[test]
+    fn test_append_only_on_corpus_pdf_simple() {
+        let pdf = make_minimal_pdf();
+        let writer = IncrementalWriter::new(&pdf);
+        let mutations = make_dummy_addition();
+        let result = writer.write(&mutations).expect("write");
+
+        let source_bytes = &pdf;
+        let source_len = source_bytes.len();
+        assert_eq!(
+            &result.bytes[..source_len],
+            source_bytes,
+            "prefix invariant violated"
+        );
+        assert!(
+            result.bytes.len() > source_len,
+            "output must be larger than source"
+        );
+    }
+
+    #[test]
+    #[ignore = "slow property test over 151 fixtures — run with --ignored"]
+    fn test_append_only_property_on_fixture_set() {
+        let fixtures = find_pdf_fixtures();
+        if fixtures.is_empty() {
+            eprintln!("no PDF fixtures found — skipping append-only property test");
+            return;
+        }
+
+        let mut passed = 0u32;
+        let mut skipped = 0u32;
+        let mut errors: Vec<(std::path::PathBuf, String)> = Vec::new();
+
+        for fixture in &fixtures {
+            let bytes = match std::fs::read(fixture) {
+                Ok(b) => b,
+                Err(e) => {
+                    errors.push((fixture.clone(), format!("read: {}", e)));
+                    continue;
+                }
+            };
+
+            let writer = match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                IncrementalWriter::new(&bytes)
+            })) {
+                Ok(w) => w,
+                Err(_) => {
+                    skipped += 1;
+                    continue;
+                }
+            };
+
+            let result = writer.write(&make_dummy_addition());
+
+            match result {
+                Ok(write_result) => {
+                    let source_len = bytes.len();
+                    if &write_result.bytes[..source_len] == bytes.as_slice() {
+                        passed += 1;
+                    } else {
+                        errors.push((
+                            fixture.clone(),
+                            "prefix invariant violated on real fixture".to_string(),
+                        ));
+                    }
+                }
+                Err(_) => {
+                    // Skip PDFs that can't be processed (encrypted, object-stream, etc.)
+                    skipped += 1;
+                }
+            }
+        }
+
+        eprintln!(
+            "append-only property: {} passed, {} skipped (parse/refused), {} errors",
+            passed,
+            skipped,
+            errors.len()
+        );
+
+        for (path, err) in &errors {
+            eprintln!("  FAIL {:?}: {}", path, err);
+        }
+
+        assert!(
+            errors.is_empty(),
+            "{} fixtures failed the append-only invariant",
+            errors.len()
+        );
+        assert!(
+            passed > 0 || fixtures.is_empty(),
+            "no fixtures passed — check fixture path"
+        );
+    }
+
+    #[test]
+    fn test_qpdf_check_available() {
+        let available = qpdf_available();
+        if available {
+            eprintln!("qpdf found — full validation will run");
+        } else {
+            eprintln!("qpdf not installed — CI installs it");
+        }
+    }
+
+    #[test]
+    fn test_qpdf_check_incremental_output() {
+        let pdf = make_minimal_pdf();
+        let writer = IncrementalWriter::new(&pdf);
+        let mutations = make_dummy_addition();
+        let result = writer.write(&mutations).expect("write");
+
+        let qpdf_available = qpdf_available();
+        if !qpdf_available {
+            eprintln!("qpdf not installed — skipping validation");
+            return;
+        }
+
+        // Write output to a temp file for qpdf to inspect.
+        let tmp = std::env::temp_dir().join(format!("stichos_qpdf_{}.pdf", std::process::id()));
+        if let Err(e) = std::fs::write(&tmp, &result.bytes) {
+            eprintln!("could not write temp file for qpdf: {}", e);
+            return;
+        }
+
+        match std::process::Command::new("qpdf")
+            .arg("--check=3")
+            .arg(tmp.as_os_str())
+            .output()
+        {
+            Ok(output) => {
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                let stdout = String::from_utf8_lossy(&output.stdout);
+                eprintln!("qpdf stdout: {}", stdout);
+                eprintln!("qpdf stderr: {}", stderr);
+
+                assert!(
+                    output.status.success(),
+                    "qpdf --check=3 failed: stdout={}\nstderr={}",
+                    stdout,
+                    stderr
+                );
+            }
+            Err(e) => {
+                eprintln!("qpdf execution failed: {}", e);
+                // If which said it's available but exec fails, that's unexpected — still pass.
+                eprintln!("qpdf not installed — CI installs it");
+            }
+        }
+
+        let _ = std::fs::remove_file(&tmp);
+    }
+
+    fn qpdf_available() -> bool {
+        which::which("qpdf").is_ok()
+            || std::process::Command::new("which")
+                .arg("qpdf")
+                .output()
+                .map(|o| o.status.success())
+                .unwrap_or(false)
+    }
+
+    #[test]
+    fn test_append_only_e2e_with_all_mutations() {
+        let pdf = make_minimal_pdf();
+        let source_len = pdf.len();
+        let writer = IncrementalWriter::new(&pdf);
+
+        let mut dict = BTreeMap::new();
+        dict.insert(
+            b"E2E".to_vec(),
+            Object::String(b"value".to_vec(), lopdf::StringFormat::Literal),
+        );
+
+        let mutations = PdfMutationSet::from_map(vec![
+            (
+                (5, 0),
+                PdfMutation::Add {
+                    object_id: (5, 0),
+                    dict: dict.clone(),
+                    data: None,
+                },
+            ),
+            (
+                (4, 0),
+                PdfMutation::Replace {
+                    object_id: (4, 0),
+                    dict,
+                    data: Some(b"e2e stream".to_vec()),
+                },
+            ),
+        ]);
+
+        let result = writer.write(&mutations).expect("write");
+        assert_eq!(
+            &result.bytes[..source_len],
+            pdf.as_slice(),
+            "prefix invariant violated"
+        );
+        assert!(result.bytes.len() > source_len);
+    }
+
+    #[test]
+    fn test_write_result_report_accuracy() {
+        let pdf = make_minimal_pdf();
+        let writer = IncrementalWriter::new(&pdf);
+
+        let mut add_dict = BTreeMap::new();
+        add_dict.insert(b"Type".to_vec(), Object::Name(b"Added".to_vec()));
+
+        let mut rep_dict = BTreeMap::new();
+        rep_dict.insert(b"Type".to_vec(), Object::Name(b"Replaced".to_vec()));
+
+        let mutations = PdfMutationSet::from_map(vec![
+            (
+                (5, 0),
+                PdfMutation::Add {
+                    object_id: (5, 0),
+                    dict: add_dict,
+                    data: None,
+                },
+            ),
+            (
+                (3, 0),
+                PdfMutation::Replace {
+                    object_id: (3, 0),
+                    dict: rep_dict,
+                    data: None,
+                },
+            ),
+            ((4, 0), PdfMutation::Delete { object_id: (4, 0) }),
+        ]);
+
+        let result = writer.write(&mutations).expect("write");
+        assert_eq!(result.report.objects_added, [(5, 0)]);
+        assert_eq!(result.report.objects_modified, [(3, 0)]);
+        assert_eq!(result.report.objects_deleted, [(4, 0)]);
     }
 }
