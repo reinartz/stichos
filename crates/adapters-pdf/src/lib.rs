@@ -14,6 +14,7 @@
 
 pub mod annot;
 pub mod form;
+pub mod incremental;
 pub mod metadata;
 pub mod outline;
 pub mod parser;

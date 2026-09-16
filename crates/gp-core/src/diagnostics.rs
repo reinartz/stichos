@@ -446,6 +446,24 @@ impl DiagnosticRegistry {
             },
         );
         entries.insert(
+            "PDF-E-004",
+            CodeEntry {
+                code: "PDF-E-004",
+                severity: Severity::Error,
+                category: "validation",
+                description: "Xref stream detected: append-only incremental update not supported",
+            },
+        );
+        entries.insert(
+            "PDF-E-005",
+            CodeEntry {
+                code: "PDF-E-005",
+                severity: Severity::Error,
+                category: "validation",
+                description: "Object stream detected: append-only incremental update not supported",
+            },
+        );
+        entries.insert(
             "PDF-W-004",
             CodeEntry {
                 code: "PDF-W-004",
