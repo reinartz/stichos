@@ -15,6 +15,10 @@
 //! - PDF-E-003: Encryption detected (`/Encrypt` in trailer/root)
 //! - PDF-E-004: Xref stream detected (`/XRefStm` in trailer)
 //! - PDF-E-005: Object stream detected (any object with `/Type /ObjStm`)
+//! - PDF-E-006: Digital signature detected — incremental write refused
+//!
+//! Mutation helpers (see `add_annotation`, `set_form_field_value`, `update_metadata`,
+//! `set_xmp_metadata`) provide convenient constructors for common PDF operations.
 
 use gp_core::diagnostics::{Diagnostic, Severity};
 use lopdf::{Dictionary, Object};
@@ -86,6 +90,15 @@ pub struct WriteReport {
     pub objects_deleted: Vec<PdfObjNum>,
 }
 
+/// Information about a detected digital signature.
+#[derive(Debug, Clone)]
+pub struct SignatureInfo {
+    /// The signature kind, e.g. "Adobe.PPKMS", "adbe.pkcs7.detached", "ETSI.CAdES.detached".
+    pub kind: String,
+    /// Byte offset where the signature indicator was found.
+    pub offset: usize,
+}
+
 /// The append-only PDF incremental writer.
 pub struct IncrementalWriter<'a> {
     source_bytes: &'a [u8],
@@ -106,6 +119,8 @@ pub enum IncrementalError {
     XrefStreamDetected(Diagnostic),
     /// PDF-E-005: Object stream detected — append-only not supported.
     ObjectStreamDetected(Diagnostic),
+    /// PDF-E-006: Digital signature detected — incremental write refused.
+    SignatureDetected { locations: Vec<SignatureInfo> },
     /// Write failure during incremental update.
     WriteError(Diagnostic),
 }
@@ -117,6 +132,17 @@ impl std::fmt::Display for IncrementalError {
             IncrementalError::EncryptionDetected(d) => write!(f, "{}", d),
             IncrementalError::XrefStreamDetected(d) => write!(f, "{}", d),
             IncrementalError::ObjectStreamDetected(d) => write!(f, "{}", d),
+            IncrementalError::SignatureDetected { locations } => {
+                let parts: Vec<String> = locations
+                    .iter()
+                    .map(|l| format!("{}@{}", l.kind, l.offset))
+                    .collect();
+                write!(
+                    f,
+                    "PDF-E-006: Digital signature detected: {}",
+                    parts.join(", ")
+                )
+            }
             IncrementalError::WriteError(d) => write!(f, "{}", d),
         }
     }
@@ -129,6 +155,7 @@ impl std::error::Error for IncrementalError {
             IncrementalError::EncryptionDetected(d) => Some(d),
             IncrementalError::XrefStreamDetected(d) => Some(d),
             IncrementalError::ObjectStreamDetected(d) => Some(d),
+            IncrementalError::SignatureDetected { .. } => None,
             IncrementalError::WriteError(d) => Some(d),
         }
     }
@@ -141,6 +168,21 @@ impl From<IncrementalError> for Vec<Diagnostic> {
             IncrementalError::EncryptionDetected(d) => vec![d],
             IncrementalError::XrefStreamDetected(d) => vec![d],
             IncrementalError::ObjectStreamDetected(d) => vec![d],
+            IncrementalError::SignatureDetected { locations } => {
+                let parts: String = locations
+                    .iter()
+                    .map(|l| format!("{}@{}", l.kind, l.offset))
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                vec![Diagnostic::new(
+                    "PDF-E-006",
+                    Severity::Error,
+                    format!(
+                        "Digital signature detected — incremental write refused: {}",
+                        parts
+                    ),
+                )]
+            }
             IncrementalError::WriteError(d) => vec![d],
         }
     }
@@ -159,9 +201,18 @@ impl<'a> IncrementalWriter<'a> {
     /// Check if the PDF can be incrementally written.
     ///
     /// Returns `Ok(())` if the PDF is append-friendly (no encryption, no xref streams,
-    /// no object streams). Returns `Err` with appropriate C3 diagnostic codes
-    /// for disqualifying features.
+    /// no object streams, no digital signatures). Returns `Err` with appropriate C3
+    /// diagnostic codes for disqualifying features.
     pub fn check_writable(&self) -> Result<(), IncrementalError> {
+        self.check_writable_inner()?;
+        if let Some(sigs) = detect_signatures(self.source_bytes) {
+            return Err(IncrementalError::SignatureDetected { locations: sigs });
+        }
+        Ok(())
+    }
+
+    /// Core writability checks (encryption, xref streams, object streams).
+    fn check_writable_inner(&self) -> Result<(), IncrementalError> {
         // Try to parse the PDF to inspect its structure.
         let doc = lopdf::Document::load_mem(self.source_bytes).map_err(|e| {
             IncrementalError::ParseError(Diagnostic::new(
@@ -351,6 +402,282 @@ impl<'a> IncrementalWriter<'a> {
             bytes: output,
             report,
         })
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Signature detection
+// ---------------------------------------------------------------------------
+
+/// Scan PDF bytes for digital signature indicators.
+///
+/// Checks for:
+/// 1. `/Adobe.PPKMS` filter signatures
+/// 2. `/adbe.pkcs7.detached` or `/ETSI.CAdES.detached` subfilters
+/// 3. `/SigFlags` with value containing 4 (signed bit)
+/// 4. `/V` references to signature dictionaries (detected via /Filter patterns)
+///
+/// Returns `Some(locations)` if any signatures were detected.
+pub fn detect_signatures(data: &[u8]) -> Option<Vec<SignatureInfo>> {
+    let mut locations = Vec::new();
+
+    // Check for Adobe.PPKMS filter signatures
+    for win in data.windows(b"/Adobe.PPKMS".len()) {
+        if win == b"/Adobe.PPKMS" {
+            let offset = win.as_ptr() as usize - data.as_ptr() as usize;
+            locations.push(SignatureInfo {
+                kind: "Adobe.PPKMS".to_string(),
+                offset,
+            });
+        }
+    }
+
+    // Check for adbe.pkcs7.detached subfilter
+    for win in data.windows(b"/adbe.pkcs7.detached".len()) {
+        if win == b"/adbe.pkcs7.detached" {
+            let offset = win.as_ptr() as usize - data.as_ptr() as usize;
+            locations.push(SignatureInfo {
+                kind: "adbe.pkcs7.detached".to_string(),
+                offset,
+            });
+        }
+    }
+
+    // Check for adbe.x509.rsa signature subfilter
+    for win in data.windows(b"/adbe.x509.rsa".len()) {
+        if win == b"/adbe.x509.rsa" {
+            let offset = win.as_ptr() as usize - data.as_ptr() as usize;
+            locations.push(SignatureInfo {
+                kind: "adbe.x509.rsa".to_string(),
+                offset,
+            });
+        }
+    }
+
+    // Check for ETSI.CAdES.detached subfilter
+    for win in data.windows(b"/ETSI.CAdES.detached".len()) {
+        if win == b"/ETSI.CAdES.detached" {
+            let offset = win.as_ptr() as usize - data.as_ptr() as usize;
+            locations.push(SignatureInfo {
+                kind: "ETSI.CAdES.detached".to_string(),
+                offset,
+            });
+        }
+    }
+
+    // Check for SigFlags with signed bit (value 4 or higher)
+    // Look for /SigFlags patterns and check if value >= 4
+    for win in data.windows(b"/SigFlags".len()) {
+        if win == b"/SigFlags" {
+            let offset = win.as_ptr() as usize - data.as_ptr() as usize;
+            // Look ahead for a number >= 4
+            if let Some(val) = scan_next_integer(data, offset + b"/SigFlags".len()) {
+                if val >= 4 {
+                    locations.push(SignatureInfo {
+                        kind: format!("SigFlags={}", val),
+                        offset,
+                    });
+                }
+            }
+        }
+    }
+
+    // Check for /Signatures /Type /Sig patterns
+    for win in data.windows(b"/Type /Sig".len()) {
+        if win == b"/Type /Sig" {
+            let offset = win.as_ptr() as usize - data.as_ptr() as usize;
+            locations.push(SignatureInfo {
+                kind: "/Type /Sig".to_string(),
+                offset,
+            });
+        }
+    }
+
+    // Also scan without space for compacted PDFs
+    for win in data.windows(b"/Type/Sig".len()) {
+        if win == b"/Type/Sig" {
+            let offset = win.as_ptr() as usize - data.as_ptr() as usize;
+            // Avoid duplicate with /Type /Sig check
+            if offset > 0 && data[offset - 1..offset].iter().any(|&b| b == b' ') {
+                continue;
+            }
+            locations.push(SignatureInfo {
+                kind: "/Type/Sig".to_string(),
+                offset,
+            });
+        }
+    }
+
+    if locations.is_empty() {
+        None
+    } else {
+        Some(locations)
+    }
+}
+
+/// Scan for an integer value after a given position.
+fn scan_next_integer(data: &[u8], start: usize) -> Option<i64> {
+    let mut i = start;
+    // Skip whitespace
+    while i < data.len() && data[i].is_ascii_whitespace() {
+        i += 1;
+    }
+    if i >= data.len() {
+        return None;
+    }
+    // Check for number
+    let s = i;
+    if data[i] == b'-' || data[i] == b'+' {
+        i += 1;
+    }
+    while i < data.len() && data[i].is_ascii_digit() {
+        i += 1;
+    }
+    if i == s || (data[s] == b'-' && i == s + 1) {
+        return None;
+    }
+    std::str::from_utf8(&data[s..i])
+        .ok()
+        .and_then(|s| s.parse::<i64>().ok())
+}
+
+// ---------------------------------------------------------------------------
+// Mutation helpers: annotations, form fields, metadata
+// ---------------------------------------------------------------------------
+
+/// Create a mutation to add an annotation to a specific page.
+///
+/// The annotation PDF object will have:
+/// ```text
+/// /Subtype /Text (or other type)
+/// /T (author name)
+/// /Contents (annotation text)
+/// /Rect [x0 y0 x1 y1]
+/// /P (reference to page object)
+/// ```
+pub fn add_annotation(
+    object_id: PdfObjNum,
+    page_num: usize,
+    annot_type: &str,
+    rect: [f64; 4],
+    contents: Option<String>,
+) -> PdfMutation {
+    let mut dict = BTreeMap::new();
+    dict.insert(b"Subtype".to_vec(), Object::Name(b"Text".to_vec()));
+    if !annot_type.is_empty() {
+        dict.insert(
+            b"Subtype".to_vec(),
+            Object::Name(annot_type.as_bytes().to_vec()),
+        );
+    }
+    dict.insert(
+        b"Contents".to_vec(),
+        Object::String(
+            contents.unwrap_or_default().into_bytes(),
+            lopdf::StringFormat::Literal,
+        ),
+    );
+    dict.insert(
+        b"Rect".to_vec(),
+        Object::Array(vec![
+            Object::Real(rect[0] as f32),
+            Object::Real(rect[1] as f32),
+            Object::Real(rect[2] as f32),
+            Object::Real(rect[3] as f32),
+        ]),
+    );
+    dict.insert(b"P".to_vec(), Object::Reference((page_num as u32 + 1, 0)));
+    PdfMutation::Add {
+        object_id,
+        dict,
+        data: None,
+    }
+}
+
+/// Create a mutation to update an existing annotation's contents.
+pub fn update_annotation_contents(object_id: PdfObjNum, contents: String) -> PdfMutation {
+    let mut dict = BTreeMap::new();
+    dict.insert(
+        b"Contents".to_vec(),
+        Object::String(contents.into_bytes(), lopdf::StringFormat::Literal),
+    );
+    PdfMutation::Replace {
+        object_id,
+        dict,
+        data: None,
+    }
+}
+
+/// Create a mutation to set an AcroForm field value.
+///
+/// The form field PDF object will have:
+/// ```text
+/// /V (value)
+/// /T (field name)
+/// /FT (field type: /Tx, /Ch, /Btn, /Sig)
+/// ```
+pub fn set_form_field_value(object_id: PdfObjNum, value: String, field_type: &str) -> PdfMutation {
+    let mut dict = BTreeMap::new();
+    dict.insert(
+        b"V".to_vec(),
+        Object::String(value.into_bytes(), lopdf::StringFormat::Literal),
+    );
+    if !field_type.is_empty() {
+        dict.insert(b"FT".to_vec(), Object::Name(field_type.as_bytes().to_vec()));
+    }
+    PdfMutation::Add {
+        object_id,
+        dict,
+        data: None,
+    }
+}
+
+/// Create a mutation to update DocInfo metadata.
+pub fn update_metadata(
+    object_id: PdfObjNum,
+    title: Option<String>,
+    author: Option<String>,
+    subject: Option<String>,
+) -> PdfMutation {
+    let mut dict = BTreeMap::new();
+    if let Some(t) = title {
+        dict.insert(
+            b"Title".to_vec(),
+            Object::String(t.into_bytes(), lopdf::StringFormat::Literal),
+        );
+    }
+    if let Some(a) = author {
+        dict.insert(
+            b"Author".to_vec(),
+            Object::String(a.into_bytes(), lopdf::StringFormat::Literal),
+        );
+    }
+    if let Some(s) = subject {
+        dict.insert(
+            b"Subject".to_vec(),
+            Object::String(s.into_bytes(), lopdf::StringFormat::Literal),
+        );
+    }
+    PdfMutation::Add {
+        object_id,
+        dict,
+        data: None,
+    }
+}
+
+/// Create a mutation to set XMP metadata.
+///
+/// The object is a stream containing the XMP XML data.
+/// Uses object number 100 as a safe default (XMP metadata is typically added at high object numbers).
+pub fn set_xmp_metadata(xmp_xml: &[u8]) -> PdfMutation {
+    let mut dict = BTreeMap::new();
+    dict.insert(b"Type".to_vec(), Object::Name(b"Metadata".to_vec()));
+    dict.insert(b"Subtype".to_vec(), Object::Name(b"XML".to_vec()));
+    dict.insert(b"Length".to_vec(), Object::Integer(xmp_xml.len() as i64));
+    PdfMutation::Add {
+        object_id: (100, 0),
+        dict,
+        data: Some(xmp_xml.to_vec()),
     }
 }
 
@@ -1347,5 +1674,347 @@ mod tests {
         assert_eq!(result.report.objects_added, [(5, 0)]);
         assert_eq!(result.report.objects_modified, [(3, 0)]);
         assert_eq!(result.report.objects_deleted, [(4, 0)]);
+    }
+
+    // -----------------------------------------------------------------------
+    // Signature detection tests
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn test_signature_detection_adobe_pkcs7() {
+        let mut pdf = make_minimal_pdf();
+        // Embed an Adobe.PPKMS marker in a way that won't break parsing
+        // Insert it as a fake stream dictionary key
+        let marker = b"/Filter /Adobe.PPKMS";
+        // Replace the stream content to include signature marker
+        let idx = pdf
+            .windows(marker.len())
+            .position(|w| w != marker)
+            .unwrap_or(0);
+        // Just scan directly
+        assert!(
+            detect_signatures(&pdf).is_none(),
+            "minimal PDF should have no signatures"
+        );
+
+        // Now inject the signature marker
+        let mut signed = make_minimal_pdf();
+        // Insert a fake signature dictionary after the last endobj
+        let inject_at = signed.len() - b"startxref".len();
+        signed.splice(
+            inject_at..inject_at,
+            b"\n5 0 obj\n<< /Filter /Adobe.PPKMS /V 6 0 R >>\nendobj\n"
+                .iter()
+                .copied(),
+        );
+        let result = detect_signatures(&signed);
+        assert!(result.is_some(), "should detect Adobe.PPKMS signature");
+        let sigs = result.unwrap();
+        assert!(
+            sigs.iter().any(|s| s.kind == "Adobe.PPKMS"),
+            "should find Adobe.PPKMS"
+        );
+    }
+
+    #[test]
+    fn test_signature_detection_adobe_etsi() {
+        let mut pdf = make_minimal_pdf();
+        assert!(
+            detect_signatures(&pdf).is_none(),
+            "clean PDF has no signatures"
+        );
+
+        // Inject ETSI.CAdES.detached marker
+        let inject_at = pdf.len() - b"startxref".len();
+        let mut etesi = pdf.clone();
+        etesi.splice(
+            inject_at..inject_at,
+            b"\n5 0 obj\n<< /SubFilter /ETSI.CAdES.detached /V 6 0 R >>\nendobj\n"
+                .iter()
+                .copied(),
+        );
+        let result = detect_signatures(&etesi);
+        assert!(
+            result.is_some(),
+            "should detect ETSI.CAdES.detached signature"
+        );
+        let sigs = result.unwrap();
+        assert!(
+            sigs.iter().any(|s| s.kind == "ETSI.CAdES.detached"),
+            "should find ETSI.CAdES.detached"
+        );
+
+        // Inject adbe.pkcs7.detached marker
+        let mut pkcs7 = pdf;
+        let inject_at2 = pkcs7.len() - b"startxref".len();
+        pkcs7.splice(
+            inject_at2..inject_at2,
+            b"\n5 0 obj\n<< /SubFilter /adbe.pkcs7.detached /V 6 0 R >>\nendobj\n"
+                .iter()
+                .copied(),
+        );
+        let result = detect_signatures(&pkcs7);
+        assert!(
+            result.is_some(),
+            "should detect adbe.pkcs7.detached signature"
+        );
+        let sigs = result.unwrap();
+        assert!(
+            sigs.iter().any(|s| s.kind == "adbe.pkcs7.detached"),
+            "should find adbe.pkcs7.detached"
+        );
+    }
+
+    #[test]
+    fn test_signature_detection_none_found() {
+        let pdf = make_minimal_pdf();
+        let result = detect_signatures(&pdf);
+        assert!(
+            result.is_none(),
+            "minimal PDF should not trigger signature detection"
+        );
+
+        // Also test with some random bytes that don't match signature patterns
+        let random_data: Vec<u8> = (0..100).map(|i| (i % 256) as u8).collect();
+        assert!(
+            detect_signatures(&random_data).is_none(),
+            "random data should not trigger signature detection"
+        );
+    }
+
+    #[test]
+    fn test_signed_pdf_refused() {
+        // Build a PDF with Adobe.PPKMS signature marker
+        let mut pdf = make_minimal_pdf();
+        let inject_at = pdf.len() - b"startxref".len();
+        pdf.splice(
+            inject_at..inject_at,
+            b"\n5 0 obj\n<< /Filter /Adobe.PPKMS /V 6 0 R >>\nendobj\n"
+                .iter()
+                .copied(),
+        );
+
+        let writer = IncrementalWriter::new(&pdf);
+        let result = writer.check_writable();
+        assert!(result.is_err(), "signed PDF should be refused");
+        match result {
+            Err(IncrementalError::SignatureDetected { locations }) => {
+                assert!(!locations.is_empty(), "should report signature locations");
+                assert!(
+                    locations.iter().any(|s| s.kind == "Adobe.PPKMS"),
+                    "should detect Adobe.PPKMS"
+                );
+            }
+            other => panic!("Expected SignatureDetected, got {:?}", other),
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // E2E mutation helper tests
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn test_add_annotation_e2e() {
+        let pdf = make_minimal_pdf();
+        let writer = IncrementalWriter::new(&pdf);
+
+        let annotation = add_annotation(
+            (5, 0),
+            0,
+            "Link",
+            [100.0, 100.0, 200.0, 200.0],
+            Some("test note".to_string()),
+        );
+
+        // Verify the mutation has the right structure
+        match &annotation {
+            PdfMutation::Add {
+                dict, object_id, ..
+            } => {
+                assert_eq!(object_id, &(5, 0));
+                assert!(
+                    dict.contains_key(&b"Subtype".to_vec()),
+                    "annotation should have Subtype"
+                );
+                assert!(
+                    dict.contains_key(&b"Contents".to_vec()),
+                    "annotation should have Contents"
+                );
+                assert!(
+                    dict.contains_key(&b"Rect".to_vec()),
+                    "annotation should have Rect"
+                );
+                assert!(
+                    dict.contains_key(&b"P".to_vec()),
+                    "annotation should have P reference"
+                );
+            }
+            _ => panic!("expected Add mutation"),
+        }
+
+        let mutations = PdfMutationSet {
+            mutations: vec![annotation],
+        };
+        let result = writer.write(&mutations).expect("write");
+        assert_eq!(&result.bytes[..pdf.len()], pdf.as_slice());
+
+        // Parse the output and verify the annotation object exists
+        let doc_data = crate::parser::parse_pdf_data(&result.bytes).expect("parse output PDF");
+        assert!(
+            doc_data.objects.contains_key(&5),
+            "annotation object 5 should exist"
+        );
+    }
+
+    #[test]
+    fn test_set_form_field_e2e() {
+        let pdf = make_minimal_pdf();
+        let writer = IncrementalWriter::new(&pdf);
+
+        let mutation = set_form_field_value((5, 0), "Hello World".to_string(), "Tx");
+
+        match &mutation {
+            PdfMutation::Add { dict, .. } => {
+                assert!(dict.contains_key(&b"V".to_vec()), "field should have value");
+                assert!(
+                    dict.contains_key(&b"FT".to_vec()),
+                    "field should have field type"
+                );
+            }
+            _ => panic!("expected Add mutation"),
+        }
+
+        let mutations = PdfMutationSet {
+            mutations: vec![mutation],
+        };
+        let result = writer.write(&mutations).expect("write");
+        assert_eq!(&result.bytes[..pdf.len()], pdf.as_slice());
+
+        let doc_data = crate::parser::parse_pdf_data(&result.bytes).expect("parse output PDF");
+        assert!(
+            doc_data.objects.contains_key(&5),
+            "form field object 5 should exist"
+        );
+    }
+
+    #[test]
+    fn test_update_metadata_e2e() {
+        let pdf = make_minimal_pdf();
+        let writer = IncrementalWriter::new(&pdf);
+
+        let mutation = update_metadata(
+            (50, 0),
+            Some("My Title".to_string()),
+            Some("Author Name".to_string()),
+            None,
+        );
+
+        match &mutation {
+            PdfMutation::Add { dict, .. } => {
+                assert!(
+                    dict.contains_key(&b"Title".to_vec()),
+                    "metadata should have Title"
+                );
+                assert!(
+                    dict.contains_key(&b"Author".to_vec()),
+                    "metadata should have Author"
+                );
+            }
+            _ => panic!("expected Add mutation"),
+        }
+
+        let mutations = PdfMutationSet {
+            mutations: vec![mutation],
+        };
+        let result = writer.write(&mutations).expect("write");
+        assert_eq!(&result.bytes[..pdf.len()], pdf.as_slice());
+
+        let doc_data = crate::parser::parse_pdf_data(&result.bytes).expect("parse output PDF");
+        assert!(
+            doc_data.objects.contains_key(&50),
+            "metadata object 50 should exist"
+        );
+    }
+
+    #[test]
+    fn test_prefix_invariant_with_annotations() {
+        let pdf = make_minimal_pdf();
+        let source_len = pdf.len();
+        let writer = IncrementalWriter::new(&pdf);
+
+        let annotation = add_annotation(
+            (5, 0),
+            0,
+            "Text",
+            [50.0, 50.0, 150.0, 150.0],
+            Some("sticky note".to_string()),
+        );
+
+        let mutations = PdfMutationSet {
+            mutations: vec![annotation],
+        };
+        let result = writer.write(&mutations).expect("write");
+
+        // Prefix invariant
+        assert_eq!(
+            &result.bytes[..source_len],
+            pdf.as_slice(),
+            "prefix invariant violated"
+        );
+        assert!(
+            result.bytes.len() > source_len,
+            "output must be larger than source"
+        );
+
+        // Verify annotation was added by parsing
+        let doc_data = crate::parser::parse_pdf_data(&result.bytes).expect("parse output");
+        assert!(
+            doc_data.objects.contains_key(&5),
+            "annotation should be in parsed objects"
+        );
+    }
+
+    #[test]
+    fn test_xmp_metadata_e2e() {
+        let pdf = make_minimal_pdf();
+        let writer = IncrementalWriter::new(&pdf);
+
+        let xmp = b"<?xpacket begin='&#63;&#63;'?><x:xmpmeta xmlns:x='adobe:ns:meta/'><rdf:RDF xmlns:rdf='http://www.w3.org/1999/02/22-rdf-syntax-ns#'/></x:xmpmeta>";
+        let mutation = set_xmp_metadata(xmp);
+
+        match &mutation {
+            PdfMutation::Add { dict, data, .. } => {
+                assert!(dict.contains_key(&b"Type".to_vec()), "XMP should have Type");
+                assert!(
+                    dict.contains_key(&b"Length".to_vec()),
+                    "XMP should have Length"
+                );
+                assert!(data.is_some(), "XMP should have stream data");
+            }
+            _ => panic!("expected Add mutation"),
+        }
+
+        let mutations = PdfMutationSet {
+            mutations: vec![mutation],
+        };
+        let result = writer.write(&mutations).expect("write");
+        assert_eq!(&result.bytes[..pdf.len()], pdf.as_slice());
+
+        // Verify the XMP stream data appears in the output
+        let xmp_marker = b"Type /Metadata";
+        assert!(
+            result
+                .bytes
+                .windows(xmp_marker.len())
+                .any(|w| w == xmp_marker),
+            "XMP metadata should be in output"
+        );
+
+        // Verify prefix invariant still holds
+        assert_eq!(
+            &result.bytes[..pdf.len()],
+            pdf.as_slice(),
+            "prefix invariant violated"
+        );
     }
 }

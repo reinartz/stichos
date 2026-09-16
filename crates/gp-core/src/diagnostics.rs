@@ -464,6 +464,15 @@ impl DiagnosticRegistry {
             },
         );
         entries.insert(
+            "PDF-E-006",
+            CodeEntry {
+                code: "PDF-E-006",
+                severity: Severity::Error,
+                category: "security",
+                description: "Digital signature detected — incremental write refused",
+            },
+        );
+        entries.insert(
             "PDF-W-004",
             CodeEntry {
                 code: "PDF-W-004",
@@ -1598,6 +1607,8 @@ mod tests {
             "PDF-E-001",
             "PDF-E-002",
             "PDF-E-003",
+            "PDF-E-005",
+            "PDF-E-006",
             "PDF-W-004",
             "PDF-E-009",
             "PDF-E-010",
