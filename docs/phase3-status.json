@@ -2,8 +2,8 @@
   "milestone": "M3 (Phase 3 — creation + write-path completion)",
   "plan": "docs/phase3-plan.md",
   "updated": "2026-09-16",
-  "progress_header": "8/33 verified · 2/8 gates",
-  "handoff_note": "Phase 3 opens on measured debt: phase2_gate.sh exit 1 (clippy 5 errors in cli, fmt 10 diffs/6 files), Waves C–F uncommitted (HEAD=3f1cb2a), m2 tag misplaced, 3 commits unpushed. Wave 0 closes it (S1). Owner scope calls S1–S4 recorded in docs/phase3-concept.md §10. Environment: pandoc 3.7.0.2 + chromium-browser + xmllint + soffice 26.2.6.1 present; typst/qpdf/verapdf absent (CI installs). ODF corpus = 69 fixtures.",
+  "progress_header": "11/33 verified · 3/8 gates",
+  "handoff_note": "Wave 0 complete (P3-01..03 verified). phase2_gate.sh exit 0 on committed tree; m2 == 5dfa9e7 == HEAD; branch pushed; clippy/fmt clean. Environment: pandoc 3.7.0.2 + chromium-browser + xmllint + soffice 26.2.6.1 present; typst/qpdf/verapdf absent (CI installs). ODF corpus = 69 fixtures.",
   "legend": {
     "statuses": [
       "pending",
@@ -14,17 +14,17 @@
     "rule": "verified requires evidence: command + result + date; gates flip only when all wave steps are verified and the gate command passes (phase3-plan.md §2)"
   },
   "rollup": {
-    "verified": 8,
+    "verified": 11,
     "total": 33,
-    "gates_verified": 2,
+    "gates_verified": 3,
     "gates_total": 8
   },
   "gates": [
     {
       "id": "0",
       "name": "Phase-2 debt: phase2_gate.sh exit 0 on committed tree; m2 == HEAD; pushed; clippy/fmt clean",
-      "status": "pending",
-      "evidence": null
+      "status": "verified",
+      "evidence": "bash tools/phase2_gate.sh exit 0; 1398 tests pass; clippy clean; fmt clean; m2=5dfa9e7==HEAD; pushed to origin/main — 2026-09-16"
     },
     {
       "id": "A",
@@ -77,8 +77,8 @@
       "implements": ["M2-fix"],
       "depends": [],
       "size": 1,
-      "status": "pending",
-      "evidence": null
+      "status": "verified",
+      "evidence": "cargo clippy --workspace --all-targets clean; cargo fmt --all --check clean; cargo test --workspace 1398 pass, 0 fail — 2026-09-16"
     },
     {
       "id": "P3-02",
@@ -87,8 +87,8 @@
       "implements": ["M2-ship"],
       "depends": ["P3-01"],
       "size": 1,
-      "status": "pending",
-      "evidence": null
+      "status": "verified",
+      "evidence": "git status clean; bash tools/phase2_gate.sh exit 0; m2=5dfa9e7==HEAD; pushed to origin/main — 2026-09-16"
     },
     {
       "id": "P3-03",
@@ -97,8 +97,8 @@
       "implements": ["M2-fix"],
       "depends": ["P3-02"],
       "size": 1,
-      "status": "pending",
-      "evidence": null
+      "status": "verified",
+      "evidence": "phase2_gate.sh green + m2 tag corrected; governance sync confirmed in project_concept.md §18-4 RESOLVED — 2026-09-16"
     },
     {
       "id": "P3-04",
