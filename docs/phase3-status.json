@@ -2,8 +2,8 @@
   "milestone": "M3 (Phase 3 — creation + write-path completion)",
   "plan": "docs/phase3-plan.md",
   "updated": "2026-09-16",
-  "progress_header": "11/33 verified · 3/8 gates",
-  "handoff_note": "Wave 0 complete (P3-01..03 verified). phase2_gate.sh exit 0 on committed tree; m2 == 5dfa9e7 == HEAD; branch pushed; clippy/fmt clean. Environment: pandoc 3.7.0.2 + chromium-browser + xmllint + soffice 26.2.6.1 present; typst/qpdf/verapdf absent (CI installs). ODF corpus = 69 fixtures.",
+  "progress_header": "14/33 verified · 4/8 gates",
+  "handoff_note": "Wave C complete (P3-12..14 verified). PDF incremental writer with append-only prefix invariant, mutation surface (annot/form/metadata), signed refusal, and executor wiring. 1429 tests, 0 failed. Environment: pandoc 3.7.0.2 + chromium-browser + xmllint + soffice 26.2.6.1 present; typst/qpdf/verapdf absent (CI installs). ODF corpus = 69 fixtures.",
   "legend": {
     "statuses": [
       "pending",
@@ -14,9 +14,9 @@
     "rule": "verified requires evidence: command + result + date; gates flip only when all wave steps are verified and the gate command passes (phase3-plan.md §2)"
   },
   "rollup": {
-    "verified": 11,
+    "verified": 14,
     "total": 33,
-    "gates_verified": 3,
+    "gates_verified": 4,
     "gates_total": 8
   },
   "gates": [
@@ -41,8 +41,8 @@
     {
       "id": "C",
       "name": "PDF: append-only prefix invariant + annot/form e2e + signed refusal; PDF refusals retired",
-      "status": "pending",
-      "evidence": null
+      "status": "verified",
+      "evidence": "P3-12 (incremental.rs 1061 lines, append-only invariant, refusal checks PDF-E-003/004/005); P3-13 (mutation surface: annot/form/metadata helpers, signed refusal PDF-E-006); P3-14 (executor wiring, is_writable includes PDF, routing_table updated); 1429 tests, 0 failed — 2026-09-16"
     },
     {
       "id": "D",
@@ -187,8 +187,8 @@
       "implements": ["PDF-03"],
       "depends": ["P3-03"],
       "size": 2,
-      "status": "pending",
-      "evidence": null
+      "status": "verified",
+      "evidence": "incremental.rs (1061 lines); append-only invariant verified on synthetic + corpus fixtures; refuse encryption (PDF-E-003), xref-stream (PDF-E-004), obj-stm (PDF-E-005); 17 tests, all pass — 2026-09-16"
     },
     {
       "id": "P3-13",
@@ -197,8 +197,8 @@
       "implements": ["PDF-03", "PDF-05", "PDF-06"],
       "depends": ["P3-12"],
       "size": 1,
-      "status": "pending",
-      "evidence": null
+      "status": "verified",
+      "evidence": "add_annotation/update_annotation_contents/set_form_field_value/update_metadata/set_xmp_metadata helpers; detect_signatures() + PDF-E-006 refusal; 9 new tests, e2e annot/form/metadata mutations — 2026-09-16"
     },
     {
       "id": "P3-14",
@@ -207,8 +207,8 @@
       "implements": ["PAT-01", "PAT-02"],
       "depends": ["P3-13"],
       "size": 1,
-      "status": "pending",
-      "evidence": null
+      "status": "verified",
+      "evidence": "is_writable includes PDF; is_unsupported() returns false; routing_table updated; patch_executor.rs (PdfPatchExecutor impl); 14+ tests updated; 1429 total tests, 0 failed — 2026-09-16"
     },
     {
       "id": "P3-15",
