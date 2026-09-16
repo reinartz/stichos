@@ -300,6 +300,198 @@ impl PandocEngine {
     pub fn path(&self) -> &str {
         &self.path
     }
+
+    // ------------------------------------------------------------------
+    // Creation path (P3-19: pandoc creation — write direction)
+    // ------------------------------------------------------------------
+
+    /// Convert content to a target format using pandoc (write-direction).
+    ///
+    /// Runs: `pandoc --from=<source_format> --to=<target_format> [--reference-doc=TMPFILE] -o OUTPUT -`
+    /// Reads content from stdin (`-`), writes to a temp output file.
+    ///
+    /// # Arguments
+    /// * `input` — raw input bytes (markdown, html, etc.)
+    /// * `source_format` — pandoc source format (e.g. "markdown", "html", "typ")
+    /// * `target_format` — pandoc target format (e.g. "docx", "odt", "pdf")
+    /// * `reference_doc` — optional reference doc / branded template bytes
+    ///
+    /// # Returns
+    /// The converted document bytes on success.
+    ///
+    /// # Errors
+    /// Returns `Err(Vec<Diagnostic>)` on pandoc failure, timeout, or I/O error.
+    pub fn convert_to(
+        input: &[u8],
+        source_format: &str,
+        target_format: &str,
+        reference_doc: Option<&[u8]>,
+    ) -> Result<Vec<u8>, Vec<Diagnostic>> {
+        let pandoc_path = std::env::var("PANDOC_PATH")
+            .ok()
+            .filter(|p| Path::new(p).exists())
+            .unwrap_or_else(|| find_pandoc_binary().unwrap_or_else(|| "pandoc".to_string()));
+
+        // Create a temporary working directory
+        let tmp_dir = tempfile::tempdir().map_err(|e| {
+            vec![Diagnostic::new(
+                "ENG-E-001",
+                Severity::Error,
+                format!("failed to create temp dir: {}", e),
+            )]
+        })?;
+
+        // Build output path
+        let output_path = tmp_dir.path().join("output").with_extension(target_format);
+
+        // If a reference document is provided, write it to a temp file
+        let mut ref_path: Option<std::path::PathBuf> = None;
+        if let Some(ref_doc) = reference_doc {
+            let ref_ext = match target_format {
+                "docx" => "docx",
+                "odt" => "odt",
+                _ => "pdf",
+            };
+            let p = tmp_dir.path().join("reference").with_extension(ref_ext);
+            std::fs::write(&p, ref_doc).map_err(|e| {
+                vec![Diagnostic::new(
+                    "ENG-E-001",
+                    Severity::Error,
+                    format!("failed to write reference doc: {}", e),
+                )]
+            })?;
+            ref_path = Some(p);
+        }
+
+        // Build pandoc command: pandoc --from=SF --to=TF [--reference-doc=RP] -o OP -
+        let mut cmd = Command::new(&pandoc_path);
+        cmd.arg("--from")
+            .arg(source_format)
+            .arg("--to")
+            .arg(target_format);
+
+        if let Some(ref p) = ref_path {
+            cmd.arg("--reference-doc").arg(p);
+        }
+
+        cmd.arg("-o").arg(&output_path).arg("-");
+
+        Self::run_convert_subprocess(cmd, &pandoc_path, input, &output_path)
+    }
+
+    /// Internal helper: run the convert subprocess and read output.
+    fn run_convert_subprocess(
+        mut cmd: Command,
+        pandoc_path: &str,
+        input: &[u8],
+        output_path: &std::path::Path,
+    ) -> Result<Vec<u8>, Vec<Diagnostic>> {
+        let _ = pandoc_path; // used at call site; kept for API consistency
+        let mut child = cmd
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+            .map_err(|e| {
+                vec![Diagnostic::new(
+                    "ENG-E-001",
+                    Severity::Error,
+                    format!("failed to spawn pandoc: {}", e),
+                )]
+            })?;
+
+        let mut stdin = child.stdin.take().unwrap();
+        let stdout = child.stdout.take().unwrap();
+        let stderr = child.stderr.take().unwrap();
+
+        // Write input in a separate thread
+        let input_bytes = input.to_vec();
+        let stdin_handle = thread::spawn(move || {
+            let _ = stdin.write_all(&input_bytes);
+        });
+
+        let stdout_handle = read_all_async(stdout);
+        let stderr_handle = read_all_async(stderr);
+
+        let deadline = std::time::Instant::now() + Duration::from_secs(PANDOC_TIMEOUT_SECS);
+        loop {
+            match child.try_wait() {
+                Ok(Some(status)) => {
+                    let exit_code = status.code().unwrap_or(-1);
+                    let _ = stdin_handle.join();
+                    let _ = stdout_handle.join().unwrap_or_default();
+                    let stderr_bytes = stderr_handle.join().unwrap_or_default();
+
+                    if exit_code != 0 {
+                        let msg = String::from_utf8_lossy(&stderr_bytes);
+                        return Err(vec![Diagnostic::new(
+                            "ENG-E-001",
+                            Severity::Error,
+                            format!("pandoc exited with code {}: {}", exit_code, msg.trim()),
+                        )]);
+                    }
+
+                    // Read output file
+                    return std::fs::read(output_path).map_err(|e| {
+                        vec![Diagnostic::new(
+                            "ENG-E-001",
+                            Severity::Error,
+                            format!("failed to read pandoc output: {}", e),
+                        )]
+                    });
+                }
+                Ok(None) => {
+                    if std::time::Instant::now() >= deadline {
+                        let _ = child.kill();
+                        let _ = child.wait();
+                        let _ = stdin_handle.join();
+                        let _ = stdout_handle.join().unwrap_or_default();
+                        let _ = stderr_handle.join().unwrap_or_default();
+                        return Err(vec![Diagnostic::new(
+                            "ENG-E-002",
+                            Severity::Error,
+                            format!("pandoc timeout after {}ms", PANDOC_TIMEOUT_SECS * 1000),
+                        )]);
+                    }
+                    thread::sleep(Duration::from_millis(50));
+                    continue;
+                }
+                Err(_) => {
+                    let _ = child.kill();
+                    let _ = stdin_handle.join();
+                    let _ = stdout_handle.join().unwrap_or_default();
+                    let _ = stderr_handle.join().unwrap_or_default();
+                    return Err(vec![Diagnostic::new(
+                        "ENG-E-001",
+                        Severity::Error,
+                        "failed to wait for pandoc",
+                    )]);
+                }
+            }
+        }
+    }
+
+    /// Get pandoc version, returning `Some(version_string)` or `None` if unavailable.
+    pub fn get_version() -> Option<String> {
+        let pandoc_path = std::env::var("PANDOC_PATH")
+            .ok()
+            .filter(|p| Path::new(p).exists())
+            .unwrap_or_else(|| find_pandoc_binary().unwrap_or_else(|| "pandoc".to_string()));
+
+        let mut cmd = Command::new(&pandoc_path);
+        cmd.arg("--version");
+        match run_subprocess(&mut cmd) {
+            Ok((exit_code, stdout, _stderr)) => {
+                if exit_code == 0 {
+                    let output = String::from_utf8_lossy(&stdout);
+                    parse_pandoc_version(&output)
+                } else {
+                    None
+                }
+            }
+            Err(_) => None,
+        }
+    }
 }
 
 impl Engine for PandocEngine {

@@ -165,6 +165,26 @@ fn run_subprocess(cmd: &mut Command) -> Result<(i32, Vec<u8>, Vec<u8>), Vec<Diag
 // Public types
 // ---------------------------------------------------------------------------
 
+/// Page margins in inches for chromium --print-to-pdf.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct PageMargins {
+    pub top: f64,
+    pub right: f64,
+    pub bottom: f64,
+    pub left: f64,
+}
+
+impl Default for PageMargins {
+    fn default() -> Self {
+        Self {
+            top: 0.5,
+            right: 0.5,
+            bottom: 0.5,
+            left: 0.5,
+        }
+    }
+}
+
 /// Chromium engine — spawns chromium-browser subprocesses for HTML→PDF.
 #[derive(Debug)]
 pub struct ChromiumEngine {
@@ -218,7 +238,7 @@ impl ChromiumEngine {
     }
 
     /// Get version by running `<chromium> --version`.
-    fn version_inner(&self) -> Option<String> {
+    pub(crate) fn version_inner(&self) -> Option<String> {
         let mut cmd = Command::new(&self.path);
         cmd.arg("--version");
         match run_subprocess(&mut cmd) {
@@ -392,6 +412,154 @@ impl Engine for ChromiumEngine {
 
     fn is_available(&self) -> bool {
         Path::new(&self.path).exists()
+    }
+}
+
+/// Convert HTML to PDF with configurable paper size, margins, and background.
+///
+/// # Arguments
+/// * `input` — HTML bytes to render
+/// * `paper_size` — paper size name (e.g. "letter", "a4") or None for default
+/// * `margins` — page margins in inches or None for defaults (0.5in each side)
+/// * `background` — whether to render CSS backgrounds
+///
+/// # Returns
+/// PDF bytes on success, or diagnostics on failure.
+impl ChromiumEngine {
+    pub fn create_pdf(
+        &self,
+        input: &[u8],
+        paper_size: Option<&str>,
+        margins: Option<PageMargins>,
+        background: bool,
+    ) -> Result<Vec<u8>, Vec<Diagnostic>> {
+        if !Path::new(&self.path).exists() {
+            return Err(vec![Diagnostic::new(
+                "ENG-E-001",
+                Severity::Error,
+                format!("chromium not found: {}", self.path),
+            )]);
+        }
+
+        // Create isolated work directory
+        let work_dir = std::env::temp_dir()
+            .join(format!(
+                "stichos-chromium-create-{:08x}",
+                fastrand::u64(0..0xFFFFFFFF)
+            ))
+            .to_string_lossy()
+            .to_string();
+        std::fs::create_dir_all(&work_dir).map_err(|e| {
+            vec![Diagnostic::new(
+                "ENG-E-001",
+                Severity::Error,
+                format!("failed to create work dir: {}", e),
+            )]
+        })?;
+
+        // Write HTML input to temp file
+        let html_path = Path::new(&work_dir).join("input.html");
+        let mut html_file = std::fs::File::create(&html_path).map_err(|e| {
+            vec![Diagnostic::new(
+                "ENG-E-001",
+                Severity::Error,
+                format!("failed to create HTML file: {}", e),
+            )]
+        })?;
+        html_file.write_all(input).map_err(|e| {
+            vec![Diagnostic::new(
+                "ENG-E-001",
+                Severity::Error,
+                format!("failed to write HTML file: {}", e),
+            )]
+        })?;
+
+        // Create isolated user-data-dir
+        let user_data_dir = work_dir.clone() + "-userData";
+        std::fs::create_dir_all(&user_data_dir).map_err(|e| {
+            vec![Diagnostic::new(
+                "ENG-E-001",
+                Severity::Error,
+                format!("failed to create user-data-dir: {}", e),
+            )]
+        })?;
+
+        // Build output PDF path
+        let pdf_path = Path::new(&work_dir).join("output.pdf");
+        let pdf_path_str = pdf_path.to_string_lossy().to_string();
+        let html_path_str = html_path.to_string_lossy().to_string();
+
+        // Build chromium command
+        let mut cmd = Command::new(&self.path);
+        cmd.arg("--headless=new")
+            .arg("--print-to-pdf")
+            .arg(&pdf_path_str)
+            .arg("--no-sandbox")
+            .arg("--disable-gpu")
+            .arg("--disable-dev-shm-usage")
+            .arg("--user-data-dir")
+            .arg(&user_data_dir);
+
+        // Paper size
+        match paper_size {
+            Some(ps) if !ps.is_empty() => {
+                cmd.arg("--paper-size").arg(ps);
+            }
+            _ => {
+                cmd.arg("--paper-size").arg("letter");
+            }
+        }
+
+        // Margins
+        let m = margins.unwrap_or_default();
+        cmd.arg("--margin-top")
+            .arg(m.top.to_string())
+            .arg("--margin-bottom")
+            .arg(m.bottom.to_string())
+            .arg("--margin-left")
+            .arg(m.left.to_string())
+            .arg("--margin-right")
+            .arg(m.right.to_string());
+
+        // Background
+        if background {
+            cmd.arg("--background");
+        }
+
+        // Input file
+        cmd.arg(&html_path_str);
+
+        let result = run_subprocess(&mut cmd);
+
+        let read_output = || match std::fs::read(&pdf_path) {
+            Ok(data) => Ok(data),
+            Err(e) => Err(vec![Diagnostic::new(
+                "ENG-E-001",
+                Severity::Error,
+                format!("failed to read PDF output: {}", e),
+            )]),
+        };
+
+        let outcome = match result {
+            Ok((exit_code, _stdout, stderr)) => {
+                if exit_code != 0 {
+                    let msg = String::from_utf8_lossy(&stderr);
+                    Err(vec![Diagnostic::new(
+                        "ENG-E-001",
+                        Severity::Error,
+                        format!("chromium exited with code {}: {}", exit_code, msg.trim()),
+                    )])
+                } else {
+                    read_output()
+                }
+            }
+            Err(diags) => Err(diags),
+        };
+
+        // Clean up work directory
+        let _ = std::fs::remove_dir_all(&work_dir);
+
+        outcome
     }
 }
 
@@ -601,5 +769,102 @@ mod tests {
     #[test]
     fn test_default_engine() {
         let _engine = ChromiumEngine::default();
+    }
+
+    #[test]
+    fn test_page_margins_defaults() {
+        let margins = PageMargins::default();
+        assert_eq!(margins.top, 0.5);
+        assert_eq!(margins.right, 0.5);
+        assert_eq!(margins.bottom, 0.5);
+        assert_eq!(margins.left, 0.5);
+    }
+
+    #[test]
+    fn test_page_margins_custom() {
+        let margins = PageMargins {
+            top: 1.0,
+            right: 0.75,
+            bottom: 1.0,
+            left: 0.75,
+        };
+        assert_eq!(margins.top, 1.0);
+        assert_eq!(margins.right, 0.75);
+        assert_eq!(margins.bottom, 1.0);
+        assert_eq!(margins.left, 0.75);
+    }
+
+    #[test]
+    fn test_create_pdf_returns_diagnostics_when_chromium_absent() {
+        let engine = ChromiumEngine {
+            path: "/nonexistent/chromium".to_string(),
+            temp_dir: std::env::temp_dir()
+                .join("stichos-chromium-test")
+                .to_string_lossy()
+                .to_string(),
+        };
+        let input = b"<html><body><h1>Test</h1></body></html>";
+        let result = engine.create_pdf(input, None, None, false);
+        assert!(
+            result.is_err(),
+            "create_pdf should fail when chromium is absent"
+        );
+        let diags = result.unwrap_err();
+        assert_eq!(diags[0].code, "ENG-E-001");
+    }
+
+    #[test]
+    fn test_create_pdf_with_custom_paper_size() {
+        let engine = ChromiumEngine {
+            path: "/nonexistent/chromium".to_string(),
+            temp_dir: std::env::temp_dir()
+                .join("stichos-chromium-test")
+                .to_string_lossy()
+                .to_string(),
+        };
+        let input = b"<html><body><h1>A4 Test</h1></body></html>";
+        // Should fail with ENG-E-001 (chromium not found) regardless of params
+        let result = engine.create_pdf(input, Some("a4"), None, false);
+        assert!(result.is_err());
+        let diags = result.unwrap_err();
+        assert_eq!(diags[0].code, "ENG-E-001");
+    }
+
+    #[test]
+    fn test_create_pdf_with_custom_margins() {
+        let engine = ChromiumEngine {
+            path: "/nonexistent/chromium".to_string(),
+            temp_dir: std::env::temp_dir()
+                .join("stichos-chromium-test")
+                .to_string_lossy()
+                .to_string(),
+        };
+        let input = b"<html><body><h1>Margins Test</h1></body></html>";
+        let margins = PageMargins {
+            top: 1.0,
+            right: 1.0,
+            bottom: 1.0,
+            left: 1.0,
+        };
+        let result = engine.create_pdf(input, None, Some(margins), false);
+        assert!(result.is_err());
+        let diags = result.unwrap_err();
+        assert_eq!(diags[0].code, "ENG-E-001");
+    }
+
+    #[test]
+    fn test_create_pdf_with_background() {
+        let engine = ChromiumEngine {
+            path: "/nonexistent/chromium".to_string(),
+            temp_dir: std::env::temp_dir()
+                .join("stichos-chromium-test")
+                .to_string_lossy()
+                .to_string(),
+        };
+        let input = b"<html><body><h1>Background Test</h1></body></html>";
+        let result = engine.create_pdf(input, None, None, true);
+        assert!(result.is_err());
+        let diags = result.unwrap_err();
+        assert_eq!(diags[0].code, "ENG-E-001");
     }
 }

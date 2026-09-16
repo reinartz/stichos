@@ -251,11 +251,11 @@ mod tests {
     #[test]
     fn test_report_lin_codes_count() {
         let report = generate_report();
-        // LIN codes from registry: E-001..006, W-001..006, B-001/002, I-001/002 = 16
+        // LIN codes from registry: E-001..007, W-001..009, B-001/002, I-001..003 = 21
         assert_eq!(
             report.lin_codes.len(),
-            16,
-            "Expected 16 LIN codes, got {}",
+            21,
+            "Expected 21 LIN codes, got {}",
             report.lin_codes.len()
         );
     }

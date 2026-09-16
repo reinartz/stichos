@@ -444,6 +444,7 @@ mod tests {
             fields: vec![],
             comments: vec![],
             tracked_changes: vec![],
+            template: None,
         };
         let root = build_tagged_root_from_document(&doc);
         assert_eq!(root.tag, "document");
@@ -489,6 +490,7 @@ mod tests {
             fields: vec![],
             comments: vec![],
             tracked_changes: vec![],
+            template: None,
         };
         let ir = ir_document_from_document(&doc);
         let mut ids: Vec<serde_json::Value> = Vec::new();
@@ -567,6 +569,7 @@ mod tests {
             fields: vec![],
             comments: vec![],
             tracked_changes: vec![],
+            template: None,
         };
         let ir = ir_document_from_document(&doc);
         let mut ids: Vec<serde_json::Value> = Vec::new();
@@ -627,6 +630,7 @@ mod tests {
             fields: vec![],
             comments: vec![],
             tracked_changes: vec![],
+            template: None,
         };
         let ir = ir_document_from_document(&doc);
         let mut ids = Vec::new();
@@ -655,6 +659,7 @@ mod tests {
             fields: vec![],
             comments: vec![],
             tracked_changes: vec![],
+            template: None,
         };
         let ir = ir_document_from_document(&doc);
         let result = build_inspect_result(&ir, "/test/path.docx");
@@ -698,6 +703,7 @@ mod tests {
             fields: vec![],
             comments: vec![],
             tracked_changes: vec![],
+            template: None,
         };
         let ir = ir_document_from_document(&doc);
         let result = build_inspect_result(&ir, "/test/path.docx");
@@ -755,6 +761,7 @@ mod tests {
             fields: vec![],
             comments: vec![],
             tracked_changes: vec![],
+            template: None,
         };
         let ir = ir_document_from_document(&doc);
         let mut ids: Vec<serde_json::Value> = Vec::new();
@@ -801,6 +808,7 @@ mod tests {
             fields: vec![],
             comments: vec![],
             tracked_changes: vec![],
+            template: None,
         };
         let ir = ir_document_from_document(&doc);
         let mut ids: Vec<serde_json::Value> = Vec::new();
@@ -837,6 +845,7 @@ mod tests {
             fields: vec![],
             comments: vec![],
             tracked_changes: vec![],
+            template: None,
         };
         let ir = ir_document_from_document(&doc);
         assert_eq!(document_type_name(&ir), "document");
@@ -904,6 +913,7 @@ mod tests {
             fields: vec![],
             comments: vec![],
             tracked_changes: vec![],
+            template: None,
         };
         let ir = ir_document_from_document(&doc);
         let summary = build_structure_summary(&ir);
@@ -975,6 +985,7 @@ mod tests {
             fields: vec![],
             comments: vec![],
             tracked_changes: vec![],
+            template: None,
         };
         let ir = ir_document_from_document(&doc);
         let coords = build_coordinate_manifest(&ir);
@@ -1057,6 +1068,7 @@ mod tests {
             fields: vec![],
             comments: vec![],
             tracked_changes: vec![],
+            template: None,
         };
         let ir = ir_document_from_document(&doc);
         let coords = build_coordinate_manifest(&ir);

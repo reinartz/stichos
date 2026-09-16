@@ -671,6 +671,7 @@ mod tests {
             fields,
             comments,
             tracked_changes: changes,
+            template: None,
         }
     }
 
@@ -815,6 +816,7 @@ mod tests {
             fields: vec![],
             comments: vec![],
             tracked_changes: vec![],
+            template: None,
         };
         let counts = census_document(&doc);
         assert_eq!(counts.section_headers, 1);

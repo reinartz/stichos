@@ -169,3 +169,13 @@ jobs:
       - name: OPS-02 P95 ≤ 2s perf gate
         run: |
           ./target/release/stichos perf --fixtures pr-subset --target 2000
+
+  # P3-30 (DIS-06): docker profile build + doctor verification
+  docker-profile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    if: ${{ hashFiles('Cargo.toml') != '' }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: build profile image
+        run: bash docker/profile/build.sh

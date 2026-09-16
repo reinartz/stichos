@@ -379,8 +379,12 @@ mod tests {
             "LIN-E-002",
             "LIN-E-003",
             "LIN-E-004",
+            "LIN-E-007",
             "LIN-W-001",
             "LIN-W-002",
+            "LIN-W-007",
+            "LIN-W-008",
+            "LIN-W-009",
             "LIN-B-001",
             "LIN-B-002",
         ];
@@ -541,7 +545,7 @@ mod tests {
 
     #[test]
     fn test_lint_codes_still_all_registered() {
-        // Verify all LIN codes including the new LIN-W-003 and page-delta codes are registered
+        // Verify all LIN codes including the new LIN-W-003, page-delta, and a11y codes are registered
         let reg = DiagnosticRegistry::instance();
         let codes = [
             "LIN-E-001",
@@ -550,12 +554,21 @@ mod tests {
             "LIN-E-004",
             "LIN-E-005",
             "LIN-E-006",
+            "LIN-E-007",
             "LIN-W-001",
             "LIN-W-002",
             "LIN-W-003",
             "LIN-W-004",
+            "LIN-W-005",
+            "LIN-W-006",
+            "LIN-W-007",
+            "LIN-W-008",
+            "LIN-W-009",
             "LIN-B-001",
             "LIN-B-002",
+            "LIN-I-001",
+            "LIN-I-002",
+            "LIN-I-003",
         ];
         for code in &codes {
             assert!(

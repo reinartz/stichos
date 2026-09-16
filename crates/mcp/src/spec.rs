@@ -498,6 +498,105 @@ pub const TOOLS: &[ToolSpec] = &[
         deprecation_notice: None,
         schema_version: "1.1.0",
     },
+    // P3-23: create_document tool (C7 v1.2 additive)
+    ToolSpec {
+        name: "create_document",
+        description: "Create a new document from source content (markdown, html, typst) and return the result with provenance and fidelity budget.",
+        params: &[
+            ParamDef {
+                name: "source_type",
+                param_type: ParamType::String,
+                required: true,
+                description: "Source format: markdown, html, or typ",
+            },
+            ParamDef {
+                name: "format",
+                param_type: ParamType::String,
+                required: true,
+                description: "Target format: docx, odt, or pdf",
+            },
+            ParamDef {
+                name: "content",
+                param_type: ParamType::String,
+                required: true,
+                description: "Source content as string",
+            },
+            ParamDef {
+                name: "template",
+                param_type: ParamType::String,
+                required: false,
+                description: "Path to template/reference document",
+            },
+            ParamDef {
+                name: "dry_run",
+                param_type: ParamType::Boolean,
+                required: false,
+                description: "If true, only compute preview without writing (default false)",
+            },
+            ParamDef {
+                name: "target",
+                param_type: ParamType::String,
+                required: false,
+                description: "Path to existing docx for create-as-revisions mode",
+            },
+            ParamDef {
+                name: "author",
+                param_type: ParamType::String,
+                required: false,
+                description: "Author name for revision markup (default: agent)",
+            },
+            ParamDef {
+                name: "direct",
+                param_type: ParamType::Boolean,
+                required: false,
+                description: "Apply directly without tracked-revisions (default false)",
+            },
+        ],
+        idempotent: false,
+        deprecated: false,
+        deprecation_notice: None,
+        schema_version: "1.2.0",
+    },
+    // P3-24 Wave F: script_tool (C7 v1.2 additive)
+    ToolSpec {
+        name: "script_tool",
+        description: "Execute a sandboxed Rhai script against the document store.",
+        params: &[
+            ParamDef {
+                name: "script",
+                param_type: ParamType::String,
+                required: true,
+                description: "Rhai script source code to execute",
+            },
+            ParamDef {
+                name: "ir",
+                param_type: ParamType::String,
+                required: false,
+                description: "IR document as JSON (optional)",
+            },
+        ],
+        idempotent: false,
+        deprecated: false,
+        deprecation_notice: None,
+        schema_version: "1.2.0",
+    },
+    // P3-29 Wave G: check_update tool (C7 v1.2 additive)
+    ToolSpec {
+        name: "check_update",
+        description: "Check for available stichos updates. Returns version info and whether an update is available. Does not install.",
+        params: &[
+            ParamDef {
+                name: "channel",
+                param_type: ParamType::String,
+                required: false,
+                description: "Update channel to check (default: stable)",
+            },
+        ],
+        idempotent: true,
+        deprecated: false,
+        deprecation_notice: None,
+        schema_version: "1.2.0",
+    },
 ];
 
 /// Check if a tool name is valid per C7.
@@ -530,12 +629,12 @@ pub fn verify_c7_compliance() -> Result<Vec<&'static str>, String> {
                     errors.push(format!("tool '{}' (1.0.0) is not idempotent", tool.name));
                 }
             }
-            "1.1.0" => {
-                // v1.1 additive: non-idempotent tools allowed
+            "1.1.0" | "1.2.0" => {
+                // v1.1/v1.2 additive: non-idempotent tools allowed
             }
             ver => {
                 errors.push(format!(
-                    "tool '{}' has unexpected version '{}', expected '1.0.0' or '1.1.0'",
+                    "tool '{}' has unexpected version '{}', expected '1.0.0', '1.1.0', or '1.2.0'",
                     tool.name, ver
                 ));
             }
@@ -555,10 +654,10 @@ mod tests {
     //! Breaking changes require a minor version bump.
     use super::*;
 
-    // test_all_tools_defined — all 13 tools present (7 original + 3 sugar edits + annotate_pages + revert_document + journal)
+    // test_all_tools_defined — all 16 tools present (14 original + create_document + script_tool)
     #[test]
     fn test_all_tools_defined() {
-        assert_eq!(TOOLS.len(), 13, "expected exactly 13 tools");
+        assert_eq!(TOOLS.len(), 16, "expected exactly 16 tools");
         let names: Vec<_> = TOOLS.iter().map(|t| t.name).collect();
         assert!(names.contains(&"inspect_document"));
         assert!(names.contains(&"render_document"));
@@ -573,6 +672,9 @@ mod tests {
         assert!(names.contains(&"annotate_pages"));
         assert!(names.contains(&"revert_document"));
         assert!(names.contains(&"journal"));
+        assert!(names.contains(&"create_document"));
+        assert!(names.contains(&"script_tool"));
+        assert!(names.contains(&"check_update"));
     }
 
     // test_all_tools_idempotent — read-only tools are idempotent (apply_patch is not)
@@ -585,13 +687,14 @@ mod tests {
         }
     }
 
-    // test_all_tools_schema_version — tools have version 1.0.0 or 1.1.0
+    // test_all_tools_schema_version — tools have version 1.0.0, 1.1.0, or 1.2.0
     #[test]
     fn test_all_tools_schema_version() {
         for tool in TOOLS {
             let expected = match tool.name {
                 "apply_patch" | "edit_text" | "edit_cell" | "edit_structure" | "annotate_pages"
                 | "revert_document" | "journal" => "1.1.0",
+                "check_update" | "create_document" | "script_tool" => "1.2.0",
                 _ => "1.0.0",
             };
             assert_eq!(
@@ -618,6 +721,9 @@ mod tests {
         assert!(is_valid_tool("annotate_pages"));
         assert!(is_valid_tool("revert_document"));
         assert!(is_valid_tool("journal"));
+        assert!(is_valid_tool("create_document"));
+        assert!(is_valid_tool("script_tool"));
+        assert!(is_valid_tool("check_update"));
     }
 
     // test_invalid_tool_name — unknown tool returns false
@@ -627,6 +733,7 @@ mod tests {
         assert!(!is_valid_tool("delete"));
         assert!(!is_valid_tool("foobar"));
         assert!(!is_valid_tool(""));
+        assert!(!is_valid_tool("create"));
     }
 
     // test_get_tool_by_name — each tool is findable
@@ -645,6 +752,9 @@ mod tests {
         assert!(get_tool("annotate_pages").is_some());
         assert!(get_tool("revert_document").is_some());
         assert!(get_tool("journal").is_some());
+        assert!(get_tool("create_document").is_some());
+        assert!(get_tool("script_tool").is_some());
+        assert!(get_tool("check_update").is_some());
     }
 
     // test_get_tool_not_found — unknown name returns None
@@ -661,8 +771,8 @@ mod tests {
         let active = active_tool_names();
         assert_eq!(
             active.len(),
-            13,
-            "all 13 tools should be active (none deprecated)"
+            16,
+            "all 16 tools should be active (none deprecated)"
         );
         for name in &active {
             assert!(
@@ -685,8 +795,8 @@ mod tests {
         let names = result.unwrap();
         assert_eq!(
             names.len(),
-            13,
-            "all 13 tools should be active after compliance check"
+            16,
+            "all 16 tools should be active after compliance check"
         );
     }
 
@@ -734,5 +844,35 @@ mod tests {
         let tool = get_tool("apply_patch").expect("apply_patch tool must exist");
         assert!(!tool.idempotent, "apply_patch must not be idempotent");
         assert_eq!(tool.schema_version, "1.1.0");
+    }
+
+    // test_create_document_is_non_idempotent — verify create_document is not idempotent (C7 v1.2)
+    #[test]
+    fn test_create_document_is_non_idempotent() {
+        let tool = get_tool("create_document").expect("create_document tool must exist");
+        assert!(!tool.idempotent, "create_document must not be idempotent");
+        assert_eq!(tool.schema_version, "1.2.0");
+        assert_eq!(tool.params.len(), 8);
+        let param_names: Vec<_> = tool.params.iter().map(|p| p.name).collect();
+        assert!(param_names.contains(&"source_type"));
+        assert!(param_names.contains(&"format"));
+        assert!(param_names.contains(&"content"));
+        assert!(param_names.contains(&"template"));
+        assert!(param_names.contains(&"dry_run"));
+        assert!(param_names.contains(&"target"));
+        assert!(param_names.contains(&"author"));
+        assert!(param_names.contains(&"direct"));
+    }
+
+    // test_script_tool_is_non_idempotent — verify script_tool is not idempotent (C7 v1.2)
+    #[test]
+    fn test_script_tool_is_non_idempotent() {
+        let tool = get_tool("script_tool").expect("script_tool tool must exist");
+        assert!(!tool.idempotent, "script_tool must not be idempotent");
+        assert_eq!(tool.schema_version, "1.2.0");
+        assert_eq!(tool.params.len(), 2);
+        let param_names: Vec<_> = tool.params.iter().map(|p| p.name).collect();
+        assert!(param_names.contains(&"script"));
+        assert!(param_names.contains(&"ir"));
     }
 }

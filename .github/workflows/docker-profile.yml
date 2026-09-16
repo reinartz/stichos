@@ -1,0 +1,35 @@
+# stichos Docker Profile — P3-30 (DIS-06)
+#
+# Builds and verifies the stichos profile image containing:
+#   stichos binary + LibreOffice 26.2.5 + poppler + fonts + qpdf
+#   + typst + pandoc + veraPDF + minisign
+#
+# Reuses HAR-03 pinning (LO 26.2.5, font set) so fontset_hash is identical
+# to the harness image for golden reproducibility.
+
+name: docker-profile
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docker/profile/**'
+      - 'crates/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+  pull_request:
+    paths:
+      - 'docker/profile/**'
+      - 'crates/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build profile image
+        run: bash docker/profile/build.sh

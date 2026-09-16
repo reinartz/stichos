@@ -16,6 +16,8 @@ pub mod journal;
 pub mod macro_check;
 pub mod patch;
 pub mod policy;
+pub mod script;
+pub mod selfupdate;
 pub mod store;
 pub mod testkit;
 pub mod traits;

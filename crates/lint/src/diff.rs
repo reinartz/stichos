@@ -322,6 +322,7 @@ mod tests {
             fields: vec![],
             comments: vec![],
             tracked_changes: vec![],
+            template: None,
         }
     }
 

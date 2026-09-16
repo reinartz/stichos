@@ -1,0 +1,29 @@
+{
+  "name": "stichos/profile",
+  "version": "0.1.0",
+  "description": "Stichos profile image with all dependencies for CI and server deployment",
+  "base": "debian:bookworm-slim",
+  "stichos_version": "0.1.0",
+  "components": {
+    "libreoffice": "26.2.5",
+    "poppler": "24.02.0",
+    "pandoc": "3.7.0.2",
+    "typst": "0.13.1",
+    "qpdf": "10.9.0",
+    "verapdf": "1.6.4",
+    "minisign": "0.11",
+    "fonts": ["Carlito", "Caladea", "Liberation", "Noto Sans", "Noto Sans CJK", "Noto Sans Extra"]
+  },
+  "harness_compat": {
+    "fontset_hash": "sha256:6f26ae4f9bdea927cffa0984d48adcb3e4b60b3fbe263c6a44440a5628927509",
+    "lo_version": "26.2.5",
+    "shared_font_packages": [
+      "fonts-crosextra-carlito",
+      "fonts-crosextra-caladea",
+      "fonts-liberation",
+      "fonts-noto-core",
+      "fonts-noto-cjk",
+      "fonts-noto-extra"
+    ]
+  }
+}

@@ -104,3 +104,40 @@ This table covers threats introduced by the write path.
 
 Review completed by: p2-32 agent
 Date: 2026-09-15
+
+## SEC-06 Phase-3 Security Review
+
+### Phase-3 Attack Surface
+Phase 3 introduces new attack vectors: ODF/PDF writers, OOXML creation engines, pandoc/Chromium/Typst
+authoring paths, and the Rhai sandbox. This review assesses each.
+
+### Review Checklist
+- [x] ODF writer: hostile content.xml → parser rejects, no panic, C3 code returned
+- [x] PDF incremental: hostile mutations → original bytes preserved as prefix, or refusal
+- [x] Creation IR: malformed IR → writer rejects or produces valid package, never panics
+- [x] Pandoc args: no command injection via source content (pandoc invoked as subprocess with
+      explicit args, not interpolated into shell command string)
+- [x] Chromium flags: no flag injection via source HTML (flags are hardcoded, HTML goes to temp file)
+- [x] Typst input: no path traversal via .typ source (compiled from temp file, output controlled)
+- [x] Rhai sandbox: escape attempts (fs, net, env, register_package) → denied, zero side effects
+- [x] Selfupdate: signature verification before swap (ADR-0006)
+- [x] C7 additive-only: no breaking schema changes since v1.0.0
+
+### Findings
+No new vulnerabilities identified beyond M2 threat model. The new write-path components (ODF writer,
+PDF incremental writer, creation engines) follow the same defensive patterns as existing code:
+- All inputs are validated before processing
+- Errors are returned as structured diagnostics (C3 codes), never panicking
+- The append-only invariant on PDF ensures original content is preserved
+- The Rhai sandbox enforces deny-by-default with explicit operation limits
+
+### Mitigations Added
+- ODF writer: mimetype-first enforcement, encryption detection (ODF-E-003), manifest corruption handling
+- PDF incremental writer: append-only prefix invariant, encryption/xref-stream/object-stream/signature
+  detection (PDF-E-003/004/005/006), hostile mutation rejection
+- Creation IR: graceful handling of empty documents, malformed UTF-8, duplicate IDs, missing templates
+- Rhai sandbox: operation limits, call depth limits, script size limits, register_package denial,
+  std/env/fs/net access denied (RHI-E-001/002/003/004/005/006)
+
+Review completed by: p3-27 agent
+Date: 2026-09-16

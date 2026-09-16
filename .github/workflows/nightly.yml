@@ -210,6 +210,17 @@ jobs:
             baseline/nightly-trend.csv
           if-no-files-found: warn
 
+  # P3-30 (DIS-06): docker profile image build + doctor verification
+  # Runs alongside the harness job on nightly; pr.yml handles it on PRs.
+  docker-profile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: [harness]
+    steps:
+      - uses: actions/checkout@v7
+      - name: build profile image
+        run: bash docker/profile/build.sh
+
   platforms:
     # "Nightly green on 3 platforms" (M0 gate) = this platform-agnostic job:
     # manifest-only verify + metrics tests on ubuntu/macos/windows.

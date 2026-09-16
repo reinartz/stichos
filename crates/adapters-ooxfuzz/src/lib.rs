@@ -1,3 +1,6 @@
+#![allow(dead_code)]
+#![allow(unused_imports)]
+
 //! adapters-ooxfuzz: Fuzz corpus for OPC, XML, and PDF readers.
 //!
 //! Deterministic fuzz fixtures and harnesses structured so they can be
@@ -16,6 +19,19 @@
 //! - Deterministic (no randomness, reproducible)
 
 use std::io::Write;
+
+// ---------------------------------------------------------------------------
+// P3-27 fuzz fixtures (require dev-dependencies, test-only)
+// ---------------------------------------------------------------------------
+
+#[cfg(test)]
+pub mod creation_fuzz;
+#[cfg(test)]
+pub mod odf_writer_fuzz;
+#[cfg(test)]
+pub mod pdf_incremental_fuzz;
+#[cfg(test)]
+pub mod rhai_corpus;
 
 // ---------------------------------------------------------------------------
 // OPC fixtures

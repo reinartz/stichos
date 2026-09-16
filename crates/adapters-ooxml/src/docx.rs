@@ -1257,6 +1257,7 @@ fn build_document(
         fields,
         comments: vec![],
         tracked_changes,
+        template: None,
     };
 
     Ok((document, diags))
@@ -1322,6 +1323,7 @@ fn build_document_full(
             fields: vec![],
             comments: vec![],
             tracked_changes: vec![],
+            template: None,
         };
         apply_styles_to_document(&mut tmp_doc, style_map);
     }
@@ -1335,6 +1337,7 @@ fn build_document_full(
         fields,
         comments: vec![],
         tracked_changes,
+        template: None,
     };
 
     Ok((document, diags))

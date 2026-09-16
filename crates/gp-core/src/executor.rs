@@ -868,6 +868,34 @@ impl SurgicalPatchExecutor {
             ("pdf", "PDF incremental writer (P3-14)"),
         ]
     }
+
+    /// Run a sandboxed Rhai script with optional IR document.
+    /// Returns a ScriptResult serialized as JSON value.
+    pub fn run_script(
+        &self,
+        script_source: &str,
+        ir: Option<&IRDocument>,
+        max_ops: u64,
+        max_size: usize,
+    ) -> Result<serde_json::Value, Vec<Diagnostic>> {
+        let config = crate::script::ScriptConfig {
+            max_operations: max_ops,
+            max_script_size: max_size,
+            ..crate::script::ScriptConfig::default()
+        };
+        let result = crate::script::run_script(&config, script_source, ir, 100);
+        Ok(script_result_to_json(result))
+    }
+}
+
+fn script_result_to_json(result: crate::script::ScriptResult) -> serde_json::Value {
+    serde_json::json!({
+        "success": result.success,
+        "output": result.output,
+        "operations_used": result.operations_used,
+        "journal_ids": result.journal_ids,
+        "diagnostics": result.diagnostics,
+    })
 }
 
 /// Minimal OPC part parsing for dry-run enumeration.

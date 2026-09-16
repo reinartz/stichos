@@ -297,6 +297,11 @@ impl Journal {
         self.session.head_id.clone()
     }
 
+    /// Return a reference to the underlying content store.
+    pub fn store(&self) -> &ContentStore {
+        &self.store
+    }
+
     /// Return all journal entries.
     pub fn entries(&self) -> &[JournalEntry] {
         &self.session.entries

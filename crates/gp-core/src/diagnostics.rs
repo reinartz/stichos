@@ -692,6 +692,61 @@ impl DiagnosticRegistry {
             },
         );
 
+        // LIN-I-003: PDF/A validation skipped (tool unavailable)
+        entries.insert(
+            "LIN-I-003",
+            CodeEntry {
+                code: "LIN-I-003",
+                severity: Severity::Info,
+                category: "accessibility",
+                description: "PDF/A validation skipped: {} not available",
+            },
+        );
+
+        // LIN-E-007: PDF/A validation failure
+        entries.insert(
+            "LIN-E-007",
+            CodeEntry {
+                code: "LIN-E-007",
+                severity: Severity::Error,
+                category: "accessibility",
+                description: "PDF/A validation failure: {}",
+            },
+        );
+
+        // LIN-W-007: Missing PDF/A conformance level
+        entries.insert(
+            "LIN-W-007",
+            CodeEntry {
+                code: "LIN-W-007",
+                severity: Severity::Warning,
+                category: "accessibility",
+                description: "Missing PDF/A conformance level: expected {} but found none",
+            },
+        );
+
+        // LIN-W-008: Missing tagged structure (PDF not tagged)
+        entries.insert(
+            "LIN-W-008",
+            CodeEntry {
+                code: "LIN-W-008",
+                severity: Severity::Warning,
+                category: "accessibility",
+                description: "Missing tagged structure: PDF is not tagged",
+            },
+        );
+
+        // LIN-W-009: Missing alt text in PDF
+        entries.insert(
+            "LIN-W-009",
+            CodeEntry {
+                code: "LIN-W-009",
+                severity: Severity::Warning,
+                category: "accessibility",
+                description: "Missing alt text: {} on page {}",
+            },
+        );
+
         // CLI codes
         entries.insert(
             "CLI-E-001",
@@ -729,6 +784,71 @@ impl DiagnosticRegistry {
                 severity: Severity::Error,
                 category: "protocol",
                 description: "Tool not found: {}",
+            },
+        );
+
+        // RHI (rhai-script) codes
+        entries.insert(
+            "RHI-E-001",
+            CodeEntry {
+                code: "RHI-E-001",
+                severity: Severity::Error,
+                category: "sandbox",
+                description: "Sandbox violation: {} — operation denied",
+            },
+        );
+        entries.insert(
+            "RHI-W-001",
+            CodeEntry {
+                code: "RHI-W-001",
+                severity: Severity::Warning,
+                category: "sandbox",
+                description: "Script warning: {}",
+            },
+        );
+        entries.insert(
+            "RHI-E-002",
+            CodeEntry {
+                code: "RHI-E-002",
+                severity: Severity::Error,
+                category: "execution",
+                description: "Script execution error: {}",
+            },
+        );
+        entries.insert(
+            "RHI-E-003",
+            CodeEntry {
+                code: "RHI-E-003",
+                severity: Severity::Error,
+                category: "validation",
+                description: "Script too large: {} bytes (max: {} bytes)",
+            },
+        );
+        entries.insert(
+            "RHI-E-004",
+            CodeEntry {
+                code: "RHI-E-004",
+                severity: Severity::Error,
+                category: "validation",
+                description: "Script exceeded operation limit: {} operations (max: {})",
+            },
+        );
+        entries.insert(
+            "RHI-E-005",
+            CodeEntry {
+                code: "RHI-E-005",
+                severity: Severity::Error,
+                category: "validation",
+                description: "Script exceeded call depth: {} (max: {})",
+            },
+        );
+        entries.insert(
+            "RHI-E-006",
+            CodeEntry {
+                code: "RHI-E-006",
+                severity: Severity::Error,
+                category: "validation",
+                description: "Script exceeded wall-clock limit: {}ms (max: {}ms)",
             },
         );
 
@@ -1655,10 +1775,15 @@ mod tests {
             "LIN-W-004",
             "LIN-W-005",
             "LIN-W-006",
+            "LIN-W-007",
+            "LIN-W-008",
+            "LIN-W-009",
             "LIN-B-001",
             "LIN-B-002",
             "LIN-I-001",
             "LIN-I-002",
+            "LIN-I-003",
+            "LIN-E-007",
             "CLI-E-001",
             "CLI-E-002",
             "MCP-E-001",

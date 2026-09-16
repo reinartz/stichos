@@ -35,3 +35,4 @@ tracing-subscriber = { workspace = true, features = ["env-filter", "std"] }
 anyhow = { workspace = true }
 thiserror = { workspace = true }
 sha2 = { workspace = true }
+uuid = { workspace = true }

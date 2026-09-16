@@ -97,9 +97,17 @@ impl PdfDocumentData {
     }
 }
 
-pub fn parse_pdf(data: &[u8]) -> Result<PdfDocument, Vec<Diagnostic>> {
+pub fn parse_pdf(data: &[u8]) -> Result<gp_core::ir::PdfDocument, Vec<Diagnostic>> {
     let doc = parse_pdf_data(data)?;
     Ok(doc.to_pdf_document())
+}
+
+/// Count the number of pages in a PDF by parsing it with the built-in parser.
+///
+/// Uses the existing `parse_pdf_data` and returns the length of the page tree.
+pub fn page_count(data: &[u8]) -> Result<usize, Vec<Diagnostic>> {
+    let doc = parse_pdf_data(data)?;
+    Ok(doc.pages.len())
 }
 
 pub fn parse_pdf_data(data: &[u8]) -> Result<PdfDocumentData, Vec<Diagnostic>> {
@@ -2117,5 +2125,28 @@ mod tests {
         );
         let doc = parse_pdf_data(&b).expect("parse with tail");
         assert_eq!(doc.pages.len(), 1, "page tree recovered via xref fill-in");
+    }
+
+    // ------------------------------------------------------------------
+    // page_count tests (P3-20)
+    // ------------------------------------------------------------------
+
+    #[test]
+    fn test_page_count_single_page() {
+        let r = page_count(&lo_style_pdf());
+        assert!(r.is_ok(), "page_count should succeed: {:?}", r.err());
+        assert_eq!(r.unwrap(), 1);
+    }
+
+    #[test]
+    fn test_page_count_invalid_pdf() {
+        let r = page_count(b"not a pdf file");
+        assert!(r.is_err(), "page_count should fail for invalid PDF");
+    }
+
+    #[test]
+    fn test_page_count_empty() {
+        let r = page_count(b"");
+        assert!(r.is_err(), "page_count should fail for empty input");
     }
 }

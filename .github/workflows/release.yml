@@ -1,0 +1,331 @@
+name: Release
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., 0.2.0)'
+        required: true
+        type: string
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    name: Build (${{ matrix.target }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-22.04
+            arch: x86_64
+            archive: tar.gz
+            artifact_name: stichos-x86_64-unknown-linux-gnu
+          - target: aarch64-unknown-linux-gnu
+            os: ubuntu-22.04
+            arch: aarch64
+            archive: tar.gz
+            artifact_name: stichos-aarch64-unknown-linux-gnu
+          - target: x86_64-unknown-linux-musl
+            os: ubuntu-22.04
+            arch: x86_64
+            archive: tar.gz
+            artifact_name: stichos-x86_64-unknown-linux-musl
+          - target: aarch64-apple-darwin
+            os: ubuntu-22.04
+            arch: aarch64
+            archive: tar.gz
+            artifact_name: stichos-aarch64-apple-darwin
+          - target: x86_64-apple-darwin
+            os: macos-13
+            arch: x86_64
+            archive: tar.gz
+            artifact_name: stichos-x86_64-apple-darwin
+          - target: x86_64-pc-windows-msvc
+            os: ubuntu-22.04
+            arch: x86_64
+            archive: zip
+            artifact_name: stichos-x86_64-pc-windows-msvc
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Determine version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+          fi
+          echo "version: ${{ steps.version.outputs.version }}"
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-action@stable
+        with:
+          targets: ${{ matrix.target }}
+          rust-version: 1.85
+
+      - name: Install cross-compilation dependencies (Linux hosts)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          # aarch64 cross-compile toolchain
+          if [[ "${{ matrix.target }}" == aarch64-* ]]; then
+            sudo apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+          fi
+          # musl target
+          if [[ "${{ matrix.target }}" == *-linux-musl ]]; then
+            sudo apt-get install -y musl-tools
+          fi
+
+      - name: Install cross-compilation dependencies (macOS hosts)
+        if: runner.os == 'macOS'
+        run: |
+          # x86_64-apple-darwin is native on macos-13
+          true
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ matrix.target }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Build
+        run: |
+          cargo build --release --target ${{ matrix.target }} -p stichos
+          echo "Built successfully for ${{ matrix.target }}"
+
+      - name: Archive artifact
+        run: |
+          BIN_NAME="stichos"
+          VERSION="${{ steps.version.outputs.version }}"
+          TARGET="${{ matrix.target }}"
+          ARCH="${{ matrix.arch }}"
+          EXT="${{ matrix.archive }}"
+
+          if [ "$EXT" = "zip" ]; then
+            # Windows: the binary is stichos.exe
+            BIN_NAME="${BIN_NAME}.exe"
+          fi
+
+          # Determine binary path
+          if [ "$EXT" = "zip" ]; then
+            BIN_PATH="target/${TARGET}/release/${BIN_NAME}"
+          else
+            BIN_PATH="target/${TARGET}/release/${BIN_NAME}"
+          fi
+
+          if [ ! -f "$BIN_PATH" ]; then
+            echo "ERROR: Binary not found at $BIN_PATH"
+            exit 1
+          fi
+
+          # Create archive
+          ARCHIVE="stichos-${VERSION}-${TARGET}.${EXT}"
+          if [ "$EXT" = "zip" ]; then
+            cd target/${TARGET}/release && zip "$REPO_ROOT/${ARCHIVE}" "${BIN_NAME}" && cd "$GITHUB_WORKSPACE"
+          else
+            tar -czf "$ARCHIVE" -C target/${TARGET}/release "${BIN_NAME}"
+          fi
+
+          # Compute checksums
+          if [ "$EXT" = "zip" ]; then
+            sha256sum "$ARCHIVE" | cut -d' ' -f1 > "${ARCHIVE}.sha256"
+          else
+            sha256sum "$ARCHIVE" | cut -d' ' -f1 > "${ARCHIVE}.sha256"
+          fi
+
+          echo "archive=$ARCHIVE" >> $GITHUB_OUTPUT
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: |
+            stichos-*-${{ matrix.target }}.*
+          retention-days: 30
+
+  create-release:
+    name: Create GitHub Release Draft
+    needs: build
+    runs-on: ubuntu-22.04
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Generate release body
+        id: release_body
+        run: |
+          VERSION="${GITHUB_REF#refs/tags/v}"
+
+          # Gather changelog entries or generate from git log
+          if [ -f CHANGELOG.md ]; then
+            # Extract entry for this version from changelog
+            awk -v ver="[$VERSION]" '/^## \[/{found=($0 == "## " ver " " || $0 ~ "^## " ver "-")} found' \
+              CHANGELOG.md > release_body.md 2>/dev/null || true
+          fi
+
+          # Fallback: use git log for commit messages
+          if [ ! -s release_body.md ]; then
+            echo "## Changes since previous release" > release_body.md
+            echo "" >> release_body.md
+            git log --pretty=format:'- %s' --no-merges 2>/dev/null >> release_body.md || true
+          fi
+
+          echo "body=$(cat release_body.md)" >> $GITHUB_OUTPUT
+
+      - name: Create Release Draft
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${GITHUB_REF#refs/tags/v}"
+          TAG="$GITHUB_REF"
+
+          # List artifacts
+          ARTIFACTS=""
+          for f in artifacts/*/stichos-*.*; do
+            if [ -f "$f" ]; then
+              ARTIFACTS="$ARTIFACTS  - $(basename "$f")\n"
+            fi
+          done
+
+          # Create draft release (draft=true)
+          gh release create "$TAG" \
+            --draft \
+            --title "v${VERSION}" \
+            --notes-file release_body.md \
+            $(for f in artifacts/*/stichos-*.*; do
+              if [ -f "$f" ]; then
+                echo "$f"
+              fi
+            done) 2>/dev/null || {
+            # If release already exists, edit it
+            gh release edit "$TAG" \
+              --draft \
+              --title "v${VERSION}" \
+              --notes-file release_body.md 2>/dev/null || \
+            echo "Could not create/edit release (may need personal access token for artifact upload)"
+          }
+
+  winget-manifest:
+    name: Generate Winget Manifest
+    needs: build
+    runs-on: ubuntu-22.04
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Determine version
+        run: |
+          VERSION="${GITHUB_REF#refs/tags/v}"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Generate winget manifest
+        run: |
+          VERSION="${GITHUB_REF#refs/tags/v}"
+          DATE=$(date +%Y-%m-%d)
+
+          # Download linux-gnu artifact to compute checksum
+          mkdir -p dist/winget
+
+          # We need the actual download URLs for the release
+          # For the draft, use placeholder URLs that will be updated manually
+          cat > dist/winget/stichos.winget.yaml << 'WINGET_EOF'
+          PackageIdentifier: stichos.stichos
+          PackageVersion: VERSION_PLACEHOLDER
+          ReleaseDate: DATE_PLACEHOLDER
+          InstallerType: zip
+          Installers:
+            - Architecture: x64
+              Url: https://github.com/reinartz/stichos/releases/download/vVERSION_PLACEHOLDER/stichos-x86_64-unknown-linux-gnu.tar.gz
+              Sha256: SHA256_PLACEHOLDER
+          ManifestType: singlePackageVersion
+          WINGET_EOF
+
+          sed -i "s/VERSION_PLACEHOLDER/$VERSION/g" dist/winget/stichos.winget.yaml
+          sed -i "s|DATE_PLACEHOLDER|$DATE|g" dist/winget/stichos.winget.yaml
+
+          echo "Generated winget manifest at dist/winget/stichos.winget.yaml"
+          cat dist/winget/stichos.winget.yaml
+
+      - name: Upload winget manifest
+        uses: actions/upload-artifact@v4
+        with:
+          name: winget-manifest
+          path: dist/winget/stichos.winget.yaml
+
+  homebrew-formula:
+    name: Generate Homebrew Formula Draft
+    needs: build
+    runs-on: ubuntu-22.04
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Generate Homebrew formula
+        run: |
+          VERSION="${GITHUB_REF#refs/tags/v}"
+
+          mkdir -p dist/homebrew
+
+          cat > dist/homebrew/stichos.rb << 'FORMULA_EOF'
+          class Sticho < Formula
+            desc "Local proof/render fidelity toolchain for office documents"
+            homepage "https://github.com/reinartz/stichos"
+            version "VERSION_PLACEHOLDER"
+
+            on_macos do
+              if Hardware::CPU.arm?
+                url "https://github.com/reinartz/stichos/releases/download/vVERSION_PLACEHOLDER/stichos-aarch64-apple-darwin.tar.gz"
+                sha256 "SHA256_PLACEHOLDER_MACOS_ARM"
+              else
+                url "https://github.com/reinartz/stichos/releases/download/vVERSION_PLACEHOLDER/stichos-x86_64-apple-darwin.tar.gz"
+                sha256 "SHA256_PLACEHOLDER_MACOS_X64"
+              end
+            end
+
+            on_linux do
+              if Hardware::CPU.arm?
+                url "https://github.com/reinartz/stichos/releases/download/vVERSION_PLACEHOLDER/stichos-aarch64-unknown-linux-gnu.tar.gz"
+                sha256 "SHA256_PLACEHOLDER_LINUX_ARM"
+              else
+                url "https://github.com/reinartz/stichos/releases/download/vVERSION_PLACEHOLDER/stichos-x86_64-unknown-linux-gnu.tar.gz"
+                sha256 "SHA256_PLACEHOLDER_LINUX_X64"
+              end
+            end
+
+            def install
+              bin.install "stichos"
+            end
+          end
+          FORMULA_EOF
+
+          sed -i "s/VERSION_PLACEHOLDER/$VERSION/g" dist/homebrew/stichos.rb
+
+          echo "Generated Homebrew formula at dist/homebrew/stichos.rb"
+          cat dist/homebrew/stichos.rb
+
+      - name: Upload formula
+        uses: actions/upload-artifact@v4
+        with:
+          name: homebrew-formula
+          path: dist/homebrew/stichos.rb

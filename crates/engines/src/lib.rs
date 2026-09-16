@@ -6,6 +6,7 @@
 pub mod cache;
 pub mod capability;
 pub mod chromium;
+pub mod creation;
 pub mod doctor;
 pub mod libreoffice;
 pub mod mock;

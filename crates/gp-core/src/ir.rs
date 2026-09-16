@@ -7,6 +7,129 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 
+// ====================================================================
+// Creation path types (P3-19: pandoc creation path)
+// ====================================================================
+
+/// The source of content for creation (write-direction).
+///
+/// Used by the creation surface to represent the input format
+/// before conversion to a target document format (docx, odt, pdf).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub enum CreateSource {
+    /// Markdown input (CommonMark / pandoc markdown).
+    Markdown {
+        /// Raw markdown bytes.
+        content: Vec<u8>,
+    },
+    /// HTML input (full HTML document or fragment).
+    Html {
+        /// Raw HTML bytes.
+        content: Vec<u8>,
+    },
+    /// Typst input for PDF compilation.
+    Typst {
+        /// Raw typst source bytes.
+        content: Vec<u8>,
+    },
+}
+
+impl CreateSource {
+    /// Return the source format name for pandoc/typst commands.
+    pub fn format_name(&self) -> &'static str {
+        match self {
+            CreateSource::Markdown { .. } => "markdown",
+            CreateSource::Html { .. } => "html",
+            CreateSource::Typst { .. } => "typ",
+        }
+    }
+
+    /// Return the content bytes.
+    pub fn content(&self) -> &[u8] {
+        match self {
+            CreateSource::Markdown { content } => content,
+            CreateSource::Html { content } => content,
+            CreateSource::Typst { content } => content,
+        }
+    }
+
+    /// Return true if this source can be processed by pandoc
+    /// (markdown and html only; typst requires typst engine).
+    pub fn is_pandoc_compatible(&self) -> bool {
+        matches!(
+            self,
+            CreateSource::Markdown { .. } | CreateSource::Html { .. }
+        )
+    }
+
+    /// Return true if this source can be processed by typst (typst only).
+    pub fn is_typst_compatible(&self) -> bool {
+        matches!(self, CreateSource::Typst { .. })
+    }
+}
+
+/// The target output format for creation.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum CreateTarget {
+    /// Microsoft Word document (.docx).
+    Docx,
+    /// OpenDocument Text (.odt).
+    Odt,
+    /// PDF document.
+    Pdf,
+}
+
+impl CreateTarget {
+    /// Return the pandoc target format string.
+    pub fn pandoc_format(&self) -> &'static str {
+        match self {
+            CreateTarget::Docx => "docx",
+            CreateTarget::Odt => "odt",
+            CreateTarget::Pdf => "pdf",
+        }
+    }
+}
+
+/// Response from a creation operation.
+///
+/// Contains the created document bytes along with provenance metadata.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct CreationResponse {
+    /// Unique document identifier assigned by the store.
+    pub document_id: String,
+    /// The created document bytes.
+    pub bytes: Vec<u8>,
+    /// The output format.
+    pub format: String,
+    /// Which engine rendered the document.
+    pub rendered_by: crate::fidelity::RendererInfo,
+    /// The source that was converted.
+    pub source: CreateSource,
+}
+
+/// Metadata about a creation operation for QA logging.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct CreationMetadata {
+    /// The engine used for creation.
+    pub engine: String,
+    /// The pandoc/typst version string.
+    pub engine_version: Option<String>,
+    /// The source format name.
+    pub source_format: String,
+    /// The target format name.
+    pub target_format: String,
+    /// Whether a reference document (template) was used.
+    pub has_reference_doc: bool,
+}
+
+impl CreationMetadata {
+    /// Serialize to JSON bytes.
+    pub fn to_json(&self) -> Vec<u8> {
+        serde_json::to_vec(self).unwrap_or_default()
+    }
+}
+
 /// The current IR schema version constant.
 pub const IR_VERSION: &str = "1.0.0";
 
@@ -231,6 +354,11 @@ pub struct Document {
     pub comments: Vec<Comment>,
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub tracked_changes: Vec<TrackedChange>,
+    /// Optional reference to a template document ID. When set, the document
+    /// may be created from this template, preserving style/theme/master parts
+    /// byte-for-byte and replacing only content parts with IR-derived content.
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub template: Option<String>,
 }
 
 /// A section of content within a document.
@@ -1040,6 +1168,7 @@ mod tests {
             fields: vec![],
             comments: vec![],
             tracked_changes: vec![],
+            template: None,
         };
         assert_eq!(doc.ir_version, IR_VERSION);
         assert_eq!(doc.sections.len(), 1);
@@ -1156,6 +1285,7 @@ mod tests {
             fields: vec![],
             comments: vec![],
             tracked_changes: vec![],
+            template: None,
         };
 
         let json = serde_json::to_string(&doc).expect("serialize");
@@ -1350,6 +1480,7 @@ mod tests {
                 date: Some("2026-01-01T00:00:00Z".to_string()),
                 change_id: Some("9001".to_string()),
             }],
+            template: None,
         };
         assert_eq!(doc.fields.len(), 1);
         assert_eq!(doc.comments.len(), 1);
@@ -1378,6 +1509,7 @@ mod tests {
             fields: vec![],
             comments: vec![],
             tracked_changes: vec![],
+            template: None,
         };
         let json = serde_json::to_string(&doc).expect("serialize");
         // Empty vecs with skip_serializing_if are omitted from JSON

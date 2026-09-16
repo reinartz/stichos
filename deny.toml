@@ -18,7 +18,12 @@ targets = [
 [advisories]
 db-urls = ["https://github.com/RustSec/advisory-db"]
 # RustSec advisory gate (plan §3.3 "advisory gate").
-ignore = []
+ignore = [
+    # Transitive dep via pdf-writer (adapters-pdf); unmaintained but no known CVE
+    "RUSTSEC-2024-0436",
+    # Transitive dep via rhai (P3-24 script sandbox); unmaintained, no safe upgrade
+    "RUSTSEC-2026-0249",
+]
 
 [licenses]
 # Plan §3.3 allow-list: MIT / Apache-2.0 / BSD / ISC / Unicode
@@ -31,6 +36,8 @@ allow = [
     "ISC",
     "Unicode-DFS-2016",
     "Unicode-3.0",
+    "MPL-2.0",
+    "CC0-1.0",
 ]
 confidence-threshold = 0.8
 
@@ -58,7 +65,15 @@ deny = [
     { crate = "typst", reason = "Typst engine is CLI shell-out only (ADR-0004, D3); typst crate banned to enforce engine-never-linked invariant" },
     { crate = "typst*", reason = "any typst binding is linked Rust code; engines must be spawned subprocesses (ADR-0004, D3)" },
 ]
-skip = []
+# Exception: `rhai` is an embedded pure-Rust scripting VM (not a renderer engine).
+# It has no fs/net/env access by default, is D2-safe (no C deps), and is scoped
+# to store/IR/patch primitives only. The "engines never linked" invariant (D3)
+# applies to renderer subprocesses, not to embedded scripting engines.
+skip = [
+    # NOTE: rhapi is intentionally NOT banned — see exception comment above.
+    # If a future reviewer wants to add it to bans for consistency, the ADR-0005
+    # exception rationale must be updated first.
+]
 skip-tree = []
 
 [sources]

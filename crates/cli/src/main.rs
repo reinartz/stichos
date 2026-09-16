@@ -3,7 +3,7 @@
 //! CLI binary with verbs: inspect, render, diff, doctor, serve, apply.
 //! Docx edits land as tracked revisions by default (D7). Use --direct to opt out.
 
-use anyhow::{Context, Result};
+use anyhow::{bail, Context, Result};
 use clap::{Parser, Subcommand};
 use mcp::dispatch::{self, BoxedHandler};
 
@@ -16,6 +16,7 @@ mod journal_tool;
 mod perf_tool;
 mod region;
 mod render;
+mod script_tool;
 mod sugar_edits;
 
 #[derive(Parser)]
@@ -204,6 +205,90 @@ enum Command {
         #[arg(long, default_value = "2000")]
         target: f64,
     },
+    /// Create a new document from source content.
+    ///
+    /// Routes to the appropriate engine based on source_type + format:
+    /// - markdown/html → docx/odt: pandoc
+    /// - html → pdf: chromium
+    /// - typ → pdf: typst
+    /// - target=existing-docx: create-as-revisions
+    Create {
+        /// Source content (inline markdown/html/typ)
+        #[arg(long)]
+        source_content: Option<String>,
+
+        /// Path to source file (markdown, html, or typ)
+        #[arg(long)]
+        source: Option<String>,
+
+        /// Target format: docx, odt, pdf
+        #[arg(long)]
+        format: Option<String>,
+
+        /// Source type: markdown, html, typ
+        #[arg(long)]
+        source_type: Option<String>,
+
+        /// Path to template/reference document
+        #[arg(long)]
+        template: Option<std::path::PathBuf>,
+
+        /// Dry run: preview without writing
+        #[arg(long)]
+        dry_run: bool,
+
+        /// Path to existing docx for create-as-revisions mode
+        #[arg(long)]
+        target: Option<std::path::PathBuf>,
+
+        /// Author for revision markup
+        #[arg(long, default_value = "agent")]
+        author: String,
+
+        /// Apply directly without tracked-revisions
+        #[arg(long)]
+        direct: bool,
+
+        /// Output as JSON
+        #[arg(long, short = 'j')]
+        json: bool,
+    },
+    /// Execute a sandboxed Rhai script.
+    Script {
+        /// Path to the Rhai script file.
+        script: std::path::PathBuf,
+        /// IR document as JSON file.
+        #[arg(long)]
+        ir: Option<std::path::PathBuf>,
+        /// Maximum number of operations (default: 1000000).
+        #[arg(long, default_value = "1000000")]
+        max_ops: u64,
+        /// Maximum script size in bytes (default: 524288).
+        #[arg(long, default_value = "524288")]
+        max_size: usize,
+        /// Output as JSON.
+        #[arg(long, short = 'j')]
+        json: bool,
+    },
+    /// Check for and install available updates.
+    ///
+    /// Opt-in only: never triggered implicitly. Verifies minisign signature
+    /// and SHA-256 hash before swapping the binary. Rolls back on any failure.
+    Update {
+        /// Update channel to check (default: "stable").
+        /// For testing, use a local fixture path.
+        #[arg(long, default_value = "stable")]
+        channel: String,
+        /// Show what would happen without making changes.
+        #[arg(long)]
+        dry_run: bool,
+        /// Skip the confirmation prompt.
+        #[arg(long)]
+        force: bool,
+        /// Output as JSON.
+        #[arg(long, short = 'j')]
+        json: bool,
+    },
 }
 
 #[tokio::main]
@@ -340,6 +425,49 @@ async fn main() -> Result<()> {
         Command::Perf { fixtures, target } => {
             let exit_code = perf_tool::run_perf(fixtures, target)?;
             std::process::exit(exit_code);
+        }
+        Command::Create {
+            source_content,
+            source,
+            format,
+            source_type,
+            template,
+            dry_run,
+            target,
+            author,
+            direct,
+            json,
+        } => {
+            cmd_create(
+                source_content.as_deref(),
+                source.as_deref(),
+                format.as_deref(),
+                source_type.as_deref(),
+                template.as_deref(),
+                dry_run,
+                target.as_deref(),
+                &author,
+                direct,
+                json,
+            )
+            .await?;
+        }
+        Command::Script {
+            script,
+            ir,
+            max_ops,
+            max_size,
+            json,
+        } => {
+            cmd_script(&script, ir.as_deref(), max_ops, max_size, json).await?;
+        }
+        Command::Update {
+            channel,
+            dry_run,
+            force,
+            json,
+        } => {
+            cmd_update(&channel, dry_run, force, json)?;
         }
     }
 
@@ -558,6 +686,212 @@ async fn cmd_diff(
 async fn cmd_doctor(json: bool) -> Result<()> {
     let output = doctor_tool::run_doctor(json)?;
     println!("{}", output);
+    Ok(())
+}
+
+#[allow(clippy::too_many_arguments)]
+async fn cmd_create(
+    source_content: Option<&str>,
+    source: Option<&str>,
+    format: Option<&str>,
+    source_type: Option<&str>,
+    template: Option<&std::path::Path>,
+    dry_run: bool,
+    target: Option<&std::path::Path>,
+    author: &str,
+    direct: bool,
+    json: bool,
+) -> Result<()> {
+    // Validate: source OR source_content required
+    let content = match (source_content, source) {
+        (Some(_), Some(_)) => {
+            bail!("cannot specify both --source-content and --source");
+        }
+        (None, Some(source_path)) => std::fs::read_to_string(source_path)
+            .with_context(|| format!("failed to read source file: {}", source_path))?,
+        (Some(content), None) => content.to_string(),
+        (None, None) => {
+            bail!("must provide either --source or --source-content");
+        }
+    };
+
+    // Validate: format required
+    let target_format = format.context("must provide --format (docx, odt, or pdf)")?;
+
+    // Validate: source_type required
+    let source_type_str =
+        source_type.context("must provide --source-type (markdown, html, or typ)")?;
+
+    // Validate format
+    match target_format {
+        "docx" | "odt" | "pdf" => {}
+        _ => {
+            bail!(
+                "invalid format '{}': must be one of: docx, odt, pdf",
+                target_format
+            );
+        }
+    }
+
+    // Validate source_type
+    match source_type_str {
+        "markdown" | "html" | "typ" => {}
+        _ => {
+            bail!(
+                "invalid source_type '{}': must be one of: markdown, html, typ",
+                source_type_str
+            );
+        }
+    }
+
+    // Read template if provided
+    let template_bytes = if let Some(tpath) = template {
+        Some(
+            std::fs::read(tpath)
+                .with_context(|| format!("failed to read template: {}", tpath.display()))?,
+        )
+    } else {
+        None
+    };
+
+    // Build input bytes
+    let input = content.as_bytes();
+
+    // Convert target_format to lowercase for engine
+    let target_format = target_format.to_lowercase();
+    let source_type_str = source_type_str.to_lowercase();
+
+    // Convert target path to string
+    let target_path = target.map(|p| p.to_string_lossy().to_string());
+
+    // Call the unified creation API
+    let result = engines::creation::create_document(
+        input,
+        &source_type_str,
+        &target_format,
+        template_bytes.as_deref(),
+        dry_run,
+        target_path.as_deref(),
+        author,
+        direct,
+    );
+
+    // Handle result
+    match result {
+        Ok(json_value) => {
+            if json {
+                println!("{}", serde_json::to_string_pretty(&json_value)?);
+            } else {
+                // Text output: summary
+                if let Some(status) = json_value.get("status").and_then(|s| s.as_str()) {
+                    match status {
+                        "created" => {
+                            if let Some(doc_id) =
+                                json_value.get("document_id").and_then(|d| d.as_str())
+                            {
+                                eprintln!(
+                                    "create: {} (format: {})",
+                                    doc_id,
+                                    json_value["format"].as_str().unwrap_or("?")
+                                );
+                            }
+                            if let Some(rendered_by) = json_value
+                                .get("rendered_by")
+                                .and_then(|r| r.get("engine_id"))
+                                .and_then(|e| e.as_str())
+                            {
+                                eprintln!("  rendered_by: {}", rendered_by);
+                            }
+                        }
+                        "created_with_revisions" => {
+                            if let Some(output_path) =
+                                json_value.get("output_path").and_then(|p| p.as_str())
+                            {
+                                eprintln!("create: revisions written to {}", output_path);
+                            }
+                            if let Some(revs) =
+                                json_value.get("revisions_applied").and_then(|r| r.as_u64())
+                            {
+                                eprintln!("  revisions applied: {}", revs);
+                            }
+                        }
+                        _ => {
+                            eprintln!("create: {}", status);
+                        }
+                    }
+                }
+                println!("{}", serde_json::to_string_pretty(&json_value)?);
+            }
+        }
+        Err(diags) => {
+            let error_json = serde_json::json!({
+                "status": "error",
+                "diagnostics": diags,
+            });
+            eprintln!("create failed:");
+            for diag in &diags {
+                eprintln!("  [{}] {}: {}", diag.severity, diag.code, diag.message);
+            }
+            println!("{}", serde_json::to_string_pretty(&error_json)?);
+            std::process::exit(1);
+        }
+    }
+
+    Ok(())
+}
+
+async fn cmd_script(
+    script_path: &std::path::Path,
+    ir_path: Option<&std::path::Path>,
+    max_ops: u64,
+    max_size: usize,
+    json: bool,
+) -> Result<()> {
+    // Parse optional IR file
+    let ir_json: Option<String> = if let Some(ir_p) = ir_path {
+        Some(script_tool::try_parse_ir(ir_p)?)
+    } else {
+        None
+    };
+
+    let result_json =
+        script_tool::run_script_cli(script_path, ir_json.as_deref(), max_ops, max_size)?;
+
+    if json {
+        println!("{}", serde_json::to_string_pretty(&result_json)?);
+    } else {
+        // Text output: summary
+        if let Some(success) = result_json.get("success").and_then(|s| s.as_bool()) {
+            if success {
+                eprintln!(
+                    "script: success (operations: {})",
+                    result_json["operations_used"]
+                );
+            } else {
+                eprintln!("script: failed");
+            }
+        }
+        if let Some(journal_ids) = result_json.get("journal_ids").and_then(|j| j.as_array()) {
+            if !journal_ids.is_empty() {
+                eprintln!("  journal entries: {}", journal_ids.len());
+            }
+        }
+        if let Some(diagnostics) = result_json.get("diagnostics").and_then(|d| d.as_array()) {
+            for diag in diagnostics {
+                if let Some(code) = diag.get("code").and_then(|c| c.as_str()) {
+                    if let Some(msg) = diag.get("message").and_then(|m| m.as_str()) {
+                        eprintln!("  {}: {}", code, msg);
+                    }
+                }
+            }
+        }
+        if let Some(output) = result_json.get("output").and_then(|o| o.as_str()) {
+            if !output.is_empty() {
+                println!("{}", output.trim());
+            }
+        }
+    }
+
     Ok(())
 }
 
@@ -1002,6 +1336,102 @@ async fn cmd_serve(transport: &str, port: u16) -> Result<()> {
                         journal_tool::list_journal(&path, session_id).map_err(|e| e.to_string())?;
                     Ok(result)
                 }
+                "create_document" => {
+                    let source_type = args["source_type"]
+                        .as_str()
+                        .ok_or("missing required field: source_type")?;
+                    let format = args["format"]
+                        .as_str()
+                        .ok_or("missing required field: format")?;
+                    let content = args["content"]
+                        .as_str()
+                        .ok_or("missing required field: content")?
+                        .as_bytes()
+                        .to_vec();
+                    let template = args["template"]
+                        .as_str()
+                        .and_then(|s| std::fs::read(s).ok());
+                    let dry_run = args["dry_run"].as_bool().unwrap_or(false);
+                    let target = args["target"].as_str();
+                    let author = args["author"].as_str().unwrap_or("agent").to_string();
+                    let direct = args["direct"].as_bool().unwrap_or(false);
+
+                    let result = engines::creation::create_document(
+                        &content,
+                        source_type,
+                        format,
+                        template.as_deref(),
+                        dry_run,
+                        target,
+                        &author,
+                        direct,
+                    )
+                    .map_err(|diags| {
+                        let msgs: Vec<_> = diags.iter().map(|d| d.message.clone()).collect();
+                        msgs.join("; ")
+                    })?;
+                    Ok(result)
+                }
+                "script_tool" => {
+                    let script = args["script"]
+                        .as_str()
+                        .ok_or("missing required field: script")?;
+                    let ir: Option<String> = args
+                        .get("ir")
+                        .and_then(|v| v.as_str())
+                        .map(|s| s.to_string());
+
+                    // Write script to temp file to pass to run_script_cli
+                    let tmp =
+                        std::env::temp_dir().join(format!("script_{}.rhai", uuid::Uuid::new_v4()));
+                    std::fs::write(&tmp, script)
+                        .map_err(|e| format!("failed to write temp script: {}", e))?;
+
+                    let ir_json = ir.as_deref();
+                    let max_ops: u64 = args["max_ops"].as_u64().unwrap_or(1_000_000);
+                    let max_size: usize = args["max_size"].as_u64().unwrap_or(524288) as usize;
+
+                    let result = script_tool::run_script_cli(&tmp, ir_json, max_ops, max_size)
+                        .map_err(|e| e.to_string())?;
+
+                    // Clean up temp file
+                    let _ = std::fs::remove_file(&tmp);
+
+                    Ok(result)
+                }
+                "check_update" => {
+                    use gp_core::selfupdate::{check_available, UpdateChannel};
+                    use std::path::PathBuf;
+
+                    let channel_name = args["channel"].as_str().unwrap_or("stable").to_string();
+                    let current_version = args["current_version"]
+                        .as_str()
+                        .unwrap_or("unknown")
+                        .to_string();
+
+                    let update_channel = if channel_name == "stable" {
+                        UpdateChannel::stable()
+                    } else {
+                        UpdateChannel::fixture(PathBuf::from(&channel_name))
+                    };
+
+                    match check_available(&update_channel, &current_version) {
+                        Ok(Some(manifest)) => Ok(serde_json::json!({
+                            "available": true,
+                            "current_version": current_version,
+                            "new_version": manifest.version,
+                            "download_url": manifest.download_url,
+                            "notes": manifest.notes,
+                        })),
+                        Ok(None) => Ok(serde_json::json!({
+                            "available": false,
+                            "current_version": current_version,
+                            "new_version": current_version,
+                            "message": "already on the latest version",
+                        })),
+                        Err(e) => Err(format!("check_update failed: {}", e)),
+                    }
+                }
                 _ => Err(format!("unknown tool: {}", name)),
             }
         }
@@ -1150,4 +1580,61 @@ fn cmd_schema() {
     println!("INV-2 schema matrix: verified");
     println!(">20-image requests: rejected (truncated to 20 with budget_exceeded flag)");
     println!("Dimension clamp: 2000px per side enforced");
+}
+
+/// Handle the `stichos update` subcommand.
+fn cmd_update(channel: &str, dry_run: bool, _force: bool, json: bool) -> Result<()> {
+    use gp_core::selfupdate::{download_and_install, UpdateChannel};
+    use std::path::PathBuf;
+
+    // Determine channel
+    let channel_name = channel.to_lowercase();
+    let update_channel = if channel_name == "stable" {
+        UpdateChannel::stable()
+    } else if channel_name == "fixture" {
+        // Use a test fixture directory if available
+        UpdateChannel::fixture(PathBuf::from(
+            "/localdata/workspace/stichos/corpus/fixtures/update",
+        ))
+    } else {
+        // Treat as a file path for fixture channels
+        UpdateChannel::fixture(PathBuf::from(channel))
+    };
+
+    // Get current binary path
+    let current_bin = std::env::current_exe().unwrap_or_else(|_| PathBuf::from("stichos"));
+
+    // Run the update
+    let result = download_and_install(&update_channel, &current_bin, dry_run);
+
+    // Output
+    if json {
+        println!("{}", serde_json::to_string_pretty(&result)?);
+    } else {
+        eprintln!(
+            "update: {} ({} → {})",
+            result.message, result.current_version, result.new_version
+        );
+        if result.rolled_back {
+            eprintln!("  [rollback] binary restored from backup");
+        }
+        for diag in &result.diagnostics {
+            eprintln!("  [{}] {}", diag.chars().take(10).collect::<String>(), diag);
+        }
+        if result.success && !dry_run {
+            eprintln!("  status: success");
+        } else if dry_run {
+            eprintln!("  status: dry-run (no changes made)");
+        } else if result.rolled_back {
+            eprintln!("  status: rolled back");
+        } else {
+            eprintln!("  status: failed");
+        }
+    }
+
+    if !result.success && !dry_run {
+        std::process::exit(1);
+    }
+
+    Ok(())
 }
