@@ -48,13 +48,13 @@ impl PatchExecutor for PdfPatchExecutor {
         })?;
         // Return empty result — actual writing is done via executor.execute()
         // which calls the PDF incremental writer
-        Ok(serde_json::to_vec(&ops).map_err(|e| {
+        serde_json::to_vec(&ops).map_err(|e| {
             vec![Diagnostic::new(
                 "GP-E-002",
                 gp_core::diagnostics::Severity::Error,
                 format!("Patch serialization error: {}", e),
             )]
-        })?)
+        })
     }
 
     fn apply_op(&self, _op: &PatchOp) -> Result<ApplyResult, Vec<Diagnostic>> {
@@ -74,7 +74,7 @@ mod tests {
 
     #[test]
     fn test_pdf_patch_executor_default() {
-        let executor = PdfPatchExecutor::default();
+        let executor = PdfPatchExecutor;
         let _ = executor;
     }
 
@@ -86,7 +86,7 @@ mod tests {
 
     #[test]
     fn test_pdf_patch_executor_apply_empty() {
-        let executor = PdfPatchExecutor::default();
+        let executor = PdfPatchExecutor;
         let result = executor.apply(b"[]").unwrap();
         let ops: Vec<PatchOp> = serde_json::from_slice(&result).unwrap();
         assert!(ops.is_empty());
@@ -94,7 +94,7 @@ mod tests {
 
     #[test]
     fn test_pdf_patch_executor_apply_invalid_json() {
-        let executor = PdfPatchExecutor::default();
+        let executor = PdfPatchExecutor;
         let result = executor.apply(b"not json");
         assert!(result.is_err());
         let diags = result.unwrap_err();
@@ -104,7 +104,7 @@ mod tests {
 
     #[test]
     fn test_pdf_patch_executor_apply_op() {
-        let executor = PdfPatchExecutor::default();
+        let executor = PdfPatchExecutor;
         let op = PatchOp::ReplaceText {
             elem: gp_core::ir::ElementId::content_anchored("test", &["t:0"], "hello"),
             old: "hello".to_string(),

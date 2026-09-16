@@ -498,7 +498,7 @@ pub fn detect_signatures(data: &[u8]) -> Option<Vec<SignatureInfo>> {
         if win == b"/Type/Sig" {
             let offset = win.as_ptr() as usize - data.as_ptr() as usize;
             // Avoid duplicate with /Type /Sig check
-            if offset > 0 && data[offset - 1..offset].iter().any(|&b| b == b' ') {
+            if offset > 0 && data[offset - 1..offset].contains(&b' ') {
                 continue;
             }
             locations.push(SignatureInfo {
@@ -712,10 +712,8 @@ fn object_is_obj_stm(obj: &Object) -> bool {
         Object::Stream(s) => &s.dict,
         _ => return false,
     };
-    if let Ok(val) = dict.get(b"Type") {
-        if let Object::Name(n) = val {
-            return n.as_slice() == b"ObjStm";
-        }
+    if let Ok(Object::Name(n)) = dict.get(b"Type") {
+        return n.as_slice() == b"ObjStm";
     }
     false
 }
@@ -731,13 +729,13 @@ fn compute_max_object_number(
 ) -> u32 {
     let mut max_num: u32 = 0;
 
-    for (obj_id, _) in &doc.objects {
+    for obj_id in doc.objects.keys() {
         max_num = max_num.max(obj_id.0);
     }
-    for (obj_id, _) in add_mutations {
+    for obj_id in add_mutations.keys() {
         max_num = max_num.max(obj_id.0);
     }
-    for (obj_id, _) in replace_mutations {
+    for obj_id in replace_mutations.keys() {
         max_num = max_num.max(obj_id.0);
     }
 
@@ -1414,7 +1412,7 @@ mod tests {
             let path = entry.path();
             if path.is_dir() {
                 collect_pdfs(&path, out)?;
-            } else if path.extension().map_or(false, |e| e == "pdf") {
+            } else if path.extension().is_some_and(|e| e == "pdf") {
                 out.push(path);
             }
         }
@@ -1682,15 +1680,7 @@ mod tests {
 
     #[test]
     fn test_signature_detection_adobe_pkcs7() {
-        let mut pdf = make_minimal_pdf();
-        // Embed an Adobe.PPKMS marker in a way that won't break parsing
-        // Insert it as a fake stream dictionary key
-        let marker = b"/Filter /Adobe.PPKMS";
-        // Replace the stream content to include signature marker
-        let idx = pdf
-            .windows(marker.len())
-            .position(|w| w != marker)
-            .unwrap_or(0);
+        let pdf = make_minimal_pdf();
         // Just scan directly
         assert!(
             detect_signatures(&pdf).is_none(),
@@ -1718,7 +1708,7 @@ mod tests {
 
     #[test]
     fn test_signature_detection_adobe_etsi() {
-        let mut pdf = make_minimal_pdf();
+        let pdf = make_minimal_pdf();
         assert!(
             detect_signatures(&pdf).is_none(),
             "clean PDF has no signatures"
