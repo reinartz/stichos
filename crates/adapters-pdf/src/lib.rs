@@ -11,6 +11,8 @@
 //! - `form`: AcroForm (interactive form fields) and XFA detection
 //! - `text`: text extraction with word-level bounding boxes
 //! - `qpdf`: external `qpdf --check` integration for PDF validation
+//! - `incremental`: append-only incremental PDF writer (P3-12)
+//! - `patch_executor`: PDF-aware patch executor implementing PatchExecutor trait (P3-14)
 
 pub mod annot;
 pub mod form;
@@ -18,5 +20,6 @@ pub mod incremental;
 pub mod metadata;
 pub mod outline;
 pub mod parser;
+pub mod patch_executor;
 pub mod qpdf;
 pub mod text;

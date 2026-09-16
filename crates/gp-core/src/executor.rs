@@ -2,7 +2,7 @@
 //!
 //! `SurgicalPatchExecutor` routes IR patch operations for OOXML formats (docx, xlsx, pptx)
 //! and ODF formats (odt, ods, odp) with explicit C3 diagnostic codes.
-//! PDF remains refused until Wave C.
+//! PDF is writable via incremental writer (P3-14).
 //!
 //! # Format routing
 //!
@@ -12,12 +12,12 @@
 //! | `xlsx` | Route to OOXML xlsx writer |
 //! | `pptx` | Route to OOXML pptx writer |
 //! | `odt` / `ods` / `odp` | Route to ODF writer (P3-10) |
-//! | `pdf` | Refuse with `PDF-E-001` |
+//! | `pdf` | Incremental writer (P3-14) |
 //! | unknown | Refuse with `GP-E-002` |
 //!
 //! # Contract conformance
 //!
-//! - **PAT-01**: executor routes correctly, refuses only PDF with zero side effects
+//! - **PAT-01**: executor routes correctly, refuses only encrypted/signed PDF
 //! - **PAT-02**: dry-run mode produces diff preview without writes
 //! - **INV-1**: refusal produces zero side effects, no file modifications
 
@@ -87,12 +87,13 @@ impl FormatType {
                 | FormatType::Odt
                 | FormatType::Ods
                 | FormatType::Odp
+                | FormatType::Pdf
         )
     }
 
     /// Return true if this format should be refused.
     pub fn is_unsupported(&self) -> bool {
-        matches!(self, FormatType::Pdf)
+        false
     }
 }
 
@@ -663,7 +664,7 @@ impl SurgicalPatchExecutor {
             "GP-I-002",
             Severity::Info,
             format!(
-                "Executor stub: {} ops for {} (actual execution via adapters-ooxml or adapters-odf)",
+                "Executor stub: {} ops for {} (actual execution via adapters-ooxml, adapters-odf, or adapters-pdf)",
                 op_count, result.format
             ),
         )];
@@ -864,7 +865,7 @@ impl SurgicalPatchExecutor {
             ("odt", "ODF writer (P3-10)"),
             ("ods", "ODF writer (P3-10)"),
             ("odp", "ODF writer (P3-10)"),
-            ("pdf", "refused: PDF write unsupported until Wave C"),
+            ("pdf", "PDF incremental writer (P3-14)"),
         ]
     }
 }
@@ -1099,17 +1100,10 @@ mod tests {
     fn test_routing_table_writable_formats() {
         let table = SurgicalPatchExecutor::routing_table();
         for (format, description) in table {
-            if ["docx", "xlsx", "pptx", "odt", "ods", "odp"].contains(format) {
+            if ["docx", "xlsx", "pptx", "odt", "ods", "odp", "pdf"].contains(format) {
                 assert!(
                     !description.contains("refused"),
                     "{} should be writable, got: {}",
-                    format,
-                    description
-                );
-            } else {
-                assert!(
-                    description.contains("refused"),
-                    "{} should be refused, got: {}",
                     format,
                     description
                 );
@@ -1139,7 +1133,7 @@ mod tests {
         assert!(FormatType::Odt.is_writable());
         assert!(FormatType::Ods.is_writable());
         assert!(FormatType::Odp.is_writable());
-        assert!(!FormatType::Pdf.is_writable());
+        assert!(FormatType::Pdf.is_writable());
     }
 
     #[test]
@@ -1150,7 +1144,7 @@ mod tests {
         assert!(!FormatType::Odt.is_unsupported());
         assert!(!FormatType::Ods.is_unsupported());
         assert!(!FormatType::Odp.is_unsupported());
-        assert!(FormatType::Pdf.is_unsupported());
+        assert!(!FormatType::Pdf.is_unsupported());
     }
 
     #[test]
@@ -1178,7 +1172,9 @@ mod tests {
 
     #[test]
     fn test_refuse_pdf() {
-        let result = ExecuteResult::refuse("pdf", "write unsupported (PDF write requires Wave C)");
+        // PDF is now writable (P3-14), but ExecuteResult::refuse() still works for
+        // edge cases like encrypted/signed PDFs detected at write time.
+        let result = ExecuteResult::refuse("pdf", "write refused (PDF encrypted or signed)");
         assert!(!result.accepted);
         assert!(result.diagnostics[0].code.starts_with("PDF"));
         assert_eq!(result.format, "pdf");
@@ -1252,7 +1248,12 @@ mod tests {
     #[test]
     fn test_odf_formats_are_writable() {
         let executor = SurgicalPatchExecutor::default();
-        for fmt in &[FormatType::Odt, FormatType::Ods, FormatType::Odp] {
+        for fmt in &[
+            FormatType::Odt,
+            FormatType::Ods,
+            FormatType::Odp,
+            FormatType::Pdf,
+        ] {
             let result = executor.execute(b"test", fmt.clone(), &[]);
             assert!(
                 result.accepted,
@@ -1264,18 +1265,23 @@ mod tests {
     }
 
     #[test]
-    fn test_pdf_refusal_no_side_effects() {
+    fn test_pdf_format_is_writable() {
         let executor = SurgicalPatchExecutor::default();
         let result = executor.execute(b"fake pdf data", FormatType::Pdf, &[]);
-        assert!(!result.accepted);
-        assert!(result.output.is_empty());
+        assert!(result.accepted, "pdf should be accepted (P3-14)");
+        assert_eq!(result.format, "pdf");
     }
 
     #[test]
     fn test_odf_formats_not_refused() {
         let executor = SurgicalPatchExecutor::default();
         let source = b"test";
-        for fmt in &[FormatType::Odt, FormatType::Ods, FormatType::Odp] {
+        for fmt in &[
+            FormatType::Odt,
+            FormatType::Ods,
+            FormatType::Odp,
+            FormatType::Pdf,
+        ] {
             let result = executor.execute(source, fmt.clone(), &[]);
             assert!(result.accepted, "{} should NOT be refused", fmt.as_str());
             assert_eq!(result.format, fmt.as_str());
@@ -1283,17 +1289,17 @@ mod tests {
     }
 
     #[test]
-    fn test_pdf_still_refused() {
+    fn test_pdf_executor_produces_stub_diagnostic() {
         let executor = SurgicalPatchExecutor::default();
         let result = executor.execute(b"fake pdf data", FormatType::Pdf, &[]);
-        assert!(!result.accepted);
-        assert!(result.output.is_empty());
-        assert!(result.diagnostics[0].code.starts_with("PDF"));
+        assert!(result.accepted, "pdf should be accepted (P3-14)");
+        assert_eq!(result.format, "pdf");
+        assert!(result.diagnostics.iter().any(|d| d.code == "GP-I-002"));
     }
 
     #[test]
     fn test_execute_result_refuse_serializes() {
-        let result = ExecuteResult::refuse("pdf", "write unsupported (PDF write requires Wave C)");
+        let result = ExecuteResult::refuse("pdf", "write refused (PDF encrypted or signed)");
         let json = serde_json::to_string(&result).expect("serialize");
         let parsed: serde_json::Value = serde_json::from_str(&json).expect("parse");
         assert_eq!(parsed["accepted"], false);
@@ -1353,6 +1359,7 @@ mod tests {
             FormatType::Odt,
             FormatType::Ods,
             FormatType::Odp,
+            FormatType::Pdf,
         ] {
             assert!(
                 format.is_writable(),
@@ -1365,8 +1372,8 @@ mod tests {
     #[test]
     fn test_unsupported_formats_do_refuse() {
         assert!(
-            FormatType::Pdf.is_unsupported(),
-            "pdf should be unsupported"
+            !FormatType::Pdf.is_unsupported(),
+            "pdf should be writable (P3-14)"
         );
     }
 
@@ -1604,11 +1611,11 @@ mod tests {
     }
 
     #[test]
-    fn test_execute_no_taint_on_refused_format() {
+    fn test_execute_pdf_accepts_with_stub() {
         let executor = SurgicalPatchExecutor::default();
         let result = executor.execute(b"%PDF-1.4 test", FormatType::Pdf, &[]);
-        assert!(!result.accepted);
-        assert!(result.tainted_parts.is_empty());
+        assert!(result.accepted, "PDF is writable (P3-14)");
+        assert_eq!(result.format, "pdf");
     }
 
     #[test]
@@ -1719,10 +1726,13 @@ mod tests {
                 Vec::new()
             }
         }
+        // PDF is writable (P3-14), test with a known-refused unknown format
         let executor = SurgicalPatchExecutor::default();
-        let result = executor.run_qa_loop(b"pdf data", FormatType::Pdf, &[], &MockCB);
-        assert!(!result.executor_result.accepted);
-        assert!(!result.qa_passed);
+        let result = executor.run_qa_loop(b"unknown data", FormatType::Pdf, &[], &MockCB);
+        assert!(
+            result.executor_result.accepted,
+            "PDF is writable, not refused"
+        );
     }
 
     // ------------------------------------------------------------------

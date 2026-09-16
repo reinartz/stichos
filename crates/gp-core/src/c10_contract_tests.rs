@@ -427,13 +427,17 @@ fn test_c10_executor_taint_extract_pdf() {
 }
 
 #[test]
-fn test_c10_executor_no_taint_on_refused_format() {
-    // Refused formats (PDF, ODF) → no taint propagation
+fn test_c10_executor_pdf_accepts_with_taint() {
+    // PDF is writable (P3-14) and taint propagates normally
     let executor = SurgicalPatchExecutor::default();
     let result = executor.execute(b"%PDF-1.4 test", FormatType::Pdf, &[]);
 
-    assert!(!result.accepted);
-    assert!(result.tainted_parts.is_empty());
+    assert!(result.accepted, "PDF is writable (P3-14)");
+    // PDF source with %PDF- header produces taint
+    assert!(
+        !result.tainted_parts.is_empty(),
+        "PDF taint should be detected"
+    );
 }
 
 #[test]

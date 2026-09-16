@@ -719,8 +719,9 @@ mod tests {
             .count();
         let refused = table.iter().filter(|(_, d)| d.contains("refused")).count();
         assert_eq!(writable, 3);
-        // ODF is now handled by adapters-odf (P3-10), only PDF is refused
-        assert_eq!(refused, 1);
+        // ODF is now handled by adapters-odf (P3-10), PDF by adapters-pdf (P3-14)
+        // No formats are refused in the base routing table anymore
+        assert_eq!(refused, 0);
     }
 
     #[test]
@@ -749,22 +750,43 @@ mod tests {
     }
 
     #[test]
-    fn test_pdf_refusal_via_ooxml_executor() {
+    fn test_pdf_delegated_to_adapters_pdf() {
+        // PDF is now handled by adapters-pdf (P3-14), not refused by ooxml executor
         let executor = OoxmlExecutor::default();
-        let result = executor.execute(b"fake pdf data", FormatType::Pdf, &[]);
-        assert!(!result.accepted);
-        assert!(result.output.is_empty());
+        let result = executor.execute(b"%PDF-1.4 test data", FormatType::Pdf, &[]);
+        // PDF should be accepted (routed to base executor which delegates to adapters-pdf)
+        assert!(
+            result.accepted,
+            "PDF is writable via adapters-pdf (P3-14), got: {:?}",
+            result.diagnostics
+        );
         assert_eq!(result.format, "pdf");
     }
 
     #[test]
-    fn test_all_unsupported_formats_refused() {
+    fn test_pdf_accepted_via_base_executor() {
+        // PDF is handled by adapters-pdf (P3-14), not refused
+        let executor = OoxmlExecutor::default();
+        let result = executor.execute(b"%PDF-1.4 test data", FormatType::Pdf, &[]);
+        assert!(
+            result.accepted,
+            "PDF is writable via base executor (P3-14), got: {:?}",
+            result.diagnostics
+        );
+        assert_eq!(result.format, "pdf");
+    }
+
+    #[test]
+    fn test_pdf_not_refused_by_ooxml() {
+        // PDF is handled by adapters-pdf (P3-14), no longer unsupported
         let executor = OoxmlExecutor::default();
         let source = b"test";
-        // ODF is now handled by adapters-odf (P3-10), only PDF is refused
         let result = executor.execute(source, FormatType::Pdf, &[]);
-        assert!(!result.accepted, "pdf should be refused");
-        assert!(result.output.is_empty());
+        assert!(
+            result.accepted,
+            "PDF is writable via adapters-pdf (P3-14), not refused"
+        );
+        assert_eq!(result.format, "pdf");
     }
 
     #[test]
@@ -789,13 +811,12 @@ mod tests {
 
     #[test]
     fn test_inv1_refusal_no_output_bytes() {
-        // PDF is still refused (until Wave C)
+        // PDF is writable (P3-14), test stub produces output
         let executor = OoxmlExecutor::default();
         let result = executor.execute(b"source data", FormatType::Pdf, &[]);
-        assert!(
-            result.output.is_empty(),
-            "refused format must produce no output"
-        );
+        assert!(result.accepted, "PDF is writable (P3-14)");
+        // Stub returns source bytes as output
+        assert!(!result.output.is_empty());
         assert_eq!(result.changed_parts.len(), 0);
     }
 
@@ -939,10 +960,9 @@ mod tests {
     fn test_ooxml_qa_loop_refused_format() {
         let executor = OoxmlExecutor::default();
         let callbacks = TestOoxmlQACallbacks::new();
-        // PDF is still refused (until Wave C)
+        // PDF is writable (P3-14), test passes with stub
         let result = executor.run_qa_loop(b"pdf data", FormatType::Pdf, &[], &callbacks);
-        assert!(!result.executor_result.accepted);
-        assert!(!result.qa_passed);
+        assert!(result.executor_result.accepted, "PDF is writable (P3-14)");
     }
 
     #[test]
