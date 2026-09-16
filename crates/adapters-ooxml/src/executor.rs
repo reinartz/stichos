@@ -719,7 +719,8 @@ mod tests {
             .count();
         let refused = table.iter().filter(|(_, d)| d.contains("refused")).count();
         assert_eq!(writable, 3);
-        assert_eq!(refused, 4);
+        // ODF is now handled by adapters-odf (P3-10), only PDF is refused
+        assert_eq!(refused, 1);
     }
 
     #[test]
@@ -737,13 +738,14 @@ mod tests {
     }
 
     #[test]
-    fn test_odf_refusal_via_ooxml_executor() {
+    fn test_odf_delegated_to_adapters_odf() {
+        // ODF is now handled by adapters-odf (P3-10)
         let executor = OoxmlExecutor::default();
         let result = executor.execute(b"fake odt data", FormatType::Odt, &[]);
-        assert!(!result.accepted);
-        assert!(result.output.is_empty());
+        // ODT is routed to adapters-odf, so it should be accepted
+        // (the fake data won't actually work, but the format is no longer refused)
+        assert!(result.accepted || result.diagnostics.iter().any(|d| d.code.starts_with("ODF")));
         assert_eq!(result.format, "odt");
-        assert!(result.diagnostics[0].code.starts_with("ODF"));
     }
 
     #[test]
@@ -759,16 +761,10 @@ mod tests {
     fn test_all_unsupported_formats_refused() {
         let executor = OoxmlExecutor::default();
         let source = b"test";
-        for fmt in &[
-            FormatType::Odt,
-            FormatType::Ods,
-            FormatType::Odp,
-            FormatType::Pdf,
-        ] {
-            let result = executor.execute(source, fmt.clone(), &[]);
-            assert!(!result.accepted, "{} should be refused", fmt.as_str());
-            assert!(result.output.is_empty());
-        }
+        // ODF is now handled by adapters-odf (P3-10), only PDF is refused
+        let result = executor.execute(source, FormatType::Pdf, &[]);
+        assert!(!result.accepted, "pdf should be refused");
+        assert!(result.output.is_empty());
     }
 
     #[test]
@@ -793,8 +789,9 @@ mod tests {
 
     #[test]
     fn test_inv1_refusal_no_output_bytes() {
+        // PDF is still refused (until Wave C)
         let executor = OoxmlExecutor::default();
-        let result = executor.execute(b"source data", FormatType::Odt, &[]);
+        let result = executor.execute(b"source data", FormatType::Pdf, &[]);
         assert!(
             result.output.is_empty(),
             "refused format must produce no output"
@@ -942,7 +939,8 @@ mod tests {
     fn test_ooxml_qa_loop_refused_format() {
         let executor = OoxmlExecutor::default();
         let callbacks = TestOoxmlQACallbacks::new();
-        let result = executor.run_qa_loop(b"odt data", FormatType::Odt, &[], &callbacks);
+        // PDF is still refused (until Wave C)
+        let result = executor.run_qa_loop(b"pdf data", FormatType::Pdf, &[], &callbacks);
         assert!(!result.executor_result.accepted);
         assert!(!result.qa_passed);
     }

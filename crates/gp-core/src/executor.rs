@@ -1,7 +1,8 @@
 //! Patch executor — concrete implementation of the `PatchExecutor` trait.
 //!
 //! `SurgicalPatchExecutor` routes IR patch operations for OOXML formats (docx, xlsx, pptx)
-//! and refuses unsupported formats (odt, ods, odp, pdf) with explicit C3 diagnostic codes.
+//! and ODF formats (odt, ods, odp) with explicit C3 diagnostic codes.
+//! PDF remains refused until Wave C.
 //!
 //! # Format routing
 //!
@@ -10,13 +11,13 @@
 //! | `docx` | Route to OOXML docx writer |
 //! | `xlsx` | Route to OOXML xlsx writer |
 //! | `pptx` | Route to OOXML pptx writer |
-//! | `odt` / `ods` / `odp` | Refuse with `ODF-E-001` |
+//! | `odt` / `ods` / `odp` | Route to ODF writer (P3-10) |
 //! | `pdf` | Refuse with `PDF-E-001` |
 //! | unknown | Refuse with `GP-E-002` |
 //!
 //! # Contract conformance
 //!
-//! - **PAT-01**: executor routes correctly, refuses ODF/PDF with zero side effects
+//! - **PAT-01**: executor routes correctly, refuses only PDF with zero side effects
 //! - **PAT-02**: dry-run mode produces diff preview without writes
 //! - **INV-1**: refusal produces zero side effects, no file modifications
 
@@ -78,15 +79,20 @@ impl FormatType {
 
     /// Return true if this format is writable by the executor.
     pub fn is_writable(&self) -> bool {
-        matches!(self, FormatType::Docx | FormatType::Xlsx | FormatType::Pptx)
+        matches!(
+            self,
+            FormatType::Docx
+                | FormatType::Xlsx
+                | FormatType::Pptx
+                | FormatType::Odt
+                | FormatType::Ods
+                | FormatType::Odp
+        )
     }
 
     /// Return true if this format should be refused.
     pub fn is_unsupported(&self) -> bool {
-        matches!(
-            self,
-            FormatType::Odt | FormatType::Ods | FormatType::Odp | FormatType::Pdf
-        )
+        matches!(self, FormatType::Pdf)
     }
 }
 
@@ -176,7 +182,6 @@ impl ExecuteResult {
     /// Return the refusal diagnostic code for a given format.
     fn refusal_code(format: &str) -> String {
         match format {
-            "odt" | "ods" | "odp" => "ODF-E-001".to_string(),
             "pdf" => "PDF-E-001".to_string(),
             _ => "GP-E-002".to_string(),
         }
@@ -567,7 +572,7 @@ impl SurgicalPatchExecutor {
         if format.is_unsupported() {
             return ExecuteResult::refuse(
                 format.as_str(),
-                "write unsupported in M2 (use --help for supported formats)",
+                "write unsupported (PDF write requires Wave C)",
             );
         }
 
@@ -648,7 +653,7 @@ impl SurgicalPatchExecutor {
             return result;
         }
 
-        // Step 3: Stub for writable formats
+        // Step 3: Stub for writable formats (OOXML and ODF)
         let format_name = format.as_str().to_string();
         let op_count = ops.len();
         let taint_mark = self.extract_taint(source_bytes, &format);
@@ -658,7 +663,7 @@ impl SurgicalPatchExecutor {
             "GP-I-002",
             Severity::Info,
             format!(
-                "Executor stub: {} ops for {} (actual execution via adapters-ooxml)",
+                "Executor stub: {} ops for {} (actual execution via adapters-ooxml or adapters-odf)",
                 op_count, result.format
             ),
         )];
@@ -714,16 +719,21 @@ impl SurgicalPatchExecutor {
                     detected_parts.push("pdf/document.pdf".to_string());
                 }
             }
-            _ => return None,
+            FormatType::Odt | FormatType::Ods | FormatType::Odp => {
+                if content.contains("office:document-content") {
+                    detected_parts.push("content.xml".to_string());
+                }
+                if content.contains("META-INF/manifest") {
+                    detected_parts.push("META-INF/manifest.xml".to_string());
+                }
+            }
         }
         if detected_parts.is_empty() {
             if content.len() > 10 && content.bytes().any(|b| (32..128).contains(&b)) {
                 let kind = match format {
-                    FormatType::Docx => TaintKind::DocxText,
-                    FormatType::Xlsx => TaintKind::DocxText,
-                    FormatType::Pptx => TaintKind::DocxText,
+                    FormatType::Docx | FormatType::Xlsx | FormatType::Pptx => TaintKind::DocxText,
                     FormatType::Pdf => TaintKind::PdfText,
-                    _ => TaintKind::Unknown,
+                    FormatType::Odt | FormatType::Ods | FormatType::Odp => TaintKind::DocxText,
                 };
                 return Some(TaintMark::new(true, Some("unknown".to_string()), kind));
             }
@@ -731,9 +741,13 @@ impl SurgicalPatchExecutor {
         }
         let primary_part = detected_parts.first().cloned();
         let kind = match format {
-            FormatType::Docx | FormatType::Xlsx | FormatType::Pptx => TaintKind::DocxText,
+            FormatType::Docx
+            | FormatType::Xlsx
+            | FormatType::Pptx
+            | FormatType::Odt
+            | FormatType::Ods
+            | FormatType::Odp => TaintKind::DocxText,
             FormatType::Pdf => TaintKind::PdfText,
-            _ => TaintKind::Unknown,
         };
         Some(TaintMark::new(true, primary_part, kind))
     }
@@ -847,10 +861,10 @@ impl SurgicalPatchExecutor {
             ("docx", "OOXML docx writer"),
             ("xlsx", "OOXML xlsx writer"),
             ("pptx", "OOXML pptx writer"),
-            ("odt", "refused: ODF write unsupported in M2"),
-            ("ods", "refused: ODF write unsupported in M2"),
-            ("odp", "refused: ODF write unsupported in M2"),
-            ("pdf", "refused: PDF write unsupported in M2"),
+            ("odt", "ODF writer (P3-10)"),
+            ("ods", "ODF writer (P3-10)"),
+            ("odp", "ODF writer (P3-10)"),
+            ("pdf", "refused: PDF write unsupported until Wave C"),
         ]
     }
 }
@@ -1085,7 +1099,7 @@ mod tests {
     fn test_routing_table_writable_formats() {
         let table = SurgicalPatchExecutor::routing_table();
         for (format, description) in table {
-            if ["docx", "xlsx", "pptx"].contains(format) {
+            if ["docx", "xlsx", "pptx", "odt", "ods", "odp"].contains(format) {
                 assert!(
                     !description.contains("refused"),
                     "{} should be writable, got: {}",
@@ -1122,9 +1136,9 @@ mod tests {
         assert!(FormatType::Docx.is_writable());
         assert!(FormatType::Xlsx.is_writable());
         assert!(FormatType::Pptx.is_writable());
-        assert!(!FormatType::Odt.is_writable());
-        assert!(!FormatType::Ods.is_writable());
-        assert!(!FormatType::Odp.is_writable());
+        assert!(FormatType::Odt.is_writable());
+        assert!(FormatType::Ods.is_writable());
+        assert!(FormatType::Odp.is_writable());
         assert!(!FormatType::Pdf.is_writable());
     }
 
@@ -1133,9 +1147,9 @@ mod tests {
         assert!(!FormatType::Docx.is_unsupported());
         assert!(!FormatType::Xlsx.is_unsupported());
         assert!(!FormatType::Pptx.is_unsupported());
-        assert!(FormatType::Odt.is_unsupported());
-        assert!(FormatType::Ods.is_unsupported());
-        assert!(FormatType::Odp.is_unsupported());
+        assert!(!FormatType::Odt.is_unsupported());
+        assert!(!FormatType::Ods.is_unsupported());
+        assert!(!FormatType::Odp.is_unsupported());
         assert!(FormatType::Pdf.is_unsupported());
     }
 
@@ -1152,18 +1166,19 @@ mod tests {
 
     #[test]
     fn test_refuse_odt() {
-        let result = ExecuteResult::refuse("odt", "write unsupported in M2");
+        // ODT is no longer refused (P3-10), but ExecuteResult::refuse() still works.
+        // This test verifies the refuse() method itself works for any format.
+        let result = ExecuteResult::refuse("odt", "simulated refusal");
         assert!(!result.accepted);
         assert_eq!(result.diagnostics.len(), 1);
-        assert!(result.diagnostics[0].code.starts_with("ODF"));
-        assert!(result.diagnostics[0].message.contains("write unsupported"));
+        assert!(result.diagnostics[0].code.starts_with("GP"));
         assert_eq!(result.output, Vec::<u8>::new());
         assert_eq!(result.format, "odt");
     }
 
     #[test]
     fn test_refuse_pdf() {
-        let result = ExecuteResult::refuse("pdf", "write unsupported in M2");
+        let result = ExecuteResult::refuse("pdf", "write unsupported (PDF write requires Wave C)");
         assert!(!result.accepted);
         assert!(result.diagnostics[0].code.starts_with("PDF"));
         assert_eq!(result.format, "pdf");
@@ -1235,12 +1250,17 @@ mod tests {
     }
 
     #[test]
-    fn test_odf_refusal_no_side_effects() {
+    fn test_odf_formats_are_writable() {
         let executor = SurgicalPatchExecutor::default();
-        let result = executor.execute(b"fake source data", FormatType::Odt, &[]);
-        assert!(!result.accepted);
-        assert!(result.output.is_empty());
-        assert!(result.changed_parts.is_empty());
+        for fmt in &[FormatType::Odt, FormatType::Ods, FormatType::Odp] {
+            let result = executor.execute(b"test", fmt.clone(), &[]);
+            assert!(
+                result.accepted,
+                "{} should be accepted (not refused)",
+                fmt.as_str()
+            );
+            assert_eq!(result.format, fmt.as_str());
+        }
     }
 
     #[test]
@@ -1252,24 +1272,32 @@ mod tests {
     }
 
     #[test]
-    fn test_all_odf_formats_refused() {
+    fn test_odf_formats_not_refused() {
         let executor = SurgicalPatchExecutor::default();
         let source = b"test";
         for fmt in &[FormatType::Odt, FormatType::Ods, FormatType::Odp] {
             let result = executor.execute(source, fmt.clone(), &[]);
-            assert!(!result.accepted, "{} should be refused", fmt.as_str());
+            assert!(result.accepted, "{} should NOT be refused", fmt.as_str());
             assert_eq!(result.format, fmt.as_str());
-            assert!(result.diagnostics[0].code.starts_with("ODF"));
         }
     }
 
     #[test]
+    fn test_pdf_still_refused() {
+        let executor = SurgicalPatchExecutor::default();
+        let result = executor.execute(b"fake pdf data", FormatType::Pdf, &[]);
+        assert!(!result.accepted);
+        assert!(result.output.is_empty());
+        assert!(result.diagnostics[0].code.starts_with("PDF"));
+    }
+
+    #[test]
     fn test_execute_result_refuse_serializes() {
-        let result = ExecuteResult::refuse("odt", "write unsupported in M2");
+        let result = ExecuteResult::refuse("pdf", "write unsupported (PDF write requires Wave C)");
         let json = serde_json::to_string(&result).expect("serialize");
         let parsed: serde_json::Value = serde_json::from_str(&json).expect("parse");
         assert_eq!(parsed["accepted"], false);
-        assert_eq!(parsed["format"], "odt");
+        assert_eq!(parsed["format"], "pdf");
     }
 
     #[test]
@@ -1318,7 +1346,14 @@ mod tests {
 
     #[test]
     fn test_writable_formats_do_not_refuse() {
-        for format in &[FormatType::Docx, FormatType::Xlsx, FormatType::Pptx] {
+        for format in &[
+            FormatType::Docx,
+            FormatType::Xlsx,
+            FormatType::Pptx,
+            FormatType::Odt,
+            FormatType::Ods,
+            FormatType::Odp,
+        ] {
             assert!(
                 format.is_writable(),
                 "{} should be writable",
@@ -1329,18 +1364,10 @@ mod tests {
 
     #[test]
     fn test_unsupported_formats_do_refuse() {
-        for format in &[
-            FormatType::Odt,
-            FormatType::Ods,
-            FormatType::Odp,
-            FormatType::Pdf,
-        ] {
-            assert!(
-                format.is_unsupported(),
-                "{} should be unsupported",
-                format.as_str()
-            );
-        }
+        assert!(
+            FormatType::Pdf.is_unsupported(),
+            "pdf should be unsupported"
+        );
     }
 
     #[test]

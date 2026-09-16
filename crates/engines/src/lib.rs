@@ -5,6 +5,7 @@
 
 pub mod cache;
 pub mod capability;
+pub mod chromium;
 pub mod doctor;
 pub mod libreoffice;
 pub mod mock;
@@ -12,8 +13,11 @@ pub mod negotiate;
 pub mod pandoc;
 pub mod probe;
 pub mod raster;
+pub mod typst;
 
 /// Engine identifiers.
+pub const CHROMIUM_ENGINE_ID: &str = "chromium";
+pub const TYPST_ENGINE_ID: &str = "typst";
 pub const LIBREOFFICE_ENGINE_ID: &str = "libreoffice";
 pub const PANDOC_ENGINE_ID: &str = "pandoc";
 pub const MSOFFICE_ENGINE_ID: &str = "ms-office";

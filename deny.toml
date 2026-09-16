@@ -55,6 +55,8 @@ deny = [
     { crate = "lokit*", reason = "any LibreOfficeKit binding; D8: soft dependency spawned at runtime" },
     { crate = "*officekit*", reason = "any LibreOfficeKit binding; D8: soft dependency spawned at runtime" },
     { crate = "*-libreoffice*", reason = "catch-all for direct LO C/C++ bindings; engines are subprocesses (D8)" },
+    { crate = "typst", reason = "Typst engine is CLI shell-out only (ADR-0004, D3); typst crate banned to enforce engine-never-linked invariant" },
+    { crate = "typst*", reason = "any typst binding is linked Rust code; engines must be spawned subprocesses (ADR-0004, D3)" },
 ]
 skip = []
 skip-tree = []

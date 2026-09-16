@@ -208,11 +208,10 @@ else
 fi
 
 echo "=== Planted violation: weakened INV-1 ==="
-# Verify that both ODF and PDF refusal tests exist (simulates weakened INV-1 detection)
-REFUSAL_LIST_OUTPUT=$(cargo test --package gp-core refusal -- --list 2>&1 || true)
-HAS_ODF=$(echo "$REFUSAL_LIST_OUTPUT" | grep -c "test_odf_refusal" || true)
-HAS_PDF=$(echo "$REFUSAL_LIST_OUTPUT" | grep -c "test_pdf_refusal" || true)
-if [ "$HAS_ODF" -ge 1 ] && [ "$HAS_PDF" -ge 1 ]; then
+# Verify that PDF refusal test exists (ODF refusal retired P3-10)
+REFUSAL_LIST_OUTPUT=$(cargo test --package gp-core -- --list 2>&1 || true)
+HAS_PDF=$(echo "$REFUSAL_LIST_OUTPUT" | grep -cE "test_pdf_refusal|test_refuse_pdf" || true)
+if [ "$HAS_PDF" -ge 1 ]; then
     pass "Planted violation: refusal tests exist (expected pass)"
 else
     fail "Planted violation: refusal tests missing (gate would catch this)"

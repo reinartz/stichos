@@ -391,6 +391,18 @@ fn minimal_odt_bytes() -> Vec<u8> {
     )
 }
 
+/// Build a minimal valid HTML document with some text content.
+fn minimal_html_bytes() -> Vec<u8> {
+    b"\
+<!DOCTYPE html>
+<html lang=\"en\">
+<head><meta charset=\"UTF-8\"><title>Stichos Probe</title></head>
+<body><h1>Chromium Probe</h1><p>Minimal HTML document for engine probing.</p></body>
+</html>\
+"
+    .to_vec()
+}
+
 /// Build a minimal valid PDF v1.4 bytes.
 fn minimal_pdf_bytes() -> Vec<u8> {
     let raw = b"%PDF-1.4\n1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] >>\nendobj\nxref\n0 4\n0000000000 65535 f \n0000000009 00000 n \n0000000058 00000 n \n0000000115 00000 n \ntrailer\n<< /Size 4 /Root 1 0 R >>\nstartxref\n190\n%%EOF";
@@ -439,6 +451,12 @@ pub fn standard_fixtures() -> Vec<ProbeFixture> {
             target_format: "pdf".into(),
             name: "minimal_odt_to_pdf".into(),
             data: minimal_odt_bytes(),
+        },
+        ProbeFixture {
+            source_format: "html".into(),
+            target_format: "pdf".into(),
+            name: "minimal_html_to_pdf".into(),
+            data: minimal_html_bytes(),
         },
         ProbeFixture {
             source_format: "pdf".into(),
@@ -1062,7 +1080,7 @@ mod tests {
     #[test]
     fn test_fixtures_for_target() {
         let pdf_fixtures = fixtures_for_target("pdf");
-        assert_eq!(pdf_fixtures.len(), 5);
+        assert_eq!(pdf_fixtures.len(), 6);
         for f in &pdf_fixtures {
             assert_eq!(f.target_format, "pdf");
         }
@@ -1072,7 +1090,7 @@ mod tests {
     #[test]
     fn test_document_to_pdf_fixtures() {
         let fixtures = document_to_pdf_fixtures();
-        assert_eq!(fixtures.len(), 5);
+        assert_eq!(fixtures.len(), 6);
         for f in &fixtures {
             assert_eq!(f.target_format, "pdf");
         }
@@ -1082,12 +1100,13 @@ mod tests {
     #[test]
     fn test_standard_fixtures_completeness() {
         let fixtures = standard_fixtures();
-        assert_eq!(fixtures.len(), 6);
+        assert_eq!(fixtures.len(), 7);
         let names: Vec<&str> = fixtures.iter().map(|f| f.name.as_str()).collect();
         assert!(names.contains(&"minimal_docx_to_pdf"));
         assert!(names.contains(&"minimal_pptx_to_pdf"));
         assert!(names.contains(&"minimal_xlsx_to_pdf"));
         assert!(names.contains(&"minimal_odt_to_pdf"));
+        assert!(names.contains(&"minimal_html_to_pdf"));
         assert!(names.contains(&"minimal_pdf_to_png"));
         assert!(names.contains(&"minimal_png_to_pdf"));
     }

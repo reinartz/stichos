@@ -84,6 +84,12 @@ pub struct SystemInfo {
     pub poppler_version: Option<String>,
     /// Ghostscript version (if installed).
     pub ghostscript_version: Option<String>,
+    /// Chromium version (if installed).
+    pub chromium_version: Option<String>,
+    /// Pandoc version (if installed).
+    pub pandoc_version: Option<String>,
+    /// Typst version (if installed).
+    pub typst_version: Option<String>,
 }
 
 // ======================================================================
@@ -213,7 +219,7 @@ fn fc_match(font: &str) -> Option<String> {
 /// Gather system information.
 ///
 /// Returns a [`SystemInfo`] with OS, architecture, and versions of
-/// known tools (LibreOffice, poppler, Ghostscript) if installed.
+/// known tools (LibreOffice, poppler, Ghostscript, chromium, pandoc, typst) if installed.
 pub fn system_info() -> SystemInfo {
     SystemInfo {
         os: std::env::consts::OS.to_string(),
@@ -221,6 +227,9 @@ pub fn system_info() -> SystemInfo {
         libreoffice_version: lo_version(),
         poppler_version: poppler_version(),
         ghostscript_version: ghostscript_version(),
+        chromium_version: chromium_version(),
+        pandoc_version: pandoc_version(),
+        typst_version: typst_version(),
     }
 }
 
@@ -311,6 +320,114 @@ fn ghostscript_version() -> Option<String> {
     }
 }
 
+/// Find a chromium binary for doctor probing.
+fn find_chromium_for_doctor() -> Option<String> {
+    for name in &[
+        "chromium-browser",
+        "chromium",
+        "google-chrome",
+        "google-chrome-stable",
+    ] {
+        if let Some(path) = which_binary(name) {
+            return Some(path);
+        }
+    }
+    None
+}
+
+/// Check if a binary exists on PATH.
+fn which_binary(name: &str) -> Option<String> {
+    if let Ok(paths) = std::env::var("PATH") {
+        for dir in paths.split(':') {
+            let p = std::path::Path::new(dir).join(name);
+            if p.exists() {
+                return Some(p.to_string_lossy().to_string());
+            }
+        }
+    }
+    None
+}
+
+/// Get Chromium version if available.
+fn chromium_version() -> Option<String> {
+    let binary = find_chromium_for_doctor();
+    binary.and_then(|path| {
+        let output = std::process::Command::new(&path)
+            .args(["--version"])
+            .output();
+        match output {
+            Ok(out) if out.status.success() => {
+                let text = String::from_utf8_lossy(&out.stdout);
+                // Try to parse version from common formats
+                // "Google Chrome 120.0.6099.130", "Chromium 120.0.6099.130", "HeadlessChrome 120.0.6099.130"
+                text.lines().next().and_then(|line| {
+                    if let Some(pos) = line.find("Chromium") {
+                        let rest = &line[pos + 8..];
+                        rest.strip_prefix(' ')
+                            .or(Some(rest))
+                            .and_then(|r| r.split_whitespace().next())
+                            .map(|v| v.to_string())
+                    } else if let Some(pos) = line.find("Chrome") {
+                        let rest = &line[pos + 6..];
+                        let rest = rest.strip_prefix('-').or(rest.strip_prefix(' '))?;
+                        rest.split_whitespace().next().map(|v| v.to_string())
+                    } else {
+                        // Check for "HeadlessChrome"
+                        if let Some(pos) = line.find("HeadlessChrome") {
+                            let rest = &line[pos + 14..];
+                            rest.strip_prefix(' ')
+                                .and_then(|r| r.split_whitespace().next())
+                                .map(|v| v.to_string())
+                        } else {
+                            None
+                        }
+                    }
+                })
+            }
+            _ => None,
+        }
+    })
+}
+
+/// Get Pandoc version if available.
+fn pandoc_version() -> Option<String> {
+    let output = std::process::Command::new("pandoc")
+        .args(["--version"])
+        .output();
+    match output {
+        Ok(out) if out.status.success() => {
+            let text = String::from_utf8_lossy(&out.stdout);
+            text.lines()
+                .next()
+                .and_then(|l| l.split_whitespace().nth(1))
+                .map(|v| v.to_string())
+        }
+        _ => None,
+    }
+}
+
+/// Get Typst version if available.
+fn typst_version() -> Option<String> {
+    if which_binary("typst").is_some() {
+        let output = std::process::Command::new("typst")
+            .args(["--version"])
+            .output();
+        match output {
+            Ok(out) if out.status.success() => {
+                let text = String::from_utf8_lossy(&out.stdout);
+                text.lines()
+                    .find(|l| l.starts_with("typst "))
+                    .and_then(|l| l.strip_prefix("typst "))
+                    .and_then(|v| v.split_whitespace().next())
+                    .map(|v| v.to_string())
+            }
+            _ => None,
+        }
+    } else {
+        None
+    }
+}
+
 /// Generate a doctor report string for console output.
 pub fn doctor_report(result: &DoctorResult) -> String {
     let mut output = String::from("stichos doctor report\n");
@@ -336,6 +453,24 @@ pub fn doctor_report(result: &DoctorResult) -> String {
         output.push_str(&format!("Ghostscript: {}\n", gs));
     } else {
         output.push_str("Ghostscript: not installed\n");
+    }
+
+    if let Some(ref chromium) = result.system_info.chromium_version {
+        output.push_str(&format!("Chromium: {}\n", chromium));
+    } else {
+        output.push_str("Chromium: not installed\n");
+    }
+
+    if let Some(ref pandoc) = result.system_info.pandoc_version {
+        output.push_str(&format!("Pandoc: {}\n", pandoc));
+    } else {
+        output.push_str("Pandoc: not installed\n");
+    }
+
+    if let Some(ref typst) = result.system_info.typst_version {
+        output.push_str(&format!("Typst: {}\n", typst));
+    } else {
+        output.push_str("Typst: not installed\n");
     }
 
     output.push_str("\n--- Engines ---\n");
@@ -610,5 +745,77 @@ mod tests {
                     .map(|major| format!("{:.1}", major))
             });
         assert_eq!(version, Some("10.0".to_string()));
+    }
+
+    /// test_system_info_has_new_fields: SystemInfo includes chromium/pandoc/typst fields.
+    #[test]
+    fn test_system_info_has_new_fields() {
+        let info = system_info();
+        // The struct compiles and has all new fields
+        let _chromium = info.chromium_version;
+        let _pandoc = info.pandoc_version;
+        let _typst = info.typst_version;
+    }
+
+    /// test_chromium_version_parsing: chromium version parsing works for common formats.
+    #[test]
+    fn test_chromium_version_parsing() {
+        // Simulate the parsing logic for common version outputs
+        let chrome_output = "Google Chrome 120.0.6099.130";
+        let version = chrome_output.lines().next().and_then(|line| {
+            if let Some(pos) = line.find("Chrome") {
+                let rest = &line[pos + 6..];
+                let rest = rest.strip_prefix(' ')?;
+                rest.split_whitespace().next().map(|v| v.to_string())
+            } else {
+                None
+            }
+        });
+        assert_eq!(version, Some("120.0.6099.130".to_string()));
+
+        let chromium_output = "Chromium 120.0.6099.130";
+        let version = chromium_output.lines().next().and_then(|line| {
+            if let Some(pos) = line.find("Chromium") {
+                let rest = &line[pos + 8..];
+                rest.strip_prefix(' ')
+                    .and_then(|r| r.split_whitespace().next())
+                    .map(|v| v.to_string())
+            } else {
+                None
+            }
+        });
+        assert_eq!(version, Some("120.0.6099.130".to_string()));
+    }
+
+    /// test_typst_version_parsing: typst version parsing works.
+    #[test]
+    fn test_typst_version_parsing() {
+        let output = "typst 0.11.1";
+        let version = output
+            .lines()
+            .find(|l| l.starts_with("typst "))
+            .and_then(|l| l.strip_prefix("typst "))
+            .and_then(|v| v.split_whitespace().next())
+            .map(|v| v.to_string());
+        assert_eq!(version, Some("0.11.1".to_string()));
+    }
+
+    /// test_doctor_report_includes_new_tools: report shows chromium/pandoc/typst lines.
+    #[test]
+    fn test_doctor_report_includes_new_tools() {
+        let engine = MockEngine::new();
+        let fixtures = vec![probe::ProbeFixture {
+            source_format: "docx".into(),
+            target_format: "pdf".into(),
+            name: "test".into(),
+            data: b"test".to_vec(),
+        }];
+        let result = run_doctor(vec![&engine], &fixtures);
+        let report = doctor_report(&result);
+
+        // Should contain the new tool lines
+        assert!(report.contains("Chromium:"));
+        assert!(report.contains("Pandoc:"));
+        assert!(report.contains("Typst:"));
     }
 }
