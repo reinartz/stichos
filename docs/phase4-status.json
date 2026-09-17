@@ -1,0 +1,272 @@
+{
+  "milestone": "M4 (Phase 4 — human loop)",
+  "plan": "docs/phase4-plan.md",
+  "updated": "2026-09-16",
+  "progress_header": "0/21 verified · 0/6 gates",
+  "handoff_note": "Phase 4 not started. Phase 3 closed: tag m3 at 1e0749b, pushed to origin; see docs/m3-acceptance.md §7 for audit corrections feeding Wave 0 (P4-01 gate headless-safety, P4-02 DAG ratification).",
+  "legend": {
+    "statuses": [
+      "pending",
+      "active",
+      "verified",
+      "blocked"
+    ],
+    "rule": "verified requires evidence: command + result + date, verdict from exit codes (headless-safe, no /dev/tty dependency); gates flip only when all wave steps are verified and the gate command passes (phase4-plan.md §2)"
+  },
+  "rollup": {
+    "verified": 0,
+    "total": 21,
+    "gates_verified": 0,
+    "gates_total": 6
+  },
+  "gates": [
+    {
+      "id": "0",
+      "name": "ship-state hygiene: gates run headless (exit-code verdicts, planted violation still caught); DAG ratified + check-deps.sh edge enforcement green",
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "R",
+      "name": "OOXML revisions: C11 model + enumeration parity + accept/reject surgical + lossless suite green + revisions verb/tools (C7 v1.3)",
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "O",
+      "name": "ODF revisions: write read-back (own reader + LO golden), zero-patch ×69 intact, odt accept/reject lossless subset green",
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "S",
+      "name": "review session + raster overlay: headless e2e (create→list→accept via token→doc updated+journaled), security suite green (traversal/token/CSP/XSS), comment write-back read-back + golden",
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "H",
+      "name": "handoff + COM design: open host-verified + honest-absent golden; ADR-0008 accepted; windows-msvc compile skeleton green in CI; add-in spike report published",
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "X",
+      "name": "security, ops, ship: phase4_gate.sh green headless + CI (M3 exit == concept §7); fuzz round 3 locked + SEC-06; C7 v1.3 additive scan; tag m4",
+      "status": "pending",
+      "evidence": null
+    }
+  ],
+  "steps": [
+    {
+      "id": "P4-01",
+      "wave": "0",
+      "title": "phase2/phase3 gate scripts headless-safe: exit-code verdicts, no tee /dev/tty; planted-violation + --ci modes preserved",
+      "implements": ["hygiene"],
+      "depends": [],
+      "size": 1,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P4-02",
+      "wave": "0",
+      "title": "dependency-DAG ratification (adapters-ooxml→lint, engines→adapters-ooxml; cli-as-wiring) + cross-crate edge enforcement in check-deps.sh",
+      "implements": ["hygiene", "plan-§3.2"],
+      "depends": [],
+      "size": 1,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P4-03",
+      "wave": "R",
+      "title": "gp-core revision model + C11 contract (two-tier losslessness, refuse-list) + GP-R codes + C1 additive minor",
+      "implements": ["CORE-C11", "C1"],
+      "depends": ["P4-01", "P4-02"],
+      "size": 1,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P4-04",
+      "wave": "R",
+      "title": "OOXML revision enumeration → C11 (w:ins/w:del/rPrChange/pPrChange, nested handling, paraId links, refuses)",
+      "implements": ["OOX", "C11"],
+      "depends": ["P4-03"],
+      "size": 2,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P4-05",
+      "wave": "R",
+      "title": "OOXML accept/reject executor: span-surgical, journaled, dry_run diff, unrelated-parts byte-identical",
+      "implements": ["PAT", "OOX-09"],
+      "depends": ["P4-04"],
+      "size": 2,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P4-06",
+      "wave": "R",
+      "title": "bulk + filtered revision ops: atomicity, C10 policy gate, budget assembly",
+      "implements": ["PAT", "SEC-04", "C10"],
+      "depends": ["P4-05"],
+      "size": 1,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P4-07",
+      "wave": "R",
+      "title": "lossless proof suite + tracked-change fixture generation (byte-tier reject, IR-tier accept, LO goldens)",
+      "implements": ["HAR-02-ext", "M4-gate"],
+      "depends": ["P4-05"],
+      "size": 2,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P4-08",
+      "wave": "R",
+      "title": "CLI revisions verb + MCP list/accept/reject_revisions + C7 v1.3.0 matrix + CHANGELOG",
+      "implements": ["API-07-ext", "C7-v1.3"],
+      "depends": ["P4-06"],
+      "size": 1,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P4-09",
+      "wave": "O",
+      "title": "ODF revision write: text:inserted/text:deleted + office:change-info + change-id allocation + apply --revision-mode",
+      "implements": ["ODF-04-ext", "S1"],
+      "depends": ["P4-01", "P4-02"],
+      "size": 2,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P4-10",
+      "wave": "O",
+      "title": "ODF revision read → C11 + accept/reject + odt lossless subset",
+      "implements": ["ODF", "C11", "PAT"],
+      "depends": ["P4-03", "P4-09"],
+      "size": 2,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P4-11",
+      "wave": "S",
+      "title": "ADR-0007 review-session model + session core (token, version-hash invalidation) + review verb",
+      "implements": ["HUM-01", "ADR-0007"],
+      "depends": ["P4-08"],
+      "size": 1,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P4-12",
+      "wave": "S",
+      "title": "HTTP review surface: GET viewer/data/pages + token + localhost bind + traversal/MIME/CSP hardening",
+      "implements": ["HUM-01", "API-03-ext", "SEC"],
+      "depends": ["P4-11"],
+      "size": 2,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P4-13",
+      "wave": "S",
+      "title": "raster overlay viewer UI (vendored/hand-rolled JS, revision boxes, accept/reject, comment pins, polling, inert text)",
+      "implements": ["HUM-01", "D22"],
+      "depends": ["P4-12"],
+      "size": 2,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P4-14",
+      "wave": "S",
+      "title": "comment write-back: add_comment tool + edit --kind comment (docx comments.xml / odt office:annotation), session-wired",
+      "implements": ["HUM-01", "OOX", "ODF", "API"],
+      "depends": ["P4-12"],
+      "size": 2,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P4-15",
+      "wave": "H",
+      "title": "stichos open: platform handler resolution, current/selected store version, doctor handoff row, honest-absent",
+      "implements": ["HUM-02", "ENG-04"],
+      "depends": ["P4-01", "P4-02"],
+      "size": 1,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P4-16",
+      "wave": "H",
+      "title": "COM design ADR-0008 + feature-gated compile-only skeleton + windows-msvc CI compile job",
+      "implements": ["COM-1-design", "ENG-09-skeleton", "S3"],
+      "depends": ["P4-01", "P4-02"],
+      "size": 2,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P4-17",
+      "wave": "H",
+      "title": "Office add-in spike report (design only, decision-gated): manifest + taskpane over review API",
+      "implements": ["HUM-03"],
+      "depends": ["P4-12"],
+      "size": 1,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P4-18",
+      "wave": "X",
+      "title": "fuzz round 3 (revision trees, session HTTP, XSS corpus) + SEC-06 Phase-4 review + threat-model update",
+      "implements": ["SEC-01", "SEC-06"],
+      "depends": ["P4-10", "P4-12", "P4-13"],
+      "size": 2,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P4-19",
+      "wave": "X",
+      "title": "OPS-03 support-matrix doc + README/CODEBASE polish for Phase-4 surface",
+      "implements": ["OPS-03", "ship"],
+      "depends": ["P4-14", "P4-15"],
+      "size": 1,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P4-20",
+      "wave": "X",
+      "title": "tools/phase4_gate.sh: M4 exit assertions headless + planted-violation proof + phase4-gate CI job",
+      "implements": ["ship"],
+      "depends": ["P4-18", "P4-19"],
+      "size": 1,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P4-21",
+      "wave": "X",
+      "title": "M4 acceptance report + tag m4 + Phase-5 intake",
+      "implements": ["ship"],
+      "depends": ["P4-20"],
+      "size": 1,
+      "status": "pending",
+      "evidence": null
+    }
+  ]
+}

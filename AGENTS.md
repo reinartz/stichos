@@ -1,11 +1,13 @@
 # stichos
 
-Phase 2 complete (9 Rust crates built and tested), Phase 3 active. Rust workspace lives in
+Phases 0–3 complete and gated (tags `m1-closeout`, `m2`, `m3`; M3 verified 2026-09-16: full test
+suite green, clippy/fmt/deny clean, `phase3_gate.sh` 26/26). Phase 4 (human loop) is next —
+concept `docs/phase4-concept.md`, plan `docs/phase4-plan.md`. Rust workspace lives in
 `crates/`; `harness/`, `corpus/`, `docker/`, `baseline/`, `.github/` hold the M0 Python fidelity
 harness and supporting material.
 
 ## Source of truth
-- `project_concept.md` — decisions D1–D17, architecture, verification log. Claims there are marked
+- `project_concept.md` — decisions D1–D22, architecture, verification log. Claims there are marked
   measured/verified; do not add unverified claims. If a decision changes, update the decision log (§16) too.
 - `brand.md` — identity rules; `assets/` holds the mark, wordmarks, lockups, generated rasters.
 - Name is **always lowercase** `stichos`. Never `Stichos`, never bold the wordmark (use ink vs paper).
@@ -25,9 +27,11 @@ harness and supporting material.
 - Three icon tiers are measured, not decorative: Full ≥64px, Tight 16–48px, Glyph ≥20px (outline only). Don't merge tiers or "simplify".
 - Lockups must embed the Full-tier mark (Tight reads as a checkbox at lockup sizes).
 
-## Phase-3 status
+## Phase-4 status
 
-Wave 0 is **active**. Plan: `docs/phase3-plan.md`. Live status: `docs/phase3-status.json`.
+Not started. Plan: `docs/phase4-plan.md`. Live status: `docs/phase4-status.json`.
+Phase-3 records: `docs/phase3-plan.md`, `docs/phase3-status.json`, `docs/m3-acceptance.md` (§7 has
+post-acceptance corrections, incl. the gate-script `tee /dev/tty` caveat → fixed by P4-01).
 
 ## Phase-3 tech
 
@@ -39,10 +43,10 @@ Wave 0 is **active**. Plan: `docs/phase3-plan.md`. Live status: `docs/phase3-sta
 | `adapters-ooxml` | OOXML (docx, xlsx, pptx), OPC, XML parsing |
 | `adapters-odf` | ODF (odt, ods, odp), manifest, XML parsing |
 | `adapters-pdf` | PDF parsing (parser, text, form, annot, outline, metadata, qpdf) |
-| `engines` | Render engine abstraction (libreoffice, pandoc, ms-office; Phase 3 adds chromium, typst) |
+| `engines` | Render engine abstraction (libreoffice, pandoc, chromium, typst live; ms-office COM deferred) |
 | `lint` | Fidelity linting (budget, ssim, contrast, font, diff, cropper) |
 | `mcp` | MCP protocol (jsonrpc, dispatch, server, tools, transport, http, spec) |
-| `cli` | `stichos` binary (inspect, render, diff, doctor, serve, apply, edit, annotate, revert, journal, perf, schema, region) |
+| `cli` | `stichos` binary — 16 verbs (inspect, region, render, diff, doctor, serve, schema, apply, edit, annotate, revert, journal, perf, create, script, update) |
 | `adapters-ooxfuzz` | Fuzzing harness for OOXML adapters (dev-only) |
 
 Engines are spawned subprocesses, never linked; zero hard external deps.

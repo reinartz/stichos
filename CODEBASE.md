@@ -1,65 +1,93 @@
 # stichos — Codebase Structure
 
-> **Note:** This document reflects the current state of the Rust codebase. It is maintained by
-> contributors; `project_plan.md` §3 is the authoritative plan reference.
+> **Note:** This document reflects the current state of the Rust codebase (synced 2026-09-16,
+> tag `m3`). It is maintained by contributors; `project_plan.md` §3 is the authoritative plan
+> reference. Where reality and the plan DAG differ, §"Known DAG deviations" below records it.
 
 ## Workspace layout
 
 ```
 Cargo.toml                    # workspace root: 9 crates, resolver=2, unified version 0.1.0
 rust-toolchain.toml           # MSRV 1.98 (pinned)
-deny.toml                     # cargo-deny config (license allow-list, ban rules)
+deny.toml                     # cargo-deny config (license allow-list, ban rules incl. typst crate)
 
 crates/
-  gp-core/                    # core types, IR, diagnostics, traits, store, testkit
-  adapters-ooxml/             # OOXML (docx, xlsx, pptx), OPC, XML parsing
-  adapters-odf/               # ODF (odt, ods, odp), manifest, XML parsing
-  adapters-pdf/               # PDF parsing (parser, text, form, annot, outline, metadata, qpdf)
-  engines/                    # render engine abstraction (pandoc, libreoffice, probe, cache, mock)
-  lint/                       # fidelity linting (budget, ssim, contrast, font, diff, cropper)
-  mcp/                        # MCP protocol (jsonrpc, dispatch, server, tools, transport, http, spec)
-  cli/                        # the `stichos` binary (inspect, render, diff, doctor, serve, apply, edit, annotate, revert, journal, perf, schema, region)
-  adapters-ooxfuzz/           # fuzzing harness for OOXML adapters
+  gp-core/                    # core types, IR, diagnostics, traits, store, journal, patch,
+                              #   executor, policy, Rhai sandbox, selfupdate, testkit
+  adapters-ooxml/             # OOXML (docx, xlsx, pptx): OPC, readers, surgical writers,
+                              #   creation writers, revision writer, census, validation
+  adapters-odf/               # ODF (odt, ods, odp): manifest, readers, surgical writer,
+                              #   patch primitives, census, RelaxNG gate
+  adapters-pdf/               # PDF: parser, text/bboxes, forms, annotations, outline,
+                              #   metadata, qpdf glue, incremental (append-only) writer
+  engines/                    # render engines as subprocesses: libreoffice, pandoc,
+                              #   chromium, typst; probe, negotiate, doctor, cache, raster
+  lint/                       # fidelity linting: layout, budget, ssim, contrast, font,
+                              #   diff, annotator, a11y (veraPDF), perf, coords, cropper
+  mcp/                        # MCP protocol: spec, tool registry, dispatch, jsonrpc,
+                              #   server, transport, http (protocol layer only)
+  cli/                        # the `stichos` binary — 16 verbs, wires everything together
+  adapters-ooxfuzz/           # fuzzing harness (dev-only): read + write-path fuzz corpora
 ```
 
-## Crate dependency graph
+## Crate dependency graph (measured from Cargo.toml, 2026-09-16)
 
 ```
 gp-core                              (traits + types; no workspace deps)
   |
-  +-- adapters-ooxml                  (depends on gp-core)
-  +-- adapters-odf                    (depends on gp-core)
-  +-- adapters-pdf                    (depends on gp-core)
-  +-- engines                         (depends on gp-core)
-  +-- lint                            (depends on gp-core, adapters-pdf)
-  +-- mcp                             (depends on gp-core, adapters-ooxml, adapters-odf, adapters-pdf)
+  +-- adapters-odf                   (gp-core)
+  +-- adapters-pdf                   (gp-core)
+  +-- lint                           (gp-core)
+  +-- mcp                            (gp-core — protocol only; no adapter/engine knowledge)
+  +-- lint <--- adapters-ooxml       (gp-core, lint)                 [deviation ⚠]
+  +-- adapters-ooxml <--- engines    (gp-core, adapters-ooxml)       [deviation ⚠]
   |
-  +-- cli -- depends on all above + mcp
-  |
-  +-- adapters-ooxfuzz -- depends on gp-core, adapters-ooxml, adapters-pdf
+  +-- cli -- depends on all of the above (the wiring point)
+  +-- adapters-ooxfuzz -- (gp-core, adapters-ooxml, adapters-pdf, lint)
 ```
 
-Dependency enforcement:
-- `gp-core` may depend on external allow-list only
-- `adapters-*` may depend on `gp-core` only
-- `engines` may depend on `gp-core` only
-- `lint` may depend on `gp-core`, `adapters-pdf`
-- `mcp` may depend on everything
-- `cli` may depend on `mcp` (transitively all)
+Dependency policy vs reality:
+
+| Crate | Plan §3.2 allows | Actual workspace deps |
+|---|---|---|
+| `gp-core` | external allow-list only | ✅ none (serde, thiserror, sha2, rhai, minisign-verify, …) |
+| `adapters-ooxml` | `gp-core` only | ⚠ `gp-core`, `lint` |
+| `adapters-odf` | `gp-core` only | ✅ `gp-core` |
+| `adapters-pdf` | `gp-core` only | ✅ `gp-core` |
+| `engines` | `gp-core` only | ⚠ `gp-core`, `adapters-ooxml` |
+| `lint` | `gp-core`, `adapters-pdf` | ✅ `gp-core` |
+| `mcp` | everything (sole wiring point) | `gp-core` only (see deviation note) |
+| `cli` | `mcp` transitively | all crates directly (de-facto wiring point) |
+
+**Known DAG deviations (open, tracked in `docs/phase4-plan.md` P4-02):**
+1. `adapters-ooxml → lint` and `engines → adapters-ooxml` violate `project_plan.md` §3.2.
+2. `mcp` no longer wires adapters/engines (the plan called it the sole wiring point); `cli` is.
+3. `tools/check-deps.sh` currently enforces only banned crates / `-sys` / wildcard versions —
+   not the cross-crate edges. Enforcement of whatever policy the owner ratifies (refactor or
+   amend §3.2) is P4-02 scope.
 
 ## Crate details
 
 ### gp-core (foundation)
 
-Core types, IR, diagnostics, traits, and content-addressed store. No workspace crate dependencies.
+Core types, IR, diagnostics, traits, store, journal, patch, executor, policy, sandbox,
+selfupdate. No workspace crate dependencies.
 
 | Module | Purpose | Key types |
 |--------|---------|-----------|
-| `ir` | Intermediate representation types | `Document`, `Spreadsheet`, `Presentation`, `PdfDocument`, `IRDocument`, `ElementId` |
-| `fidelity` | Fidelity budget types + merge algebra | `FidelityBudget`, `RendererInfo` |
-| `diagnostics` | Diagnostic code registry | `DiagnosticRegistry`, `DiagnosticCode`, `ReadError`, `Severity` |
+| `ir` | Intermediate representation (C1) | `Document`, `Spreadsheet`, `Presentation`, `PdfDocument`, `IRDocument`, `ElementId`, template metadata |
+| `patch` | Abstract patch ops + IR application + unified diff (P3) | `PatchOp` |
+| `diff` | IR structural diff | — |
+| `executor` | Format routing, refusal matrix, QA loop, byte-diff report | `FormatType`, `ExecuteResult`, `PartByteDiff`, `QALoopResult`, `RenderPage`, `SignatureInfo`, `PolicyDenial` |
+| `journal` | Undo journal + revert (C6, P6) | — |
 | `store` | Content-addressed blob store | `Store` |
+| `policy` | Edit allow-list + taint marks (C10) | — |
+| `fidelity` | Fidelity budget types + merge algebra (C4) | `FidelityBudget`, `RendererInfo` |
+| `diagnostics` | Diagnostic-code registry (C3) | `DiagnosticRegistry`, `DiagnosticCode`, `ReadError`, `Severity` |
+| `script` | Sandboxed Rhai escape hatch (D17, ADR-0005) | `ScriptConfig`, `ScriptResult`, `run_script`, `has_sandbox_violations` |
+| `selfupdate` | Verify-before-swap update primitive (ADR-0006) | `UpdateChannel`, `UpdateManifest`, `UpdateResult` |
 | `traits` | Core trait definitions | `Codec`, `PatchExecutor`, `Engine`, `Probe`, `Linter`, `EngineInfo` |
+| `edit_stability` | Element-ID stability property tests (C2) | — |
 | `macro_check` | Macro expansion checks | — |
 | `testkit` | Shared test utilities | — |
 
@@ -67,70 +95,75 @@ Constants: `IR_VERSION = "1.0.0"`, `ELEMENT_ID_PATTERN = "^id-[0-9a-f]{12,}$"`
 
 ### adapters-ooxml
 
-Open XML (OOXML) format adapters. Parses docx, xlsx, pptx, and OPC packages.
+Open XML (OOXML) adapters: read, surgical write, create, revisions.
 
 | Module | Purpose |
 |--------|---------|
-| `lib` | Module re-exports |
-| `opc` | OPC (Open Packaging Conventions) package reader |
-| `xml` | XML parsing utilities |
-| `docx` | WordprocessingML adapter |
-| `xlsx` | SpreadsheetML adapter |
-| `pptx` | PresentationML adapter |
-| `census` | Document census (feature counting) |
-| `validate` | Package validation |
-| `main` | Stub (prints error, exits) |
+| `opc` | OPC package reader + raw stream-copy writer core |
+| `writer` / `commit` | Surgical package writer (P1): unchanged entries byte-copied |
+| `xml` / `span_mut` | Namespace/order-preserving DOM-lite + byte-span patch primitives |
+| `docx` / `xlsx` / `pptx` | Readers → IR (structure, IDs, coordinates, budget) |
+| `docx_writer` / `xlsx_writer` / `pptx_writer` | Surgical part writers feeding `commit` |
+| `executor` | Patch execution + refusal matrix for OOXML |
+| `create` / `create_xlsx` / `create_pptx` | Native creation from IR (M3) |
+| `create_template` | Template-based creation; style/theme parts byte-identical |
+| `md_ir` | Markdown → IR converter |
+| `revision_writer` | Tracked-changes write (`w:ins`/`w:del`, `paraId` anchoring) + `create_as_revisions` |
+| `census` | Feature census → fidelity budget |
+| `validate` | Schema/structural validation gate |
 
 ### adapters-odf
 
-OpenDocument Format (ODF) adapters. Parses odt, ods, odp.
+OpenDocument Format (ODF) adapters. Full read + surgical write since M3.
 
 | Module | Purpose |
 |--------|---------|
-| `lib` | Module re-exports |
-| `odf` | ODF package reader (deprecated stub) |
-| `xml` | XML parsing utilities |
-| `manifest` | ODF manifest parsing |
-| `odt` | Word processing adapter |
-| `ods` | Spreadsheet adapter |
-| `odp` | Presentation adapter |
-| `main` | Stub (prints error, exits) |
+| `manifest` | ODF manifest parsing (+ hashes) |
+| `odt` / `ods` / `odp` | Readers → IR |
+| `xml` | XML parsing utilities (DOM-lite with spans) |
+| `writer` | Surgical package writer: mimetype-first/stored, manifest updates, encryption refusal |
+| `patch` | Offset-based content.xml patch primitives (right-to-left, span re-verify) |
+| `patch_executor` | IR patch → odt/ods/odp routing (`PatchExecutor` impl) |
+| `census` | ODF feature census → budget |
+| `rng_validate` | RelaxNG validation gate (bundled ODF 1.2 rng, xmllint) |
 
 ### adapters-pdf
 
-PDF parsing and analysis. No rendering — purely structural analysis.
+PDF parsing and incremental mutation. No rendering — structural only. D19 stack (lopdf +
+pdf-writer, qpdf shell-out glue).
 
 | Module | Purpose |
 |--------|---------|
-| `lib` | Module re-exports |
-| `parser` | PDF object layer parser |
+| `parser` | PDF object layer parser (page tree, xref, object streams) |
 | `text` | Text extraction with bounding boxes |
-| `form` | Form field parsing |
-| `annot` | Annotation extraction |
-| `outline` | Document outline / TOC parsing |
-| `metadata` | PDF metadata extraction |
-| `qpdf` | QPDF integration for checks |
-| `main` | Stub (prints error, exits) |
+| `form` | AcroForm field read/write (XFA flagged unsupported) |
+| `annot` | Annotation read/write |
+| `outline` / `metadata` | TOC + metadata/XMP extraction and updates |
+| `qpdf` | `qpdf --check` runner glue (honest-absent) |
+| `incremental` | Append-only incremental writer (prefix invariant; refuses encrypted/xref-stream/obj-stm; signed-input refusal) |
+| `patch_executor` | IR patch → PDF increments (`PatchExecutor` impl) |
 
 ### engines
 
-Render engine abstraction. Engines are spawned subprocesses, never linked.
+Render engines as spawned subprocesses, never linked (D3).
 
 | Module | Purpose |
 |--------|---------|
-| `lib` | Module re-exports, engine trait re-exports |
-| `libreoffice` | LibreOffice headless subprocess runner |
-| `pandoc` | Pandoc subprocess runner |
-| `probe` | Engine discovery and capability probing |
-| `negotiate` | Engine selection / fallback negotiation |
-| `doctor` | Doctor probe logic |
-| `cache` | Render cache management |
-| `raster` | Rasterization helpers |
-| `capability` | Capability matrix aggregation |
+| `libreoffice` | LibreOffice headless runner (isolated profiles, timeouts, wedge kill) |
+| `pandoc` | Pandoc runner: text extraction + creation (`--reference-doc`) |
+| `chromium` | Chromium runner: discovery chain, `--headless=new --print-to-pdf`/`--screenshot`, isolated user-data-dir |
+| `typst` | Typst runner: `typst compile` shell-out, honest-absent path (ADR-0004) |
+| `creation` | Unified creation dispatcher (pandoc/chromium/typst/native/revisions) |
+| `probe` | Engine discovery + fixture-conversion capability probes (D8) |
+| `negotiate` | Renderer negotiation incl. `authoring_order()` per conversion |
+| `doctor` | Doctor probe matrix (engines × fixtures, incl. chromium/pandoc/typst rows) |
+| `raster` | Rasterization ladder (poppler → gs → mutool → soffice) |
+| `cache` | Render master cache (key per INV-4) |
+| `capability` | Capability matrix (C5) |
 | `mock` | Mock engine for testing |
-| `main` | Stub (prints error, exits) |
 
-Engine identifiers: `libreoffice`, `pandoc`, `ms-office`. Phase 3 plans to add `chromium` and `typst`.
+Engine identifiers: `libreoffice`, `pandoc`, `chromium`, `typst` (live); `ms-office` (defined,
+not implemented — COM tier deferred).
 
 ### lint
 
@@ -138,68 +171,71 @@ Fidelity linting. Consumes render artifacts (PDFs, extracted text) — never tou
 
 | Module | Purpose |
 |--------|---------|
-| `lib` | Module re-exports |
-| `linter` | Main linter orchestration |
-| `budget` | Fidelity budget enforcement |
-| `ssim` | Per-page SSIM comparison |
+| `linter` | Main linter orchestration (overflow, overlaps, coords, autofit) |
+| `budget` | Fidelity budget enforcement (C4) |
+| `ssim` | Per-page SSIM comparison (C9 parity) |
 | `contrast` | Color contrast checks |
-| `font` | Font substitution / missing glyph detection |
-| `diff` | IR structural diff |
+| `font` | Font substitution / missing-glyph detection |
+| `diff` | IR structural diff renderers |
 | `sheet` | Sheet handling |
 | `encode` | Encoding fidelity tests |
-| `cropper` | Region cropping |
-| `coords` | Coordinate transformation |
-| `page_delta` | Page count delta |
-| `c3` | C3 metric checks |
-| `main` | Stub (prints error, exits) |
+| `cropper` / `coords` | Region cropping + `bbox_pt` ↔ pixel bookkeeping |
+| `page_delta` | Page-count delta checks |
+| `annotator` | Numbered/severity lint boxes on pages + legend JSON manifest (REN-06) |
+| `a11y` | Accessibility section orchestration (veraPDF-backed) |
+| `verapdf` | veraPDF runner (honest-absent probe; CI-real) |
+| `validate` | Schema gate wiring (OOX-08 + ODF RelaxNG + qpdf) |
+| `perf` | Edit→render→look latency measurement (OPS-02) |
+| `c3` | C3 diagnostic-code checks |
 
 ### mcp
 
-MCP (Model Context Protocol) server implementation. The only crate allowed to know the MCP SDK.
+MCP (Model Context Protocol) server. Protocol layer only — wiring lives in `cli`.
 
 | Module | Purpose |
 |--------|---------|
-| `lib` | Module re-exports |
-| `spec` | Tool specification types (C7 compliance) |
-| `tools` | Tool registry + validation |
+| `spec` | Tool specification types (C7 compliance; per-tool `schema_version`) |
+| `tools` | Tool registry (16 specs) + validation |
 | `dispatch` | Tool handler trait + closure adapter |
 | `jsonrpc` | JSON-RPC protocol |
 | `server` | MCP server implementation |
-| `transport` | Transport modes (stdio, HTTP) |
-| `http` | HTTP transport server |
-| `main` | Stub (prints error, exits) |
+| `transport` | Transport modes (stdio) |
+| `http` | HTTP transport (session store, `POST /` routing) |
 
-Phase 1 read-only tools: `inspect_document`, `render_document`, `inspect_region`,
-`diff_documents`, `doctor`, `serve`. Phase 2 added: `apply_patch`, `edit_text`, `edit_cell`,
-`edit_structure`, `annotate_pages`, `revert_document`, `journal`, `perf`.
+MCP tool surface (C7 v1.2.0, 16 specs): `inspect_document`, `render_document`,
+`inspect_region`, `diff_documents`, `doctor`, `serve` (v1.0.0); `apply_patch`, `edit_text`,
+`edit_cell`, `edit_structure`, `annotate_pages`, `revert_document`, `journal` (v1.1.0);
+`create_document`, `script_tool`, `check_update` (v1.2.0).
 
 ### cli
 
-The `stichos` binary. Entry point with CLI subcommands.
+The `stichos` binary. Entry point, clap parsing, subcommand dispatch, engine/adapter wiring.
 
 | Module | Purpose |
 |--------|---------|
-| `main` | CLI entry point, clap argument parsing, subcommand dispatch |
-| `inspect` | `inspect` subcommand handler |
-| `render` | `render` subcommand handler |
-| `diff_tool` | `diff` subcommand handler |
-| `doctor_tool` | `doctor` subcommand handler |
-| `region` | `region` subcommand handler |
+| `main` | CLI entry, 16-verb dispatch |
+| `inspect` / `region` / `render` / `diff_tool` / `doctor_tool` | Read-side verbs |
+| `apply_tool` / `sugar_edits` | `apply`, `edit` — surgical edits + sugar (tracked revisions default) |
+| `journal_tool` | `journal` / `revert` |
+| `perf_tool` | `perf` — OPS-02 latency gate |
+| `script_tool` | `script` — sandboxed Rhai runner |
 | `budget_enforcer` | INV-2 / C8 payload budget enforcement |
-| `apply_tool` | `apply` subcommand — surgical edits with tracked revisions (Phase 2 Wave D) |
-| `sugar_edits` | `edit` subcommand — sugar over apply (Phase 2 Wave D) |
-| `journal_tool` | `journal` / `revert` subcommands — session journaling for edits (Phase 2 Wave E) |
-| `perf_tool` | `perf` subcommand — edit→render→look latency measurement (Phase 2 Wave F) |
+| (verbs in `main.rs`) | `serve`, `schema`, `create`, `update` |
 
-Subcommands: `inspect`, `region`, `render`, `diff`, `doctor`, `serve`, `schema`, `apply`, `edit`, `annotate`, `revert`, `journal`, `perf`.
+Subcommands (16): `inspect`, `region`, `render`, `diff`, `doctor`, `serve`, `schema`, `apply`,
+`edit`, `annotate`, `revert`, `journal`, `perf`, `create`, `script`, `update`.
 
 ### adapters-ooxfuzz
 
-Fuzzing harness for OOXML adapters. Not a shipped component — dev-only fuzzing.
+Fuzzing harness for OOXML + write paths. Dev-only, not shipped.
 
 | Module | Purpose |
 |--------|---------|
-| `lib` | Fuzz test cases (59 tests) |
+| `lib` | Read-path fuzz cases |
+| `odf_writer_fuzz` | ODF writer hostile-content cases |
+| `pdf_incremental_fuzz` | PDF incremental-writer cases |
+| `creation_fuzz` | Creation-IR input cases |
+| `rhai_corpus` | Rhai script-bomb corpus (sandbox regression lock) |
 
 ## Harness (Python, dev-only)
 
@@ -229,28 +265,42 @@ harness/
 corpus/
   PLAN.md                 # fixture generation plan
   GENERATION_REPORT.md    # generation results
-  # manifests, blobs, reference text
+  # manifests, blobs, reference text; 151 fixtures (69 ODF), pr-subset.txt (27)
 ```
 
 ## Docs
 
 ```
 docs/
-  contracts/              # C1–C9 interface specs
-  adr/                    # architecture decision records
+  contracts/              # C1–C10 interface specs (C7 at v1.2.0)
+  adr/                    # ADR-0001..0006 + legacy pre-convention files (see README index)
   gov/                    # name hygiene, registration
   harness/                # harness-specific docs
-  contracts/              # contract specs (C1–C9)
-  phase*-executions       # milestone execution records
+  phase0-execution.md     # M0 runbook
+  phase1-concept/plan/status · phase2-… · phase3-…   # per-phase artifacts
+  m2-acceptance.md · m3-acceptance.md                # milestone acceptance reports (m3 §7 = corrections)
+  creation-measurement.md/.csv                       # M3 creation-path matrix (C9)
+  threat-model.md         # M1–M3 threat model incl. SEC-06 reviews
+  KNOWN_ISSUES.md         # KI-01..05
+  release-playbook.md     # DIS-08 release procedure
 ```
 
-## Test coverage summary
+## Test coverage summary (measured 2026-09-16, tag m3, `cargo test --workspace`)
 
-| Area | Files | `#[test]` / `def test` | Notes |
-|------|-------|----------------------|-------|
-| Rust (all crates) | 69 `.rs` | ~650 `#[test]` | ~465 across 45 files with `#[cfg(test)]`; 21 files with 0 tests (mostly trivial stubs) |
-| Python harness | 5 `.py` | 43 `def test_` | Well-covered for dev-only harness |
-| Integration tests | 1 (`cli_tests.rs`) | 10 `#[test]` | End-to-end CLI binary tests |
+| Crate | Passed | Failed | Ignored | Notes |
+|-------|--------|--------|---------|-------|
+| gp-core | 335 | 0 | 0 | incl. script sandbox + selfupdate suites |
+| adapters-ooxml | 282 | 0 | 0 | read + surgical write + creation + revisions |
+| adapters-odf | 146 | 0 | 0 | zero-patch ×69 in-suite |
+| adapters-pdf | 100 | 0 | 1 | prefix invariant in-suite |
+| engines | 219 | 0 | 0 | chromium/typst honest-absent paths |
+| lint | 294 | 0 | 0 | |
+| mcp | 62 | 0 | 0 | |
+| cli (bin) | 86 | 0 | 0 | |
+| cli integration (`tests/cli_tests.rs`) | 10 | 0 | 0 | end-to-end binary tests |
+| adapters-ooxfuzz | 107 | 0 | 0 | fuzz regressions locked as tests |
+| doctests | 3 | 0 | 0 | |
+| **Total** | **1644** | **0** | **1** | |
 
 ## Naming conventions
 

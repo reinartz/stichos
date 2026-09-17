@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Status | **proposed** (2026-09-15, contributor) — flip to **accepted**/**rejected** by the **project owner** only |
+| Status | **accepted** (owner flip 2026-09-16; proposed 2026-09-15 — engine shipped via P3-05/06, Wave A gate green, M3 accepted) |
 | Gate | A (chromium+typst engines probed/registered; deny bans typst crate) |
 | Decide by | wave A (2026-09-15) |
 | Decision owner | **project owner** |

@@ -1,8 +1,11 @@
 # stichos — Project Concept & Decision Record
 
 **Tagline:** proof before publish.
-**Status:** concept agreed · naming agreed · Phase 0 harness live (`docs/phase0-execution.md`), nightly ×3 green; Phase 1 Rust implementation in progress (9 crates scaffolded: gp-core, adapters-ooxml/odf/pdf, engines, lint, mcp, cli); M0 gate pending GOV-02 sweep only
-**Last updated:** 2026-09-08 (D18–D21; OQ1/OQ5 resolved; measured identity re-check)
+**Status:** concept agreed · naming agreed · **Phases 0–3 shipped and gated** (tags `m1-closeout`,
+`m2`, `m3`; M3 independently re-verified 2026-09-16 — 1 644 tests green, clippy/fmt/deny clean,
+`phase3_gate.sh` 26/26, acceptance `docs/m3-acceptance.md` §7); **Phase 4 (human loop) planned** —
+`docs/phase4-concept.md` / `docs/phase4-plan.md`
+**Last updated:** 2026-09-16 (D22 review-overlay call; phase-status refresh)
 **Project root:** `/localdata/workspace/stichos`
 **Related:** [`brand.md`](brand.md) — identity, colour, typography, logo usage
 
@@ -341,23 +344,28 @@ Design findings baked into the rules (verified by rasterising and *looking*):
 
 ## 14. Roadmap
 
-**Phase 0 — harness before features.** Container with pinned LibreOffice + fixed font set;
+**Phase 0 ✅ — harness before features** (M0 closed; `docs/phase0-execution.md`). Container with pinned LibreOffice + fixed font set;
 150–200 genuinely nasty documents (merged cells, SmartArt, embedded OLE, tracked changes, XFA forms,
 scanned OCR, CJK/RTL, 300-slide decks); metrics: per-page SSIM vs last approved render, page-count
 delta, feature-retention assertions (`w:tbl`/`w:drawing`/`w:fldSimple`/comment counts before vs after).
 Every library decision gets measured against this, not against marketing pages.
 
-**Phase 1 — read.** Structure-aware extraction with coordinates (body/tables/headers/footnotes;
+**Phase 1 ✅ — read** (M1, tag `m1-closeout`). Structure-aware extraction with coordinates (body/tables/headers/footnotes;
 sheets with formulas *and* cached values; decks with masters/placeholders), PDF forms and annotations,
 thumbnail rendering. Read-only ships safely and is immediately useful.
 
-**Phase 2 — surgical edit + closed loop.** OPC-level patching with an ID map, byte-diff report,
+**Phase 2 ✅ — surgical edit + closed loop** (M2, tag `m2`; closeout in Phase-3 Wave 0). OPC-level
+patching with an ID map, byte-diff report,
 LO/Word render + layout lint on every mutation, dry-run diffs.
 
-**Phase 3 — creation from IR.** Markdown/HTML/Typst → `pandoc --reference-doc` / Chromium / Typst
-for branded output; tracked-changes and comment output.
+**Phase 3 ✅ — creation from IR** (M3, tag `m3`). Markdown/HTML/Typst → `pandoc --reference-doc` /
+Chromium / Typst for branded output; native IR→OOXML creation; tracked-changes and comment output;
+ODF + PDF write paths complete on Linux.
 
-**Phase 4 — human loop.** pdf.js annotation overlay, accept/reject, in-suite add-in and/or Collabora embed.
+**Phase 4 ⏳ — human loop** (`docs/phase4-concept.md`). Annotation overlay review UI — **shipped as
+a raster overlay over the 150-DPI PNG masters, not pdf.js (D22)** — accept/reject on tracked
+changes, ODF revision write, in-suite handoff (`open`); COM add-in stays a design-only spike until
+a Windows host exists.
 
 Crate layout: `core` (IR + patch engine, dep-free) · `adapters-ooxml` · `adapters-odf` · `adapters-pdf` ·
 `engines` (probe + subprocess runners) · `lint` · `mcp` · `cli`.
@@ -403,6 +411,7 @@ Crate layout: `core` (IR + patch engine, dep-free) · `adapters-ooxml` · `adapt
 | D19 | PDF stack: **lopdf + pdf-writer** pure-Rust core, qpdf shell-out rung, mutool/gs optional D11 rungs, pdfium deferred to G5 | G1 accepted by owner 2026-09-08 (ADR-0001); D2/D8 preserved, AGPL never in-process | G5 experiment (PDF-04 word-bbox) shows pure-Rust extraction insufficient for LIN-01 |
 | D20 | Web identity: **`stichos.dev` only**; no homepage planned; **skip `stichos.com`** | owner call 2026-09-08 (OQ5 domain part); `.com` parked at NameBright since 2016, no need to buy or monitor | a marketing site becomes a requirement |
 | D21 | **No trademark filing** — the open-source project ships unbranded-by-registration; squat-proofing is done via registries + repo (GOV-02), not TM | owner call 2026-09-08: OSS project, filing cost + thin distinctiveness (clearance-memo §3) not justified; risk accepted knowingly | commercial productization, or a confusingly-identical commercial competitor makes defensive filing worthwhile |
+| D22 | Phase-4 review overlay = **raster overlay over the 150-DPI PNG masters** (D12) with a vendored minimal viewer, **not pdf.js**; pdf.js deferred to a later wave | owner call 2026-09-16 (`docs/phase4-concept.md` S2): element/word bbox bookkeeping, annotator legend and master cache already solve coordinates; far smaller vendored-JS + XSS surface than a bundled pdf.js viewer; §14 wording amended | human review needs in-place text selection or native PDF annotation objects ⇒ pdf.js wave |
 
 ---
 
@@ -437,9 +446,13 @@ Crate layout: `core` (IR + patch engine, dep-free) · `adapters-ooxml` · `adapt
 
 ## 19. Next actions
 
-1. ~~Stand up the fidelity harness (Phase 0) and the fixture corpus.~~ Done 2026-09-07 (runbook SA-1..SA-10); M0 gate closure pending human items + 2 CI bugs (`docs/phase0-execution.md` gate status).
-2. Cargo workspace scaffold with engine trait + probe/`doctor` fixture probe.
-3. `render_document` / `inspect_region` returning MCP image blocks + structured manifest.
-4. Deterministic layout linter before any VLM-in-the-loop.
-5. Windows COM worker behind the same engine trait, logon-session process model.
-6. Name hygiene: trademark search, register registries/domain the same day (GitHub = private repo on owner's personal account, D18).
+1. ~~Stand up the fidelity harness (Phase 0) and the fixture corpus.~~ Done 2026-09-07.
+2. ~~Cargo workspace scaffold with engine trait + probe/`doctor` fixture probe.~~ Done (M1).
+3. ~~`render_document` / `inspect_region` returning MCP image blocks + structured manifest.~~ Done (M1).
+4. ~~Deterministic layout linter before any VLM-in-the-loop.~~ Done (M1/M2).
+5. ~~Creation from IR + ODF/PDF write completion + sandbox + distribution.~~ Done (M3, tag `m3`).
+6. **Phase 4 — human loop** (`docs/phase4-plan.md`): revision accept/reject kernel (OOXML + ODF),
+   raster review overlay over the store's HTTP surface, comment write-back, `open` handoff;
+   COM stays design-only until a Windows host exists.
+7. Windows COM worker behind the same engine trait, logon-session process model — **implementation
+   still deferred** (design ADR + compile-only skeleton + Windows CI land in Phase 4 Wave H).

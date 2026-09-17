@@ -3,7 +3,7 @@
   "plan": "docs/phase3-plan.md",
   "updated": "2026-09-16",
   "progress_header": "33/33 verified · 8/8 gates",
-  "handoff_note": "Phase 3 complete. M3 tag m3 created at 4f38e6fa.",
+  "handoff_note": "Phase 3 complete. Tag m3 at 1e0749b (contains the M3 acceptance report); main + m3 pushed to origin 2026-09-16. See docs/m3-acceptance.md \u00a77 addendum.",
   "legend": {
     "statuses": [
       "pending",

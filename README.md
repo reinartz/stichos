@@ -9,12 +9,13 @@ lowercase `stichos`.
 
 ## Repo status
 
-Phase 0 / M0: the Python fidelity harness is live (151-fixture corpus + goldens, baseline
-report-v1, reproducible `fontset_hash`, nightly ×3 green). Phase 1 / M1 (read-only ship) closed
-2026-09-14 (tag `m1-closeout`). Phase 2 / M2 (surgical edit + closed loop) functionally complete
-2026-09-15; closeout debt (clippy/fmt, uncommitted Waves C–F, misplaced `m2` tag) is Phase 3
-Wave 0. Phase 3 / M3 (creation + ODF/PDF write completion) planned:
-[`docs/phase3-plan.md`](docs/phase3-plan.md).
+Phases 0–3 are complete and gated: M0 harness (151-fixture corpus + goldens, baseline report-v1,
+reproducible `fontset_hash`, nightly ×3 green), M1 read-only ship (tag `m1-closeout`), M2 surgical
+edit + closed loop (tag `m2`), M3 creation + ODF/PDF write-path completion + sandbox + distribution
+automation (tag `m3`, gate re-verified 2026-09-16: 1 644 tests green, clippy/fmt/deny clean,
+`phase3_gate.sh` 26/26). **Phase 4 / M4 (human loop: tracked-change accept/reject, review overlay,
+ODF revisions, handoff) is the next milestone** — see
+[`docs/phase4-concept.md`](docs/phase4-concept.md) / [`docs/phase4-plan.md`](docs/phase4-plan.md).
 
 ## Doc map
 
@@ -32,6 +33,13 @@ Wave 0. Phase 3 / M3 (creation + ODF/PDF write completion) planned:
 | [`docs/phase3-concept.md`](docs/phase3-concept.md) | Phase 3 concept: creation + write-path completion (M3), scope, gate, owner calls S1–S4 |
 | [`docs/phase3-plan.md`](docs/phase3-plan.md) | Phase 3 plan: 33 agent-sized steps in 8 waves |
 | [`docs/phase3-status.json`](docs/phase3-status.json) | Phase 3 progress tracker (canonical step status) |
+| [`docs/m3-acceptance.md`](docs/m3-acceptance.md) | M3 acceptance report (§7 = post-acceptance corrections) + Phase-4 intake |
+| [`docs/creation-measurement.md`](docs/creation-measurement.md) | M3 creation-path measurement matrix (C9) |
+| [`docs/threat-model.md`](docs/threat-model.md) | threat model + SEC-06 review checklists (M1–M3) |
+| [`docs/release-playbook.md`](docs/release-playbook.md) | release / verify / rollback procedure (DIS-08) |
+| [`docs/phase4-concept.md`](docs/phase4-concept.md) | Phase 4 concept: human loop — accept/reject, review overlay, ODF revisions, handoff (M4) |
+| [`docs/phase4-plan.md`](docs/phase4-plan.md) | Phase 4 plan: 21 agent-sized steps in 6 waves |
+| [`docs/phase4-status.json`](docs/phase4-status.json) | Phase 4 progress tracker (canonical step status) |
 | [`docs/gov/`](docs/gov/) | name hygiene: clearance memo, registration checklist, distro collisions |
 | [`docs/adr/`](docs/adr/) | architecture decision records (ADR-0001: PDF stack, accepted) |
 | [`harness/`](harness/) | M0 Python fidelity harness (dev-only, never shipped) |

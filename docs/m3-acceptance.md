@@ -2,8 +2,8 @@
 
 **Milestone:** M3 (Phase 3 — creation + write-path completion)
 **Date:** 2026-09-16
-**Tag:** m3
-**Commit:** 4f38e6fa2e9999264ed33efe58a4f4df23713780
+**Tag:** m3 (lands at `1e0749b`, the commit containing this report — see §7 addendum)
+**Commit:** 4f38e6fa2e9999264ed33efe58a4f4df23713780 (gate checks run here; tag tip `1e0749b`)
 **Gate:** tools/phase3_gate.sh — PASSED (26/26 checks)
 
 ## 1. M3 Exit Gate Results
@@ -186,3 +186,33 @@ m3 tag pending
 **Prepared by:** p3-33 agent
 **Date:** 2026-09-16
 **Approver:** [project owner]
+
+## 7. Closeout addendum (2026-09-16, post-acceptance corrections)
+
+Recorded during the Phase-3 completion audit (docs sync + Phase-4 planning session):
+
+1. **Tag placement.** §1/§5 state "Commit: 4f38e6fa" / "m3 tag pending". The `m3` tag in fact
+   landed on `1e0749b` — the Wave-G commit that contains this report and all Wave-G artifacts —
+   which is the correct gate-green tip. `git rev-parse m3^{commit}` == `1e0749b`. The §5 snippet
+   above was written before the tag push and is superseded by this note.
+2. **Pushed.** `main` (`1e0749b`) and tag `m3` were pushed to `origin` on 2026-09-16 with owner
+   approval. Origin is now in sync with the gate-green tree.
+3. **Independent re-verification.** clippy (`--workspace --all-targets -- -D warnings`), fmt
+   (`--all --check`), `cargo deny check` (advisories/bans/licenses/sources ok) and
+   `cargo test --workspace` (0 failures) re-run clean on this host on the committed tree.
+   Measured per-crate counts: gp-core 335, adapters-ooxml 282, adapters-odf 146, adapters-pdf
+   100 (1 ignored), engines 219, lint 294, mcp 62, cli 86 (+10 integration), ooxfuzz 107 —
+   total **1 644 passed, 0 failed**. The §5 per-crate table above mis-assigns crate labels
+   (e.g. gp-core is 335, not 10; its rows also do not sum to its stated 1 534); the pass/fail
+   conclusion is unaffected. Authoritative counts live in `CODEBASE.md`.
+4. **Gate-script caveat found.** `tools/phase2_gate.sh` / `tools/phase3_gate.sh` pipe through
+   `tee /dev/tty`; on a host **without** a TTY, `tee` fails and the pipelines short-circuit so the
+   `if` conditions fall through to their *pass* branches — i.e. the gate can report PASSED without
+   evaluating cargo's real result. This acceptance's claims do hold (verified independently per
+   item 3), but the script is not trustworthy headless. Fix is Phase-4 step **P4-01**
+   (`docs/phase4-plan.md`).
+5. **ADR-0004** (Typst = CLI shell-out) flipped **proposed → accepted** by owner 2026-09-16,
+   closing the Wave-A gate's "ADR-0004 accepted" precondition retroactively.
+6. **Tool count.** §1.7 states "15 MCP tools"; `crates/mcp/src/spec.rs` registers **16** ToolSpecs
+   (15 document tools + `serve`). `docs/contracts/C7.md` was synced to v1.2.0 with the full
+   16-row matrix on 2026-09-16 (it had still claimed v1.0.0).

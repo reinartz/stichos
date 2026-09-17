@@ -1,12 +1,12 @@
 # stichos — Project Plan
 
-**Status:** Phase 0 (M0) executing · derived from [`project_concept.md`](project_concept.md) (decisions D1–D20, phases §14)
-**Last updated:** 2026-09-08 — runbook stages SA-1..SA-10 done (`docs/phase0-execution.md`): 151-fixture corpus +
-goldens, baseline report-v1 published, reproducible `fontset_hash`. Repo live: `github.com/reinartz/stichos`
-(private, D18; pushed 2026-09-07). **Nightly ×3 green (run 34221533557** after two determinism fixes, runbook
-CI bug-fix log**).** SA-6 golden approval ✅ (owner 2026-09-08) · **G1 ✅ decided: lopdf + pdf-writer
-(D19, ADR-0001 accepted)** · OQ5 ✅ fully resolved (skip `stichos.com`/no homepage — D20; no TM filing — D21).
-M0 exit gate now blocked only on: the **GOV-02 registration sweep**.
+**Status:** **M0–M3 shipped** · derived from [`project_concept.md`](project_concept.md) (decisions D1–D22, phases §14)
+**Last updated:** 2026-09-16 — M0 ✅ (harness + 151-fixture corpus + goldens + baseline report-v1, nightly ×3
+green), M1 ✅ tag `m1-closeout`, M2 ✅ tag `m2`, M3 ✅ tag `m3` (creation + ODF/PDF write completion + Rhai
+sandbox + distribution automation; gate re-verified 2026-09-16: 1 644 tests, clippy/fmt/deny clean,
+`phase3_gate.sh` 26/26; `docs/m3-acceptance.md` §7 for corrections). Gates G1 ✅ (D19), G4 ✅ (no own repos);
+G3/G5 still open (Windows host / pdfium). **M4 (Phase 4 — human loop) is the active milestone**:
+[`docs/phase4-concept.md`](docs/phase4-concept.md) / [`docs/phase4-plan.md`](docs/phase4-plan.md).
 **Rule:** this file is a plan, not a decision record. If a plan choice contradicts the concept,
 resolve it in `project_concept.md` §16 (decision log) first, then reflect it here.
 Traceability: every task cites the concept section (§) or decision (D) it implements.
@@ -28,10 +28,10 @@ Traceability: every task cites the concept section (§) or decision (D) it imple
 
 | M | Concept phase | Ships | Exit gate (all must pass) | Est. |
 |---|---|---|---|---|
-| **M0** | Phase 0 — harness | no user artifact; fidelity harness + corpus live in CI | harness runs ≥150 fixtures × engines, baseline report published (HAR-06); reproducible `fontset_hash`; CI nightly green on 3 platforms; name-hygiene sweep done (GOV-01..03) | 4–6 w |
-| **M1** | Phase 1 — read | read-only binary: `inspect`/`render`/`doctor` + MCP server, 6 targets | installs clean on all 6 targets; every tool response carries provenance (D6); read-path fuzz-clean (SEC-01/06); `doctor` capability matrix = real conversions (D8); edit tools **absent** | +8–12 w |
-| **M2** | Phase 2 — surgical edit | closed-loop editing: `apply`/`diff`, dry-run, tracked changes, per-edit lint | INV-1 surgical suite green (§3.4); edit→render→look ≤ 2 s P95 in CI perf gate (OPS-02); fidelity budget on 100 % of mutations (D6); tracked changes default (D7) | +10–14 w |
-| **M3** | Phase 3 — creation | create from IR/Markdown/HTML/Typst; Rhai escape hatch | created docs pass lint + schema validation; pandoc/Chromium/Typst paths measured against corpus | +6 w |
+| **M0 ✅** | Phase 0 — harness | no user artifact; fidelity harness + corpus live in CI | harness runs ≥150 fixtures × engines, baseline report published (HAR-06); reproducible `fontset_hash`; CI nightly green on 3 platforms; name-hygiene sweep done (GOV-01..03) | 4–6 w |
+| **M1 ✅** (2026-09-14) | Phase 1 — read | read-only binary: `inspect`/`render`/`doctor` + MCP server, 6 targets | installs clean on all 6 targets; every tool response carries provenance (D6); read-path fuzz-clean (SEC-01/06); `doctor` capability matrix = real conversions (D8); edit tools **absent** | +8–12 w |
+| **M2 ✅** (2026-09-16) | Phase 2 — surgical edit | closed-loop editing: `apply`/`diff`, dry-run, tracked changes, per-edit lint | INV-1 surgical suite green (§3.4); edit→render→look ≤ 2 s P95 in CI perf gate (OPS-02); fidelity budget on 100 % of mutations (D6); tracked changes default (D7) | +10–14 w |
+| **M3 ✅** (2026-09-16) | Phase 3 — creation | create from IR/Markdown/HTML/Typst; Rhai escape hatch | created docs pass lint + schema validation; pandoc/Chromium/Typst paths measured against corpus | +6 w |
 | **M4** | Phase 4 — human loop | pdf.js overlay, accept/reject, Collabora/add-in handoff | tracked-change accept/reject round-trip lossless on corpus subset | +6–8 w |
 
 Cross-cutting tracks (SEC, DIS, OPS, GOV) run continuously and are gated per milestone.
@@ -378,20 +378,20 @@ design ADRs before implementation and are staffed by the strongest kernel person
 
 | Wave | Contents (≈ weeks) | Gate |
 |---|---|---|
-| **W0** (w1–2) | HAR-01/03/04 · CORE-01/02/10 · GOV-01..03 · PDF-01 · DIS-01 | CI skeleton green; corpus plan + pinned image exist |
-| **W1** (w3–6) | CORE-03..11 · OOX-01/02/03 · HAR-02/05/06 · SEC-01/02 · ENG-01/02/03/07 | M0: baseline report published (HAR-06); IR v0 frozen (C1 draft) |
-| **W2** (w7–12) | OOX-04..08 · ODF-01..03 · PDF-02..07 · ENG-04/05/06/08 · REN-01..04 · LIN-01..03/06..08 · API-01..06 · DIS-02..04 · HAR-07 | **M1 ship**: read-only binary + MCP across 6 targets |
-| **W3** (w13–22) | OOX-09/10 · ODF-04/05 · PDF-03 · PAT-01..06 · API-07/08 · SEC-03/04 · LIN-04/05 · REN-05/06 · ENG-09(COM-1..6) · OPS-01/02 · SEC-06 | **M2 ship**: closed-loop editing; Windows Office tier live |
-| **W4** (w23–28) | ENG-10/11 · AUT-01..05 · API-09/10 · DIS-05..08 (+ Phase-2b intake per S2: ODF-04/05, PDF-03; COM stays deferred; Typst=CLI shell-out per S3; see `docs/phase3-plan.md`) | **M3 ship**: creation |
-| **W5** (w29–35) | HUM-01..03 · OPS-03 · polish + corpus-driven hardening | **M4 ship**: human loop |
+| **W0 ✅** (w1–2) | HAR-01/03/04 · CORE-01/02/10 · GOV-01..03 · PDF-01 · DIS-01 | CI skeleton green; corpus plan + pinned image exist |
+| **W1 ✅** (w3–6) | CORE-03..11 · OOX-01/02/03 · HAR-02/05/06 · SEC-01/02 · ENG-01/02/03/07 | M0: baseline report published (HAR-06); IR v0 frozen (C1 draft) |
+| **W2 ✅** (w7–12) | OOX-04..08 · ODF-01..03 · PDF-02..07 · ENG-04/05/06/08 · REN-01..04 · LIN-01..03/06..08 · API-01..06 · DIS-02..04 · HAR-07 | **M1 ship**: read-only binary + MCP across 6 targets |
+| **W3 ✅** (w13–22) | OOX-09/10 · ODF-04/05 · PDF-03 · PAT-01..06 · API-07/08 · SEC-03/04 · LIN-04/05 · REN-05/06 · ENG-09(COM-1..6, deferred — no Windows host) · OPS-01/02 · SEC-06 | **M2 ship**: closed-loop editing (COM tier deferred) |
+| **W4 ✅** (w23–28, closed 2026-09-16) | ENG-10/11 · AUT-01..05 · API-09/10 · DIS-05..08 (+ Phase-2b intake per S2: ODF-04/05, PDF-03; COM stays deferred; Typst=CLI shell-out per S3; see `docs/phase3-plan.md`) | **M3 ship**: creation |
+| **W5 ⏳** (Phase 4) | HUM-01..03 · OPS-03 · polish + corpus-driven hardening **+ ODF revision write (owner call 2026-09-16) + COM design/CI skeleton (implementation stays deferred)**; overlay = raster-over-masters (D22). Steps in `docs/phase4-plan.md` | **M4 ship**: human loop |
 
 ### 6.4 Decision gates (blocking; each has a decision-by wave and an owner)
 
 | Gate | Question | Decide by | Blocks | Concept ref |
 |---|---|---|---|---|
 | G1 | OQ1 license split: pure-Rust only vs shell-out vs AGPL-in-process — **DECIDED 2026-09-08 (owner): lopdf + pdf-writer, qpdf shell-out (ADR-0001 accepted, D19)** | W0 ✅ | PDF-02 raster path, `cargo deny` allow-list, dual-license choice | §18-1, D2 |
-| G2 | OQ3 `gp` alias yes/no | W2 (before API-04 CLI freeze) | C7 tool/CLI naming | §18-3 |
-| G3 | OQ2 Word tier for non-Windows users (Aspose/Syncfusion vs hosted worker vs none) | W3 start | COM-5 scope, M2 marketing claims | §18-2 |
+| G2 | OQ3 `gp` alias yes/no — **de facto no**: CLI v1.0–v1.2 shipped with `stichos` spelled out; owner to formalize OQ3 closure | W2 (before API-04 CLI freeze) | C7 tool/CLI naming | §18-3 |
+| G3 | OQ2 Word tier for non-Windows users (Aspose/Syncfusion vs hosted worker vs none) — still open; Phase 4 lands COM **design + compile-only skeleton** only | W3 start | COM-5 scope, M2 marketing claims | §18-2 |
 | G4 | OQ4 own apt/rpm repos vs GitHub Releases + winget/Homebrew — **DECIDED 2026-09-15 (owner): GitHub Releases + winget/Homebrew only, no own repos (phase3-concept §10 S4)** | W4 ✅ | DIS-08 | §18-4 |
 | G5 | pdfium bundling (only if G1 shows pure-Rust extraction insufficient for LIN-01) | after HAR-06 data | D2 "C stays out" invariant — needs D-log entry if reversed | §5.3, D2 |
 
