@@ -152,6 +152,18 @@ jobs:
       - name: cross-compile ×6 + no-C check
         run: bash tools/cross_check.sh
 
+  # MS-Office feature: Windows MSVC compile gate
+  windows-msvc-ms-office:
+    runs-on: ubuntu-latest
+    if: ${{ hashFiles('Cargo.toml') != '' }}
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - name: install Windows MSVC target
+        run: rustup target add x86_64-pc-windows-msvc
+      - name: compile with ms-office feature for Windows
+        run: cargo check --workspace --target x86_64-pc-windows-msvc --features ms-office
+
   # OPS-02: edit→render→look P95 ≤ 2s perf gate
   perf-gate:
     runs-on: ubuntu-latest

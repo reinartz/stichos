@@ -14,6 +14,9 @@ use gp_core::traits::EngineExt;
 pub fn run_doctor(json: bool) -> Result<String> {
     let fixtures = standard_fixtures();
 
+    // Probe platform opener for handoff
+    let handoff = engines::open_handler::probe_open_handler();
+
     // Probe real engines first, then mock as fallback
     let mut engine_refs: Vec<&dyn EngineExt> = Vec::new();
 
@@ -31,7 +34,7 @@ pub fn run_doctor(json: bool) -> Result<String> {
     let mock = MockEngine::new();
     engine_refs.push(Box::leak(Box::new(mock)) as &dyn EngineExt);
 
-    let result = engines::doctor::run_doctor(engine_refs, &fixtures);
+    let result = engines::doctor::run_doctor_with_handoff(engine_refs, &fixtures, Some(handoff));
 
     if json {
         let output = serde_json::json!({
@@ -63,6 +66,14 @@ pub fn run_doctor(json: bool) -> Result<String> {
                 "poppler_version": result.system_info.poppler_version,
                 "ghostscript_version": result.system_info.ghostscript_version,
             },
+            "handoff": result.handoff.as_ref().map(|h| {
+                serde_json::json!({
+                    "platform": h.platform,
+                    "handler_available": h.handler_available,
+                    "handler_name": h.handler_name,
+                    "install_hint": h.install_hint,
+                })
+            }),
         });
         Ok(serde_json::to_string_pretty(&output)?)
     } else {
@@ -116,6 +127,18 @@ pub fn run_doctor(json: bool) -> Result<String> {
             result.fonts.noto_sans.as_deref().unwrap_or("NOT FOUND")
         ));
 
+        // Platform opener handoff
+        lines.push("Platform Opener:".to_string());
+        if let Some(ref h) = result.handoff {
+            let status = if h.handler_available { "+" } else { "-" };
+            lines.push(format!("  {} {} ({})", status, h.handler_name, h.platform));
+            if !h.handler_available && !h.install_hint.is_empty() {
+                lines.push(format!("  hint: {}", h.install_hint));
+            }
+        } else {
+            lines.push("  not probed".to_string());
+        }
+
         lines.push("".to_string());
 
         // Append JSON block for machine consumption
@@ -148,6 +171,14 @@ pub fn run_doctor(json: bool) -> Result<String> {
                 "poppler_version": result.system_info.poppler_version,
                 "ghostscript_version": result.system_info.ghostscript_version,
             },
+            "handoff": result.handoff.as_ref().map(|h| {
+                serde_json::json!({
+                    "platform": h.platform,
+                    "handler_available": h.handler_available,
+                    "handler_name": h.handler_name,
+                    "install_hint": h.install_hint,
+                })
+            }),
         });
         lines.push(serde_json::to_string_pretty(&json_block)?);
 

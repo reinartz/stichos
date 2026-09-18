@@ -13,6 +13,8 @@
 //! - ODF-E-003: Encryption detected
 
 pub mod census;
+pub mod comment_writer;
+pub mod lossless_suite;
 pub mod manifest;
 pub mod odf;
 pub mod odp;
@@ -20,6 +22,9 @@ pub mod ods;
 pub mod odt;
 pub mod patch;
 pub mod patch_executor;
+pub mod revision_executor;
+pub mod revision_reader;
+pub mod revision_writer;
 pub mod rng_validate;
 pub mod writer;
 pub mod xml;

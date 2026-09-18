@@ -14,6 +14,7 @@ pub mod dispatch;
 pub mod http;
 pub mod jsonrpc;
 pub mod server;
+pub mod session;
 pub mod spec;
 pub mod tools;
 pub mod transport;

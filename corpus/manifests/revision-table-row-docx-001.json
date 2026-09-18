@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "id": "revision-table-row-docx-001",
+  "title": "Revision table-row docx 001",
+  "source": "generated",
+  "generator": {
+    "name": "harness/generator",
+    "version": "0.1.0"
+  },
+  "format": "docx",
+  "categories": [
+    "revision-table-row"
+  ],
+  "features": {},
+  "reference_text": "corpus/reference/revision-table-row-docx-001.txt",
+  "expected": {
+    "page_count_min": null,
+    "page_count_max": null
+  },
+  "render": {
+    "dpis": [
+      150
+    ],
+    "engines": [
+      "soffice-26.2.5"
+    ]
+  },
+  "notes": "Tracked table-row insertion via w:trPr/w:ins on a second data row; author=agent, fixed date.",
+  "sha256": "382acff71928f29ab257fad105baaa3d0907beb7566145d8af5547de78ccdb34"
+}

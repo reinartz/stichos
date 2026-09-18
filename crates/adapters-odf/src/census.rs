@@ -39,10 +39,14 @@ pub struct OdfCensus {
     pub table_rows: u64,
     /// Table cell count (`table:table-cell`).
     pub table_cells: u64,
-    /// Revision insert count (`text:insert`).
+    /// Revision insert count (`text:insert` and `text:inserted`).
     pub revisions_insert: u64,
-    /// Revision delete count (`text:mark-deleted`).
+    /// Revision delete count (`text:mark-deleted` and `text:deleted`).
     pub revisions_delete: u64,
+    /// ODF 1.2+ insert count (`text:inserted`).
+    pub revisions_inserted: u64,
+    /// ODF 1.2+ delete count (`text:deleted`).
+    pub revisions_deleted: u64,
     /// Total element count (sum of all above fields).
     pub total_elements: u64,
 }
@@ -98,6 +102,9 @@ impl OdfCensus {
             list_items_delta: other.list_items as i64 - self.list_items as i64,
             revisions_insert_delta: other.revisions_insert as i64 - self.revisions_insert as i64,
             revisions_delete_delta: other.revisions_delete as i64 - self.revisions_delete as i64,
+            revisions_inserted_delta: other.revisions_inserted as i64
+                - self.revisions_inserted as i64,
+            revisions_deleted_delta: other.revisions_deleted as i64 - self.revisions_deleted as i64,
         }
     }
 }
@@ -121,6 +128,10 @@ pub struct OdfCensusDelta {
     pub revisions_insert_delta: i64,
     /// Revision delete delta.
     pub revisions_delete_delta: i64,
+    /// ODF 1.2+ inserted delta.
+    pub revisions_inserted_delta: i64,
+    /// ODF 1.2+ deleted delta.
+    pub revisions_deleted_delta: i64,
 }
 
 // ---------------------------------------------------------------------------
@@ -160,8 +171,17 @@ fn from_counters(counters: &BTreeMap<String, u64>) -> OdfCensus {
     let list_items = get("text:list-item");
     let table_rows = get("table:table-row");
     let table_cells = get("table:table-cell");
-    let revisions_insert = get("text:insert");
-    let revisions_delete = get("text:mark-deleted");
+    // Legacy ODF markers.
+    let revisions_insert_legacy = get("text:insert");
+    let revisions_delete_legacy = get("text:mark-deleted");
+    // ODF 1.2+ revision elements.
+    let revisions_inserted = get("text:inserted");
+    let revisions_deleted = get("text:deleted");
+
+    // Total insert = legacy + ODF 1.2+
+    let revisions_insert = revisions_insert_legacy + revisions_inserted;
+    // Total delete = legacy + ODF 1.2+
+    let revisions_delete = revisions_delete_legacy + revisions_deleted;
 
     let total_elements = paragraphs
         + tables
@@ -183,6 +203,8 @@ fn from_counters(counters: &BTreeMap<String, u64>) -> OdfCensus {
         table_cells,
         revisions_insert,
         revisions_delete,
+        revisions_inserted,
+        revisions_deleted,
         total_elements,
     }
 }
@@ -261,26 +283,39 @@ mod tests {
         assert_eq!(census.list_items, 2, "should count two list items");
     }
 
-    /// test_from_content_xml_revisions — should count revision markers.
+    /// test_from_content_xml_revisions — should count revision markers (legacy + ODF 1.2+).
     #[test]
     fn test_from_content_xml_revisions() {
-        // Use a sample with explicit revision markers.
+        // Use a sample with explicit revision markers (both legacy and ODF 1.2+).
         let xml = b"\
 <?xml version=\"1.0\"?>\
 <office:document-content xmlns:office=\"urn:oasis:names:tc:opendocument:xmlns:office:1.0\"\
     xmlns:text=\"urn:oasis:names:tc:opendocument:xmlns:text:1.0\">\
   <office:body><office:text>\
     <text:p>Before</text:p>\
-    <text:insert>Inserted text</text:insert>\
-    <text:insert>More insert</text:insert>\
-    <text:mark-deleted>Deleted text</text:mark-deleted>\
+    <text:insert>Legacy insert</text:insert>\
+    <text:insert>More legacy insert</text:insert>\
+    <text:mark-deleted>Legacy delete</text:mark-deleted>\
+    <text:inserted office:change-id=\"ins-1\" office:creators=\"alice\"><text:p>ODF 1.2 insert</text:p></text:inserted>\
+    <text:deleted office:change-id=\"del-1\" office:creators=\"bob\"><text:p>ODF 1.2 delete</text:p></text:deleted>\
     <text:p>After</text:p>\
   </office:text></office:body>\
 </office:document-content>";
         let census = OdfCensus::from_content_xml(xml).expect("should parse");
-        assert_eq!(census.paragraphs, 2, "two text:p");
-        assert_eq!(census.revisions_insert, 2, "two inserts");
-        assert_eq!(census.revisions_delete, 1, "one delete");
+        assert_eq!(
+            census.paragraphs, 4,
+            "two text:p at top + text:p inside inserted + text:p inside deleted"
+        );
+        assert_eq!(
+            census.revisions_insert, 3,
+            "two legacy inserts + one ODF 1.2+ insert"
+        );
+        assert_eq!(
+            census.revisions_delete, 2,
+            "one legacy delete + one ODF 1.2+ delete"
+        );
+        assert_eq!(census.revisions_inserted, 1, "one ODF 1.2+ inserted");
+        assert_eq!(census.revisions_deleted, 1, "one ODF 1.2+ deleted");
     }
 
     /// test_from_content_xml_total — total_elements is sum of all counts.

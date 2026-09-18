@@ -275,6 +275,7 @@ fn build_document(
         fields: vec![],
         comments: vec![],
         tracked_changes: vec![],
+        revisions: vec![],
         template: None,
     };
     Ok((document, diags))

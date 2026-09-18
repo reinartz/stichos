@@ -1,0 +1,3 @@
+Table with tracked row insertion.
+header-a header-b
+data-a data-b

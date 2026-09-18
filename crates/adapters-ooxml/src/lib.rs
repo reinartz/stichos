@@ -5,6 +5,7 @@
 //! docx creation from IR documents.
 
 pub mod census;
+pub mod comment_writer;
 pub mod commit;
 pub mod create;
 pub mod create_pptx;
@@ -17,6 +18,9 @@ pub mod md_ir;
 pub mod opc;
 pub mod pptx;
 pub mod pptx_writer;
+pub mod revision_executor;
+pub mod revision_ops;
+pub mod revision_reader;
 pub mod revision_writer;
 pub mod span_mut;
 pub mod validate;

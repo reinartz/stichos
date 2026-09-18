@@ -86,6 +86,115 @@ pub fn edit_structure(
     super::apply_tool::apply_patch(path, &ops_json, dry_run, format_hint, direct, author)
 }
 
+/// Add a comment to a document. Works with docx and odt formats.
+#[allow(clippy::too_many_arguments)]
+pub fn edit_comment(
+    path: &str,
+    comment_text: &str,
+    element_id: &str,
+    dry_run: bool,
+    _direct: bool,
+    author: &str,
+    format_hint: Option<&str>,
+) -> Result<serde_json::Value> {
+    let bytes = std::fs::read(path)?;
+    let ext = if let Some(fh) = format_hint {
+        fh.to_lowercase()
+    } else {
+        path.to_lowercase()
+    };
+
+    let comment = gp_core::ir::Comment {
+        id: gp_core::ir::ElementId::content_anchored("comment", &["comment:0"], comment_text),
+        comment_id: uuid::Uuid::new_v4().as_u128().to_string(),
+        author: author.to_string(),
+        date: Some(chrono::Utc::now().to_rfc3339()),
+        initials: Some("R".to_string()),
+        content: vec![gp_core::ir::SectionItem::Paragraph(
+            gp_core::ir::Paragraph {
+                id: gp_core::ir::ElementId::content_anchored(
+                    "paragraph",
+                    &["para:0"],
+                    comment_text,
+                ),
+                runs: vec![gp_core::ir::Run {
+                    id: gp_core::ir::ElementId::content_anchored("run", &["run:0"], comment_text),
+                    text: comment_text.to_string(),
+                    bold: None,
+                    italic: None,
+                    font_name: None,
+                    font_size_pt: None,
+                    underline: None,
+                    strikethrough: None,
+                    style_name: None,
+                }],
+                page_number: None,
+                style_name: None,
+                numbering_info: None,
+            },
+        )],
+    };
+
+    let element_id_elem = gp_core::ir::ElementId::from_str(element_id);
+
+    let result: Result<_, String> = if ext.ends_with(".docx") {
+        adapters_ooxml::comment_writer::add_comment_to_docx(
+            &bytes,
+            &comment,
+            &element_id_elem,
+            dry_run,
+        )
+        .map_err(|diags| {
+            let msgs: Vec<_> = diags.iter().map(|d| d.message.clone()).collect();
+            msgs.join("; ")
+        })
+        .map(|res| {
+            serde_json::json!({
+                "comment_id": res.comment_id,
+                "changed_parts": res.changed_parts,
+                "format": res.format,
+            })
+        })
+    } else if ext.ends_with(".odt") {
+        adapters_odf::comment_writer::add_comment_to_odt(
+            &bytes,
+            &comment,
+            &element_id_elem,
+            dry_run,
+        )
+        .map_err(|diags| {
+            let msgs: Vec<_> = diags.iter().map(|d| d.message.clone()).collect();
+            msgs.join("; ")
+        })
+        .map(|res| {
+            serde_json::json!({
+                "comment_id": res.comment_id,
+                "changed_parts": res.changed_parts,
+                "format": res.format,
+            })
+        })
+    } else {
+        anyhow::bail!("unsupported format for comment write-back: {}", ext);
+    };
+
+    match result {
+        Ok(json_val) => {
+            let mut val = json_val.as_object().unwrap().clone();
+            val.insert(
+                "status".to_string(),
+                serde_json::json!(if dry_run { "dry_run" } else { "ok" }),
+            );
+            val.insert("path".to_string(), serde_json::json!(path));
+            val.insert("dry_run".to_string(), serde_json::json!(dry_run));
+            Ok(serde_json::Value::Object(val))
+        }
+        Err(diags) => Ok(serde_json::json!({
+            "status": "error",
+            "diagnostics": diags,
+        })),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

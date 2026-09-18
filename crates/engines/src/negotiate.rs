@@ -18,6 +18,8 @@ use gp_core::diagnostics::Diagnostic;
 use gp_core::diagnostics::Severity;
 use gp_core::traits::Engine;
 
+use crate::ms_office;
+
 // ======================================================================
 // Types
 // ======================================================================
@@ -115,23 +117,10 @@ fn check_libreoffice_available() -> bool {
 }
 
 /// Check if Microsoft Office is available (heuristic: check common paths).
+///
+/// Delegates to `ms_office::ms_office_available()` for the authoritative check.
 fn check_ms_office_available() -> bool {
-    #[cfg(target_os = "windows")]
-    {
-        std::path::Path::new("C:/Program Files/Microsoft Office/root/Office16/POWERPNT.EXE")
-            .exists()
-            || std::path::Path::new("C:/Program Files/Microsoft Office/root/Office16/WINWORD.EXE")
-                .exists()
-    }
-    #[cfg(target_os = "macos")]
-    {
-        std::path::Path::new("/Applications/Microsoft Word.app").exists()
-            || std::path::Path::new("/Applications/Microsoft PowerPoint.app").exists()
-    }
-    #[cfg(not(any(target_os = "windows", target_os = "macos")))]
-    {
-        false
-    }
+    ms_office::ms_office_available()
 }
 
 /// Check if pandoc is available (binary on PATH).

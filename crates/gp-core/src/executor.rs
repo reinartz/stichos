@@ -548,6 +548,7 @@ impl SurgicalPatchExecutor {
                         DeniedAction::DeletePart => "DeletePart denied".to_string(),
                         DeniedAction::MacroPartWrite => "MacroPartWrite denied".to_string(),
                         DeniedAction::ExternalRelAdd => "ExternalRelAdd denied".to_string(),
+                        DeniedAction::BulkRevisionAll => "BulkRevisionAll denied".to_string(),
                         DeniedAction::UnknownAction => "UnknownAction denied".to_string(),
                     })
                     .collect();

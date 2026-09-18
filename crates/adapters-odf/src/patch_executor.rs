@@ -8,8 +8,12 @@
 //! - `Insert` → insert nodes into ODF content tree
 //! - `Delete` → delete nodes from ODF content tree
 //! - `SetRunProps` → set attributes on ODF run/paragraph style elements
-//! - `TrackInsert` → wrap content in `<text:insert>` markup
-//! - `TrackDelete` → wrap content in `<text:mark-deleted>` markup
+//! - `TrackInsert` → wrap content in `<text:inserted>` markup (ODF 1.2+ tracked change)
+//! - `TrackDelete` → wrap content in `<text:deleted>` markup (ODF 1.2+ tracked change)
+//!
+//! Revision markup uses ODF 1.2+ element names: `text:inserted` and `text:deleted`,
+//! with `office:change-id` linking paired insert/delete wrappers, and
+//! `office:creators`/`office:creator-date` for author/timestamp metadata.
 //!
 //! All mutations are applied via `patch::apply_span_mutations` to content.xml,
 //! then re-serialized via `writer::SurgicalWriter` to produce the output ZIP.

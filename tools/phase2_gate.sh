@@ -11,12 +11,24 @@
 #
 # Phase: Phase 2 Wave F (P2-34)
 # Depends: P2-31 (schema gate), P2-32 (write-path fuzz), P2-33 (OPS-02 perf gate)
+#
+# Headless-safe: captures all command output to temp files,
+# branches on exit codes (not tee /dev/tty + grep).
 
 set -euo pipefail
 
 JSON_MODE=false
 PASS=0
 FAIL=0
+
+# Temp file for capturing command output (cleaned up on exit)
+LOG=""
+cleanup() {
+    if [ -n "$LOG" ] && [ -f "$LOG" ]; then
+        rm -f "$LOG"
+    fi
+}
+trap cleanup EXIT
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -54,8 +66,9 @@ echo ""
 # 1. Cargo test suite (INV-1 corpus suite)
 # ---------------------------------------------------------------------------
 echo "=== INV-1: Corpus test suite ==="
-cargo test --workspace -- --test-threads=4 2>&1 | tee /tmp/p2_test.log
-TESTS_PASS=$(grep "test result:" /tmp/p2_test.log | grep -oP '\d+ passed' | awk '{s+=$1} END {print s+0}')
+LOG=$(mktemp)
+cargo test --workspace -- --test-threads=4 > "$LOG" 2>&1
+TESTS_PASS=$(grep "test result:" "$LOG" | grep -oP '\d+ passed' | awk '{s+=$1} END {print s+0}')
 echo "INV-1: ${TESTS_PASS} tests pass"
 if [ "$TESTS_PASS" -gt 0 ] 2>/dev/null; then
     pass "INV-1 corpus suite (${TESTS_PASS} tests)"
@@ -68,13 +81,15 @@ echo ""
 # 2. Clippy + fmt (quality gates)
 # ---------------------------------------------------------------------------
 echo "=== Clippy + fmt ==="
-if cargo clippy --workspace --all-targets -- -D warnings 2>&1; then
+LOG=$(mktemp)
+if cargo clippy --workspace --all-targets -- -D warnings > "$LOG" 2>&1; then
     pass "Clippy clean"
 else
     fail "Clippy failed"
 fi
 
-if cargo fmt --all --check 2>&1; then
+LOG=$(mktemp)
+if cargo fmt --all --check > "$LOG" 2>&1; then
     pass "Format check clean"
 else
     fail "Format check failed"
@@ -85,7 +100,8 @@ echo ""
 # 3. Zero-patch round-trip (INV-1 subset)
 # ---------------------------------------------------------------------------
 echo "=== INV-1: Zero-patch round-trip ==="
-if cargo test --package adapters-ooxml zero_patch -- --test-threads=1 2>&1; then
+LOG=$(mktemp)
+if cargo test --package adapters-ooxml zero_patch -- --test-threads=1 > "$LOG" 2>&1; then
     pass "INV-1 zero-patch round-trip"
 else
     fail "INV-1 zero-patch round-trip FAILED"
@@ -96,7 +112,8 @@ echo ""
 # 4. Revert byte-identical (INV-3)
 # ---------------------------------------------------------------------------
 echo "=== INV-3: Revert byte-identical ==="
-if cargo test --package gp-core revert -- --test-threads=1 2>&1; then
+LOG=$(mktemp)
+if cargo test --package gp-core revert -- --test-threads=1 > "$LOG" 2>&1; then
     pass "INV-3 revert byte-identical"
 else
     fail "INV-3 revert byte-identical FAILED"
@@ -107,13 +124,15 @@ echo ""
 # 5. ODF/PDF refusal (INV-1)
 # ---------------------------------------------------------------------------
 echo "=== INV-1: ODF/PDF refusal ==="
-if cargo test --package gp-core refusal -- --test-threads=1 2>&1; then
+LOG=$(mktemp)
+if cargo test --package gp-core refusal -- --test-threads=1 > "$LOG" 2>&1; then
     pass "INV-1 refusal (gp-core)"
 else
     fail "INV-1 refusal (gp-core) FAILED"
 fi
 
-if cargo test --package adapters-ooxml refusal -- --test-threads=1 2>&1; then
+LOG=$(mktemp)
+if cargo test --package adapters-ooxml refusal -- --test-threads=1 > "$LOG" 2>&1; then
     pass "INV-1 refusal (adapters-ooxml)"
 else
     fail "INV-1 refusal (adapters-ooxml) FAILED"
@@ -124,7 +143,8 @@ echo ""
 # 6. Loop P95 (OPS-02)
 # ---------------------------------------------------------------------------
 echo "=== OPS-02: Loop P95 <= 2s ==="
-if cargo test --package lint perf -- --test-threads=1 2>&1; then
+LOG=$(mktemp)
+if cargo test --package lint perf -- --test-threads=1 > "$LOG" 2>&1; then
     pass "OPS-02 perf tests pass"
 else
     fail "OPS-02 perf tests FAILED"
@@ -135,13 +155,15 @@ echo ""
 # 7. Fuzz status (write-path fuzz)
 # ---------------------------------------------------------------------------
 echo "=== Fuzz: Write-path fuzz ==="
-if cargo test --package adapters-ooxfuzz run_all_fuzz -- --test-threads=1 2>&1; then
+LOG=$(mktemp)
+if cargo test --package adapters-ooxfuzz run_all_fuzz -- --test-threads=1 > "$LOG" 2>&1; then
     pass "Fuzz: run_all_fuzz clean"
 else
     fail "Fuzz: run_all_fuzz FAILED"
 fi
 
-if cargo test --package adapters-ooxfuzz run_write_fuzz -- --test-threads=1 2>&1; then
+LOG=$(mktemp)
+if cargo test --package adapters-ooxfuzz run_write_fuzz -- --test-threads=1 > "$LOG" 2>&1; then
     pass "Fuzz: run_write_fuzz clean"
 else
     fail "Fuzz: run_write_fuzz FAILED"
@@ -179,7 +201,8 @@ echo ""
 # 9. Budget on 100% (REN-03)
 # ---------------------------------------------------------------------------
 echo "=== Budget: Fidelity budget on 100% ==="
-if cargo test --package lint budget -- --test-threads=1 2>&1; then
+LOG=$(mktemp)
+if cargo test --package lint budget -- --test-threads=1 > "$LOG" 2>&1; then
     pass "REN-03 budget gate: 100% enforced"
 else
     fail "REN-03 budget gate FAILED"
@@ -190,7 +213,8 @@ echo ""
 # 10. Schema validation (P2-31)
 # ---------------------------------------------------------------------------
 echo "=== Schema gate: P2-31 ==="
-if cargo test --package lint validate -- --test-threads=1 2>&1; then
+LOG=$(mktemp)
+if cargo test --package lint validate -- --test-threads=1 > "$LOG" 2>&1; then
     pass "P2-31 schema gate: PASS"
 else
     fail "P2-31 schema gate FAILED"
@@ -201,7 +225,8 @@ echo ""
 # 11. Planted violation tests
 # ---------------------------------------------------------------------------
 echo "=== Planted violation: silenced budget ==="
-if cargo test --package lint budget -- --test-threads=1 2>&1; then
+LOG=$(mktemp)
+if cargo test --package lint budget -- --test-threads=1 > "$LOG" 2>&1; then
     pass "Planted violation: budget gate working (expected pass)"
 else
     fail "Planted violation: budget gate unexpectedly failed"
@@ -209,8 +234,9 @@ fi
 
 echo "=== Planted violation: weakened INV-1 ==="
 # Verify that PDF refusal test exists (ODF refusal retired P3-10)
-REFUSAL_LIST_OUTPUT=$(cargo test --package gp-core -- --list 2>&1 || true)
-HAS_PDF=$(echo "$REFUSAL_LIST_OUTPUT" | grep -cE "test_pdf_refusal|test_refuse_pdf" || true)
+LOG=$(mktemp)
+cargo test --package gp-core -- --list > "$LOG" 2>&1 || true
+HAS_PDF=$(grep -cE "test_pdf_refusal|test_refuse_pdf" "$LOG" || true)
 if [ "$HAS_PDF" -ge 1 ]; then
     pass "Planted violation: refusal tests exist (expected pass)"
 else

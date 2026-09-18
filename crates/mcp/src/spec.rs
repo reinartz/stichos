@@ -597,6 +597,170 @@ pub const TOOLS: &[ToolSpec] = &[
         deprecation_notice: None,
         schema_version: "1.2.0",
     },
+    // P4-08: list_revisions tool (C7 v1.3.0 additive)
+    ToolSpec {
+        name: "list_revisions",
+        description: "List all tracked revisions in a document with metadata (kind, author, date, anchor).",
+        params: &[
+            ParamDef {
+                name: "path",
+                param_type: ParamType::String,
+                required: true,
+                description: "Path to document",
+            },
+            ParamDef {
+                name: "author",
+                param_type: ParamType::String,
+                required: false,
+                description: "Filter by author",
+            },
+        ],
+        idempotent: true,
+        deprecated: false,
+        deprecation_notice: None,
+        schema_version: "1.3.0",
+    },
+    // P4-08: accept_revisions tool (C7 v1.3.0 additive)
+    ToolSpec {
+        name: "accept_revisions",
+        description: "Accept tracked revisions in a document. Returns the modified document with revisions applied.",
+        params: &[
+            ParamDef {
+                name: "path",
+                param_type: ParamType::String,
+                required: true,
+                description: "Path to document",
+            },
+            ParamDef {
+                name: "ids",
+                param_type: ParamType::StringArray,
+                required: false,
+                description: "Revision IDs to accept (accepts all if omitted)",
+            },
+            ParamDef {
+                name: "all",
+                param_type: ParamType::Boolean,
+                required: false,
+                description: "Accept all revisions (default false)",
+            },
+            ParamDef {
+                name: "author",
+                param_type: ParamType::String,
+                required: false,
+                description: "Accept only revisions by this author",
+            },
+            ParamDef {
+                name: "dry_run",
+                param_type: ParamType::Boolean,
+                required: false,
+                description: "Preview changes without applying (default false)",
+            },
+            ParamDef {
+                name: "session_id",
+                param_type: ParamType::String,
+                required: false,
+                description: "Journal session ID",
+            },
+        ],
+        idempotent: false,
+        deprecated: false,
+        deprecation_notice: None,
+        schema_version: "1.3.0",
+    },
+    // P4-08: reject_revisions tool (C7 v1.3.0 additive)
+    ToolSpec {
+        name: "reject_revisions",
+        description: "Reject tracked revisions in a document. Returns the modified document with revisions removed.",
+        params: &[
+            ParamDef {
+                name: "path",
+                param_type: ParamType::String,
+                required: true,
+                description: "Path to document",
+            },
+            ParamDef {
+                name: "ids",
+                param_type: ParamType::StringArray,
+                required: false,
+                description: "Revision IDs to reject (rejects all if omitted)",
+            },
+            ParamDef {
+                name: "all",
+                param_type: ParamType::Boolean,
+                required: false,
+                description: "Reject all revisions (default false)",
+            },
+            ParamDef {
+                name: "author",
+                param_type: ParamType::String,
+                required: false,
+                description: "Reject only revisions by this author",
+            },
+            ParamDef {
+                name: "dry_run",
+                param_type: ParamType::Boolean,
+                required: false,
+                description: "Preview changes without applying (default false)",
+            },
+            ParamDef {
+                name: "session_id",
+                param_type: ParamType::String,
+                required: false,
+                description: "Journal session ID",
+            },
+        ],
+        idempotent: false,
+        deprecated: false,
+        deprecation_notice: None,
+        schema_version: "1.3.0",
+    },
+    // P4-14: add_comment tool (C7 v1.3.0 additive)
+    ToolSpec {
+        name: "add_comment",
+        description: "Add a comment to a document. The comment is anchored to an element ID (docx) or inserted as office:annotation (odt).",
+        params: &[
+            ParamDef {
+                name: "path",
+                param_type: ParamType::String,
+                required: true,
+                description: "Path to the document file.",
+            },
+            ParamDef {
+                name: "text",
+                param_type: ParamType::String,
+                required: true,
+                description: "Comment text.",
+            },
+            ParamDef {
+                name: "element_id",
+                param_type: ParamType::String,
+                required: true,
+                description: "Element ID to anchor the comment.",
+            },
+            ParamDef {
+                name: "author",
+                param_type: ParamType::String,
+                required: false,
+                description: "Comment author. Default: reviewer.",
+            },
+            ParamDef {
+                name: "initials",
+                param_type: ParamType::String,
+                required: false,
+                description: "Author initials.",
+            },
+            ParamDef {
+                name: "dry_run",
+                param_type: ParamType::Boolean,
+                required: false,
+                description: "Preview without writing.",
+            },
+        ],
+        idempotent: false,
+        deprecated: false,
+        deprecation_notice: None,
+        schema_version: "1.3.0",
+    },
 ];
 
 /// Check if a tool name is valid per C7.
@@ -629,12 +793,12 @@ pub fn verify_c7_compliance() -> Result<Vec<&'static str>, String> {
                     errors.push(format!("tool '{}' (1.0.0) is not idempotent", tool.name));
                 }
             }
-            "1.1.0" | "1.2.0" => {
-                // v1.1/v1.2 additive: non-idempotent tools allowed
+            "1.1.0" | "1.2.0" | "1.3.0" => {
+                // v1.1/v1.2/v1.3 additive: non-idempotent tools allowed
             }
             ver => {
                 errors.push(format!(
-                    "tool '{}' has unexpected version '{}', expected '1.0.0', '1.1.0', or '1.2.0'",
+                    "tool '{}' has unexpected version '{}', expected '1.0.0', '1.1.0', '1.2.0', or '1.3.0'",
                     tool.name, ver
                 ));
             }
@@ -654,10 +818,10 @@ mod tests {
     //! Breaking changes require a minor version bump.
     use super::*;
 
-    // test_all_tools_defined — all 16 tools present (14 original + create_document + script_tool)
+    // test_all_tools_defined — all 20 tools present (19 original + add_comment)
     #[test]
     fn test_all_tools_defined() {
-        assert_eq!(TOOLS.len(), 16, "expected exactly 16 tools");
+        assert_eq!(TOOLS.len(), 20, "expected exactly 20 tools");
         let names: Vec<_> = TOOLS.iter().map(|t| t.name).collect();
         assert!(names.contains(&"inspect_document"));
         assert!(names.contains(&"render_document"));
@@ -675,6 +839,10 @@ mod tests {
         assert!(names.contains(&"create_document"));
         assert!(names.contains(&"script_tool"));
         assert!(names.contains(&"check_update"));
+        assert!(names.contains(&"list_revisions"));
+        assert!(names.contains(&"accept_revisions"));
+        assert!(names.contains(&"reject_revisions"));
+        assert!(names.contains(&"add_comment"));
     }
 
     // test_all_tools_idempotent — read-only tools are idempotent (apply_patch is not)
@@ -695,6 +863,9 @@ mod tests {
                 "apply_patch" | "edit_text" | "edit_cell" | "edit_structure" | "annotate_pages"
                 | "revert_document" | "journal" => "1.1.0",
                 "check_update" | "create_document" | "script_tool" => "1.2.0",
+                "list_revisions" | "accept_revisions" | "reject_revisions" | "add_comment" => {
+                    "1.3.0"
+                }
                 _ => "1.0.0",
             };
             assert_eq!(
@@ -724,6 +895,10 @@ mod tests {
         assert!(is_valid_tool("create_document"));
         assert!(is_valid_tool("script_tool"));
         assert!(is_valid_tool("check_update"));
+        assert!(is_valid_tool("list_revisions"));
+        assert!(is_valid_tool("accept_revisions"));
+        assert!(is_valid_tool("reject_revisions"));
+        assert!(is_valid_tool("add_comment"));
     }
 
     // test_invalid_tool_name — unknown tool returns false
@@ -755,6 +930,10 @@ mod tests {
         assert!(get_tool("create_document").is_some());
         assert!(get_tool("script_tool").is_some());
         assert!(get_tool("check_update").is_some());
+        assert!(get_tool("list_revisions").is_some());
+        assert!(get_tool("accept_revisions").is_some());
+        assert!(get_tool("reject_revisions").is_some());
+        assert!(get_tool("add_comment").is_some());
     }
 
     // test_get_tool_not_found — unknown name returns None
@@ -771,8 +950,8 @@ mod tests {
         let active = active_tool_names();
         assert_eq!(
             active.len(),
-            16,
-            "all 16 tools should be active (none deprecated)"
+            20,
+            "all 20 tools should be active (none deprecated)"
         );
         for name in &active {
             assert!(
@@ -795,8 +974,8 @@ mod tests {
         let names = result.unwrap();
         assert_eq!(
             names.len(),
-            16,
-            "all 16 tools should be active after compliance check"
+            20,
+            "all 20 tools should be active after compliance check"
         );
     }
 

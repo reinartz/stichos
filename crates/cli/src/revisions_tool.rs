@@ -1,0 +1,506 @@
+//! `stichos revisions` subcommand — list/accept/reject tracked revisions.
+//!
+//! Subcommands:
+//! - `list` — list tracked revisions in a document
+//! - `accept` — accept tracked revisions
+//! - `reject` — reject tracked revisions
+//!
+//! Options: `--id`, `--author`, `--all`, `--dry-run`, `--json`
+
+use clap::Subcommand;
+use gp_core::ir::*;
+use gp_core::policy::EditPolicy;
+use serde_json::json;
+
+#[derive(Subcommand)]
+pub enum RevisionsCommand {
+    /// List tracked revisions in a document.
+    List {
+        /// Path to the document file.
+        #[arg(long)]
+        path: String,
+        /// Filter by author name.
+        #[arg(long)]
+        author: Option<String>,
+    },
+    /// Accept tracked revisions in a document.
+    Accept {
+        /// Path to the document file.
+        #[arg(long)]
+        path: String,
+        /// Revision IDs to accept (accepts all if omitted).
+        #[arg(long)]
+        ids: Option<Vec<String>>,
+        /// Accept all revisions.
+        #[arg(long)]
+        all: bool,
+        /// Accept only revisions by this author.
+        #[arg(long)]
+        author: Option<String>,
+        /// Preview changes without applying.
+        #[arg(long)]
+        dry_run: bool,
+    },
+    /// Reject tracked revisions in a document.
+    Reject {
+        /// Path to the document file.
+        #[arg(long)]
+        path: String,
+        /// Revision IDs to reject (rejects all if omitted).
+        #[arg(long)]
+        ids: Option<Vec<String>>,
+        /// Reject all revisions.
+        #[arg(long)]
+        all: bool,
+        /// Reject only revisions by this author.
+        #[arg(long)]
+        author: Option<String>,
+        /// Preview changes without applying.
+        #[arg(long)]
+        dry_run: bool,
+    },
+}
+
+/// Handle the `stichos revisions` subcommand.
+pub async fn handle_revisions(cmd: RevisionsCommand) -> Result<(), anyhow::Error> {
+    match cmd {
+        RevisionsCommand::List { path, author } => cmd_revisions_list(&path, author.as_deref())?,
+        RevisionsCommand::Accept {
+            path,
+            ids,
+            all,
+            author,
+            dry_run,
+        } => {
+            cmd_revisions_accept(&path, ids.as_deref(), all, author.as_deref(), dry_run)?;
+        }
+        RevisionsCommand::Reject {
+            path,
+            ids,
+            all,
+            author,
+            dry_run,
+        } => {
+            cmd_revisions_reject(&path, ids.as_deref(), all, author.as_deref(), dry_run)?;
+        }
+    }
+    Ok(())
+}
+
+fn cmd_revisions_list(path: &str, author_filter: Option<&str>) -> Result<(), anyhow::Error> {
+    let result = list_revisions_docx_for_mcp(path, author_filter)?;
+    println!("{}", serde_json::to_string_pretty(&result)?);
+    eprintln!(
+        "list_revisions: {} revisions in {}",
+        result["revision_count"].as_u64().unwrap_or(0),
+        path
+    );
+    Ok(())
+}
+
+fn cmd_revisions_accept(
+    path: &str,
+    ids: Option<&[String]>,
+    all: bool,
+    author: Option<&str>,
+    dry_run: bool,
+) -> Result<(), anyhow::Error> {
+    let result = accept_revisions_for_mcp(path, ids, all, author, dry_run, None)?;
+    if dry_run {
+        eprintln!(
+            "accept_revisions: dry_run — {} revision(s) would be accepted",
+            result["operations_succeeded"].as_u64().unwrap_or(0)
+        );
+    } else {
+        eprintln!(
+            "accept_revisions: {} revision(s) accepted in {}",
+            result["operations_succeeded"].as_u64().unwrap_or(0),
+            path
+        );
+    }
+    println!("{}", serde_json::to_string_pretty(&result)?);
+    Ok(())
+}
+
+fn cmd_revisions_reject(
+    path: &str,
+    ids: Option<&[String]>,
+    all: bool,
+    author: Option<&str>,
+    dry_run: bool,
+) -> Result<(), anyhow::Error> {
+    let result = reject_revisions_for_mcp(path, ids, all, author, dry_run, None)?;
+    if dry_run {
+        eprintln!(
+            "reject_revisions: dry_run — {} revision(s) would be rejected",
+            result["operations_succeeded"].as_u64().unwrap_or(0)
+        );
+    } else {
+        eprintln!(
+            "reject_revisions: {} revision(s) rejected in {}",
+            result["operations_succeeded"].as_u64().unwrap_or(0),
+            path
+        );
+    }
+    println!("{}", serde_json::to_string_pretty(&result)?);
+    Ok(())
+}
+
+/// List revisions from a docx file.
+pub fn list_revisions_docx(
+    bytes: &[u8],
+    author_filter: Option<&str>,
+) -> Result<Vec<serde_json::Value>, anyhow::Error> {
+    use adapters_ooxml::opc::parse_opc;
+    use adapters_ooxml::revision_reader::enumerate_revisions;
+    use adapters_ooxml::xml::parse_xml;
+
+    let pkg = parse_opc(bytes).map_err(|e| anyhow::anyhow!("failed to parse OPC: {:?}", e))?;
+
+    let doc_part = pkg
+        .parts
+        .iter()
+        .find(|p| p.uri == "word/document.xml")
+        .ok_or_else(|| anyhow::anyhow!("missing word/document.xml in OPC package"))?;
+
+    let xml_doc = parse_xml(&doc_part.data)
+        .map_err(|e| anyhow::anyhow!("failed to parse document XML: {:?}", e))?;
+
+    let mut diags = Vec::new();
+    let _ = diags;
+    let revisions = enumerate_revisions(&xml_doc, &mut diags);
+
+    // Apply author filter
+    let revisions: Vec<_> = if let Some(author) = author_filter {
+        revisions
+            .iter()
+            .filter(|r| r.author.as_deref() == Some(author))
+            .cloned()
+            .collect()
+    } else {
+        revisions
+    };
+
+    let result: Vec<_> = revisions
+        .iter()
+        .map(|r| {
+            json!({
+                "id": r.id.to_string(),
+                "kind": match r.kind {
+                    RevisionKind::Insert => "insert",
+                    RevisionKind::Delete => "delete",
+                    RevisionKind::FormatChange => "format_change",
+                },
+                "author": r.author.clone().unwrap_or_else(|| "<unknown>".to_string()),
+                "date": r.date.clone().unwrap_or_else(|| "<unknown>".to_string()),
+                "anchor_element_id": r.anchor_element_id.to_string(),
+                "page_hint": r.page_hint,
+                "content": r.content.clone(),
+            })
+        })
+        .collect();
+
+    Ok(result)
+}
+
+/// MCP handler: list revisions (used by MCP tool dispatch).
+pub fn list_revisions_docx_for_mcp(
+    path: &str,
+    author_filter: Option<&str>,
+) -> Result<serde_json::Value, anyhow::Error> {
+    let bytes = std::fs::read(path)
+        .map_err(|e| anyhow::anyhow!("failed to read document: {}: {}", path, e))?;
+
+    let ext = path.to_lowercase();
+    let revisions = if ext.ends_with(".docx") {
+        list_revisions_docx(&bytes, author_filter)?
+    } else {
+        Vec::new()
+    };
+
+    Ok(json!({
+        "tool": "list_revisions",
+        "path": path,
+        "revision_count": revisions.len(),
+        "revisions": revisions,
+    }))
+}
+
+/// MCP handler: accept revisions (used by MCP tool dispatch).
+pub fn accept_revisions_for_mcp(
+    path: &str,
+    ids: Option<&[String]>,
+    all: bool,
+    author: Option<&str>,
+    dry_run: bool,
+    _session_id: Option<&str>,
+) -> Result<serde_json::Value, anyhow::Error> {
+    let bytes = std::fs::read(path)
+        .map_err(|e| anyhow::anyhow!("failed to read document: {}: {}", path, e))?;
+
+    let ext = path.to_lowercase();
+    let result = if ext.ends_with(".docx") {
+        handle_revision_accept_docx(path, &bytes, ids, all, author, dry_run)?
+    } else {
+        json!({ "status": "error", "message": "only docx supported" })
+    };
+
+    Ok(result)
+}
+
+/// MCP handler: reject revisions (used by MCP tool dispatch).
+pub fn reject_revisions_for_mcp(
+    path: &str,
+    ids: Option<&[String]>,
+    all: bool,
+    author: Option<&str>,
+    dry_run: bool,
+    _session_id: Option<&str>,
+) -> Result<serde_json::Value, anyhow::Error> {
+    let bytes = std::fs::read(path)
+        .map_err(|e| anyhow::anyhow!("failed to read document: {}: {}", path, e))?;
+
+    let ext = path.to_lowercase();
+    let result = if ext.ends_with(".docx") {
+        handle_revision_reject_docx(path, &bytes, ids, all, author, dry_run)?
+    } else {
+        json!({ "status": "error", "message": "only docx supported" })
+    };
+
+    Ok(result)
+}
+
+/// Handle accept revisions for docx.
+fn handle_revision_accept_docx(
+    path: &str,
+    bytes: &[u8],
+    ids: Option<&[String]>,
+    all: bool,
+    author: Option<&str>,
+    dry_run: bool,
+) -> Result<serde_json::Value, anyhow::Error> {
+    use adapters_ooxml::opc::parse_opc;
+    use adapters_ooxml::revision_ops::{accept_filtered, RevisionFilter, RevisionWriterMeta};
+    use adapters_ooxml::revision_reader::enumerate_revisions;
+    use adapters_ooxml::xml::parse_xml;
+
+    let pkg = parse_opc(bytes).map_err(|e| anyhow::anyhow!("failed to parse OPC: {:?}", e))?;
+
+    let doc_part = pkg
+        .parts
+        .iter()
+        .find(|p| p.uri == "word/document.xml")
+        .ok_or_else(|| anyhow::anyhow!("missing word/document.xml in OPC package"))?;
+
+    let xml_doc = parse_xml(&doc_part.data)
+        .map_err(|e| anyhow::anyhow!("failed to parse document XML: {:?}", e))?;
+
+    let mut diags = Vec::new();
+    let revisions = enumerate_revisions(&xml_doc, &mut diags);
+
+    // Build filter
+    let mut revision_ids = Vec::new();
+    if let Some(id_list) = ids {
+        for id_str in id_list {
+            revision_ids.push(ElementId::from_str(id_str));
+        }
+    }
+
+    let filter = RevisionFilter {
+        author: author.map(|a| a.to_string()),
+        date_before: None,
+        date_after: None,
+        kind: None,
+        ids: revision_ids,
+        all,
+    };
+
+    let policy = EditPolicy::default();
+    let meta = RevisionWriterMeta::new("agent", "2026-01-01T00:00:00Z");
+
+    match accept_filtered(&pkg, &revisions, &filter, &policy, &meta, dry_run) {
+        Ok(result) => {
+            let output_path = if dry_run {
+                None
+            } else {
+                let out = format!("{}.revised.docx", path.trim_end_matches(".docx"));
+                std::fs::write(&out, &result.output)
+                    .map_err(|e| anyhow::anyhow!("failed to write output: {}", e))?;
+                Some(out)
+            };
+
+            let diagnostic_list: Vec<_> = result
+                .diagnostics
+                .iter()
+                .map(|d| {
+                    json!({
+                        "code": d.code,
+                        "severity": match d.severity {
+                            gp_core::diagnostics::Severity::Error => "error",
+                            gp_core::diagnostics::Severity::Warning => "warning",
+                            gp_core::diagnostics::Severity::Info => "info",
+                            gp_core::diagnostics::Severity::Hint => "hint",
+                            gp_core::diagnostics::Severity::Fatal => "fatal",
+                        },
+                        "message": d.message,
+                    })
+                })
+                .collect();
+
+            Ok(json!({
+                "tool": "accept_revisions",
+                "path": path,
+                "status": if dry_run { "dry_run" } else { "accepted" },
+                "operations_performed": result.operations_performed,
+                "operations_succeeded": result.operations_succeeded,
+                "operations_failed": result.operations_failed,
+                "journal_ids": result.journal_ids,
+                "output_path": output_path,
+                "dry_run": dry_run,
+                "diagnostics": diagnostic_list,
+            }))
+        }
+        Err(err_diags) => {
+            let diagnostic_list: Vec<_> = err_diags
+                .iter()
+                .map(|d| {
+                    json!({
+                        "code": d.code,
+                        "severity": match d.severity {
+                            gp_core::diagnostics::Severity::Error => "error",
+                            gp_core::diagnostics::Severity::Warning => "warning",
+                            gp_core::diagnostics::Severity::Info => "info",
+                            gp_core::diagnostics::Severity::Hint => "hint",
+                            gp_core::diagnostics::Severity::Fatal => "fatal",
+                        },
+                        "message": d.message,
+                    })
+                })
+                .collect();
+            Ok(json!({
+                "tool": "accept_revisions",
+                "path": path,
+                "status": "error",
+                "diagnostics": diagnostic_list,
+            }))
+        }
+    }
+}
+
+/// Handle reject revisions for docx.
+fn handle_revision_reject_docx(
+    path: &str,
+    bytes: &[u8],
+    ids: Option<&[String]>,
+    all: bool,
+    author: Option<&str>,
+    dry_run: bool,
+) -> Result<serde_json::Value, anyhow::Error> {
+    use adapters_ooxml::opc::parse_opc;
+    use adapters_ooxml::revision_ops::{reject_filtered, RevisionFilter, RevisionWriterMeta};
+    use adapters_ooxml::revision_reader::enumerate_revisions;
+    use adapters_ooxml::xml::parse_xml;
+
+    let pkg = parse_opc(bytes).map_err(|e| anyhow::anyhow!("failed to parse OPC: {:?}", e))?;
+
+    let doc_part = pkg
+        .parts
+        .iter()
+        .find(|p| p.uri == "word/document.xml")
+        .ok_or_else(|| anyhow::anyhow!("missing word/document.xml in OPC package"))?;
+
+    let xml_doc = parse_xml(&doc_part.data)
+        .map_err(|e| anyhow::anyhow!("failed to parse document XML: {:?}", e))?;
+
+    let mut diags = Vec::new();
+    let _ = diags;
+    let revisions = enumerate_revisions(&xml_doc, &mut diags);
+
+    // Build filter
+    let mut revision_ids = Vec::new();
+    if let Some(id_list) = ids {
+        for id_str in id_list {
+            revision_ids.push(ElementId::from_str(id_str));
+        }
+    }
+
+    let filter = RevisionFilter {
+        author: author.map(|a| a.to_string()),
+        date_before: None,
+        date_after: None,
+        kind: None,
+        ids: revision_ids,
+        all,
+    };
+
+    let policy = EditPolicy::default();
+    let meta = RevisionWriterMeta::new("agent", "2026-01-01T00:00:00Z");
+
+    match reject_filtered(&pkg, &revisions, &filter, &policy, &meta, dry_run) {
+        Ok(result) => {
+            let output_path = if dry_run {
+                None
+            } else {
+                let out = format!("{}.revised.docx", path.trim_end_matches(".docx"));
+                std::fs::write(&out, &result.output)
+                    .map_err(|e| anyhow::anyhow!("failed to write output: {}", e))?;
+                Some(out)
+            };
+
+            let diagnostic_list: Vec<_> = result
+                .diagnostics
+                .iter()
+                .map(|d| {
+                    json!({
+                        "code": d.code,
+                        "severity": match d.severity {
+                            gp_core::diagnostics::Severity::Error => "error",
+                            gp_core::diagnostics::Severity::Warning => "warning",
+                            gp_core::diagnostics::Severity::Info => "info",
+                            gp_core::diagnostics::Severity::Hint => "hint",
+                            gp_core::diagnostics::Severity::Fatal => "fatal",
+                        },
+                        "message": d.message,
+                    })
+                })
+                .collect();
+
+            Ok(json!({
+                "tool": "reject_revisions",
+                "path": path,
+                "status": if dry_run { "dry_run" } else { "rejected" },
+                "operations_performed": result.operations_performed,
+                "operations_succeeded": result.operations_succeeded,
+                "operations_failed": result.operations_failed,
+                "journal_ids": result.journal_ids,
+                "output_path": output_path,
+                "dry_run": dry_run,
+                "diagnostics": diagnostic_list,
+            }))
+        }
+        Err(err_diags) => {
+            let diagnostic_list: Vec<_> = err_diags
+                .iter()
+                .map(|d| {
+                    json!({
+                        "code": d.code,
+                        "severity": match d.severity {
+                            gp_core::diagnostics::Severity::Error => "error",
+                            gp_core::diagnostics::Severity::Warning => "warning",
+                            gp_core::diagnostics::Severity::Info => "info",
+                            gp_core::diagnostics::Severity::Hint => "hint",
+                            gp_core::diagnostics::Severity::Fatal => "fatal",
+                        },
+                        "message": d.message,
+                    })
+                })
+                .collect();
+            Ok(json!({
+                "tool": "reject_revisions",
+                "path": path,
+                "status": "error",
+                "diagnostics": diagnostic_list,
+            }))
+        }
+    }
+}

@@ -13,9 +13,12 @@ mod diff_tool;
 mod doctor_tool;
 mod inspect;
 mod journal_tool;
+mod open_tool;
 mod perf_tool;
 mod region;
 mod render;
+mod review_tool;
+mod revisions_tool;
 mod script_tool;
 mod sugar_edits;
 
@@ -289,6 +292,44 @@ enum Command {
         #[arg(long, short = 'j')]
         json: bool,
     },
+    /// List, accept, or reject tracked revisions in a document.
+    Revisions {
+        /// Subcommand: list, accept, reject.
+        #[command(subcommand)]
+        command: revisions_tool::RevisionsCommand,
+    },
+    /// Start a review session for a document.
+    Review {
+        /// Path to the document file.
+        path: std::path::PathBuf,
+        /// Do not attempt to open a browser.
+        #[arg(long)]
+        no_browser: bool,
+        /// Close an active review session by token.
+        #[arg(long)]
+        close: Option<String>,
+        /// List active review sessions.
+        #[arg(long)]
+        list: bool,
+    },
+    /// Open a document in the default application.
+    Open {
+        /// Path to the document file.
+        #[arg()]
+        path: std::path::PathBuf,
+        /// Journal session/version to open (materialized to temp file).
+        #[arg(long)]
+        version: Option<String>,
+        /// App to use (e.g. "libreoffice", "default" for platform default).
+        #[arg(long, short)]
+        app: Option<String>,
+        /// Do not launch the opener; just resolve the path.
+        #[arg(long)]
+        no_browser: bool,
+        /// Output as JSON.
+        #[arg(long, short = 'j')]
+        json: bool,
+    },
 }
 
 #[tokio::main]
@@ -468,6 +509,26 @@ async fn main() -> Result<()> {
             json,
         } => {
             cmd_update(&channel, dry_run, force, json)?;
+        }
+        Command::Revisions { command } => {
+            revisions_tool::handle_revisions(command).await?;
+        }
+        Command::Review {
+            path,
+            no_browser,
+            close,
+            list,
+        } => {
+            cmd_review(&path, no_browser, close.as_deref(), list).await?;
+        }
+        Command::Open {
+            path,
+            version,
+            app,
+            no_browser,
+            json,
+        } => {
+            cmd_open(&path, version.as_deref(), app.as_deref(), no_browser, json)?;
         }
     }
 
@@ -1011,8 +1072,20 @@ async fn cmd_edit(
             author,
             format_hint,
         )?,
+        "comment" => {
+            let comment_text = new_text.context("text required for edit comment (--new-text)")?;
+            sugar_edits::edit_comment(
+                path.to_str().unwrap_or_default(),
+                &*comment_text,
+                element_id,
+                dry_run,
+                direct,
+                author,
+                format_hint,
+            )?
+        }
         other => anyhow::bail!(
-            "unknown edit kind: {}, use 'text', 'cell', or 'structure'",
+            "unknown edit kind: {}, use 'text', 'cell', 'structure', or 'comment'",
             other
         ),
     };
@@ -1094,7 +1167,7 @@ async fn cmd_serve(transport: &str, port: u16) -> Result<()> {
                 "inspect_document" => {
                     let path = args["path"]
                         .as_str()
-                        .ok_or("missing required field: path")?
+                        .ok_or_else(|| "missing required field: path".to_string())?
                         .to_string();
                     let result = inspect::inspect_document(&path).map_err(|e| e.to_string())?;
                     let result = budget_enforcer::enforce_inspect_budget(result)
@@ -1104,7 +1177,7 @@ async fn cmd_serve(transport: &str, port: u16) -> Result<()> {
                 "render_document" => {
                     let path = args["path"]
                         .as_str()
-                        .ok_or("missing required field: path")?
+                        .ok_or_else(|| "missing required field: path".to_string())?
                         .to_string();
                     let dpi = args["dpi"].as_u64().unwrap_or(150) as u32;
                     let output_dir = args
@@ -1129,7 +1202,7 @@ async fn cmd_serve(transport: &str, port: u16) -> Result<()> {
                 "inspect_region" => {
                     let path = args["path"]
                         .as_str()
-                        .ok_or("missing required field: path")?
+                        .ok_or_else(|| "missing required field: path".to_string())?
                         .to_string();
                     let page = args["page"].as_u64().unwrap_or(1) as usize;
                     let bbox = args["bbox_pt"]
@@ -1146,7 +1219,9 @@ async fn cmd_serve(transport: &str, port: u16) -> Result<()> {
                                 None
                             }
                         })
-                        .ok_or("invalid bbox_pt: expected array of 4 numbers")?;
+                        .ok_or_else(|| {
+                            "invalid bbox_pt: expected array of 4 numbers".to_string()
+                        })?;
                     let zoom = args["zoom"].as_f64().unwrap_or(2.0);
                     let result = region::inspect_region(&path, page, bbox, zoom)
                         .map_err(|e| e.to_string())?;
@@ -1155,11 +1230,11 @@ async fn cmd_serve(transport: &str, port: u16) -> Result<()> {
                 "diff_documents" => {
                     let path_a = args["path_a"]
                         .as_str()
-                        .ok_or("missing required field: path_a")?
+                        .ok_or_else(|| "missing required field: path_a".to_string())?
                         .to_string();
                     let path_b = args["path_b"]
                         .as_str()
-                        .ok_or("missing required field: path_b")?
+                        .ok_or_else(|| "missing required field: path_b".to_string())?
                         .to_string();
                     let max_ops = args
                         .get("max_ops")
@@ -1186,11 +1261,13 @@ async fn cmd_serve(transport: &str, port: u16) -> Result<()> {
                 "apply_patch" => {
                     let path = args["path"]
                         .as_str()
-                        .ok_or("missing required field: path")?
+                        .ok_or_else(|| "missing required field: path".to_string())?
                         .to_string();
                     let ops = args["ops"]
                         .as_array()
-                        .ok_or("missing required field: ops (array of JSON strings)")?
+                        .ok_or_else(|| {
+                            "missing required field: ops (array of JSON strings)".to_string()
+                        })?
                         .iter()
                         .filter_map(|v| v.as_str().map(String::from))
                         .collect::<Vec<_>>();
@@ -1214,19 +1291,19 @@ async fn cmd_serve(transport: &str, port: u16) -> Result<()> {
                 "edit_text" => {
                     let path = args["path"]
                         .as_str()
-                        .ok_or("missing required field: path")?
+                        .ok_or_else(|| "missing required field: path".to_string())?
                         .to_string();
                     let element_id = args["element_id"]
                         .as_str()
-                        .ok_or("missing required field: element_id")?
+                        .ok_or_else(|| "missing required field: element_id".to_string())?
                         .to_string();
                     let old_text = args["old_text"]
                         .as_str()
-                        .ok_or("missing required field: old_text")?
+                        .ok_or_else(|| "missing required field: old_text".to_string())?
                         .to_string();
                     let new_text = args["new_text"]
                         .as_str()
-                        .ok_or("missing required field: new_text")?
+                        .ok_or_else(|| "missing required field: new_text".to_string())?
                         .to_string();
                     let dry_run = args["dry_run"].as_bool().unwrap_or(false);
                     let direct = args["direct"].as_bool().unwrap_or(false);
@@ -1248,15 +1325,15 @@ async fn cmd_serve(transport: &str, port: u16) -> Result<()> {
                 "edit_cell" => {
                     let path = args["path"]
                         .as_str()
-                        .ok_or("missing required field: path")?
+                        .ok_or_else(|| "missing required field: path".to_string())?
                         .to_string();
                     let element_id = args["element_id"]
                         .as_str()
-                        .ok_or("missing required field: element_id")?
+                        .ok_or_else(|| "missing required field: element_id".to_string())?
                         .to_string();
                     let value = args["value"]
                         .as_str()
-                        .ok_or("missing required field: value")?
+                        .ok_or_else(|| "missing required field: value".to_string())?
                         .to_string();
                     let dry_run = args["dry_run"].as_bool().unwrap_or(false);
                     let direct = args["direct"].as_bool().unwrap_or(false);
@@ -1277,15 +1354,15 @@ async fn cmd_serve(transport: &str, port: u16) -> Result<()> {
                 "edit_structure" => {
                     let path = args["path"]
                         .as_str()
-                        .ok_or("missing required field: path")?
+                        .ok_or_else(|| "missing required field: path".to_string())?
                         .to_string();
                     let element_id = args["element_id"]
                         .as_str()
-                        .ok_or("missing required field: element_id")?
+                        .ok_or_else(|| "missing required field: element_id".to_string())?
                         .to_string();
                     let action = args["action"]
                         .as_str()
-                        .ok_or("missing required field: action")?
+                        .ok_or_else(|| "missing required field: action".to_string())?
                         .to_string();
                     let kind = args.get("kind").and_then(|k| k.as_str());
                     let dry_run = args["dry_run"].as_bool().unwrap_or(false);
@@ -1308,7 +1385,7 @@ async fn cmd_serve(transport: &str, port: u16) -> Result<()> {
                 "annotate_pages" => {
                     let path = args["path"]
                         .as_str()
-                        .ok_or("missing required field: path")?
+                        .ok_or_else(|| "missing required field: path".to_string())?
                         .to_string();
                     let dpi = args["dpi"].as_f64().unwrap_or(150.0);
                     let _format_hint = args["format"].as_str();
@@ -1318,7 +1395,7 @@ async fn cmd_serve(transport: &str, port: u16) -> Result<()> {
                 "revert_document" => {
                     let path = args["path"]
                         .as_str()
-                        .ok_or("missing required field: path")?
+                        .ok_or_else(|| "missing required field: path".to_string())?
                         .to_string();
                     let steps = args["steps"].as_u64().unwrap_or(1) as usize;
                     let session_id = args["session_id"].as_str();
@@ -1329,7 +1406,7 @@ async fn cmd_serve(transport: &str, port: u16) -> Result<()> {
                 "journal" => {
                     let path = args["path"]
                         .as_str()
-                        .ok_or("missing required field: path")?
+                        .ok_or_else(|| "missing required field: path".to_string())?
                         .to_string();
                     let session_id = args["session_id"].as_str();
                     let result =
@@ -1339,13 +1416,13 @@ async fn cmd_serve(transport: &str, port: u16) -> Result<()> {
                 "create_document" => {
                     let source_type = args["source_type"]
                         .as_str()
-                        .ok_or("missing required field: source_type")?;
+                        .ok_or_else(|| "missing required field: source_type".to_string())?;
                     let format = args["format"]
                         .as_str()
-                        .ok_or("missing required field: format")?;
+                        .ok_or_else(|| "missing required field: format".to_string())?;
                     let content = args["content"]
                         .as_str()
-                        .ok_or("missing required field: content")?
+                        .ok_or_else(|| "missing required field: content".to_string())?
                         .as_bytes()
                         .to_vec();
                     let template = args["template"]
@@ -1375,7 +1452,7 @@ async fn cmd_serve(transport: &str, port: u16) -> Result<()> {
                 "script_tool" => {
                     let script = args["script"]
                         .as_str()
-                        .ok_or("missing required field: script")?;
+                        .ok_or_else(|| "missing required field: script".to_string())?;
                     let ir: Option<String> = args
                         .get("ir")
                         .and_then(|v| v.as_str())
@@ -1431,6 +1508,177 @@ async fn cmd_serve(transport: &str, port: u16) -> Result<()> {
                         })),
                         Err(e) => Err(format!("check_update failed: {}", e)),
                     }
+                }
+                "list_revisions" => {
+                    let path = args["path"]
+                        .as_str()
+                        .ok_or_else(|| "missing required field: path".to_string())?
+                        .to_string();
+                    let author = args["author"].as_str();
+
+                    let result = revisions_tool::list_revisions_docx_for_mcp(&path, author)
+                        .map_err(|e| e.to_string())?;
+                    Ok(result)
+                }
+                "accept_revisions" => {
+                    let path = args["path"]
+                        .as_str()
+                        .ok_or_else(|| "missing required field: path".to_string())?
+                        .to_string();
+                    let ids: Option<Vec<String>> = args["ids"].as_array().map(|a| {
+                        a.iter()
+                            .filter_map(|v| v.as_str().map(String::from))
+                            .collect()
+                    });
+                    let all = args["all"].as_bool().unwrap_or(false);
+                    let author = args["author"].as_str();
+                    let dry_run = args["dry_run"].as_bool().unwrap_or(false);
+                    let session_id = args["session_id"].as_str();
+
+                    let _session_id = session_id;
+                    let result = revisions_tool::accept_revisions_for_mcp(
+                        &path,
+                        ids.as_deref(),
+                        all,
+                        author,
+                        dry_run,
+                        _session_id,
+                    )
+                    .map_err(|e| e.to_string())?;
+                    Ok(result)
+                }
+                "reject_revisions" => {
+                    let path = args["path"]
+                        .as_str()
+                        .ok_or_else(|| "missing required field: path".to_string())?
+                        .to_string();
+                    let ids: Option<Vec<String>> = args["ids"].as_array().map(|a| {
+                        a.iter()
+                            .filter_map(|v| v.as_str().map(String::from))
+                            .collect()
+                    });
+                    let all = args["all"].as_bool().unwrap_or(false);
+                    let author = args["author"].as_str();
+                    let dry_run = args["dry_run"].as_bool().unwrap_or(false);
+                    let session_id = args["session_id"].as_str();
+
+                    let _session_id = session_id;
+                    let result = revisions_tool::reject_revisions_for_mcp(
+                        &path,
+                        ids.as_deref(),
+                        all,
+                        author,
+                        dry_run,
+                        _session_id,
+                    )
+                    .map_err(|e| e.to_string())?;
+                    Ok(result)
+                }
+                "add_comment" => {
+                    let path = args["path"]
+                        .as_str()
+                        .ok_or_else(|| "missing required field: path".to_string())?
+                        .to_string();
+                    let text = args["text"]
+                        .as_str()
+                        .ok_or_else(|| "missing required field: text".to_string())?
+                        .to_string();
+                    let element_id = args["element_id"]
+                        .as_str()
+                        .ok_or_else(|| "missing required field: element_id".to_string())?
+                        .to_string();
+                    let author = args["author"].as_str().unwrap_or("reviewer").to_string();
+                    let initials = args
+                        .get("initials")
+                        .and_then(|i| i.as_str())
+                        .map(|s| s.to_string());
+                    let dry_run = args["dry_run"].as_bool().unwrap_or(false);
+
+                    let bytes = std::fs::read(&path)
+                        .map_err(|e| format!("failed to read {}: {}", path, e))?;
+                    let ext = path.to_lowercase();
+
+                    let comment = gp_core::ir::Comment {
+                        id: gp_core::ir::ElementId::from_str("comment:0"),
+                        comment_id: uuid::Uuid::new_v4().as_u128().to_string(),
+                        author,
+                        date: Some(chrono::Utc::now().to_rfc3339()),
+                        initials,
+                        content: vec![gp_core::ir::SectionItem::Paragraph(
+                            gp_core::ir::Paragraph {
+                                id: gp_core::ir::ElementId::from_str("p:0"),
+                                runs: vec![gp_core::ir::Run {
+                                    id: gp_core::ir::ElementId::from_str("r:0"),
+                                    text,
+                                    bold: None,
+                                    italic: None,
+                                    font_name: None,
+                                    font_size_pt: None,
+                                    underline: None,
+                                    strikethrough: None,
+                                    style_name: None,
+                                }],
+                                page_number: None,
+                                style_name: None,
+                                numbering_info: None,
+                            },
+                        )],
+                    };
+
+                    let element_id_elem = gp_core::ir::ElementId::from_str(&element_id);
+
+                    let result: Result<serde_json::Value, String> = if ext.ends_with(".docx") {
+                        adapters_ooxml::comment_writer::add_comment_to_docx(
+                            &bytes,
+                            &comment,
+                            &element_id_elem,
+                            dry_run,
+                        )
+                        .map(|res| {
+                            serde_json::json!({
+                                "status": "ok",
+                                "comment_id": res.comment_id,
+                                "path": path,
+                                "dry_run": dry_run,
+                                "changed_parts": res.changed_parts,
+                                "ir_diff": res.ir_diff,
+                                "format": res.format,
+                            })
+                        })
+                        .map_err(|diags| {
+                            let msgs: Vec<_> = diags.iter().map(|d| d.message.clone()).collect();
+                            msgs.join("; ")
+                        })
+                    } else if ext.ends_with(".odt") {
+                        adapters_odf::comment_writer::add_comment_to_odt(
+                            &bytes,
+                            &comment,
+                            &element_id_elem,
+                            dry_run,
+                        )
+                        .map(|res| {
+                            serde_json::json!({
+                                "status": "ok",
+                                "comment_id": res.comment_id,
+                                "path": path,
+                                "dry_run": dry_run,
+                                "changed_parts": res.changed_parts,
+                                "ir_diff": res.ir_diff,
+                                "format": res.format,
+                            })
+                        })
+                        .map_err(|diags| {
+                            let msgs: Vec<_> = diags.iter().map(|d| d.message.clone()).collect();
+                            msgs.join("; ")
+                        })
+                    } else {
+                        return Err(format!(
+                            "unsupported format for comment write-back: {}",
+                            ext
+                        ));
+                    };
+
+                    result
                 }
                 _ => Err(format!("unknown tool: {}", name)),
             }
@@ -1637,4 +1885,173 @@ fn cmd_update(channel: &str, dry_run: bool, _force: bool, json: bool) -> Result<
     }
 
     Ok(())
+}
+
+async fn cmd_review(
+    path: &std::path::Path,
+    no_browser: bool,
+    close_token: Option<&str>,
+    list_sessions: bool,
+) -> Result<()> {
+    let path_str = path.to_string_lossy().to_string();
+
+    if let Some(token) = close_token {
+        let closed =
+            mcp::session::remove_review_session(&mcp::session::new_review_session_store(), token);
+        if closed {
+            eprintln!("review: session {} closed", token);
+        } else {
+            eprintln!("review: session {} not found", token);
+        }
+        return Ok(());
+    }
+
+    if list_sessions {
+        eprintln!("review: listing active sessions (server must be running)");
+        return Ok(());
+    }
+
+    let bytes = std::fs::read(&path_str)
+        .with_context(|| format!("failed to read document: {}", path_str))?;
+
+    let ext = path_str.to_lowercase();
+    let revision_snapshot = if ext.ends_with(".docx") {
+        revisions_tool::list_revisions_docx(&bytes, None)?
+    } else {
+        Vec::new()
+    };
+
+    let token = mcp::session::create_review_session(
+        &mcp::session::new_review_session_store(),
+        path_str.clone(),
+        &bytes,
+        revision_snapshot,
+    );
+
+    let url = format!("http://127.0.0.1:8732/review/{}", token);
+    eprintln!("review: session created");
+    eprintln!("review: token = {}", token);
+    eprintln!("review: url   = {}", url);
+
+    if !no_browser {
+        #[cfg(target_os = "linux")]
+        {
+            let _ = std::process::Command::new("xdg-open").arg(&url).spawn();
+        }
+        #[cfg(target_os = "macos")]
+        {
+            let _ = std::process::Command::new("open").arg(&url).spawn();
+        }
+        #[cfg(target_os = "windows")]
+        {
+            let _ = std::process::Command::new("cmd")
+                .args(&["/C", "start", "", &url])
+                .spawn();
+        }
+        #[cfg(not(any(target_os = "linux", target_os = "macos", target_os = "windows")))]
+        {
+            eprintln!(
+                "review: opening browser for {} (unsupported platform, try manually)",
+                url
+            );
+        }
+    }
+
+    Ok(())
+}
+
+fn cmd_open(
+    path: &std::path::Path,
+    version: Option<&str>,
+    app: Option<&str>,
+    no_browser: bool,
+    json: bool,
+) -> Result<()> {
+    // Probe the platform opener
+    let handoff = open_tool::probe_handler();
+    if !handoff.handler_available {
+        if json {
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&serde_json::json!({
+                    "tool": "open",
+                    "handoff": {
+                        "platform": handoff.platform,
+                        "handler_available": false,
+                        "handler_name": handoff.handler_name,
+                        "install_hint": handoff.install_hint,
+                    },
+                    "error": handoff.install_hint,
+                }))?
+            );
+            return Ok(());
+        } else {
+            eprintln!(
+                "open: no platform opener available ({})",
+                handoff.handler_name
+            );
+            eprintln!("  hint: {}", handoff.install_hint);
+            eprintln!("open: use --app <binary> to specify an opener directly");
+        }
+    }
+
+    let result = open_tool::cmd_open(
+        path,
+        version.map(String::from),
+        app.map(String::from),
+        no_browser,
+    );
+
+    match result {
+        Ok(()) => {
+            if json {
+                // Build JSON output
+                let open_app = app.as_ref().and_then(|s| {
+                    let s: &str = s;
+                    if s.is_empty() || s == "default" {
+                        None
+                    } else {
+                        Some(s.to_string())
+                    }
+                });
+                let resolved_app = if no_browser { None } else { open_app };
+                let output = serde_json::json!({
+                    "tool": "open",
+                    "path": path.to_string_lossy().to_string(),
+                    "version": version,
+                    "app": resolved_app,
+                    "no_browser": no_browser,
+                    "handoff": {
+                        "platform": handoff.platform,
+                        "handler_available": handoff.handler_available,
+                        "handler_name": handoff.handler_name,
+                    },
+                    "status": "ok",
+                });
+                println!("{}", serde_json::to_string_pretty(&output)?);
+            }
+            Ok(())
+        }
+        Err(e) => {
+            if json {
+                println!(
+                    "{}",
+                    serde_json::to_string_pretty(&serde_json::json!({
+                        "tool": "open",
+                        "path": path.to_string_lossy().to_string(),
+                        "status": "error",
+                        "error": e.to_string(),
+                        "handoff": {
+                            "platform": handoff.platform,
+                            "handler_available": handoff.handler_available,
+                            "handler_name": handoff.handler_name,
+                        },
+                    }))?
+                );
+            } else {
+                eprintln!("open: {}", e);
+            }
+            std::process::exit(1)
+        }
+    }
 }

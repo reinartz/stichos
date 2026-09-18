@@ -6,15 +6,14 @@
 
 use std::io::Read;
 use std::io::Write;
-use std::os::unix::io::AsRawFd;
 use std::path::Path;
 use std::process::Command;
 use std::process::Stdio;
 use std::thread;
 use std::time::Duration;
 
-use libc::{c_int, pollfd};
-use libc::{dup, poll, POLLIN, POLLNVAL};
+#[cfg(unix)]
+use std::os::unix::io::AsRawFd;
 
 use gp_core::diagnostics::Diagnostic;
 use gp_core::diagnostics::Severity;
@@ -121,14 +120,24 @@ pub fn parse_lo_version(output: &str) -> Option<String> {
 
 /// Common soffice binary paths to probe.
 fn common_lo_paths() -> Vec<&'static str> {
-    vec![
-        "/usr/bin/soffice",
-        "/usr/bin/libreoffice",
-        "/usr/local/bin/soffice",
-        "/usr/local/bin/libreoffice",
-        "/opt/libreoffice/program/soffice",
-        "/Applications/LibreOffice.app/Contents/MacOS/soffice",
-    ]
+    #[cfg(windows)]
+    {
+        vec![
+            "C:\\Program Files\\LibreOffice\\program\\soffice.exe",
+            "C:\\Program Files (x86)\\LibreOffice\\program\\soffice.exe",
+        ]
+    }
+    #[cfg(not(windows))]
+    {
+        vec![
+            "/usr/bin/soffice",
+            "/usr/bin/libreoffice",
+            "/usr/local/bin/soffice",
+            "/usr/local/bin/libreoffice",
+            "/opt/libreoffice/program/soffice",
+            "/Applications/LibreOffice.app/Contents/MacOS/soffice",
+        ]
+    }
 }
 
 /// Find the first existing soffice binary.
@@ -140,9 +149,15 @@ fn find_lo_binary() -> Option<String> {
         }
     }
     // Check PATH
+    let path_sep = if cfg!(windows) { ';' } else { ':' };
     if let Ok(paths) = std::env::var("PATH") {
-        for dir in paths.split(':') {
+        for dir in paths.split(path_sep) {
             let p = std::path::Path::new(dir).join("soffice");
+            let p = if cfg!(windows) {
+                p.with_extension("exe")
+            } else {
+                p
+            };
             if p.exists() {
                 return Some(p.to_string_lossy().to_string());
             }
@@ -159,17 +174,50 @@ fn find_lo_binary() -> Option<String> {
         .map(String::from)
 }
 
-/// A File wrapper that does NOT close the underlying raw fd on drop.
+// ---------------------------------------------------------------------------
+// Cross-platform subprocess stdout/stderr reader
+// ---------------------------------------------------------------------------
+
+/// Cross-platform handle for reading subprocess output without pipe-deadlock.
+///
+/// On Unix, uses `dup()` + raw fd management with `poll()`.
+/// On Windows, reads directly from the `ChildStdout`/`ChildStderr` handles
+/// which are taken from the child process.
+enum SubprocessReader {
+    #[cfg(unix)]
+    Unix(NoCloseFile),
+    #[cfg(windows)]
+    Stdout(std::process::ChildStdout),
+    #[cfg(windows)]
+    Stderr(std::process::ChildStderr),
+}
+
+impl Read for SubprocessReader {
+    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+        match self {
+            #[cfg(unix)]
+            Self::Unix(ncf) => ncf.read(buf),
+            #[cfg(windows)]
+            Self::Stdout(h) => h.read(buf),
+            #[cfg(windows)]
+            Self::Stderr(h) => h.read(buf),
+        }
+    }
+}
+
+/// Unix-specific: A File wrapper that does NOT close the underlying raw fd on drop.
 ///
 /// Used to wrap duplicated file descriptors so that dropping the wrapper
 /// does not close the fd — the caller closes the dup explicitly to signal
 /// EOF to the reader thread.
+#[cfg(unix)]
 struct NoCloseFile(std::fs::File, libc::c_int);
 
+#[cfg(unix)]
 impl NoCloseFile {
     /// Wrap a raw fd without closing it on drop.
     /// Returns None if the fd is invalid (-1).
-    fn from_raw(raw: c_int) -> Option<Self> {
+    fn from_raw(raw: libc::c_int) -> Option<Self> {
         use std::os::unix::io::FromRawFd;
         if raw < 0 {
             return None;
@@ -178,12 +226,14 @@ impl NoCloseFile {
     }
 }
 
+#[cfg(unix)]
 impl Drop for NoCloseFile {
     fn drop(&mut self) {
         // intentionally do nothing — caller closes the dup explicitly
     }
 }
 
+#[cfg(unix)]
 impl Read for NoCloseFile {
     fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
         // If fd was already closed/invalid, return EOF immediately.
@@ -193,6 +243,7 @@ impl Read for NoCloseFile {
         // Use poll() to avoid blocking forever if the pipe is empty.
         // This is important because poll() returns quickly when the
         // fd is closed, allowing the read loop to detect EOF.
+        use libc::{poll, pollfd, POLLIN, POLLNVAL};
         let mut pfd = pollfd {
             fd: self.1,
             events: POLLIN,
@@ -215,13 +266,14 @@ impl Read for NoCloseFile {
     }
 }
 
-/// Read all bytes from a reader in a separate thread.
-///
-/// The reader must be a NoCloseFile so that dropping it doesn't close the
-/// fd — this allows the caller to close the duplicate fd explicitly to
-/// signal EOF to the reader thread (preventing pipe-deadlock when the
-/// child process fills pipe buffers and blocks on write()).
-fn read_all_async(mut reader: NoCloseFile) -> std::thread::JoinHandle<Vec<u8>> {
+/// Unix-specific: Wrap a raw fd in a NoCloseFile, panicking if the fd is invalid.
+#[cfg(unix)]
+fn noclose(raw: libc::c_int) -> NoCloseFile {
+    NoCloseFile::from_raw(raw).expect("from_raw: invalid fd")
+}
+
+/// Spawn a reader thread for subprocess output.
+fn spawn_reader(mut reader: SubprocessReader) -> thread::JoinHandle<Vec<u8>> {
     thread::spawn(move || {
         let mut buf = Vec::new();
         let _ = reader.read_to_end(&mut buf);
@@ -229,10 +281,186 @@ fn read_all_async(mut reader: NoCloseFile) -> std::thread::JoinHandle<Vec<u8>> {
     })
 }
 
-/// Wrap a raw fd in a NoCloseFile, panicking if the fd is invalid.
-fn noclose(raw: libc::c_int) -> NoCloseFile {
-    NoCloseFile::from_raw(raw).expect("from_raw: invalid fd")
+// ---------------------------------------------------------------------------
+// Platform-specific run_subprocess implementations
+// ---------------------------------------------------------------------------
+
+#[cfg(unix)]
+impl LibreOfficeEngine {
+    /// Run a subprocess and capture stdout/stderr with hard timeout.
+    ///
+    /// Returns (exit_code, stdout_bytes, stderr_bytes) on success.
+    /// Returns Err(diagnostics) on timeout or spawn failure.
+    ///
+    /// Pipe-deadlock prevention: we create separate dup fds for the
+    /// main thread that are closed **before** join() to force EOF on
+    /// the reader threads — even when the child has filled pipe buffers
+    /// and is blocked on write() (the classic stdout+stderr deadlock).
+    fn run_subprocess(cmd: &mut Command) -> Result<(i32, Vec<u8>, Vec<u8>), Vec<Diagnostic>> {
+        use libc::dup;
+
+        let mut child = cmd
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+            .map_err(|e| {
+                vec![Diagnostic::new(
+                    "ENG-E-001",
+                    Severity::Error,
+                    format!("failed to spawn subprocess: {}", e),
+                )]
+            })?;
+
+        // Create separate dup fds: one for the reader thread, one that
+        // the main thread holds to signal EOF via drop().  The NoCloseFile
+        // wrapper prevents drop from closing the fd, so the main thread
+        // can close it explicitly before join().
+        let stdout_raw = child.stdout.as_ref().unwrap().as_raw_fd();
+        let stderr_raw = child.stderr.as_ref().unwrap().as_raw_fd();
+        let stdout_reader =
+            spawn_reader(SubprocessReader::Unix(noclose(unsafe { dup(stdout_raw) })));
+        let stderr_reader =
+            spawn_reader(SubprocessReader::Unix(noclose(unsafe { dup(stderr_raw) })));
+        let stdout_main = noclose(unsafe { dup(stdout_raw) });
+        let stderr_main = noclose(unsafe { dup(stderr_raw) });
+
+        // Poll with try_wait in a loop with timeout
+        let deadline = std::time::Instant::now() + Duration::from_secs(LO_TIMEOUT_SECS);
+        loop {
+            match child.try_wait() {
+                Ok(Some(status)) => {
+                    // Close main-thread dup fds to signal EOF before join
+                    // (prevents hang if child subprocess children are still
+                    // writing to inherited pipe fds after parent exit).
+                    drop(stdout_main);
+                    drop(stderr_main);
+                    let exit_code = status.code().unwrap_or(-1);
+                    let stdout_bytes = stdout_reader.join().unwrap_or_default();
+                    let stderr_bytes = stderr_reader.join().unwrap_or_default();
+                    return Ok((exit_code, stdout_bytes, stderr_bytes));
+                }
+                Ok(None) => {
+                    if std::time::Instant::now() >= deadline {
+                        let _ = child.kill();
+                        let _ = child.wait();
+                        // Close main-thread dup fds to signal EOF to
+                        // reader threads, preventing the pipe-deadlock
+                        // where reader threads block forever because
+                        // child subprocess children keep pipe write-ends open.
+                        drop(stdout_main);
+                        drop(stderr_main);
+                        let _stdout_bytes = stdout_reader.join().unwrap_or_default();
+                        let _stderr_bytes = stderr_reader.join().unwrap_or_default();
+                        return Err(vec![Diagnostic::new(
+                            "ENG-E-002",
+                            Severity::Error,
+                            format!("Engine timeout after {}ms", LO_TIMEOUT_SECS * 1000),
+                        )]);
+                    }
+                    thread::sleep(Duration::from_millis(100));
+                }
+                Err(_) => {
+                    let _ = child.kill();
+                    let _ = child.wait();
+                    drop(stdout_main);
+                    drop(stderr_main);
+                    let _stdout_bytes = stdout_reader.join().unwrap_or_default();
+                    let _stderr_bytes = stderr_reader.join().unwrap_or_default();
+                    return Err(vec![Diagnostic::new(
+                        "ENG-E-001",
+                        Severity::Error,
+                        "failed to wait for subprocess",
+                    )]);
+                }
+            }
+        }
+    }
 }
+
+#[cfg(windows)]
+impl LibreOfficeEngine {
+    /// Run a subprocess and capture stdout/stderr with hard timeout.
+    ///
+    /// Returns (exit_code, stdout_bytes, stderr_bytes) on success.
+    /// Returns Err(diagnostics) on timeout or spawn failure.
+    ///
+    /// On Windows, stdout/stderr are read in separate threads.
+    /// The reader threads take ownership of the ChildStdout/ChildStderr handles.
+    /// Main thread uses try_wait() to check for exit status.
+    fn run_subprocess(cmd: &mut Command) -> Result<(i32, Vec<u8>, Vec<u8>), Vec<Diagnostic>> {
+        let mut child = cmd
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+            .map_err(|e| {
+                vec![Diagnostic::new(
+                    "ENG-E-001",
+                    Severity::Error,
+                    format!("failed to spawn subprocess: {}", e),
+                )]
+            })?;
+
+        // Take ownership of stdout/stderr for reader threads.
+        // The reader threads will read until EOF (when the child exits and closes its ends).
+        // Main thread uses try_wait() to detect exit — no need for stdout/stderr after exit.
+        let stdout_reader = child.stdout.take();
+        let stderr_reader = child.stderr.take();
+
+        // Spawn threads to read stdout/stderr concurrently
+        let stdout_handle = match stdout_reader {
+            Some(h) => spawn_reader(SubprocessReader::Stdout(h)),
+            None => thread::spawn(|| Vec::new()),
+        };
+        let stderr_handle = match stderr_reader {
+            Some(h) => spawn_reader(SubprocessReader::Stderr(h)),
+            None => thread::spawn(|| Vec::new()),
+        };
+
+        // Wait with timeout using try_wait()
+        let deadline = std::time::Instant::now() + Duration::from_secs(LO_TIMEOUT_SECS);
+        loop {
+            match child.try_wait() {
+                Ok(Some(status)) => {
+                    let exit_code = status.code().unwrap_or(-1);
+                    let stdout_bytes = stdout_handle.join().unwrap_or_default();
+                    let stderr_bytes = stderr_handle.join().unwrap_or_default();
+                    return Ok((exit_code, stdout_bytes, stderr_bytes));
+                }
+                Ok(None) => {
+                    if std::time::Instant::now() >= deadline {
+                        let _ = child.kill();
+                        let _ = child.wait();
+                        let _stdout_bytes = stdout_handle.join().unwrap_or_default();
+                        let _stderr_bytes = stderr_handle.join().unwrap_or_default();
+                        return Err(vec![Diagnostic::new(
+                            "ENG-E-002",
+                            Severity::Error,
+                            format!("Engine timeout after {}ms", LO_TIMEOUT_SECS * 1000),
+                        )]);
+                    }
+                    thread::sleep(Duration::from_millis(100));
+                }
+                Err(_) => {
+                    let _ = child.kill();
+                    let _ = child.wait();
+                    let _stdout_bytes = stdout_handle.join().unwrap_or_default();
+                    let _stderr_bytes = stderr_handle.join().unwrap_or_default();
+                    return Err(vec![Diagnostic::new(
+                        "ENG-E-001",
+                        Severity::Error,
+                        "failed to wait for subprocess",
+                    )]);
+                }
+            }
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Common implementation (non-platform-specific)
+// ---------------------------------------------------------------------------
 
 impl LibreOfficeEngine {
     /// Create a new LibreOffice engine.
@@ -276,96 +504,6 @@ impl LibreOfficeEngine {
             )]
         })?;
         Self::new(&path)
-    }
-
-    /// Run a subprocess and capture stdout/stderr with hard timeout.
-    ///
-    /// Returns (exit_code, stdout_bytes, stderr_bytes) on success.
-    /// Returns Err(diagnostics) on timeout or spawn failure.
-    ///
-    /// Pipe-deadlock prevention: we create separate dup fds for the
-    /// main thread that are closed **before** join() to force EOF on
-    /// the reader threads — even when the child has filled pipe buffers
-    /// and is blocked on write() (the classic stdout+stderr deadlock).
-    fn run_subprocess(cmd: &mut Command) -> Result<(i32, Vec<u8>, Vec<u8>), Vec<Diagnostic>> {
-        let mut child = cmd
-            .stdin(Stdio::piped())
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
-            .spawn()
-            .map_err(|e| {
-                vec![Diagnostic::new(
-                    "ENG-E-001",
-                    Severity::Error,
-                    format!("failed to spawn subprocess: {}", e),
-                )]
-            })?;
-
-        // Create separate dup fds: one for the reader thread, one that
-        // the main thread holds to signal EOF via drop().  The NoCloseFile
-        // wrapper prevents drop from closing the fd, so the main thread
-        // can close it explicitly before join().
-        let stdout_raw = child.stdout.as_ref().unwrap().as_raw_fd();
-        let stderr_raw = child.stderr.as_ref().unwrap().as_raw_fd();
-        let stdout_reader = noclose(unsafe { dup(stdout_raw) });
-        let stdout_main = noclose(unsafe { dup(stdout_raw) });
-        let stderr_reader = noclose(unsafe { dup(stderr_raw) });
-        let stderr_main = noclose(unsafe { dup(stderr_raw) });
-
-        // Spawn threads to read stdout/stderr concurrently
-        let stdout_handle = read_all_async(stdout_reader);
-        let stderr_handle = read_all_async(stderr_reader);
-
-        // Poll with try_wait in a loop with timeout
-        let deadline = std::time::Instant::now() + Duration::from_secs(LO_TIMEOUT_SECS);
-        loop {
-            match child.try_wait() {
-                Ok(Some(status)) => {
-                    // Close main-thread dup fds to signal EOF before join
-                    // (prevents hang if child subprocess children are still
-                    // writing to inherited pipe fds after parent exit).
-                    drop(stdout_main);
-                    drop(stderr_main);
-                    let exit_code = status.code().unwrap_or(-1);
-                    let stdout_bytes = stdout_handle.join().unwrap_or_default();
-                    let stderr_bytes = stderr_handle.join().unwrap_or_default();
-                    return Ok((exit_code, stdout_bytes, stderr_bytes));
-                }
-                Ok(None) => {
-                    if std::time::Instant::now() >= deadline {
-                        let _ = child.kill();
-                        let _ = child.wait();
-                        // Close main-thread dup fds to signal EOF to
-                        // reader threads, preventing the pipe-deadlock
-                        // where reader threads block forever because
-                        // child subprocess children keep pipe write-ends open.
-                        drop(stdout_main);
-                        drop(stderr_main);
-                        let _stdout_bytes = stdout_handle.join().unwrap_or_default();
-                        let _stderr_bytes = stderr_handle.join().unwrap_or_default();
-                        return Err(vec![Diagnostic::new(
-                            "ENG-E-002",
-                            Severity::Error,
-                            format!("Engine timeout after {}ms", LO_TIMEOUT_SECS * 1000),
-                        )]);
-                    }
-                    thread::sleep(Duration::from_millis(100));
-                }
-                Err(_) => {
-                    let _ = child.kill();
-                    let _ = child.wait();
-                    drop(stdout_main);
-                    drop(stderr_main);
-                    let _stdout_bytes = stdout_handle.join().unwrap_or_default();
-                    let _stderr_bytes = stderr_handle.join().unwrap_or_default();
-                    return Err(vec![Diagnostic::new(
-                        "ENG-E-001",
-                        Severity::Error,
-                        "failed to wait for subprocess",
-                    )]);
-                }
-            }
-        }
     }
 
     /// Get version by running `soffice --version`.
@@ -624,7 +762,6 @@ fn fontset_hash_impl() -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::os::unix::io::FromRawFd;
 
     #[test]
     fn test_libreoffice_engine_creation() {
@@ -821,11 +958,14 @@ mod tests {
     }
 
     // -----------------------------------------------------------------------
-    // NoCloseFile fd-leak / poll-EOF tests
+    // NoCloseFile fd-leak / poll-EOF tests (Unix only)
     // -----------------------------------------------------------------------
 
+    #[cfg(unix)]
     #[test]
     fn test_noclosefile_reads_pipe_eof() {
+        use std::os::unix::io::FromRawFd;
+
         // Create a pipe, write data, close the write end, then read via
         // NoCloseFile — should see EOF after data.
         let mut fds: [libc::c_int; 2] = [0; 2];
@@ -845,13 +985,16 @@ mod tests {
 
         // Now read via NoCloseFile.
         let ncf = NoCloseFile::from_raw(read_fd).expect("valid read fd");
-        let handle = read_all_async(ncf);
+        let handle = spawn_reader(SubprocessReader::Unix(ncf));
         let result = handle.join().unwrap_or_default();
         assert_eq!(result, data.to_vec(), "should read the written data");
     }
 
+    #[cfg(unix)]
     #[test]
     fn test_noclosefile_returns_zero_on_eof() {
+        use std::os::unix::io::FromRawFd;
+
         // Create a pipe, close the write end, then read via NoCloseFile.
         // poll() should detect the closed write end and return 0 bytes.
         let mut fds: [libc::c_int; 2] = [0; 2];
@@ -864,7 +1007,7 @@ mod tests {
         unsafe { libc::close(write_fd) };
 
         let ncf = NoCloseFile::from_raw(read_fd).expect("valid fd");
-        let handle = read_all_async(ncf);
+        let handle = spawn_reader(SubprocessReader::Unix(ncf));
         let result = handle.join().unwrap_or_default();
         // Should return empty vec (write end closed → EOF).
         assert!(
@@ -873,6 +1016,7 @@ mod tests {
         );
     }
 
+    #[cfg(unix)]
     #[test]
     fn test_noclosefile_from_raw_invalid_fd() {
         // Invalid fd should return None.

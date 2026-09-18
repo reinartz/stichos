@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "id": "revision-empty-body-docx-001",
+  "title": "Revision empty-body docx 001",
+  "source": "generated",
+  "generator": {
+    "name": "harness/generator",
+    "version": "0.1.0"
+  },
+  "format": "docx",
+  "categories": [
+    "revision-empty-body"
+  ],
+  "features": {},
+  "reference_text": "corpus/reference/revision-empty-body-docx-001.txt",
+  "expected": {
+    "page_count_min": null,
+    "page_count_max": null
+  },
+  "render": {
+    "dpis": [
+      150
+    ],
+    "engines": [
+      "soffice-26.2.5"
+    ]
+  },
+  "notes": "Minimal fixture: entire body content is a single tracked insertion. Accepting yields the text; rejecting yields an empty document.",
+  "sha256": "21685df7ad87979a34e56fe862420e6e5a3f246696e0347a2ba4c8ca97d8a02d"
+}

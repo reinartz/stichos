@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "id": "revision-delete-docx-001",
+  "title": "Revision delete docx 001",
+  "source": "generated",
+  "generator": {
+    "name": "harness/generator",
+    "version": "0.1.0"
+  },
+  "format": "docx",
+  "categories": [
+    "revision-delete"
+  ],
+  "features": {},
+  "reference_text": "corpus/reference/revision-delete-docx-001.txt",
+  "expected": {
+    "page_count_min": null,
+    "page_count_max": null
+  },
+  "render": {
+    "dpis": [
+      150
+    ],
+    "engines": [
+      "soffice-26.2.5"
+    ]
+  },
+  "notes": "Single tracked deletion via w:del (text converted to w:delText); author=agent, fixed date. Reference text excludes deleted content.",
+  "sha256": "bc756a92cbcf8af8b0d136eda3065c34498771428a0f0c5d6e2c685454907de7"
+}

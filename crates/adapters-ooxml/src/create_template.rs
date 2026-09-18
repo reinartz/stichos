@@ -754,6 +754,7 @@ mod tests {
             fields: vec![],
             comments: vec![],
             tracked_changes: vec![],
+            revisions: vec![],
             template: None,
         };
         create_minimal_docx(&doc).expect("should create template")
@@ -806,6 +807,7 @@ mod tests {
             fields: vec![],
             comments: vec![],
             tracked_changes: vec![],
+            revisions: vec![],
             template: None,
         };
 
@@ -860,6 +862,7 @@ mod tests {
             fields: vec![],
             comments: vec![],
             tracked_changes: vec![],
+            revisions: vec![],
             template: None,
         };
 
@@ -918,6 +921,7 @@ mod tests {
             fields: vec![],
             comments: vec![],
             tracked_changes: vec![],
+            revisions: vec![],
             template: None,
         };
 
@@ -958,6 +962,7 @@ mod tests {
             fields: vec![],
             comments: vec![],
             tracked_changes: vec![],
+            revisions: vec![],
             template: None,
         };
 
@@ -1042,6 +1047,7 @@ mod tests {
             fields: vec![],
             comments: vec![],
             tracked_changes: vec![],
+            revisions: vec![],
             template: None,
         };
 
@@ -1151,6 +1157,7 @@ mod tests {
             fields: vec![],
             comments: vec![],
             tracked_changes: vec![],
+            revisions: vec![],
             template: None,
         };
 
@@ -1199,6 +1206,7 @@ mod tests {
             fields: vec![],
             comments: vec![],
             tracked_changes: vec![],
+            revisions: vec![],
             template: None,
         };
         let result = create_minimal_docx(&doc).expect("should create minimal docx");
@@ -1241,6 +1249,7 @@ mod tests {
             fields: vec![],
             comments: vec![],
             tracked_changes: vec![],
+            revisions: vec![],
             template: None,
         };
 

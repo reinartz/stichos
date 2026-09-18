@@ -354,6 +354,9 @@ pub struct Document {
     pub comments: Vec<Comment>,
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub tracked_changes: Vec<TrackedChange>,
+    /// Revisions tracked by this document (C11 — P4-03).
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub revisions: Vec<Revision>,
     /// Optional reference to a template document ID. When set, the document
     /// may be created from this template, preserving style/theme/master parts
     /// byte-for-byte and replacing only content parts with IR-derived content.
@@ -542,6 +545,132 @@ pub struct TrackedChange {
 pub enum ChangeKind {
     Inserted,
     Deleted,
+}
+
+// ====================================================================
+// Revision model (C11 — P4-03)
+// ====================================================================
+
+/// The kind of revision operation.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum RevisionKind {
+    Insert,
+    Delete,
+    FormatChange,
+}
+
+/// A revision — the new model replacing the old TrackedChange.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct Revision {
+    /// Stable unique ID for this revision.
+    pub id: ElementId,
+    /// Kind of revision.
+    pub kind: RevisionKind,
+    /// Author of the revision.
+    pub author: Option<String>,
+    /// Timestamp (ISO-8601).
+    pub date: Option<String>,
+    /// The element this revision is anchored to (C2 stable ID).
+    pub anchor_element_id: ElementId,
+    /// Page hint where this revision appears (derivable, optional).
+    pub page_hint: Option<usize>,
+    /// The original content (for Delete) or new content (for Insert).
+    pub content: String,
+    /// For format changes, the property that changed (e.g. "bold", "font_size").
+    pub property_name: Option<String>,
+    /// The original value of the changed property.
+    pub original_value: Option<String>,
+    /// The new value of the changed property.
+    pub new_value: Option<String>,
+}
+
+/// The set of revision operations.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "op", rename_all = "snake_case")]
+pub enum RevisionOp {
+    Accept { revision_id: ElementId },
+    Reject { revision_id: ElementId },
+    AcceptAll,
+    RejectAll,
+}
+
+// ====================================================================
+// Review Session model (ADR-0007 — P4-11)
+// ====================================================================
+
+/// An audit trail entry for a review session.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct AuditEntry {
+    /// Timestamp of the audit event.
+    pub timestamp: String,
+    /// The action performed: "create", "accept", "reject", "comment", "close".
+    pub action: String,
+    /// Additional details about the action.
+    pub details: serde_json::Value,
+}
+
+/// A review session — scoped context for a single human reviewer.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ReviewSession {
+    /// Unique session token (stichos-review-<64 hex chars>).
+    pub token: String,
+    /// Path to the document this session reviews.
+    pub doc_path: String,
+    /// SHA-256 hex digest of document bytes at session creation.
+    pub doc_version_hash: String,
+    /// When the session was created.
+    pub created_at: String,
+    /// Optional expiration time (None = no expiry).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<String>,
+    /// Snapshot of revisions at session creation time.
+    pub revision_snapshot: Vec<serde_json::Value>,
+    /// Audit trail of actions within this session.
+    pub audit_trail: Vec<AuditEntry>,
+    /// Comment drafts created during this session.
+    pub comment_drafts: Vec<serde_json::Value>,
+}
+
+impl ReviewSession {
+    /// Create a new review session with the given parameters.
+    pub fn new(
+        token: String,
+        doc_path: String,
+        doc_version_hash: String,
+        revision_snapshot: Vec<serde_json::Value>,
+    ) -> Self {
+        let now = chrono::Utc::now().to_rfc3339();
+        ReviewSession {
+            token,
+            doc_path,
+            doc_version_hash,
+            created_at: now.clone(),
+            expires_at: None,
+            revision_snapshot,
+            audit_trail: vec![AuditEntry {
+                timestamp: now,
+                action: "create".to_string(),
+                details: serde_json::json!({}),
+            }],
+            comment_drafts: vec![],
+        }
+    }
+
+    /// Record an action in the audit trail.
+    pub fn audit(&mut self, action: &str, details: serde_json::Value) {
+        let now = chrono::Utc::now().to_rfc3339();
+        self.audit_trail.push(AuditEntry {
+            timestamp: now,
+            action: action.to_string(),
+            details,
+        });
+    }
+
+    /// Check if the document version still matches (optimistic concurrency).
+    pub fn version_matches(&self, current_hash: &str) -> bool {
+        self.doc_version_hash == current_hash
+    }
 }
 
 /// A reference to a comment in the document body (w:commentReference).
@@ -1168,6 +1297,7 @@ mod tests {
             fields: vec![],
             comments: vec![],
             tracked_changes: vec![],
+            revisions: vec![],
             template: None,
         };
         assert_eq!(doc.ir_version, IR_VERSION);
@@ -1285,6 +1415,7 @@ mod tests {
             fields: vec![],
             comments: vec![],
             tracked_changes: vec![],
+            revisions: vec![],
             template: None,
         };
 
@@ -1480,6 +1611,7 @@ mod tests {
                 date: Some("2026-01-01T00:00:00Z".to_string()),
                 change_id: Some("9001".to_string()),
             }],
+            revisions: vec![],
             template: None,
         };
         assert_eq!(doc.fields.len(), 1);
@@ -1509,6 +1641,7 @@ mod tests {
             fields: vec![],
             comments: vec![],
             tracked_changes: vec![],
+            revisions: vec![],
             template: None,
         };
         let json = serde_json::to_string(&doc).expect("serialize");
@@ -1520,5 +1653,168 @@ mod tests {
         assert!(doc2.fields.is_empty());
         assert!(doc2.comments.is_empty());
         assert!(doc2.tracked_changes.is_empty());
+    }
+
+    // ===== P4-03: Revision model tests =====
+
+    /// test_revision_kind_serde — all three RevisionKind variants.
+    #[test]
+    fn test_revision_kind_serde() {
+        let json = serde_json::to_string(&RevisionKind::Insert).unwrap();
+        assert_eq!(json, "\"insert\"");
+        let json = serde_json::to_string(&RevisionKind::Delete).unwrap();
+        assert_eq!(json, "\"delete\"");
+        let json = serde_json::to_string(&RevisionKind::FormatChange).unwrap();
+        assert_eq!(json, "\"format_change\"");
+    }
+
+    /// test_revision_serde_roundtrip — create Revision, serialize, deserialize, verify.
+    #[test]
+    fn test_revision_serde_roundtrip() {
+        let revision = Revision {
+            id: ElementId::content_anchored("revision", &["rev:0"], "insert-test"),
+            kind: RevisionKind::Insert,
+            author: Some("reviewer-a".to_string()),
+            date: Some("2026-09-16T12:00:00Z".to_string()),
+            anchor_element_id: ElementId::content_anchored("run", &["run:0"], "hello"),
+            page_hint: Some(1),
+            content: "inserted text".to_string(),
+            property_name: None,
+            original_value: None,
+            new_value: None,
+        };
+        let json = serde_json::to_string(&revision).expect("serialize");
+        let rev2: Revision = serde_json::from_str(&json).expect("deserialize");
+        assert_eq!(revision.id, rev2.id);
+        assert_eq!(revision.kind, rev2.kind);
+        assert_eq!(revision.author, rev2.author);
+        assert_eq!(revision.date, rev2.date);
+        assert_eq!(revision.anchor_element_id, rev2.anchor_element_id);
+        assert_eq!(revision.page_hint, rev2.page_hint);
+        assert_eq!(revision.content, rev2.content);
+        assert_eq!(revision.property_name, rev2.property_name);
+        assert_eq!(revision.original_value, rev2.original_value);
+        assert_eq!(revision.new_value, rev2.new_value);
+    }
+
+    /// test_revision_op_accept_serde — Accept op serializes with "op":"accept".
+    #[test]
+    fn test_revision_op_accept_serde() {
+        let op = RevisionOp::Accept {
+            revision_id: ElementId::content_anchored("revision", &["rev:0"], "test"),
+        };
+        let json = serde_json::to_string(&op).expect("serialize");
+        assert!(json.contains("\"op\":\"accept\""));
+        // ElementId serializes as the inner string directly
+        assert!(json.contains("\"revision_id\":\"id-"));
+
+        let op = RevisionOp::Reject {
+            revision_id: ElementId::content_anchored("revision", &["rev:0"], "test"),
+        };
+        let json = serde_json::to_string(&op).expect("serialize");
+        assert!(json.contains("\"op\":\"reject\""));
+
+        let op = RevisionOp::AcceptAll;
+        let json = serde_json::to_string(&op).expect("serialize");
+        assert_eq!(json, "{\"op\":\"accept_all\"}");
+
+        let op = RevisionOp::RejectAll;
+        let json = serde_json::to_string(&op).expect("serialize");
+        assert_eq!(json, "{\"op\":\"reject_all\"}");
+    }
+
+    /// test_document_with_revisions — Document with revisions field.
+    #[test]
+    fn test_document_with_revisions() {
+        let doc = Document {
+            ir_version: IR_VERSION.to_string(),
+            ir_version_migration: None,
+            sections: vec![Section {
+                id: ElementId::content_anchored("section", &["section:0"], "test"),
+                kind: SectionKind::Body,
+                items: vec![],
+                headers: vec![],
+                footers: vec![],
+                footnotes: vec![],
+                endnotes: vec![],
+            }],
+            fields: vec![],
+            comments: vec![],
+            tracked_changes: vec![],
+            revisions: vec![Revision {
+                id: ElementId::content_anchored("revision", &["rev:0"], "ins"),
+                kind: RevisionKind::Insert,
+                author: Some("author-a".to_string()),
+                date: Some("2026-09-16T12:00:00Z".to_string()),
+                anchor_element_id: ElementId::content_anchored("run", &["run:0"], "hello"),
+                page_hint: Some(1),
+                content: "inserted text".to_string(),
+                property_name: None,
+                original_value: None,
+                new_value: None,
+            }],
+            template: None,
+        };
+        assert_eq!(doc.revisions.len(), 1);
+        assert_eq!(doc.revisions[0].kind, RevisionKind::Insert);
+        let json = serde_json::to_string(&doc).expect("serialize");
+        assert!(json.contains("\"kind\":\"insert\""));
+        assert!(json.contains("\"author\":\"author-a\""));
+        assert!(json.contains("\"content\":\"inserted text\""));
+        assert!(json.contains("\"anchor_element_id\""));
+    }
+
+    /// test_document_backward_compatible — old IR without revisions field deserializes (C1 additive).
+    #[test]
+    fn test_document_backward_compatible() {
+        let old_json = r#"{
+            "ir_version": "1.0.0",
+            "sections": [{
+                "id": "id-000000000000",
+                "kind": "body",
+                "items": []
+            }]
+        }"#;
+        let doc: Document = serde_json::from_str(old_json).expect("deserialize old IR");
+        assert_eq!(doc.ir_version, "1.0.0");
+        assert_eq!(doc.sections.len(), 1);
+        assert!(
+            doc.revisions.is_empty(),
+            "C1 additive: revisions defaults to empty vec"
+        );
+    }
+
+    /// test_document_revisions_default_empty — empty revisions omitted from JSON,
+    /// defaults to vec on deserialization.
+    #[test]
+    fn test_document_revisions_default_empty() {
+        let doc = Document {
+            ir_version: IR_VERSION.to_string(),
+            ir_version_migration: None,
+            sections: vec![Section {
+                id: ElementId::content_anchored("section", &["section:0"], "empty"),
+                kind: SectionKind::Body,
+                items: vec![],
+                headers: vec![],
+                footers: vec![],
+                footnotes: vec![],
+                endnotes: vec![],
+            }],
+            fields: vec![],
+            comments: vec![],
+            tracked_changes: vec![],
+            revisions: vec![],
+            template: None,
+        };
+        let json = serde_json::to_string(&doc).expect("serialize");
+        assert!(
+            !json.contains("\"revisions\""),
+            "empty revisions should be omitted from JSON (skip_serializing_if)"
+        );
+        let doc2: Document = serde_json::from_str(&json).expect("deserialize");
+        assert!(
+            doc2.revisions.is_empty(),
+            "revisions should default to empty vec on deserialization"
+        );
     }
 }

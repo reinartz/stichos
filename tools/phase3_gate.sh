@@ -13,6 +13,9 @@
 #
 # Phase: Phase 3 Wave G (P3-32)
 # Depends: P3-27, P3-28, P3-31, P3-26
+#
+# Headless-safe: captures all command output to temp files,
+# branches on exit codes (not tee /dev/tty + grep).
 
 set -euo pipefail
 
@@ -25,6 +28,16 @@ PASS=0
 FAIL=0
 TOTAL=0
 STATUS_JSON="docs/phase3-status.json"
+
+# Temp file for capturing command output (cleaned up on exit)
+LOG=""
+LOGS=()
+cleanup() {
+    for f in "${LOGS[@]}"; do
+        rm -f "$f"
+    done
+}
+trap cleanup EXIT
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -47,6 +60,25 @@ fail() {
     FAIL=$((FAIL + 1))
     TOTAL=$((TOTAL + 1))
     echo "  FAIL: $*"
+}
+
+# Run a command, capture output to a temp file, check exit code.
+# Usage: run_check <description> <exit_code_is_ok> <command> [args...]
+#   exit_code_is_ok=0 means exit 0 = pass (normal)
+#   exit_code_is_ok=1 means exit 1 = pass (inverted)
+run_check() {
+    local desc="$1"
+    local ok_exit="${2:-0}"
+    shift 2
+    LOG=$(mktemp)
+    LOGS+=("$LOG")
+    "$@" > "$LOG" 2>&1
+    local rc=$?
+    if [ "$rc" -eq "$ok_exit" ]; then
+        return 0
+    else
+        return 1
+    fi
 }
 
 # Check if a step is verified in phase3-status.json
@@ -156,24 +188,28 @@ fi
 
 # 1c. cargo clippy --workspace --all-targets -- -D warnings
 echo "  Running: cargo clippy --workspace --all-targets -- -D warnings"
-if cargo clippy --workspace --all-targets -- -D warnings 2>&1 | tee /dev/tty | grep -q "error"; then
-    fail "cargo clippy has errors"
-else
+run_check "clippy" 0 cargo clippy --workspace --all-targets -- -D warnings
+if [ $? -eq 0 ]; then
     pass "cargo clippy --workspace --all-targets clean"
+else
+    fail "cargo clippy has errors"
 fi
 
 # 1d. cargo fmt --all --check
 echo "  Running: cargo fmt --all --check"
-if cargo fmt --all --check 2>&1 | tee /dev/tty | grep -q "^error"; then
-    fail "cargo fmt check failed"
-else
+run_check "fmt" 0 cargo fmt --all --check
+if [ $? -eq 0 ]; then
     pass "cargo fmt --all --check clean"
+else
+    fail "cargo fmt check failed"
 fi
 
 # 1e. cargo test --workspace (at least 1400 tests)
 echo "  Running: cargo test --workspace -- --test-threads=4"
-TEST_OUTPUT=$(cargo test --workspace -- --test-threads=4 2>&1)
-TEST_COUNT=$(echo "$TEST_OUTPUT" | grep -oP '\d+ passed' | awk '{s+=$1} END {print s+0}')
+LOG=$(mktemp)
+LOGS+=("$LOG")
+cargo test --workspace -- --test-threads=4 > "$LOG" 2>&1
+TEST_COUNT=$(grep -oP '\d+ passed' "$LOG" | awk '{s+=$1} END {print s+0}')
 if [ "$TEST_COUNT" -ge 1400 ] 2>/dev/null; then
     pass "cargo test --workspace: ${TEST_COUNT} tests ≥ 1400"
 else
@@ -182,10 +218,11 @@ fi
 
 # 1f. cargo deny check
 echo "  Running: cargo deny check"
-if cargo deny check 2>&1 | tee /dev/tty | grep -q "bans FAILED\|advisories FAILED\|licenses FAILED\|sources FAILED"; then
-    fail "cargo deny check failed"
-else
+run_check "deny" 0 cargo deny check
+if [ $? -eq 0 ]; then
     pass "cargo deny check clean"
+else
+    fail "cargo deny check failed"
 fi
 
 echo ""
@@ -197,26 +234,29 @@ echo "=== 2. INV-1 across three families ==="
 
 # 2a. ODF: cargo test -p adapters-odf (zero-patch ×69 gate)
 echo "  Running: cargo test -p adapters-odf"
-if cargo test -p adapters-odf 2>&1 | tee /dev/tty | grep -q "test result:.*FAILED"; then
-    fail "cargo test -p adapters-odf failed"
-else
+run_check "test-adapters-odf" 0 cargo test -p adapters-odf
+if [ $? -eq 0 ]; then
     pass "cargo test -p adapters-odf (zero-patch ×69 gate)"
+else
+    fail "cargo test -p adapters-odf failed"
 fi
 
 # 2b. OOXML: cargo test -p adapters-ooxml
 echo "  Running: cargo test -p adapters-ooxml"
-if cargo test -p adapters-ooxml 2>&1 | tee /dev/tty | grep -q "test result:.*FAILED"; then
-    fail "cargo test -p adapters-ooxml failed"
-else
+run_check "test-adapters-ooxml" 0 cargo test -p adapters-ooxml
+if [ $? -eq 0 ]; then
     pass "cargo test -p adapters-ooxml"
+else
+    fail "cargo test -p adapters-ooxml failed"
 fi
 
 # 2c. PDF: cargo test -p adapters-pdf (prefix invariant)
 echo "  Running: cargo test -p adapters-pdf"
-if cargo test -p adapters-pdf 2>&1 | tee /dev/tty | grep -q "test result:.*FAILED"; then
-    fail "cargo test -p adapters-pdf failed"
-else
+run_check "test-adapters-pdf" 0 cargo test -p adapters-pdf
+if [ $? -eq 0 ]; then
     pass "cargo test -p adapters-pdf (prefix invariant)"
+else
+    fail "cargo test -p adapters-pdf failed"
 fi
 
 echo ""
@@ -228,18 +268,20 @@ echo "=== 3. Create-as-revisions read-back ==="
 
 # 3a. cargo test -p adapters-ooxml create_as_revisions
 echo "  Running: cargo test -p adapters-ooxml create_as_revisions"
-if cargo test -p adapters-ooxml create_as_revisions 2>&1 | tee /dev/tty | grep -q "test result:.*FAILED"; then
-    fail "cargo test create_as_revisions failed"
-else
+run_check "test-create-as-revisions" 0 cargo test -p adapters-ooxml create_as_revisions
+if [ $? -eq 0 ]; then
     pass "cargo test create_as_revisions passes"
+else
+    fail "cargo test create_as_revisions failed"
 fi
 
 # 3b. cargo test -p adapters-ooxml revision
 echo "  Running: cargo test -p adapters-ooxml revision"
-if cargo test -p adapters-ooxml revision 2>&1 | tee /dev/tty | grep -q "test result:.*FAILED"; then
-    fail "cargo test revision failed"
-else
+run_check "test-revision" 0 cargo test -p adapters-ooxml revision
+if [ $? -eq 0 ]; then
     pass "cargo test revision passes"
+else
+    fail "cargo test revision failed"
 fi
 
 echo ""
@@ -251,10 +293,11 @@ echo "=== 4. Sandbox proof ==="
 
 # 4a. cargo test -p gp-core script (Rhai escape suite)
 echo "  Running: cargo test -p gp-core script"
-if cargo test -p gp-core script 2>&1 | tee /dev/tty | grep -q "test result:.*FAILED"; then
-    fail "cargo test -p gp-core script failed"
-else
+run_check "test-script" 0 cargo test -p gp-core script
+if [ $? -eq 0 ]; then
     pass "cargo test -p gp-core script (Rhai escape suite)"
+else
+    fail "cargo test -p gp-core script failed"
 fi
 
 # 4b. ADR-0005 exists and status is "accepted"
@@ -277,11 +320,11 @@ echo "=== 5. Write-path fuzz round 2 + SEC-06 ==="
 
 # 5a. cargo test -p adapters-ooxfuzz (fuzz regressions as tests)
 echo "  Running: cargo test -p adapters-ooxfuzz"
-if cargo test -p adapters-ooxfuzz 2>&1 | tee /dev/tty | grep -q "test result:.*FAILED"; then
-    fail "cargo test -p adapters-ooxfuzz failed"
+run_check "test-fuzz" 0 cargo test -p adapters-ooxfuzz
+if [ $? -eq 0 ]; then
+    pass "cargo test -p adapters-ooxfuzz: fuzz regressions"
 else
-    FUZZ_COUNT=$(cargo test -p adapters-ooxfuzz 2>&1 | grep -oP '\d+ passed' | awk '{s+=$1} END {print s+0}')
-    pass "cargo test -p adapters-ooxfuzz: ${FUZZ_COUNT} fuzz regressions"
+    fail "cargo test -p adapters-ooxfuzz failed"
 fi
 
 # 5b. docs/threat-model.md contains SEC-06 section
@@ -406,14 +449,16 @@ else
 fi
 
 # 7c. No breaking changes since v1.0.0 (check changelog)
+# Real breaking-change markers: section headers, conventional commit tags, or bold markers.
+# Do NOT match prose like "breaking changes require a minor bump".
 if [ -f "CHANGELOG.md" ]; then
-    if grep -qi "BREAKING CHANGE\|breaking-change\|BREAKING:" CHANGELOG.md 2>/dev/null; then
+    if grep -qE "^### Breaking|^BREAKING CHANGE|^BREAKING:|^\* \*\*BREAKING" CHANGELOG.md 2>/dev/null; then
         fail "CHANGELOG.md contains breaking changes"
     else
         pass "CHANGELOG.md: no breaking changes since v1.0.0"
     fi
 elif [ -f "docs/CHANGELOG.md" ]; then
-    if grep -qi "BREAKING CHANGE\|breaking-change\|BREAKING:" docs/CHANGELOG.md 2>/dev/null; then
+    if grep -qE "^### Breaking|^BREAKING CHANGE|^BREAKING:|^\* \*\*BREAKING" docs/CHANGELOG.md 2>/dev/null; then
         fail "docs/CHANGELOG.md contains breaking changes"
     else
         pass "docs/CHANGELOG.md: no breaking changes since v1.0.0"
@@ -450,7 +495,7 @@ if [ "$GATE0_EVIDENCE" = "verified" ]; then
 else
     # Try running phase2_gate.sh (may take a while)
     echo "  Running: bash tools/phase2_gate.sh"
-    if bash tools/phase2_gate.sh 2>&1 | tee /dev/tty | grep -q "M2 Exit Gate: PASSED"; then
+    if bash tools/phase2_gate.sh > "$LOG" 2>&1; then
         pass "Gate 0: phase2_gate.sh passed"
     else
         fail "Gate 0: phase2_gate.sh did not pass"

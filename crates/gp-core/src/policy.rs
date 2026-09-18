@@ -24,6 +24,8 @@ pub enum DeniedAction {
     MacroPartWrite,
     /// Adding an external relationship.
     ExternalRelAdd,
+    /// Bulk accept/reject all revisions without explicit allow.
+    BulkRevisionAll,
     /// Catch-all for unknown actions.
     UnknownAction,
 }
@@ -59,6 +61,7 @@ impl Default for EditPolicy {
                 DeniedAction::DeletePart,
                 DeniedAction::MacroPartWrite,
                 DeniedAction::ExternalRelAdd,
+                DeniedAction::BulkRevisionAll,
             ],
             max_parts_modified: None,
         }

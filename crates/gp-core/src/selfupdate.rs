@@ -592,14 +592,23 @@ fn manifest_bytes_for_verification(manifest: &UpdateManifest) -> Vec<u8> {
     serde_json::to_vec_pretty(manifest).unwrap_or_default()
 }
 
-/// Set a file as executable (POSIX).
+/// Set a file as executable (platform-aware).
+/// On Windows, executable permission is implicit based on file extension.
+/// On Unix, explicitly sets the executable bit.
 fn set_executable(path: &Path) {
-    use std::os::unix::fs::PermissionsExt;
-    if let Ok(metadata) = fs::metadata(path) {
-        let mut perms = metadata.permissions();
-        perms.set_mode(0o755);
-        let _ = fs::set_permissions(path, perms);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        if let Ok(metadata) = fs::metadata(path) {
+            let mut perms = metadata.permissions();
+            perms.set_mode(0o755);
+            let _ = fs::set_permissions(path, perms);
+        }
     }
+    // On Windows, executable permission is determined by the file extension (.exe)
+    // and the PE header, not by a permission bit. No action needed.
+    #[cfg(windows)]
+    let _ = path;
 }
 
 /// Get the current version of a binary via `--version`.

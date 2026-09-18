@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>stichos review</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:system-ui,-apple-system,sans-serif;background:#1a1a2e;color:#e0e0e0;display:flex;height:100vh;overflow:hidden}
+#sidebar{width:340px;min-width:340px;background:#16213e;border-right:1px solid #0f3460;overflow-y:auto;display:flex;flex-direction:column}
+#sidebar-header{padding:16px;border-bottom:1px solid #0f3460}
+#sidebar-header h2{font-size:16px;font-weight:700;margin-bottom:2px}
+#sidebar-header p{font-size:11px;color:#93a0b8}
+#rev-list{flex:1;padding:8px;overflow-y:auto}
+#rev-list-header{font-size:11px;text-transform:uppercase;color:#666;letter-spacing:0.5px;padding:4px 6px;margin-bottom:4px}
+#detail{border-top:1px solid #0f3460;padding:14px;min-height:200px;max-height:45vh;overflow-y:auto}
+#detail.hidden{display:none}
+#main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+#toolbar{display:flex;align-items:center;justify-content:space-between;padding:8px 16px;background:#0f3460;border-bottom:1px solid #1a1a4e;font-size:12px;flex-shrink:0}
+#toolbar .info{color:#93a0b8}
+#toolbar .token{font-family:monospace;font-size:11px;color:#666}
+#toolbar .counts{font-size:11px;color:#666}
+#viewer{flex:1;overflow:auto;display:flex;flex-direction:column;align-items:center;padding:16px;gap:16px}
+.page-wrap{position:relative;background:#2a2a3e;border-radius:4px;box-shadow:0 2px 12px rgba(0,0,0,0.4);display:inline-block}
+.page-img{display:block;border-radius:4px}
+.page-num{position:absolute;bottom:8px;right:8px;background:rgba(0,0,0,0.6);color:#fff;padding:2px 8px;border-radius:3px;font-size:11px;font-weight:600}
+.rev-box{position:absolute;border:2px solid #e2483a;border-radius:3px;cursor:pointer;transition:background 0.12s, border-color 0.12s}
+.rev-box:hover{background:rgba(226,72,58,0.15)}
+.rev-box.selected{border-color:#f0c040;background:rgba(240,192,64,0.12);box-shadow:0 0 0 1px rgba(240,192,64,0.3)}
+.rev-box.status-accepted{border-color:#4caf50;background:rgba(76,175,80,0.08)}
+.rev-box.status-rejected{border-color:#666;background:rgba(100,100,100,0.08)}
+.rev-box.status-rejected::after{content:'';position:absolute;inset:0;border-radius:3px;background:linear-gradient(to top right,transparent 48%,rgba(100,100,100,0.2) 49%,rgba(100,100,100,0.2) 51%,transparent 52%);pointer-events:none}
+.rev-item{padding:10px 12px;margin:3px 0;border-radius:4px;cursor:pointer;font-size:13px;border-left:3px solid #e2483a;transition:background 0.1s}
+.rev-item:hover{background:#1a1a4e}
+.rev-item.selected{background:#1a1a4e;border-left-color:#f0c040}
+.rev-item.status-accepted{border-left-color:#4caf50;opacity:0.65}
+.rev-item.status-rejected{border-left-color:#666;text-decoration:line-through;opacity:0.5}
+.rev-item .kind{font-weight:600;display:inline}
+.rev-item .meta{font-size:11px;color:#666;margin-top:3px}
+.rev-item .status-dot{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:6px;vertical-align:middle}
+.rev-item .status-dot.pending{background:#e2483a}
+.rev-item .status-dot.accepted{background:#4caf50}
+.rev-item .status-dot.rejected{background:#666}
+#detail h4{font-size:12px;text-transform:uppercase;color:#666;letter-spacing:0.5px;margin-bottom:8px}
+#detail .field{margin-bottom:8px}
+#detail .label{font-size:10px;text-transform:uppercase;color:#666;letter-spacing:0.3px;margin-bottom:2px}
+#detail .value{font-size:13px;color:#ccc}
+#detail .content-box{font-family:'SF Mono','Cascadia Code','Consolas',monospace;font-size:12px;line-height:1.5;padding:10px;background:#0a0a1e;border:1px solid #1a1a4e;border-radius:4px;margin:6px 0;overflow-x:auto;white-space:pre-wrap;word-break:break-word}
+#detail .actions{display:flex;gap:8px;margin-top:12px}
+.btn{padding:6px 16px;border:none;border-radius:4px;cursor:pointer;font-size:12px;font-weight:600;transition:opacity 0.1s}
+.btn:hover{opacity:0.85}
+.btn-accept{background:#4caf50;color:#fff}
+.btn-reject{background:#e2483a;color:#fff}
+.btn-comment{background:#3a5a8c;color:#fff}
+.btn-sm{padding:3px 10px;font-size:11px}
+.comment-section{margin-top:14px;border-top:1px solid #0f3460;padding-top:12px}
+.comment-input{width:100%;padding:8px;background:#0a0a1e;border:1px solid #222;border-radius:4px;color:#e0e0e0;font-size:12px;font-family:inherit;resize:vertical;min-height:60px}
+.comment-input:focus{outline:none;border-color:#f0c040}
+.comment-list{margin-top:8px}
+.comment{padding:6px 8px;margin:3px 0;background:#0a0a1e;border:1px solid #1a1a4e;border-radius:3px;font-size:11px;color:#93a0b8;line-height:1.4}
+.comment .c-author{color:#f0c040;font-weight:600}
+.comment .c-text{color:#aaa}
+#status-bar{padding:5px 16px;font-size:11px;color:#666;background:#0a0a1e;border-top:1px solid #1a1a4e;display:flex;align-items:center;gap:8px;flex-shrink:0}
+#status-bar .dot{display:inline-block;width:7px;height:7px;border-radius:50%}
+#status-bar .connected{color:#4caf50}
+#status-bar .disconnected{color:#e2483a}
+#status-bar .error{color:#e2483a}
+.help{padding:10px 12px;font-size:10px;color:#666;line-height:1.7;border-top:1px solid #0f3460;flex-shrink:0}
+.help kbd{background:#0a0a1e;padding:1px 5px;border-radius:3px;border:1px solid #2a2a4e;font-family:monospace;font-size:10px;margin:0 1px}
+.no-revs{text-align:center;padding:40px 16px;color:#666;font-size:13px}
+.empty-detail{color:#666;font-size:12px;text-align:center;padding:40px 16px}
+</style>
+</head>
+<body>
+<div id="sidebar">
+  <div id="sidebar-header">
+    <h2>stichos review</h2>
+    <p>Document revision review</p>
+  </div>
+  <div id="rev-list"></div>
+  <div id="detail" class="hidden">
+    <h4>Revision details</h4>
+    <div id="detail-content"></div>
+    <div class="comment-section">
+      <textarea class="comment-input" id="comment-draft" placeholder="Add a comment..."></textarea>
+      <div style="display:flex;gap:6px;margin-top:6px">
+        <button class="btn btn-comment btn-sm" onclick="window._addComment()">Pin comment</button>
+      </div>
+      <div class="comment-list" id="comment-list"></div>
+    </div>
+  </div>
+  <div class="help">
+    <kbd>&#8595;</kbd><kbd>&#8593;</kbd> navigate &nbsp;
+    <kbd>Enter</kbd> accept &nbsp;
+    <kbd>Shift</kbd>+<kbd>Enter</kbd> reject &nbsp;
+    <kbd>C</kbd> comment &nbsp;
+    <kbd>Esc</kbd> deselect
+  </div>
+</div>
+<div id="main">
+  <div id="toolbar">
+    <span class="info" id="info-text">Loading...</span>
+    <span class="counts" id="counts-text"></span>
+    <span class="token" id="token-text"></span>
+  </div>
+  <div id="viewer"></div>
+  <div id="status-bar"><span class="dot connected"></span><span id="status-text">connecting</span></div>
+</div>
+<script>
+(function(){
+'use strict';
+
+/* --- Token from URL --- */
+var pathParts = location.pathname.split('/').filter(Boolean);
+var token = pathParts.length >= 2 ? decodeURIComponent(pathParts[1]) : '';
+if (!token) {
+  document.getElementById('info-text').textContent = 'Error: no review token in path';
+  document.getElementById('counts-text').textContent = '';
+  document.getElementById('status-text').textContent = 'invalid session';
+  return;
+}
+document.getElementById('token-text').textContent = token.substring(0,16) + '...';
+
+/* --- State --- */
+var state = {
+  revisions: [],
+  comments: [],
+  selectedIdx: -1,
+  pageCount: 0,
+  pollTimer: null,
+  errorState: false
+};
+
+/* --- HTTP --- */
+function setStatus(type, text) {
+  var bar = document.getElementById('status-bar');
+  var dot = bar.querySelector('.dot');
+  var label = document.getElementById('status-text');
+  dot.className = 'dot ' + type;
+  label.className = type;
+  label.textContent = text;
+  if (type === 'error') {
+    state.errorState = true;
+  } else {
+    state.errorState = false;
+  }
+}
+
+function pollData() {
+  fetch('data.json?token=' + encodeURIComponent(token))
+    .then(function(resp) {
+      if (resp.status === 410) {
+        setStatus('error', 'Document changed — session expired');
+        return false;
+      }
+      if (!resp.ok) {
+        setStatus('error', 'Fetch error ' + resp.status);
+        return false;
+      }
+      return resp.json().then(function(data) {
+        if (data.revisions) state.revisions = data.revisions;
+        if (Array.isArray(data.comments)) state.comments = data.comments;
+        if (data.pages && data.pages.count) state.pageCount = data.pages.count;
+        setStatus('connected', 'connected');
+        return true;
+      });
+    })
+    .catch(function(e) {
+      setStatus('error', 'Network error');
+    });
+}
+
+function sendAction(action, revisionId) {
+  fetch('action?token=' + encodeURIComponent(token), {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({action: action, revision_id: revisionId})
+  }).catch(function() {
+    setStatus('error', 'Action failed');
+  });
+}
+
+/* --- XSS-safe escape (DOM text node) --- */
+function esc(str) {
+  if (str == null) return '';
+  var d = document.createElement('div');
+  d.appendChild(document.createTextNode(String(str)));
+  return d.innerHTML;
+}
+
+/* --- Rendering: revision list --- */
+function renderList() {
+  var list = document.getElementById('rev-list');
+  var revs = state.revisions;
+  if (revs.length === 0) {
+    list.innerHTML = '<div class="no-revs">No revisions to review.</div>';
+    return;
+  }
+  var html = '<div id="rev-list-header">Revisions (' + revs.length + ')</div>';
+  revs.forEach(function(rev, i) {
+    var st = rev.status || 'pending';
+    var kind = rev.kind || 'change';
+    var author = rev.author || 'unknown';
+    var date = rev.date || '';
+    html += '<div class="rev-item' +
+      (i === state.selectedIdx ? ' selected' : '') +
+      (st === 'accepted' ? ' status-accepted' : '') +
+      (st === 'rejected' ? ' status-rejected' : '') +
+      '" data-idx="' + i + '">' +
+      '<span class="status-dot ' + st + '"></span>' +
+      '<span class="kind">' + esc(kind) + '</span>' +
+      '<span class="meta"> ' + esc(author) + (date ? ' &middot; ' + esc(date) : '') + '</span>' +
+      '</div>';
+  });
+  list.innerHTML = html;
+
+  list.querySelectorAll('.rev-item').forEach(function(el) {
+    el.addEventListener('click', function() {
+      selectRevision(parseInt(this.getAttribute('data-idx')));
+    });
+  });
+}
+
+/* --- Rendering: pages + boxes --- */
+function renderPages() {
+  var viewer = document.getElementById('viewer');
+  viewer.innerHTML = '';
+  var pc = state.pageCount || 0;
+  if (pc === 0) return;
+  for (var i = 1; i <= pc; i++) {
+    var wrap = document.createElement('div');
+    wrap.className = 'page-wrap';
+    var img = document.createElement('img');
+    img.className = 'page-img';
+    img.src = 'pages/' + i + '.png';
+    img.alt = 'Page ' + i;
+    img.draggable = false;
+    var numLabel = document.createElement('span');
+    numLabel.className = 'page-num';
+    numLabel.textContent = 'Page ' + i;
+    wrap.appendChild(img);
+    wrap.appendChild(numLabel);
+    viewer.appendChild(wrap);
+  }
+}
+
+function layoutBoxes() {
+  var wraps = document.querySelectorAll('.page-wrap');
+  wraps.forEach(function(wrap) {
+    var existing = wrap.querySelectorAll('.rev-box');
+    existing.forEach(function(e) { e.remove(); });
+    var img = wrap.querySelector('.page-img');
+    if (!img || !img.width) return;
+    var pageNum = parseInt(wrap.querySelector('.page-num').textContent.replace(/\D/g, ''));
+    state.revisions.forEach(function(rev, i) {
+      if (rev.page_hint !== pageNum || !rev.bbox || !Array.isArray(rev.bbox)) return;
+      var b = rev.bbox;
+      var box = document.createElement('div');
+      box.className = 'rev-box';
+      if (i === state.selectedIdx) box.className += ' selected';
+      if (rev.status === 'accepted') box.className += ' status-accepted';
+      if (rev.status === 'rejected') box.className += ' status-rejected';
+      var w = img.width, h = img.height;
+      box.style.left = (b[0] * w) + 'px';
+      box.style.top = (b[1] * h) + 'px';
+      box.style.width = ((b[2] - b[0]) * w) + 'px';
+      box.style.height = ((b[3] - b[1]) * h) + 'px';
+      box.title = (rev.author || 'revision ' + (rev.id || ''));
+      box.addEventListener('click', function(e) {
+        e.stopPropagation();
+        selectRevision(i);
+      });
+      wrap.appendChild(box);
+    });
+  });
+}
+
+/* --- Rendering: detail panel --- */
+function renderDetail() {
+  var detail = document.getElementById('detail');
+  var content = document.getElementById('detail-content');
+  if (state.selectedIdx < 0 || !state.revisions[state.selectedIdx]) {
+    detail.className = 'hidden';
+    return;
+  }
+  detail.className = '';
+  var rev = state.revisions[state.selectedIdx];
+  var st = rev.status || 'pending';
+  var kind = rev.kind || 'change';
+  var html = '<div class="field"><div class="label">ID</div><div class="value">' + esc(rev.id || '') + '</div></div>' +
+    '<div class="field"><div class="label">Kind</div><div class="value">' + esc(kind) + '</div></div>' +
+    '<div class="field"><div class="label">Author</div><div class="value">' + esc(rev.author || 'unknown') + '</div></div>' +
+    '<div class="field"><div class="label">Date</div><div class="value">' + esc(rev.date || '') + '</div></div>' +
+    '<div class="field"><div class="label">Content</div>' +
+    '<div class="content-box">' + esc(rev.content || '') + '</div></div>' +
+    '<div class="actions">' +
+    '<button class="btn btn-accept" onclick="window._accept(' + state.selectedIdx + ')">Accept</button>' +
+    '<button class="btn btn-reject" onclick="window._reject(' + state.selectedIdx + ')">Reject</button>' +
+    '</div>';
+  content.innerHTML = html;
+  renderComments();
+}
+
+function renderComments() {
+  var list = document.getElementById('comment-list');
+  var comments = state.comments;
+  if (comments.length === 0) {
+    list.innerHTML = '';
+    return;
+  }
+  var html = '';
+  comments.forEach(function(c) {
+    var author = c.author || 'anonymous';
+    var text = c.text || '';
+    html += '<div class="comment"><span class="c-author">' + esc(author) + '</span>: <span class="c-text">' + esc(text) + '</span></div>';
+  });
+  list.innerHTML = html;
+}
+
+/* --- Counts in toolbar --- */
+function updateCounts() {
+  var revs = state.revisions;
+  var pending = 0, accepted = 0, rejected = 0;
+  revs.forEach(function(r) {
+    if (r.status === 'accepted') accepted++;
+    else if (r.status === 'rejected') rejected++;
+    else pending++;
+  });
+  document.getElementById('counts-text').textContent =
+    pending + ' pending &middot; ' + accepted + ' accepted &middot; ' + rejected + ' rejected';
+}
+
+/* --- Actions (exposed for inline onclick) --- */
+function selectRevision(idx) {
+  state.selectedIdx = idx;
+  renderList();
+  renderDetail();
+}
+
+function acceptRevision(idx) {
+  if (idx < 0 || idx >= state.revisions.length) return;
+  var rev = state.revisions[idx];
+  sendAction('accept', rev.id);
+  rev.status = 'accepted';
+  refreshAll();
+}
+
+function rejectRevision(idx) {
+  if (idx < 0 || idx >= state.revisions.length) return;
+  var rev = state.revisions[idx];
+  sendAction('reject', rev.id);
+  rev.status = 'rejected';
+  refreshAll();
+}
+
+function addComment() {
+  var draft = document.getElementById('comment-draft');
+  var text = draft.value.trim();
+  if (!text || state.selectedIdx < 0) return;
+  state.comments.push({
+    author: 'reviewer',
+    text: text,
+    timestamp: new Date().toISOString()
+  });
+  draft.value = '';
+  renderComments();
+}
+
+window._accept = acceptRevision;
+window._reject = rejectRevision;
+window._addComment = addComment;
+
+/* --- Full refresh --- */
+function refreshAll() {
+  renderList();
+  renderPages();
+  renderDetail();
+  updateCounts();
+  requestAnimationFrame(layoutBoxes);
+}
+
+/* --- Keyboard --- */
+document.addEventListener('keydown', function(e) {
+  var tag = e.target.tagName;
+  if (tag === 'TEXTAREA' || tag === 'INPUT' || tag === 'SELECT') return;
+  var len = state.revisions.length;
+  if (len === 0) return;
+
+  if (e.key === 'ArrowDown' || (e.key === 'j' && !e.ctrlKey && !e.altKey && !e.metaKey)) {
+    e.preventDefault();
+    state.selectedIdx = (state.selectedIdx + 1) % len;
+    refreshAll();
+    var items = document.querySelectorAll('.rev-item.selected');
+    if (items.length) items[0].scrollIntoView({block:'nearest'});
+  } else if (e.key === 'ArrowUp' || (e.key === 'k' && !e.ctrlKey && !e.altKey && !e.metaKey)) {
+    e.preventDefault();
+    state.selectedIdx = (state.selectedIdx - 1 + len) % len;
+    refreshAll();
+    var items2 = document.querySelectorAll('.rev-item.selected');
+    if (items2.length) items2[0].scrollIntoView({block:'nearest'});
+  } else if (e.key === 'Enter') {
+    e.preventDefault();
+    if (state.selectedIdx < 0) return;
+    if (e.shiftKey) {
+      rejectRevision(state.selectedIdx);
+    } else {
+      acceptRevision(state.selectedIdx);
+    }
+  } else if ((e.key === 'c' || e.key === 'C') && !e.ctrlKey && !e.altKey && !e.metaKey) {
+    e.preventDefault();
+    document.getElementById('comment-draft').focus();
+  } else if (e.key === 'Escape') {
+    e.preventDefault();
+    state.selectedIdx = -1;
+    refreshAll();
+  }
+});
+
+/* --- Image load timing: layout boxes after images render --- */
+var boxLayoutTimer = null;
+function scheduleBoxLayout() {
+  clearTimeout(boxLayoutTimer);
+  boxLayoutTimer = setTimeout(layoutBoxes, 200);
+}
+
+/* --- Init --- */
+function init() {
+  pollData();
+  refreshAll();
+  scheduleBoxLayout();
+  state.pollTimer = setInterval(function() {
+    pollData().then(function(ok) {
+      if (ok) {
+        refreshAll();
+        scheduleBoxLayout();
+      }
+    });
+  }, 3000);
+}
+
+/* Wait for initial image load to layout boxes */
+var initDone = false;
+function checkImages() {
+  if (initDone) return;
+  var imgs = document.querySelectorAll('.page-img');
+  if (imgs.length === 0) { initDone = true; return; }
+  var loaded = 0;
+  imgs.forEach(function(img) {
+    if (img.complete && img.naturalWidth > 0) loaded++;
+    else {
+      img.onload = function() { loaded++; };
+      img.onerror = function() { loaded++; };
+    }
+  });
+  var check = setInterval(function() {
+    loaded = 0;
+    imgs.forEach(function(img) {
+      if (img.complete && img.naturalWidth > 0) loaded++;
+    });
+    if (loaded >= imgs.length) {
+      clearInterval(check);
+      if (!initDone) { initDone = true; layoutBoxes(); }
+    }
+  }, 300);
+  setTimeout(function() { clearInterval(check); if (!initDone) { initDone = true; layoutBoxes(); } }, 8000);
+}
+
+init();
+setTimeout(checkImages, 100);
+
+/* Re-layout on window resize */
+var resizeTimer;
+window.addEventListener('resize', function() {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(layoutBoxes, 150);
+});
+
+})();
+</script>
+</body>
+</html>

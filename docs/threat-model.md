@@ -141,3 +141,34 @@ PDF incremental writer, creation engines) follow the same defensive patterns as 
 
 Review completed by: p3-27 agent
 Date: 2026-09-16
+
+## SEC-06 Phase-4 Security Review
+
+### Phase-4 Attack Surface
+Phase 4 introduces new vectors: revision parsers (hostile trees), review HTTP server (session tokens, XSS), and the viewer surface.
+
+- **Revision reader/parser**: Accepts revision data with nested operations, orphan IDs, duplicate IDs, extremely long author/date fields, and 1000+ revision entries. The parser must refuse malformed input without panicking.
+- **Review HTTP server**: Token-based authentication via URL path, query string, and header. Attack surfaces include path traversal in tokens, token confusion across multiple sources, HTTP header injection via CR/LF, request smuggling, and oversized headers.
+- **Review viewer**: Renders document text in HTML via JSON responses. Attack surface includes XSS payloads embedded in document text (script injection, event handlers, javascript: URIs, mixed payloads).
+- **Version-hash invalidation**: Document changes after session creation must invalidate the session (410 Gone).
+
+### Review Checklist
+- [x] Revision reader: hostile trees (nested, orphan IDs, duplicates, author bombs, huge counts) → refuses/doesn't panic
+- [x] Session HTTP: path traversal in token → 400; token confusion → rejected; header injection → rejected
+- [x] Viewer XSS: document text in data.json → HTML-escaped; viewer escapeHtml() → neutralizes payloads
+- [x] Version-hash invalidation: doc change → 410 Gone
+- [x] CSP headers: present on all review routes; no eval; no external resources
+- [x] Rejection of unknown revision kinds → GP-R-001, never silent drop
+- [x] Format-change revision refusal → GP-R-001 (out of scope for M4)
+
+### Findings
+No new vulnerabilities identified.
+
+### Mitigations Added
+- Hostile revision fixtures (nested, orphan, duplicate, bombs, huge counts)
+- Session HTTP attack fixtures (traversal, confusion, header injection, smuggling)
+- XSS corpus (script injection, event handlers, javascript URIs)
+- All added as deterministic regression tests in adapters-ooxfuzz
+
+Review completed by: p4-18 agent
+Date: 2026-09-18

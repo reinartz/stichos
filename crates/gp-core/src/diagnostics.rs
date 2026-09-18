@@ -314,6 +314,44 @@ impl DiagnosticRegistry {
             },
         );
 
+        // GP-R (revision model, C11 — P4-03)
+        entries.insert(
+            "GP-R-001",
+            CodeEntry {
+                code: "GP-R-001",
+                severity: Severity::Error,
+                category: "parsing",
+                description: "Unsupported revision kind: {} — refusing to process",
+            },
+        );
+        entries.insert(
+            "GP-R-002",
+            CodeEntry {
+                code: "GP-R-002",
+                severity: Severity::Error,
+                category: "validation",
+                description: "Ambiguous revision anchor: {} has no matching element",
+            },
+        );
+        entries.insert(
+            "GP-R-003",
+            CodeEntry {
+                code: "GP-R-003",
+                severity: Severity::Warning,
+                category: "parsing",
+                description: "Revision {} has no author and none provided",
+            },
+        );
+        entries.insert(
+            "GP-R-004",
+            CodeEntry {
+                code: "GP-R-004",
+                severity: Severity::Error,
+                category: "execution",
+                description: "Revision accept/reject failed: {}",
+            },
+        );
+
         // OOX (adapters-ooxml) codes
         entries.insert(
             "OOX-E-001",

@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "id": "revision-mixed-docx-001",
+  "title": "Revision mixed docx 001",
+  "source": "generated",
+  "generator": {
+    "name": "harness/generator",
+    "version": "0.1.0"
+  },
+  "format": "docx",
+  "categories": [
+    "revision-mixed"
+  ],
+  "features": {},
+  "reference_text": "corpus/reference/revision-mixed-docx-001.txt",
+  "expected": {
+    "page_count_min": null,
+    "page_count_max": null
+  },
+  "render": {
+    "dpis": [
+      150
+    ],
+    "engines": [
+      "soffice-26.2.5"
+    ]
+  },
+  "notes": "Three tracked changes: two inserts (bot-a, bot-b) and one delete (bot-a). Reference text includes inserted content, excludes deleted content.",
+  "sha256": "84e46a7498ea0cb9b0f165b386328dc1b8181269fec5c864e48b513e4a2a7fe6"
+}

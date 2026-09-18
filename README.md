@@ -14,8 +14,9 @@ reproducible `fontset_hash`, nightly ×3 green), M1 read-only ship (tag `m1-clos
 edit + closed loop (tag `m2`), M3 creation + ODF/PDF write-path completion + sandbox + distribution
 automation (tag `m3`, gate re-verified 2026-09-16: 1 644 tests green, clippy/fmt/deny clean,
 `phase3_gate.sh` 26/26). **Phase 4 / M4 (human loop: tracked-change accept/reject, review overlay,
-ODF revisions, handoff) is the next milestone** — see
-[`docs/phase4-concept.md`](docs/phase4-concept.md) / [`docs/phase4-plan.md`](docs/phase4-plan.md).
+ODF revisions, handoff) is complete** (tag `m4`, 1 714+ tests green). See
+[`docs/phase4-concept.md`](docs/phase4-concept.md) / [`docs/phase4-plan.md`](docs/phase4-plan.md) /
+[`docs/support-matrix.md`](docs/support-matrix.md).
 
 ## Doc map
 

@@ -25,6 +25,7 @@ use gp_core::traits::{Codec, ReadResult};
 use std::collections::BTreeMap;
 
 use super::opc::{parse_opc, OpcPackage, Part};
+use super::revision_reader::enumerate_revisions;
 use super::xml::{parse_xml, TagName, XmlDocument, XmlNode};
 
 // ===========================================================================
@@ -106,6 +107,11 @@ pub fn read_docx_full(package: &OpcPackage) -> Result<ReadResult, Vec<Diagnostic
     document.fields = parsed_fields;
     document.tracked_changes = parsed_tracked_changes;
 
+    // 12. Enumerate C11 revisions from ins/del elements (P4-04).
+    let mut rev_diags: Vec<Diagnostic> = Vec::new();
+    document.revisions = enumerate_revisions(&xml_doc, &mut rev_diags);
+    diags.extend(rev_diags);
+
     let ir_bytes = serde_json::to_vec(&document).map_err(|e| {
         vec![Diagnostic::new(
             "OOX-E-010",
@@ -118,13 +124,14 @@ pub fn read_docx_full(package: &OpcPackage) -> Result<ReadResult, Vec<Diagnostic
         "OOX-R110",
         Severity::Info,
         format!(
-            "docx full: IR produced with {} sections, {} styles, {} numbering defs, {} fields, {} comments, {} tracked changes, {} diagnostics",
+            "docx full: IR produced with {} sections, {} styles, {} numbering defs, {} fields, {} comments, {} tracked changes, {} revisions, {} diagnostics",
             document.sections.len(),
             style_map.len(),
             num_def_map.len(),
             document.fields.len(),
             document.comments.len(),
             document.tracked_changes.len(),
+            document.revisions.len(),
             diags.len(),
         ),
     ));
@@ -1257,6 +1264,7 @@ fn build_document(
         fields,
         comments: vec![],
         tracked_changes,
+        revisions: vec![],
         template: None,
     };
 
@@ -1323,6 +1331,7 @@ fn build_document_full(
             fields: vec![],
             comments: vec![],
             tracked_changes: vec![],
+            revisions: vec![],
             template: None,
         };
         apply_styles_to_document(&mut tmp_doc, style_map);
@@ -1337,6 +1346,7 @@ fn build_document_full(
         fields,
         comments: vec![],
         tracked_changes,
+        revisions: vec![],
         template: None,
     };
 
@@ -3483,7 +3493,7 @@ mod tests {
         assert!(authors.contains(&"bot-b"), "Should have bot-b as author");
     }
 
-    /// test_full_corpus_read — all 35 docx fixtures parse successfully.
+    /// test_full_corpus_read — all 41 docx fixtures parse successfully.
     #[test]
     fn test_full_corpus_read() {
         let blobs_dir = concat!(env!("CARGO_MANIFEST_DIR"), "/../../corpus/blobs");
@@ -3520,10 +3530,10 @@ mod tests {
             }
         }
 
-        assert_eq!(docx_count, 35, "Should have 35 docx fixtures");
+        assert_eq!(docx_count, 41, "Should have 41 docx fixtures");
         assert_eq!(
-            success_count, 35,
-            "All 35 docx fixtures should parse successfully (success={}, total={})",
+            success_count, 41,
+            "All 41 docx fixtures should parse successfully (success={}, total={})",
             success_count, docx_count
         );
     }

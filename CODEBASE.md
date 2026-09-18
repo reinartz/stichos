@@ -26,7 +26,7 @@ crates/
                               #   diff, annotator, a11y (veraPDF), perf, coords, cropper
   mcp/                        # MCP protocol: spec, tool registry, dispatch, jsonrpc,
                               #   server, transport, http (protocol layer only)
-  cli/                        # the `stichos` binary — 16 verbs, wires everything together
+  cli/                        # the `stichos` binary — 18 verbs, wires everything together
   adapters-ooxfuzz/           # fuzzing harness (dev-only): read + write-path fuzz corpora
 ```
 
@@ -35,36 +35,19 @@ crates/
 ```
 gp-core                              (traits + types; no workspace deps)
   |
+  +-- adapters-ooxml                 (gp-core, lint)
   +-- adapters-odf                   (gp-core)
   +-- adapters-pdf                   (gp-core)
+  +-- engines                        (gp-core, adapters-ooxml)
   +-- lint                           (gp-core)
   +-- mcp                            (gp-core — protocol only; no adapter/engine knowledge)
-  +-- lint <--- adapters-ooxml       (gp-core, lint)                 [deviation ⚠]
-  +-- adapters-ooxml <--- engines    (gp-core, adapters-ooxml)       [deviation ⚠]
   |
-  +-- cli -- depends on all of the above (the wiring point)
+  +-- cli -- depends on all of the above (the de-facto wiring point)
   +-- adapters-ooxfuzz -- (gp-core, adapters-ooxml, adapters-pdf, lint)
 ```
 
-Dependency policy vs reality:
-
-| Crate | Plan §3.2 allows | Actual workspace deps |
-|---|---|---|
-| `gp-core` | external allow-list only | ✅ none (serde, thiserror, sha2, rhai, minisign-verify, …) |
-| `adapters-ooxml` | `gp-core` only | ⚠ `gp-core`, `lint` |
-| `adapters-odf` | `gp-core` only | ✅ `gp-core` |
-| `adapters-pdf` | `gp-core` only | ✅ `gp-core` |
-| `engines` | `gp-core` only | ⚠ `gp-core`, `adapters-ooxml` |
-| `lint` | `gp-core`, `adapters-pdf` | ✅ `gp-core` |
-| `mcp` | everything (sole wiring point) | `gp-core` only (see deviation note) |
-| `cli` | `mcp` transitively | all crates directly (de-facto wiring point) |
-
-**Known DAG deviations (open, tracked in `docs/phase4-plan.md` P4-02):**
-1. `adapters-ooxml → lint` and `engines → adapters-ooxml` violate `project_plan.md` §3.2.
-2. `mcp` no longer wires adapters/engines (the plan called it the sole wiring point); `cli` is.
-3. `tools/check-deps.sh` currently enforces only banned crates / `-sys` / wildcard versions —
-   not the cross-crate edges. Enforcement of whatever policy the owner ratifies (refactor or
-   amend §3.2) is P4-02 scope.
+All edges are ratified in `project_plan.md` §3.2 as the canonical DAG.
+`tools/check-deps.sh` enforces cross-crate edge constraints (P4-02).
 
 ## Crate details
 
@@ -195,17 +178,18 @@ MCP (Model Context Protocol) server. Protocol layer only — wiring lives in `cl
 | Module | Purpose |
 |--------|---------|
 | `spec` | Tool specification types (C7 compliance; per-tool `schema_version`) |
-| `tools` | Tool registry (16 specs) + validation |
+| `tools` | Tool registry (19 specs) + validation |
 | `dispatch` | Tool handler trait + closure adapter |
 | `jsonrpc` | JSON-RPC protocol |
 | `server` | MCP server implementation |
 | `transport` | Transport modes (stdio) |
 | `http` | HTTP transport (session store, `POST /` routing) |
 
-MCP tool surface (C7 v1.2.0, 16 specs): `inspect_document`, `render_document`,
+MCP tool surface (C7 v1.3.0, 19 specs): `inspect_document`, `render_document`,
 `inspect_region`, `diff_documents`, `doctor`, `serve` (v1.0.0); `apply_patch`, `edit_text`,
 `edit_cell`, `edit_structure`, `annotate_pages`, `revert_document`, `journal` (v1.1.0);
-`create_document`, `script_tool`, `check_update` (v1.2.0).
+`create_document`, `script_tool`, `check_update` (v1.2.0); `list_revisions`, `accept_revisions`,
+`reject_revisions` (v1.3.0).
 
 ### cli
 
@@ -213,7 +197,7 @@ The `stichos` binary. Entry point, clap parsing, subcommand dispatch, engine/ada
 
 | Module | Purpose |
 |--------|---------|
-| `main` | CLI entry, 16-verb dispatch |
+| `main` | CLI entry, 18-verb dispatch |
 | `inspect` / `region` / `render` / `diff_tool` / `doctor_tool` | Read-side verbs |
 | `apply_tool` / `sugar_edits` | `apply`, `edit` — surgical edits + sugar (tracked revisions default) |
 | `journal_tool` | `journal` / `revert` |
@@ -222,8 +206,9 @@ The `stichos` binary. Entry point, clap parsing, subcommand dispatch, engine/ada
 | `budget_enforcer` | INV-2 / C8 payload budget enforcement |
 | (verbs in `main.rs`) | `serve`, `schema`, `create`, `update` |
 
-Subcommands (16): `inspect`, `region`, `render`, `diff`, `doctor`, `serve`, `schema`, `apply`,
-`edit`, `annotate`, `revert`, `journal`, `perf`, `create`, `script`, `update`.
+Subcommands (18): `inspect`, `region`, `render`, `diff`, `doctor`, `serve`, `schema`, `apply`,
+`edit`, `annotate`, `revert`, `journal`, `perf`, `create`, `script`, `update`, `revisions`,
+`review`.
 
 ### adapters-ooxfuzz
 
@@ -272,7 +257,7 @@ corpus/
 
 ```
 docs/
-  contracts/              # C1–C10 interface specs (C7 at v1.2.0)
+  contracts/              # C1–C10 interface specs (C7 at v1.3.0)
   adr/                    # ADR-0001..0006 + legacy pre-convention files (see README index)
   gov/                    # name hygiene, registration
   harness/                # harness-specific docs
@@ -285,7 +270,7 @@ docs/
   release-playbook.md     # DIS-08 release procedure
 ```
 
-## Test coverage summary (measured 2026-09-16, tag m3, `cargo test --workspace`)
+## Test coverage summary (measured 2026-09-16, tag m3+, `cargo test --workspace`)
 
 | Crate | Passed | Failed | Ignored | Notes |
 |-------|--------|--------|---------|-------|
@@ -300,7 +285,7 @@ docs/
 | cli integration (`tests/cli_tests.rs`) | 10 | 0 | 0 | end-to-end binary tests |
 | adapters-ooxfuzz | 107 | 0 | 0 | fuzz regressions locked as tests |
 | doctests | 3 | 0 | 0 | |
-| **Total** | **1644** | **0** | **1** | |
+| **Total** | **1733+** | **0** | **1** | |
 
 ## Naming conventions
 

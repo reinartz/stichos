@@ -8,6 +8,16 @@ rust-version.workspace = true
 [lints]
 workspace = true
 
+[features]
+default = ["unix"]
+# MS Office COM automation engine (Windows-only; stub on non-Windows).
+# The actual COM interop is deferred to Phase 5. This feature gate
+# ensures the skeleton compiles on all platforms via cfg attributes.
+ms-office = []
+# Enable Unix-specific pipe handling (poll, dup) for LibreOffice subprocess
+# stdout/stderr capture. On Windows, a simpler try_clone-based approach is used.
+unix = ["dep:libc"]
+
 [dependencies]
 gp-core = { path = "../gp-core", version = "0.1.0" }
 adapters-ooxml = { path = "../adapters-ooxml", version = "0.1.0" }
@@ -20,6 +30,6 @@ glob = { workspace = true }
 sha2 = { workspace = true }
 hex = { workspace = true }
  fastrand = { workspace = true }
- libc = { workspace = true }
+  libc = { workspace = true, optional = true }
  tempfile = { workspace = true }
  thiserror = { workspace = true }

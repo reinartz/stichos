@@ -24,18 +24,6 @@ deprecated = "warn"
 unused = "warn"
 unused_imports = "warn"
 
-[workspace.lints.cargo]
-dead_code = "warn"
-deprecated = "warn"
-unused = "warn"
-unused_imports = "warn"
-
-[workspace.lints.rustdoc]
-dead_code = "warn"
-deprecated = "warn"
-unused = "warn"
-unused_imports = "warn"
-
 [workspace.dependencies]
 # serde ecosystem
 serde = { version = "1.0", features = ["derive"] }

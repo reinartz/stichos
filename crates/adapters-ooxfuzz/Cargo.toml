@@ -19,3 +19,4 @@ serde_json = { workspace = true }
 [dev-dependencies]
 adapters-odf = { path = "../adapters-odf", version = "0.1.0" }
 lopdf = "0.45"
+mcp = { path = "../mcp", version = "0.1.0" }

@@ -58,7 +58,7 @@ Waves ordered; inside a wave run in Deps order; parallel only where deps allow a
 | ID | Build → deliverable | Implements | Deps | Size | Verify |
 |---|---|---|---|---|---|
 | P4-01 | Rework `tools/phase2_gate.sh` + `tools/phase3_gate.sh` to be headless-safe: capture command output to temp logs, branch on **exit codes** (not `tee /dev/tty` + grep); keep planted-violation and `--ci` modes; keep output identical on a tty host | hygiene | — | 1 | both gates exit 0 run from a no-tty shell (`bash -c ... < /dev/null`); planted-violation still exits 1; verdicts match the 2026-09-16 re-verification (`m3-acceptance.md` §7) |
-| P4-02 | DAG ratification: present the two §3.2 violations (`adapters-ooxml → lint`, `engines → adapters-ooxml`) + `cli`-as-wiring reality to the owner; execute the ratified choice — either refactor the edges out, or amend `project_plan.md` §3.2 — **and** extend `tools/check-deps.sh` with real cross-crate edge enforcement (allow-list matrix parsed from Cargo.toml, planted bad edge fails) | hygiene, plan §3.2 | — | 1 | `check-deps.sh` exit 0 on ratified tree; planted disallowed edge → exit 1; `cargo test --workspace` still 0 failures if refactor chosen |
+| P4-02 | DAG ratification: present the two §3.2 violations (`adapters-ooxml → lint`, `engines → adapters-ooxml`) + `cli`-as-wiring reality to the owner; execute the ratified choice — amend `project_plan.md` §3.2 to ratify current edges + `cli`-as-wiring, **and** extend `tools/check-deps.sh` with real cross-crate edge enforcement (allow-list matrix parsed from Cargo.toml, planted bad edge fails) | hygiene, plan §3.2 | — | 1 | `check-deps.sh` exit 0 on ratified tree; planted disallowed edge → exit 1 |
 
 ### Wave R — OOXML revisions kernel + surface
 

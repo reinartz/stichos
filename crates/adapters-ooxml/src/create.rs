@@ -1081,6 +1081,7 @@ mod tests {
             fields: vec![],
             comments: vec![],
             tracked_changes: vec![],
+            revisions: vec![],
             template: None,
         }
     }
@@ -1117,6 +1118,7 @@ mod tests {
             fields: vec![],
             comments: vec![],
             tracked_changes: vec![],
+            revisions: vec![],
             template: None,
         }
     }
@@ -1186,6 +1188,7 @@ mod tests {
             fields: vec![],
             comments: vec![],
             tracked_changes: vec![],
+            revisions: vec![],
             template: None,
         }
     }
@@ -1467,6 +1470,7 @@ mod tests {
             fields: vec![],
             comments: vec![],
             tracked_changes: vec![],
+            revisions: vec![],
             template: None,
         };
         let result = create_minimal_docx(&doc);
@@ -1523,6 +1527,7 @@ mod tests {
             fields: vec![],
             comments: vec![],
             tracked_changes: vec![],
+            revisions: vec![],
             template: None,
         };
         let bytes = create_minimal_docx(&doc).expect("Should create docx");
@@ -1558,6 +1563,7 @@ mod tests {
             fields: vec![],
             comments: vec![],
             tracked_changes: vec![],
+            revisions: vec![],
             template: None,
         };
         let result = create_minimal_docx(&doc);
@@ -1581,6 +1587,7 @@ mod tests {
             fields: vec![],
             comments: vec![],
             tracked_changes: vec![],
+            revisions: vec![],
             template: None,
         };
         let bytes = create_minimal_docx(&doc).expect("Should create docx from empty document");
@@ -1643,6 +1650,7 @@ mod tests {
             fields: vec![],
             comments: vec![],
             tracked_changes: vec![],
+            revisions: vec![],
             template: None,
         };
         let bytes = create_minimal_docx(&doc).expect("Should create docx");
@@ -1694,6 +1702,7 @@ mod tests {
             fields: vec![],
             comments: vec![],
             tracked_changes: vec![],
+            revisions: vec![],
             template: None,
         };
         let bytes = create_minimal_docx(&doc).expect("Should create docx with image");
@@ -1775,6 +1784,7 @@ mod tests {
             fields: vec![],
             comments: vec![],
             tracked_changes: vec![],
+            revisions: vec![],
             template: None,
         };
         let bytes = create_minimal_docx(&doc).expect("Should create docx with hf");
@@ -1837,6 +1847,7 @@ mod tests {
             fields: vec![],
             comments: vec![],
             tracked_changes: vec![],
+            revisions: vec![],
             template: None,
         };
         let bytes = create_minimal_docx(&doc).expect("Should create docx with hyperlink");
@@ -1970,6 +1981,7 @@ mod tests {
             fields: vec![],
             comments: vec![],
             tracked_changes: vec![],
+            revisions: vec![],
             template: None,
         };
         let bytes = create_minimal_docx(&doc).expect("Should create docx with merged cells");
@@ -2029,6 +2041,7 @@ mod tests {
             fields: vec![],
             comments: vec![],
             tracked_changes: vec![],
+            revisions: vec![],
             template: None,
         };
         let bytes = create_minimal_docx(&doc).expect("Should create docx with footnotes");
@@ -2087,6 +2100,7 @@ mod tests {
             fields: vec![],
             comments: vec![],
             tracked_changes: vec![],
+            revisions: vec![],
             template: None,
         };
         let bytes = create_minimal_docx(&doc).expect("Should create docx with endnotes");
@@ -2163,6 +2177,7 @@ mod tests {
             fields: vec![],
             comments: vec![],
             tracked_changes: vec![],
+            revisions: vec![],
             template: None,
         };
         let bytes = create_minimal_docx(&doc).expect("Should create multi-section docx");
@@ -2247,6 +2262,7 @@ mod tests {
             fields: vec![],
             comments: vec![],
             tracked_changes: vec![],
+            revisions: vec![],
             template: None,
         };
         let bytes = create_minimal_docx(&doc).expect("Should create docx with numbering");
@@ -2286,6 +2302,7 @@ mod tests {
             fields: vec![],
             comments: vec![],
             tracked_changes: vec![],
+            revisions: vec![],
             template: None,
         };
         let bytes = create_minimal_docx(&doc).expect("Should create docx with image");

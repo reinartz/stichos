@@ -49,6 +49,19 @@ if [ -n "$SYS_DEPS" ]; then
     echo "$SYS_DEPS"
 fi
 
+# Additional check: ms-office feature for Windows targets
+echo ""
+echo "=== MS-Office Feature Check (Windows targets) ==="
+for target in "x86_64-pc-windows-msvc" "aarch64-pc-windows-msvc"; do
+    echo -n "Building for $target (ms-office feature)... "
+    if ! cargo check --workspace --target "$target" --features ms-office 2>&1; then
+        echo "FAILED (ms-office feature)"
+        FAILED=$((FAILED + 1))
+    else
+        echo "OK"
+    fi
+done
+
 echo ""
 if [ $FAILED -eq 0 ]; then
     echo "All cross-compile targets OK"

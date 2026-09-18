@@ -368,7 +368,7 @@ pub fn load_pr_subset(
 }
 
 /// Get the expected corpus manifest count (151).
-pub const EXPECTED_CORPUS_COUNT: usize = 151;
+pub const EXPECTED_CORPUS_COUNT: usize = 157;
 
 // ---------------------------------------------------------------------------
 // Tests
@@ -502,7 +502,7 @@ mod tests {
         assert_eq!(result, patch.as_slice());
     }
 
-    /// test_load_all_manifests — load manifests from corpus/manifests/, count == EXPECTED_CORPUS_COUNT (151)
+    /// test_load_all_manifests — load manifests from corpus/manifests/, count == EXPECTED_CORPUS_COUNT (157)
     #[test]
     fn test_load_all_manifests() {
         let manifests_dir = workspace_root().join("corpus").join("manifests");

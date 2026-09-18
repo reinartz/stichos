@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "id": "revision-insert-docx-001",
+  "title": "Revision insert docx 001",
+  "source": "generated",
+  "generator": {
+    "name": "harness/generator",
+    "version": "0.1.0"
+  },
+  "format": "docx",
+  "categories": [
+    "revision-insert"
+  ],
+  "features": {},
+  "reference_text": "corpus/reference/revision-insert-docx-001.txt",
+  "expected": {
+    "page_count_min": null,
+    "page_count_max": null
+  },
+  "render": {
+    "dpis": [
+      150
+    ],
+    "engines": [
+      "soffice-26.2.5"
+    ]
+  },
+  "notes": "Single tracked insertion via w:ins; author=agent, fixed date. Reference text includes the inserted content.",
+  "sha256": "78a0e87490dc4fa59e6b17e97f88b9f27de6463f526f86dc2ccadbc484e7f8a7"
+}

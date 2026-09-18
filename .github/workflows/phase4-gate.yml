@@ -1,0 +1,17 @@
+name: Phase 4 Gate
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Run phase4 gate
+        run: bash tools/phase4_gate.sh --ci
+      - name: Planted violation test (should pass — gate catches it)
+        run: bash tools/phase4_gate.sh --planted-violation

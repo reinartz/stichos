@@ -323,6 +323,7 @@ mod tests {
             comments: vec![],
             tracked_changes: vec![],
             template: None,
+            revisions: vec![],
         }
     }
 

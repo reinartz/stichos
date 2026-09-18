@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "id": "revision-multi-author-docx-001",
+  "title": "Revision multi-author docx 001",
+  "source": "generated",
+  "generator": {
+    "name": "harness/generator",
+    "version": "0.1.0"
+  },
+  "format": "docx",
+  "categories": [
+    "revision-multi-author"
+  ],
+  "features": {},
+  "reference_text": "corpus/reference/revision-multi-author-docx-001.txt",
+  "expected": {
+    "page_count_min": null,
+    "page_count_max": null
+  },
+  "render": {
+    "dpis": [
+      150
+    ],
+    "engines": [
+      "soffice-26.2.5"
+    ]
+  },
+  "notes": "Three tracked changes by three authors (alice, bob, charlie); two inserts and one delete. Tests multi-author authorship tracking.",
+  "sha256": "94f8710d746db2cdf579480523b00a695e85e5f276aa196f236efdbaf27f4b32"
+}

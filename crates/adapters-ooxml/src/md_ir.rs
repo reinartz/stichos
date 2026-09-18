@@ -43,6 +43,7 @@ pub fn markdown_to_document(markdown: &str) -> MarkdownResult {
             fields: vec![],
             comments: vec![],
             tracked_changes: vec![],
+            revisions: vec![],
             template: None,
         })
     } else {

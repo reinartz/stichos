@@ -68,32 +68,45 @@ stichos/
 
 ```
                           gp-core        (traits + types; no workspace deps)
-             ┌──────────────┼──────────────┬───────────────┐
-      adapters-ooxml  adapters-odf   adapters-pdf        engines
-             │              │            │   ╲              │
-             ╲              │            ╲    ╲─────────────┤
-              ╲             │             ╲                 │
-                       lint (consumes core + adapters-pdf + render artifacts;
-                         ╲                  never renders, never touches packages)
-                          ╲                ╱
-                            mcp ──────────╯   (protocol + tools + sole wiring point)
-                             │
-                            cli
+             ┌──────────────┼──────────────┬───────────────┬───────────────┐
+      adapters-ooxml  adapters-odf   adapters-pdf        engines          lint
+             │              │            │                │               │
+             ╲             │            │                │               │
+              ╲             │            │                ╲               │
+               ╲            │            ╲                 ╲              │
+                ╲            │             ╲                 ╲             │
+                 ╲            │              ╲                 ╲            │
+                  ╲            ╲              ╲                  ╲           │
+                   ╲            ╲              ╲                   ╲          │
+                    ╲            ╲              ╲                    ╲         │
+                     ╲            ╲              ╲                     ╲        │
+                      ╲            ╲              ╲                      ╲       │
+                       ╲            ╲              ╲                       ╲      │
+                        ╲            ╲              ╲                        ╲     │
+                         ╲            ╲              ╲                         ╲    │
+                          ╲            ╲              ╲                          ╲   │
+                           ╲            ╲              ╲                           ╲  │
+                            ╲            ╲              ╲                            ╲ │
+                             cli ──────────────────────── mcp ────────────────────────┘
+                                      (de-facto wiring point)
 ```
 
 | Crate | May depend on | Must NOT depend on | Enforced by |
 |---|---|---|---|
 | `gp-core` | external allow-list only | any workspace crate | `cargo tree` check + `cargo deny` |
-| `adapters-*` | `gp-core` only | each other, `engines`, `lint` | `tools/check-deps.sh` in CI |
-| `engines` | `gp-core` only | adapters, lint (no document semantics here) | same |
-| `lint` | `gp-core`, `adapters-pdf` | `engines` (consumes render artifacts) | same |
-| `mcp` | everything | — (sole crate allowed to know the MCP SDK) | deny SDK outside `mcp` |
-| `cli` | `mcp` (transitively all) | direct adapter/engine calls | graph check + review rule |
+| `adapters-ooxml` | `gp-core`, `lint` | `adapters-odf`, `adapters-pdf`, `engines`, `mcp` | `tools/check-deps.sh` in CI |
+| `adapters-odf` | `gp-core` | `adapters-ooxml`, `adapters-pdf`, `engines`, `mcp` | same |
+| `adapters-pdf` | `gp-core` | `adapters-ooxml`, `adapters-odf`, `engines`, `mcp` | same |
+| `engines` | `gp-core`, `adapters-ooxml` | `adapters-odf`, `adapters-pdf`, `lint`, `mcp` | same |
+| `lint` | `gp-core` | `adapters-*`, `engines`, `mcp` | same |
+| `mcp` | `gp-core` | — (protocol + tools layer) | deny SDK outside `mcp` |
+| `cli` | all workspace crates | — (de-facto wiring point) | graph check + review rule |
 
 **Dependency-inversion rule:** `gp-core` defines the `Codec`, `PatchExecutor`, `Engine`,
-`Probe`, `Linter` traits; adapters/engines/lint only implement them; `mcp` is the only place
-that wires implementations together (nothing else dispatches on format or engine).
-Formats are cargo features (`ooxml`, `odf`, `pdf`) on `mcp`/`cli`; default = all.
+`Probe`, `Linter` traits; adapters/engines/lint only implement them. `cli` is the de-facto
+wiring point (dispatching to all crates directly). `mcp` provides the protocol + tools layer
+(standalone, no adapter/engine knowledge). Formats are cargo features (`ooxml`, `odf`, `pdf`)
+on `mcp`/`cli`; default = all.
 
 ### 3.3 External dependency policy (concept §8, D3/D4/D8)
 

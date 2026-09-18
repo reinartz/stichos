@@ -302,6 +302,11 @@ impl Journal {
         &self.store
     }
 
+    /// Return a mutable reference to the underlying content store.
+    pub fn store_mut(&mut self) -> &mut ContentStore {
+        &mut self.store
+    }
+
     /// Return all journal entries.
     pub fn entries(&self) -> &[JournalEntry] {
         &self.session.entries

@@ -2,22 +2,25 @@
 //!
 //! Implements the MCP transport over stdio: read JSON-RPC requests from stdin,
 //! write JSON-RPC responses to stdout.
+//! Also provides an HTTP server for streamable MCP transport with review routes.
 //!
-//! Also provides an HTTP server for streamable MCP transport.
+//! Default listen address: 127.0.0.1
 
 use std::future::Future;
 use std::io::Write;
 use std::pin::Pin;
 
-use tokio::io::AsyncBufReadExt;
-use tokio::io::AsyncReadExt;
-use tokio::io::BufReader;
+use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader};
 
 use crate::dispatch::BoxedHandler;
 use crate::http;
 use crate::jsonrpc::{parse_request, JsonRpcError, JsonRpcRequest, JsonRpcResponse, McpSession};
+use crate::session;
 use crate::spec::ParamDef;
 use crate::transport::TransportMode;
+
+/// Default listen address for the HTTP server.
+const DEFAULT_LISTEN_ADDR: &str = "127.0.0.1";
 
 /// Start the MCP server.
 ///
@@ -29,15 +32,23 @@ pub fn start(
 ) -> Pin<Box<dyn Future<Output = Result<(), String>> + Send>> {
     match mode {
         TransportMode::Stdio => Box::pin(run_stdio(handler)),
-        TransportMode::Http { port } => Box::pin(start_http(port, handler)),
+        TransportMode::Http { port } => {
+            Box::pin(start_http(port, DEFAULT_LISTEN_ADDR.to_string(), handler))
+        }
     }
 }
 
 /// Start the MCP HTTP server.
-async fn start_http(port: u16, handler: BoxedHandler) -> Result<(), String> {
-    eprintln!("MCP server: HTTP mode on :{}", port);
+async fn start_http(port: u16, listen_addr: String, handler: BoxedHandler) -> Result<(), String> {
+    eprintln!("MCP server: HTTP mode on {} port {}", listen_addr, port);
 
-    let addr: std::net::SocketAddr = ([0, 0, 0, 0], port).into();
+    let addr: std::net::SocketAddr = (
+        listen_addr
+            .parse::<std::net::IpAddr>()
+            .unwrap_or([0, 0, 0, 0].into()),
+        port,
+    )
+        .into();
     let listener = tokio::net::TcpListener::bind(addr)
         .await
         .map_err(|e| format!("bind port {}: {}", port, e))?;
@@ -46,13 +57,19 @@ async fn start_http(port: u16, handler: BoxedHandler) -> Result<(), String> {
         listener.local_addr().unwrap()
     );
 
+    // Shared stores — created once, shared across all connections
+    let session_store = http::new_session_store();
+    let review_store = session::new_review_session_store();
+    let handler = handler.clone();
+
     loop {
         let (mut socket, _) = listener
             .accept()
             .await
             .map_err(|e| format!("accept error: {}", e))?;
 
-        let store = http::new_session_store();
+        let session_store = session_store.clone();
+        let review_store = review_store.clone();
         let handler = handler.clone();
 
         tokio::spawn(async move {
@@ -87,15 +104,103 @@ async fn start_http(port: u16, handler: BoxedHandler) -> Result<(), String> {
                 }
             }
 
-            let request = http::HttpRequest {
-                method: "POST".to_string(),
-                path: "/".to_string(),
-                headers: std::collections::HashMap::new(),
-                body: buf,
+            // Parse the raw HTTP request
+            let request = match parse_http_request(&buf) {
+                Some(req) => req,
+                None => {
+                    let _ = socket
+                        .write_all(b"HTTP/1.1 400 Bad Request\r\nContent-Length: 0\r\n\r\n")
+                        .await;
+                    return;
+                }
             };
-            let _response = http::route_request(request, store, handler);
+
+            // Determine if this is a review route
+            if http::is_review_path(&request.path) {
+                let response = http::route_review_request(request, &review_store);
+                send_http_response(&mut socket, &response).await;
+            } else {
+                let response = http::route_request(request, session_store, handler);
+                send_http_response(&mut socket, &response).await;
+            }
         });
     }
+}
+
+/// Parse a raw HTTP request from bytes.
+fn parse_http_request(buf: &[u8]) -> Option<http::HttpRequest> {
+    let text = std::str::from_utf8(buf).ok()?;
+    let header_end = text.find("\r\n\r\n")?;
+    let header_bytes = &buf[..header_end + 4];
+    let header_str = std::str::from_utf8(header_bytes).ok()?;
+
+    let mut lines = header_str.lines();
+    let request_line = lines.next()?;
+    let parts: Vec<&str> = request_line.split_whitespace().collect();
+    if parts.len() < 2 {
+        return None;
+    }
+    let method = parts[0].to_string();
+    let full_path = parts[1];
+
+    // Split path and query
+    let (path, _query) = match full_path.find('?') {
+        Some(idx) => (&full_path[..idx], &full_path[idx + 1..]),
+        None => (full_path, ""),
+    };
+
+    // Parse headers
+    let mut headers = std::collections::HashMap::new();
+    for line in lines {
+        if let Some(colon) = line.find(':') {
+            let key = line[..colon].to_lowercase();
+            let val = line[colon + 1..].trim().to_string();
+            headers.insert(key, val);
+        }
+    }
+
+    // Extract content length
+    let content_len = headers
+        .get("content-length")
+        .and_then(|v| v.parse::<usize>().ok())
+        .unwrap_or(0);
+
+    let body_start = header_end + 4;
+    let body = buf[body_start..body_start + content_len.min(buf.len() - body_start)].to_vec();
+
+    Some(http::HttpRequest {
+        method,
+        path: path.to_string(),
+        headers,
+        body,
+    })
+}
+
+/// Serialize an HttpResponse back to raw HTTP/1.1 bytes and send it.
+async fn send_http_response(socket: &mut tokio::net::TcpStream, response: &http::HttpResponse) {
+    let status_text = match response.status {
+        200 => "OK",
+        201 => "Created",
+        400 => "Bad Request",
+        401 => "Unauthorized",
+        404 => "Not Found",
+        410 => "Gone",
+        501 => "Not Implemented",
+        _ => "OK",
+    };
+
+    let mut body = format!("HTTP/1.1 {} {}\r\n", response.status, status_text);
+    for (key, val) in &response.headers {
+        body.push_str(&format!("{}: {}\r\n", key, val));
+    }
+    body.push_str("Connection: close\r\n");
+    body.push_str("\r\n");
+
+    let mut response_buf = body.into_bytes();
+    response_buf.extend(&response.body);
+
+    let _ = socket.write_all(&response_buf).await;
+    let _ = socket.flush().await;
 }
 
 /// Run the stdio MCP server loop.
@@ -316,7 +421,7 @@ mod tests {
         let tools = result["tools"]
             .as_array()
             .expect("tools should be an array");
-        assert_eq!(tools.len(), 16, "expected 16 tools");
+        assert_eq!(tools.len(), 20, "expected 20 tools");
 
         // Verify first tool structure
         let first = &tools[0];
@@ -644,6 +749,6 @@ mod tests {
         assert_eq!(list_resp.id, Some(serde_json::json!(2)));
         let result = list_resp.result.unwrap();
         let tools = result["tools"].as_array().unwrap();
-        assert_eq!(tools.len(), 16);
+        assert_eq!(tools.len(), 20);
     }
 }

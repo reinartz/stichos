@@ -10,3 +10,10 @@ for _mod in ("docx", "xlsx", "pptx", "odf"):
         import sys
 
         print(f"gen: builder module {_mod} not loaded: {e}", file=sys.stderr)
+
+# Load the revision builder (P4-07 lossless proof suite fixtures)
+try:
+    __import__(f"{__name__}.revision_builder")
+except ImportError as e:
+    import sys
+    print(f"gen: builder module revision_builder not loaded: {e}", file=sys.stderr)

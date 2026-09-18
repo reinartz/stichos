@@ -32,6 +32,9 @@ pub struct DoctorResult {
     pub fonts: FontProbe,
     /// System information.
     pub system_info: SystemInfo,
+    /// Platform file opener handoff row (optional, populated by CLI doctor tool).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub handoff: Option<super::open_handler::DoctorHandoffRow>,
 }
 
 /// A single engine's doctor entry.
@@ -104,6 +107,15 @@ pub fn run_doctor(
     engines: Vec<&dyn EngineExt>,
     fixtures: &[super::probe::ProbeFixture],
 ) -> DoctorResult {
+    run_doctor_with_handoff(engines, fixtures, None)
+}
+
+/// Run the doctor tool with an optional platform opener handoff row.
+pub fn run_doctor_with_handoff(
+    engines: Vec<&dyn EngineExt>,
+    fixtures: &[super::probe::ProbeFixture],
+    handoff: Option<super::open_handler::DoctorHandoffRow>,
+) -> DoctorResult {
     let engine_entries: Vec<DoctorEngine> = engines
         .into_iter()
         .map(|e| probe_engine(e, fixtures))
@@ -113,6 +125,7 @@ pub fn run_doctor(
         engines: engine_entries,
         fonts: probe_fonts(),
         system_info: system_info(),
+        handoff,
     }
 }
 
@@ -428,6 +441,23 @@ fn typst_version() -> Option<String> {
     }
 }
 
+/// Build the standard engine list for doctor probes.
+///
+/// Returns engines in platform-appropriate order. On Windows, ms-office
+/// appears first; on Linux/macOS, it is excluded (stub always returns false).
+#[allow(dead_code)]
+pub fn standard_doctor_engines() -> Vec<Box<dyn EngineExt>> {
+    #[allow(unused_imports)]
+    use crate::ms_office;
+    #[allow(unused_mut)]
+    let mut engines: Vec<Box<dyn EngineExt>> = Vec::new();
+    #[cfg(target_os = "windows")]
+    {
+        engines.push(Box::new(ms_office::MsOfficeEngine::new()));
+    }
+    engines
+}
+
 /// Generate a doctor report string for console output.
 pub fn doctor_report(result: &DoctorResult) -> String {
     let mut output = String::from("stichos doctor report\n");
@@ -435,6 +465,22 @@ pub fn doctor_report(result: &DoctorResult) -> String {
         "OS: {} {}\n",
         result.system_info.os, result.system_info.arch
     ));
+
+    // Platform opener handoff
+    if let Some(ref h) = result.handoff {
+        output.push_str("\n--- Platform Opener ---\n");
+        let status = if h.handler_available {
+            "available"
+        } else {
+            "unavailable"
+        };
+        output.push_str(&format!("  {} ({})\n", h.handler_name, status));
+        if h.handler_available {
+            output.push_str("  status: ready\n");
+        } else {
+            output.push_str(&format!("  hint: {}\n", h.install_hint));
+        }
+    }
 
     // LibreOffice version
     if let Some(ref lo) = result.system_info.libreoffice_version {
