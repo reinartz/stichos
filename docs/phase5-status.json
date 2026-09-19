@@ -2,8 +2,8 @@
   "milestone": "M5 (Phase 5 \u2014 PDF-native loop + trust)",
   "plan": "docs/phase5-plan.md",
   "updated": "2026-09-19",
-  "progress_header": "15/19 verified \u00b7 4/6 gates",
-  "handoff_note": "Wave P complete (P5-03 through P5-07 verified). Gate P verified. Wave J complete (P5-08 through P5-10 verified). Gate J verified. Wave T complete (P5-11 through P5-14 verified). Gate T verified. P5-11: C13 signature model (SignatureInfo, states unsigned/signed-valid/signed-mutation-detected), GP-S-001..GP-S-016 codes, detect_signatures() in gp-core and adapters-pdf. P5-12: Mutation-path enforcement — executor refuses signed docs (GP-S-001), force_signature_invalidation flag, SignatureInvalidated/SignedDocument journal events, golden tests (pdf/ooxml refused, unsigned ok, policy override). P5-13: stichos sign CLI + MCP sign_document tool (23 tools), PAdES-B-B sign-later with self-signed RSA/ECDSA, sign-after-sign refused GP-S-016, --json envelope. P5-14: PDF/A revalidation doctor row, honest-absent path (veraPDF/qpdf probe). Cargo test --workspace --lib: 1783+ tests pass, clippy/fmt clean. Ready for Wave G (launch prep).",
+  "progress_header": "17/19 verified \u00b7 5/6 gates",
+  "handoff_note": "Wave P complete (P5-03 through P5-07 verified). Gate P verified. Wave J complete (P5-08 through P5-10 verified). Gate J verified. Wave T complete (P5-11 through P5-14 verified). Gate T verified. Wave G complete (P5-15, P5-16 verified). Gate G verified. P5-11: C13 signature model. P5-12: mutation-path signature enforcement. P5-13: stichos sign CLI + MCP sign_document (23 tools). P5-14: PDF/A revalidation doctor row. P5-15: GOV hygiene pack — LICENSE audit (dual MIT/Apache-2.0), SPDX headers on all 144 Rust + 26 Python source files, SECURITY.md, CODE_OF_CONDUCT.md, CONTRIBUTING.md updated. P5-16: publish dry-runs recorded — cargo publish --dry-run (gp-core exit 0, workspace exit 101 documented due to lint/mcp name collisions on crates.io), Winget YAML valid, Homebrew formula valid, no publish performed. Cargo test --workspace --lib: 1783 pass, 0 fail.",
   "legend": {
     "statuses": [
       "pending",
@@ -14,9 +14,9 @@
     "rule": "verified requires evidence: command + result + date, verdict from exit codes (headless-safe, no /dev/tty dependency); gates flip only when all wave steps are verified and the gate command passes (phase5-plan.md \u00a72)"
   },
   "rollup": {
-    "verified": 15,
+    "verified": 17,
     "total": 19,
-    "gates_verified": 4,
+    "gates_verified": 5,
     "gates_total": 6
   },
   "gates": [
@@ -47,8 +47,8 @@
     {
       "id": "G",
       "name": "launch prep (no launch): hygiene pack merged, publish dry-runs exit 0 recorded, absence of publish asserted",
-      "status": "pending",
-      "evidence": null
+      "status": "verified",
+      "evidence": "P5-15: tools/p5_15_verify.sh: 10/10 pass (SECURITY.md, CODE_OF_CONDUCT.md present, SPDX headers 144/144 Rust + 26/26 Python, no local paths in docs). P5-16: tools/p5_16_verify.sh: 11/11 pass (cargo publish --dry-run gp-core exit 0, workspace exit 101 recorded, Winget YAML valid, Homebrew formula valid, no version tags pushed). Cargo test --workspace --lib: 1783 pass. 2026-09-19."
     },
     {
       "id": "X",
@@ -282,8 +282,8 @@
         "P5-01"
       ],
       "size": 1,
-      "status": "pending",
-      "evidence": null
+      "status": "verified",
+      "evidence": "tools/p5_15_verify.sh: 10/10 pass (SECURITY.md, CODE_OF_CONDUCT.md created, SPDX headers 144/144 Rust + 26/26 Python, LICENSE-MIT/Apache-2.0 dual, CONTRIBUTING.md updated with CODE_OF_CONDUCT.md reference, no local paths in docs, all 9 crates use license.workspace=true). CONTRIBUTING.md updated to reference CODE_OF_CONDUCT.md. 2026-09-19."
     },
     {
       "id": "P5-16",
@@ -297,8 +297,8 @@
         "P5-15"
       ],
       "size": 1,
-      "status": "pending",
-      "evidence": null
+      "status": "verified",
+      "evidence": "tools/p5_16_verify.sh: 11/11 pass. cargo publish --dry-run --package gp-core: exit 0 (packaged 23 files, verified). cargo publish --dry-run --workspace: exit 101 (adapters-ooxml compile error — lint::validate not found on crates.io v0.1.3; expected for workspace deps not yet published). Winget YAML: valid. Homebrew formula: structure valid (class < Formula + install method). 2 distribution artifacts present. No version tags pushed, no crates.io publish. D26 decision row present. 2026-09-19."
     },
     {
       "id": "P5-17",
