@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! ODF surgical package writer — applies mutations while preserving ZIP structure.
 //!
 //! This module provides byte-identical round-trip through the ODF writer:

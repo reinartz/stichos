@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! Capability matrix aggregation.
 //!
 //! Builds a capability matrix from a list of engines.

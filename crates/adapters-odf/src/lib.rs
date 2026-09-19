@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! adapters-odf: ODF (.odt, .ods, .odp) readers for stichos.
 //!
 //! Provides:

@@ -64,6 +64,10 @@ deny = [
     { crate = "*-libreoffice*", reason = "catch-all for direct LO C/C++ bindings; engines are subprocesses (D8)" },
     { crate = "typst", reason = "Typst engine is CLI shell-out only (ADR-0004, D3); typst crate banned to enforce engine-never-linked invariant" },
     { crate = "typst*", reason = "any typst binding is linked Rust code; engines must be spawned subprocesses (ADR-0004, D3)" },
+    # SEC-02 / D25: ban -sys crypto crates (RustCrypto family only)
+    { crate = "ring", reason = "D2/D25: ring banned — RustCrypto family only for crypto (ADR-0010)" },
+    { crate = "openssl", reason = "D2/D25: openssl-sys banned — C dependency (ADR-0010)" },
+    { crate = "*-sys", reason = "D2/D25: -sys crypto banned — C-linked crypto violates D2 (ADR-0010)" },
 ]
 # Exception: `rhai` is an embedded pure-Rust scripting VM (not a renderer engine).
 # It has no fs/net/env access by default, is D2-safe (no C deps), and is scoped

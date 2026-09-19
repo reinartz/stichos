@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 // engines: pandoc runner for office→markdown text extraction.
 //
 // Spawns pandoc as a subprocess for text extraction (read-only).

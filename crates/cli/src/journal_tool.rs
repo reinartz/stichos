@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! Journal operations: revert_document and journal list.
 //!
 //! Provides MCP and CLI handlers for the two new P2-30 tools:

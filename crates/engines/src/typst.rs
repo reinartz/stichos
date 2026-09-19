@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 // engines: Typst runner for markdown→PDF compilation.
 //
 // Spawns typst as a subprocess with `typst compile` for PDF rendering.

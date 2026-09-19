@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 // adapters-pdf: PDF outline (bookmarks / TOC) extraction.
 //
 // Walks the /Outlines tree from the catalog, parsing each outline item's
@@ -240,6 +241,7 @@ mod tests {
             metadata: None,
             has_encryption: false,
             diagnostics: Vec::new(),
+            signatures: Vec::new(),
         }
     }
 

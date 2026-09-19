@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! adapters-ooxml: docx → gp-core IR (body, runs, tables → IR + IDs).
 //!
 //! Walks a `.docx` OPC package, extracts `word/document.xml`, parses the XML DOM,

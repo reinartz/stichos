@@ -62,8 +62,8 @@
 ### 1.7 C7 v1.3 frozen (additive-only)
 [PASSED]
 - MCP spec version: 1.3.0
-- 19 MCP tools (up from 16 at M3): added list_revisions, accept_revisions, reject_revisions, add_comment
-- 18 CLI verbs (up from 16): added revisions, review, open
+- **20 MCP tools** (measured 2026-09-18: `mcp/spec.rs:824` asserts `TOOLS.len() == 20`, up from 16 at M3): added list_revisions, accept_revisions, reject_revisions, add_comment
+- **19 CLI verbs** (measured from `enum Command` in `cli/src/main.rs`, up from 16): added revisions, review, open, schema
 - All additive — no breaking changes in CHANGELOG since v1.0.0
 - Contracts: C1 (minor additive), C7 (v1.3.0), C11 (frozen at M4)
 
@@ -125,7 +125,7 @@
 
 ## 4. Phase-5 Intake
 
-Based on `project_concept.md` Phase 5 considerations and M4 exit:
+Based on `project_concept.md` Phase 5 considerations and M4 exit (measured: 20 MCP tools / 19 CLI verbs, not the Phase-4 docs' 19/18 — P5-01 corrects these):
 
 ### Accepted for Phase 5
 | Item | Status | Notes |

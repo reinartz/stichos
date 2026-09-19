@@ -5,7 +5,7 @@
 `m2`, `m3`; M3 independently re-verified 2026-09-16 — 1 644 tests green, clippy/fmt/deny clean,
 `phase3_gate.sh` 26/26, acceptance `docs/m3-acceptance.md` §7); **Phase 4 (human loop) planned** —
 `docs/phase4-concept.md` / `docs/phase4-plan.md`
-**Last updated:** 2026-09-16 (D22 review-overlay call; phase-status refresh)
+**Last updated:** 2026-09-18 (D23–D26 recorded for Phase 5; OQ3 closed; surface counts corrected to 20 tools/19 verbs)
 **Project root:** `/localdata/workspace/stichos`
 **Related:** [`brand.md`](brand.md) — identity, colour, typography, logo usage
 
@@ -412,6 +412,10 @@ Crate layout: `core` (IR + patch engine, dep-free) · `adapters-ooxml` · `adapt
 | D20 | Web identity: **`stichos.dev` only**; no homepage planned; **skip `stichos.com`** | owner call 2026-09-08 (OQ5 domain part); `.com` parked at NameBright since 2016, no need to buy or monitor | a marketing site becomes a requirement |
 | D21 | **No trademark filing** — the open-source project ships unbranded-by-registration; squat-proofing is done via registries + repo (GOV-02), not TM | owner call 2026-09-08: OSS project, filing cost + thin distinctiveness (clearance-memo §3) not justified; risk accepted knowingly | commercial productization, or a confusingly-identical commercial competitor makes defensive filing worthwhile |
 | D22 | Phase-4 review overlay = **raster overlay over the 150-DPI PNG masters** (D12) with a vendored minimal viewer, **not pdf.js**; pdf.js deferred to a later wave | owner call 2026-09-16 (`docs/phase4-concept.md` S2): element/word bbox bookkeeping, annotator legend and master cache already solve coordinates; far smaller vendored-JS + XSS surface than a bundled pdf.js viewer; §14 wording amended | human review needs in-place text selection or native PDF annotation objects ⇒ pdf.js wave |
+| D23 | Office add-in **stays deferred** (ratifies the spike report's proposal row) | distribution blocker (side-load/AppSource) unchanged; browser review shipped | addin-spike triggers 1–4 |
+| D24 | **pdf.js text-layer wave** fires — vendored, hash-pinned, **text layer only, opt-in per session**; raster remains default | M4 intake accepted the PDF review loop; text-selection anchoring is D22's stated trigger; containment beats bundling a viewer | humans need native annot rendering or pdf.js as primary medium |
+| D25 | **Pure-Rust crypto** for PAdES-B-B (RustCrypto family; no `ring`, no OpenSSL, no `-sys`) | D2/D4 preserved; signing must not drag C into the binary; `cargo deny` extends the `-sys` ban to crypto | a hard feature gap (e.g. required smart-card/TSA interop) forces a rung |
+| D26 | **Launch is owner-timed**; M5 ships prep only; D18 stays until the flip | registry/visibility flip is one-way; prep is reversible | owner call in M6 |
 
 ---
 
@@ -437,7 +441,8 @@ Crate layout: `core` (IR + patch engine, dep-free) · `adapters-ooxml` · `adapt
    AGPL never in-process (ADR-0001 accepted; D19).
 2. Word-rendering tier for non-Windows users: paid Aspose/Syncfusion path or a hosted Word worker?
 3. Is a `gp` short binary alias wanted for the CLI, or `stichos` spelled out everywhere?
-4. **RESOLVED 2026-09-15 (G4, owner):** GitHub Releases + winget/Homebrew only; no own apt/rpm repos
+4. **RESOLVED 2026-09-18 (OQ3/G2, owner):** `gp` alias — **no**. The CLI verb surface (19 verbs) already covers the full tool set; a 2-char alias adds ambiguity without value (`gp inspect` vs `stichos inspect` in logs). D18 agent rule: always use `stichos` spelled out.
+5. **RESOLVED 2026-09-15 (G4, owner):** GitHub Releases + winget/Homebrew only; no own apt/rpm repos
    (`docs/phase3-concept.md` §10 S4; DIS-05/06/08 land in Phase 3 Wave G).
 5. **RESOLVED 2026-09-08:** no trademark filing for this open-source project (D21); skip `stichos.com`,
    `stichos.dev` only (D20).

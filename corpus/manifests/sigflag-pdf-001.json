@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "id": "sigflag-pdf-001",
+  "title": "PDF with signature flag (no real sig)",
+  "source": "generated",
+  "generator": {
+    "name": "p5-02-pdf-fixtures",
+    "version": "0.1.0"
+  },
+  "format": "pdf",
+  "categories": [
+    "pdf-signed"
+  ],
+  "features": {
+    "pdf:pages": 1,
+    "pdf:annotations": 0,
+    "pdf:annot-types": "none",
+    "pdf:sig-fields": 0
+  },
+  "reference_text": "corpus/reference/sigflag-pdf-001.txt",
+  "expected": {
+    "page_count_min": 1,
+    "page_count_max": 1
+  },
+  "render": {
+    "dpis": [
+      150
+    ],
+    "engines": [
+      "soffice-26.2.5"
+    ]
+  },
+  "notes": "PDF with /Sig field in AcroForm but dummy signature contents. Tests signature detection without full verification.",
+  "sha256": "546fbf40c230856c56227c03194e44a8135a124eeb0e543cd7c50f4bc8f8440b"
+}

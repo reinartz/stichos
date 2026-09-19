@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! ODF patch executor — routes IR patch operations to ODF content.xml mutations.
 //!
 //! Implements the `PatchExecutor` trait for ODF formats (odt, ods, odp).

@@ -1,0 +1,32 @@
+# pdf.js vendored release hash manifest
+# P5-08: gate-verifiable hash check. Do not edit by hand — regenerate from source.
+# Release: pdfjs-dist@3.11.174 (M5 Wave J vendor)
+
+version = "3.11.174"
+source = "npm:pdfjs-dist"
+license = "Apache-2.0"
+
+# Core files — verified by gate script
+
+[pdf.min.js]
+sha256 = "5b5799e6f8c680663207ac5b42ee14eed2a406fa7af48f50c154f0c0b1566946"
+
+[pdf.worker.min.js]
+sha256 = "feabdf309770ed24bba31a5467836cdc8cf639c705af27d52b585b041bb8527b"
+
+[viewer.js]
+sha256 = "fc8e473cc708259b229380c56a2e283c9a84792d34f028a06f2f7ac7efe2188f"
+
+[viewer.css]
+sha256 = "3aed41dbfb4957d82ff7fa6ffa5b92936a18322b152fb51dee2292c9b7ca8363"
+
+# Supporting files — included for completeness, not gate-verified
+
+[supporting.cmaps_count]
+count = 168
+
+[supporting.standard_fonts_count]
+count = 16
+
+[supporting.images_count]
+count = 12

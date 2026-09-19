@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! ODF lossless revision suite — Tier 1 losslessness for our-written revisions.
 //!
 //! This module verifies:

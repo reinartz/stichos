@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! Traits that adapters, engines, linters, and the patch executor must implement.
 //!
 //! These traits are the contract surface between crate families.

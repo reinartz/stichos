@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! IR unified diff: text-level hunks + machine-readable JSON.
 //!
 //! This module provides a unified-text diff for IR documents, anchored to

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! Edit policy and taint propagation types.
 //!
 //! `EditPolicy` is a part-class allow-list with destructive-op default-deny.

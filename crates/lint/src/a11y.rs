@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! Accessibility lint module: orchestrates PDF/A, tagged-structure, and alt-text checks.
 //!
 //! This module provides a single `run_a11y_checks()` entry point that:

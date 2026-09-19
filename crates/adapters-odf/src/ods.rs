@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! adapters-odf: ODS (spreadsheet) -> gp-core IR.
 
 #![allow(dead_code, clippy::if_same_then_else, clippy::ptr_arg)]

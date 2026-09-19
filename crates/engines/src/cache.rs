@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 // engines: master cache — 150-DPI masters with on-demand 300-DPI crops
 
 use std::collections::VecDeque;

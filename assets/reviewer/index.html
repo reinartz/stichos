@@ -69,13 +69,17 @@ body{font-family:system-ui,-apple-system,sans-serif;background:#1a1a2e;color:#e0
 .help kbd{background:#0a0a1e;padding:1px 5px;border-radius:3px;border:1px solid #2a2a4e;font-family:monospace;font-size:10px;margin:0 1px}
 .no-revs{text-align:center;padding:40px 16px;color:#666;font-size:13px}
 .empty-detail{color:#666;font-size:12px;text-align:center;padding:40px 16px}
+/* Text layer (P5-10) */
+.text-layer{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:1;overflow:hidden}
+.text-span{pointer-events:auto;user-select:text;-webkit-user-select:text;-moz-user-select:text}
+.text-span:hover{color:rgba(240,192,64,0.3)}
 </style>
 </head>
 <body>
 <div id="sidebar">
   <div id="sidebar-header">
     <h2>stichos review</h2>
-    <p>Document revision review</p>
+    <p id="mode-text">Document revision review</p>
   </div>
   <div id="rev-list"></div>
   <div id="detail" class="hidden">
@@ -125,10 +129,14 @@ document.getElementById('token-text').textContent = token.substring(0,16) + '...
 var state = {
   revisions: [],
   comments: [],
+  annotations: [],
   selectedIdx: -1,
   pageCount: 0,
   pollTimer: null,
-  errorState: false
+  errorState: false,
+  mode: 'docx-revisions',
+  textLayer: false,
+  textSpans: {}
 };
 
 /* --- HTTP --- */
@@ -157,12 +165,21 @@ function pollData() {
         setStatus('error', 'Fetch error ' + resp.status);
         return false;
       }
-      return resp.json().then(function(data) {
-        if (data.revisions) state.revisions = data.revisions;
-        if (Array.isArray(data.comments)) state.comments = data.comments;
-        if (data.pages && data.pages.count) state.pageCount = data.pages.count;
-        setStatus('connected', 'connected');
-        return true;
+  return resp.json().then(function(data) {
+    if (data.mode) state.mode = data.mode;
+    if (data.revisions) state.revisions = data.revisions;
+    if (Array.isArray(data.comments)) state.comments = data.comments;
+    if (data.annotations) state.annotations = data.annotations;
+    if (data.pages && data.pages.count) state.pageCount = data.pages.count;
+    // Check if text layer is enabled for this session
+    if (data.text_layer) state.textLayer = true;
+    // Update mode display
+    var modeText = document.getElementById('mode-text');
+    if (modeText) {
+      modeText.textContent = (data.mode === 'pdf-annot') ? 'PDF annotation review' : 'Document revision review';
+    }
+    setStatus('connected', 'connected');
+    return true;
       });
     })
     .catch(function(e) {
@@ -180,6 +197,16 @@ function sendAction(action, revisionId) {
   });
 }
 
+function sendAnnotationAction(action, annotationId) {
+  fetch('action?token=' + encodeURIComponent(token), {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({action: action, annotation_ids: [annotationId]})
+  }).catch(function() {
+    setStatus('error', 'Action failed');
+  });
+}
+
 /* --- XSS-safe escape (DOM text node) --- */
 function esc(str) {
   if (str == null) return '';
@@ -188,20 +215,31 @@ function esc(str) {
   return d.innerHTML;
 }
 
-/* --- Rendering: revision list --- */
+/* --- Rendering: revision/annotation list --- */
 function renderList() {
   var list = document.getElementById('rev-list');
-  var revs = state.revisions;
-  if (revs.length === 0) {
-    list.innerHTML = '<div class="no-revs">No revisions to review.</div>';
+  var mode = state.mode;
+  var items = (mode === 'pdf-annot') ? state.annotations : state.revisions;
+  var isPdf = mode === 'pdf-annot';
+  if (items.length === 0) {
+    list.innerHTML = '<div class="no-revs">' + (isPdf ? 'No annotations to review.' : 'No revisions to review.') + '</div>';
     return;
   }
-  var html = '<div id="rev-list-header">Revisions (' + revs.length + ')</div>';
-  revs.forEach(function(rev, i) {
-    var st = rev.status || 'pending';
-    var kind = rev.kind || 'change';
-    var author = rev.author || 'unknown';
-    var date = rev.date || '';
+  var header = isPdf ? 'Annotations (' + items.length + ')' : 'Revisions (' + items.length + ')';
+  var html = '<div id="rev-list-header">' + header + '</div>';
+  items.forEach(function(item, i) {
+    var st = isPdf
+      ? (item.state === 'resolved' ? 'accepted' : (item.state === 'rejected' ? 'rejected' : 'pending'))
+      : (item.status || 'pending');
+    var kind = isPdf
+      ? (item.kind || item.annotation_type || 'annotation')
+      : (item.kind || 'change');
+    var author = isPdf
+      ? (item.author || 'unknown')
+      : (item.author || 'unknown');
+    var date = isPdf
+      ? (item.date || '')
+      : (item.date || '');
     html += '<div class="rev-item' +
       (i === state.selectedIdx ? ' selected' : '') +
       (st === 'accepted' ? ' status-accepted' : '') +
@@ -244,28 +282,177 @@ function renderPages() {
   }
 }
 
+/* --- Text Layer (opt-in, P5-10) --- */
+
+/**
+ * Fetch text spans for a given page from the server.
+ * Returns an array of {text, bbox, page} objects.
+ * Used by node-testable logic split — this function is pure DOM-free.
+ */
+function fetchTextSpans(pageNumber) {
+  var key = pageNumber;
+  if (state.textSpans[key]) return Promise.resolve(state.textSpans[key]);
+  return fetch('text/' + pageNumber + '.json?token=' + encodeURIComponent(token))
+    .then(function(resp) {
+      if (!resp.ok) return [];
+      return resp.json().then(function(data) {
+        state.textSpans[key] = data.spans || [];
+        return state.textSpans[key];
+      });
+    })
+    .catch(function() { return []; });
+}
+
+/**
+ * Render text layer overlay for all pages.
+ * Text is rendered using textContent only (XSS-safe).
+ */
+function renderTextLayer() {
+  if (!state.textLayer) return;
+  var wraps = document.querySelectorAll('.page-wrap');
+  wraps.forEach(function(wrap) {
+    var pageNum = parseInt(wrap.querySelector('.page-num').textContent.replace(/\D/g, ''));
+    // Remove existing text layer if any
+    var existing = wrap.querySelector('.text-layer');
+    if (existing) existing.remove();
+
+    // Create text layer container
+    var textLayer = document.createElement('div');
+    textLayer.className = 'text-layer';
+    textLayer.setAttribute('aria-hidden', 'false');
+
+    // Fetch and render spans for this page
+    fetchTextSpans(pageNum).then(function(spans) {
+      var img = wrap.querySelector('.page-img');
+      if (!img || !img.width) return;
+      var w = img.width, h = img.height;
+      spans.forEach(function(span) {
+        if (!span.bbox || !span.text) return;
+        var bbox = span.bbox;
+        // pdf.js uses [x0, y0, x1, y1] where y=0 is top; our bboxes use y=0 at bottom
+        // Convert: our bboxes are [left, bottom, right, top]; pdf viewer needs top-left coords
+        var left = bbox[0];
+        var top = h - bbox[3]; // invert Y
+        var width = bbox[2] - bbox[0];
+        var height = bbox[3] - bbox[1];
+        if (width <= 0 || height <= 0) return;
+
+        var tspan = document.createElement('span');
+        tspan.className = 'text-span';
+        tspan.style.position = 'absolute';
+        tspan.style.left = left + 'px';
+        tspan.style.top = top + 'px';
+        tspan.style.width = width + 'px';
+        tspan.style.height = height + 'px';
+        tspan.style.fontSize = Math.max(height, 8) + 'px';
+        tspan.style.lineHeight = '1';
+        tspan.style.color = 'transparent'; // invisible by default, selection reveals
+        tspan.style.pointerEvents = 'auto';
+        tspan.style.cursor = 'text';
+        // XSS-safe: textContent only, never innerHTML
+        tspan.textContent = span.text;
+        textLayer.appendChild(tspan);
+      });
+      wrap.appendChild(textLayer);
+    });
+  });
+}
+
+/**
+ * Handle text selection in the text layer.
+ * Creates a comment draft anchored by {page, rect, quote}.
+ */
+function handleTextSelection() {
+  if (!state.textLayer) return;
+  document.addEventListener('mouseup', function(e) {
+    var selection = window.getSelection();
+    if (!selection || selection.isCollapsed) return;
+    var text = selection.toString().trim();
+    if (!text) return;
+
+    // Find which text span was selected
+    var anchorNode = selection.anchorNode;
+    var wrap = anchorNode ? anchorNode.closest('.page-wrap') : null;
+    if (!wrap) return;
+
+    var pageNum = parseInt(wrap.querySelector('.page-num').textContent.replace(/\D/g, ''));
+    var img = wrap.querySelector('.page-img');
+    if (!img || !img.width) return;
+
+    // Compute bounding rect of selection in page coordinates
+    var range = selection.getRangeAt(0);
+    var rect = range.getBoundingClientRect();
+    var imgRect = img.getBoundingClientRect();
+    var scaleX = img.width / imgRect.width;
+    var scaleY = img.height / imgRect.height;
+    var x0 = (rect.left - imgRect.left) * scaleX;
+    var y0 = (rect.top - imgRect.top) * scaleY;
+    var x1 = x0 + rect.width * scaleX;
+    var y1 = y0 + rect.height * scaleY;
+
+    // Create comment draft
+    var draft = document.getElementById('comment-draft');
+    if (draft) {
+      draft.value = text;
+      draft.placeholder = 'Anchored to page ' + pageNum + ' (' +
+        Math.round(x0) + ',' + Math.round(y0) + '–' + Math.round(x1) + ',' + Math.round(y1) + ')';
+      draft.focus();
+    }
+
+    // Clear selection to avoid interference
+    selection.removeAllRanges();
+  });
+}
+
+/**
+ * Export text selection state for node testing.
+ * Returns {page, rect, quote} from current selection.
+ */
+function getTextSelectionState() {
+  var sel = window.getSelection();
+  if (!sel || sel.isCollapsed) return null;
+  var text = sel.toString().trim();
+  var anchorNode = sel.anchorNode;
+  var wrap = anchorNode ? anchorNode.closest('.page-wrap') : null;
+  if (!wrap) return null;
+  var pageNum = parseInt(wrap.querySelector('.page-num').textContent.replace(/\D/g, ''));
+  var range = sel.getRangeAt(0);
+  var rect = range.getBoundingClientRect();
+  return {
+    page: pageNum,
+    rect: [rect.left, rect.top, rect.right, rect.bottom],
+    quote: text
+  };
+}
+
 function layoutBoxes() {
   var wraps = document.querySelectorAll('.page-wrap');
+  var items = (state.mode === 'pdf-annot') ? state.annotations : state.revisions;
   wraps.forEach(function(wrap) {
     var existing = wrap.querySelectorAll('.rev-box');
     existing.forEach(function(e) { e.remove(); });
     var img = wrap.querySelector('.page-img');
     if (!img || !img.width) return;
     var pageNum = parseInt(wrap.querySelector('.page-num').textContent.replace(/\D/g, ''));
-    state.revisions.forEach(function(rev, i) {
-      if (rev.page_hint !== pageNum || !rev.bbox || !Array.isArray(rev.bbox)) return;
-      var b = rev.bbox;
+    items.forEach(function(item, i) {
+      var pageHint = item.page_number || item.page_hint;
+      if (pageHint !== pageNum || !item.rect && !item.bbox) return;
+      var b = item.rect || item.bbox;
       var box = document.createElement('div');
       box.className = 'rev-box';
       if (i === state.selectedIdx) box.className += ' selected';
-      if (rev.status === 'accepted') box.className += ' status-accepted';
-      if (rev.status === 'rejected') box.className += ' status-rejected';
+      var isPdf = state.mode === 'pdf-annot';
+      var st = isPdf
+        ? (item.state === 'resolved' ? 'accepted' : (item.state === 'rejected' ? 'rejected' : 'pending'))
+        : (item.status || 'pending');
+      if (st === 'accepted' || st === 'resolved') box.className += ' status-accepted';
+      if (st === 'rejected') box.className += ' status-rejected';
       var w = img.width, h = img.height;
       box.style.left = (b[0] * w) + 'px';
       box.style.top = (b[1] * h) + 'px';
       box.style.width = ((b[2] - b[0]) * w) + 'px';
       box.style.height = ((b[3] - b[1]) * h) + 'px';
-      box.title = (rev.author || 'revision ' + (rev.id || ''));
+      box.title = (item.author || (isPdf ? 'annotation ' + (item.id || '') : 'revision ' + (item.id || '')));
       box.addEventListener('click', function(e) {
         e.stopPropagation();
         selectRevision(i);
@@ -279,22 +466,34 @@ function layoutBoxes() {
 function renderDetail() {
   var detail = document.getElementById('detail');
   var content = document.getElementById('detail-content');
-  if (state.selectedIdx < 0 || !state.revisions[state.selectedIdx]) {
+  if (state.selectedIdx < 0 || !state.items) {
     detail.className = 'hidden';
     return;
   }
   detail.className = '';
-  var rev = state.revisions[state.selectedIdx];
-  var st = rev.status || 'pending';
-  var kind = rev.kind || 'change';
-  var html = '<div class="field"><div class="label">ID</div><div class="value">' + esc(rev.id || '') + '</div></div>' +
-    '<div class="field"><div class="label">Kind</div><div class="value">' + esc(kind) + '</div></div>' +
-    '<div class="field"><div class="label">Author</div><div class="value">' + esc(rev.author || 'unknown') + '</div></div>' +
-    '<div class="field"><div class="label">Date</div><div class="value">' + esc(rev.date || '') + '</div></div>' +
-    '<div class="field"><div class="label">Content</div>' +
-    '<div class="content-box">' + esc(rev.content || '') + '</div></div>' +
-    '<div class="actions">' +
-    '<button class="btn btn-accept" onclick="window._accept(' + state.selectedIdx + ')">Accept</button>' +
+  var mode = state.mode;
+  var isPdf = mode === 'pdf-annot';
+  var item = state.items[state.selectedIdx];
+  var st = isPdf
+    ? (item.state === 'resolved' ? 'accepted' : (item.state === 'rejected' ? 'rejected' : 'pending'))
+    : (item.status || 'pending');
+  var kind = isPdf
+    ? (item.kind || item.annotation_type || 'annotation')
+    : (item.kind || 'change');
+  var html = '<div class="field"><div class="label">ID</div><div class="value">' + esc(item.id || '') + '</div></div>';
+  if (isPdf) {
+    html += '<div class="field"><div class="label">Page</div><div class="value">' + (item.page_number || '?') + '</div></div>';
+    html += '<div class="field"><div class="label">Type</div><div class="value">' + esc(item.annotation_type || '') + '</div></div>';
+  }
+  html += '<div class="field"><div class="label">Kind</div><div class="value">' + esc(kind) + '</div></div>' +
+    '<div class="field"><div class="label">Author</div><div class="value">' + esc(item.author || 'unknown') + '</div></div>' +
+    '<div class="field"><div class="label">Date</div><div class="value">' + esc(item.date || '') + '</div></div>';
+  if (item.contents) {
+    html += '<div class="field"><div class="label">Contents</div>' +
+      '<div class="content-box">' + esc(item.contents) + '</div></div>';
+  }
+  html += '<div class="actions">' +
+    '<button class="btn btn-accept" onclick="window._resolve(' + state.selectedIdx + ')">Resolve</button>' +
     '<button class="btn btn-reject" onclick="window._reject(' + state.selectedIdx + ')">Reject</button>' +
     '</div>';
   content.innerHTML = html;
@@ -319,37 +518,58 @@ function renderComments() {
 
 /* --- Counts in toolbar --- */
 function updateCounts() {
-  var revs = state.revisions;
+  var mode = state.mode;
+  var items = (mode === 'pdf-annot') ? state.annotations : state.revisions;
   var pending = 0, accepted = 0, rejected = 0;
-  revs.forEach(function(r) {
-    if (r.status === 'accepted') accepted++;
-    else if (r.status === 'rejected') rejected++;
+  items.forEach(function(item) {
+    var st = mode === 'pdf-annot'
+      ? (item.state === 'resolved' ? 'resolved' : (item.state === 'rejected' ? 'rejected' : 'pending'))
+      : (item.status || 'pending');
+    if (st === 'accepted' || st === 'resolved') accepted++;
+    else if (st === 'rejected') rejected++;
     else pending++;
   });
   document.getElementById('counts-text').textContent =
-    pending + ' pending &middot; ' + accepted + ' accepted &middot; ' + rejected + ' rejected';
+    pending + ' pending &middot; ' + accepted + ' resolved &middot; ' + rejected + ' rejected';
 }
 
 /* --- Actions (exposed for inline onclick) --- */
 function selectRevision(idx) {
   state.selectedIdx = idx;
+  state.items = (state.mode === 'pdf-annot') ? state.annotations : state.revisions;
   renderList();
   renderDetail();
 }
 
-function acceptRevision(idx) {
+function resolveRevision(idx) {
   if (idx < 0 || idx >= state.revisions.length) return;
-  var rev = state.revisions[idx];
-  sendAction('accept', rev.id);
-  rev.status = 'accepted';
+  var mode = state.mode;
+  var items = (mode === 'pdf-annot') ? state.annotations : state.revisions;
+  var item = items[idx];
+  if (!item) return;
+  if (mode === 'pdf-annot') {
+    sendAnnotationAction('resolve', item.id);
+    if (item.state) item.state = 'resolved';
+  } else {
+    sendAction('accept', item.id);
+    if (item.status) item.status = 'accepted';
+  }
   refreshAll();
 }
 
 function rejectRevision(idx) {
   if (idx < 0 || idx >= state.revisions.length) return;
-  var rev = state.revisions[idx];
-  sendAction('reject', rev.id);
-  rev.status = 'rejected';
+  var mode = state.mode;
+  var items = (mode === 'pdf-annot') ? state.annotations : state.revisions;
+  var item = items[idx];
+  if (!item) return;
+  if (mode === 'pdf-annot') {
+    sendAnnotationAction('reject', item.id);
+    if (item.state) item.state = 'rejected';
+  } else {
+    sendAction('reject', item.id);
+    if (item.status) item.status = 'rejected';
+  }
   refreshAll();
 }
 
@@ -366,14 +586,19 @@ function addComment() {
   renderComments();
 }
 
-window._accept = acceptRevision;
+window._resolve = resolveRevision;
 window._reject = rejectRevision;
 window._addComment = addComment;
 
 /* --- Full refresh --- */
 function refreshAll() {
+  state.items = (state.mode === 'pdf-annot') ? state.annotations : state.revisions;
   renderList();
   renderPages();
+  if (state.textLayer) {
+    renderTextLayer();
+    handleTextSelection();
+  }
   renderDetail();
   updateCounts();
   requestAnimationFrame(layoutBoxes);
@@ -383,7 +608,8 @@ function refreshAll() {
 document.addEventListener('keydown', function(e) {
   var tag = e.target.tagName;
   if (tag === 'TEXTAREA' || tag === 'INPUT' || tag === 'SELECT') return;
-  var len = state.revisions.length;
+  var items = (state.mode === 'pdf-annot') ? state.annotations : state.revisions;
+  var len = items.length;
   if (len === 0) return;
 
   if (e.key === 'ArrowDown' || (e.key === 'j' && !e.ctrlKey && !e.altKey && !e.metaKey)) {
@@ -404,7 +630,7 @@ document.addEventListener('keydown', function(e) {
     if (e.shiftKey) {
       rejectRevision(state.selectedIdx);
     } else {
-      acceptRevision(state.selectedIdx);
+      resolveRevision(state.selectedIdx);
     }
   } else if ((e.key === 'c' || e.key === 'C') && !e.ctrlKey && !e.altKey && !e.metaKey) {
     e.preventDefault();

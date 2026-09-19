@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! adapters-odf: ODT → gp-core IR (content.xml, styles.xml, meta.xml → Document IR).
 //!
 //! Walks a `.odt` ODF package, extracts `content.xml`/`styles.xml`/`meta.xml`,

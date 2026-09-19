@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 /// Selfupdate primitive: download, verify, install binary updates.
 ///
 /// Per ADR-0006: GitHub Releases channel, minisign verify, backup+rollback.

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT OR Apache-2.0
 """Per-page SSIM vs golden (C9 §4).
 
 Normative parameters: grayscale 8-bit rasters, 150 DPI, 11x11 Gaussian

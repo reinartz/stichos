@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 #![allow(clippy::needless_else)]
 use gp_core::diagnostics::*;
 use gp_core::ir::{
@@ -69,6 +70,8 @@ pub struct PdfDocumentData {
     pub metadata: Option<PdfMetadata>,
     pub has_encryption: bool,
     pub diagnostics: Vec<Diagnostic>,
+    /// C13: detected signature info (populated during parse, not re-detected)
+    pub signatures: Vec<gp_core::ir::SignatureInfo>,
 }
 
 impl PdfDocumentData {
@@ -86,6 +89,7 @@ impl PdfDocumentData {
             outlines,
             form_fields: vec![],
             tagged_structure: tagged,
+            signatures: self.signatures.clone(),
         }
     }
 
@@ -111,6 +115,9 @@ pub fn page_count(data: &[u8]) -> Result<usize, Vec<Diagnostic>> {
 }
 
 pub fn parse_pdf_data(data: &[u8]) -> Result<PdfDocumentData, Vec<Diagnostic>> {
+    // C13: detect signatures in raw bytes early (P5-11)
+    let signatures = super::incremental::detect_signatures_raw(data);
+
     // Safety: timeout to prevent indefinite hangs on malformed PDFs
     let start = std::time::Instant::now();
     let timeout = std::time::Duration::from_secs(5);
@@ -268,6 +275,7 @@ pub fn parse_pdf_data(data: &[u8]) -> Result<PdfDocumentData, Vec<Diagnostic>> {
         metadata,
         has_encryption,
         diagnostics,
+        signatures,
     })
 }
 
@@ -1297,6 +1305,12 @@ fn parse_single_annotation(obj: &PdfObject, page_num: usize) -> Option<PdfAnnota
         page_number: page_num,
         rect,
         contents,
+        kind: None,
+        author: None,
+        date: None,
+        quote: None,
+        state: None,
+        resolved: None,
     })
 }
 

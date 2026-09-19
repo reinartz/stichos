@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! Sugar edit tools — `edit_text`, `edit_cell`, `edit_structure`.
 //!
 //! These are convenience wrappers over `apply_patch` that build the

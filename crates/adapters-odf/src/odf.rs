@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 // adapters-odf: ODF module stubs (deprecated — use ods.rs and odp.rs directly)
 use gp_core::diagnostics::Diagnostic;
 

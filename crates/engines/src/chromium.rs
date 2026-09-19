@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 // engines: Chromium runner with headless PDF export.
 //
 // Spawns chromium-browser as a subprocess with --headless=new --print-to-pdf

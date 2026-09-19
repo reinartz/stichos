@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! diff_documents tool: compare two documents structurally.
 //!
 //! Parses both documents into gp-core IR, runs `lint::diff::diff_documents`,

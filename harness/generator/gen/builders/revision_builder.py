@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT OR Apache-2.0
 """Build docx fixtures with tracked changes for lossless proof suite.
 
 Provides focused helpers for creating docx fixtures that exercise the

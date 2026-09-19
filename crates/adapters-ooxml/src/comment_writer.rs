@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! OOXML comment write-back — add comments to docx files.
 //!
 //! Comments are written to `word/comments.xml` with `commentRangeStart`/`commentRangeEnd`

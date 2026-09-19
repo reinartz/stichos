@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! Rhai script corpus fuzz fixtures (P3-27).
 //!
 //! Deterministic fuzz fixtures targeting the Rhai sandbox with escape attempts.

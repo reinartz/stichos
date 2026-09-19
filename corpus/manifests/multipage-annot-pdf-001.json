@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "id": "multipage-annot-pdf-001",
+  "title": "Annotations on multiple pages",
+  "source": "generated",
+  "generator": {
+    "name": "p5-02-pdf-fixtures",
+    "version": "0.1.0"
+  },
+  "format": "pdf",
+  "categories": [
+    "pdf-annot-multipage"
+  ],
+  "features": {
+    "pdf:pages": 3,
+    "pdf:annotations": 3,
+    "pdf:annot-types": "/FreeText,/Highlight,/Text",
+    "pdf:sig-fields": 0
+  },
+  "reference_text": "corpus/reference/multipage-annot-pdf-001.txt",
+  "expected": {
+    "page_count_min": 3,
+    "page_count_max": 3
+  },
+  "render": {
+    "dpis": [
+      150
+    ],
+    "engines": [
+      "soffice-26.2.5"
+    ]
+  },
+  "notes": "3-page document with Text annot on page 1, FreeText on page 2, Highlight on page 3.",
+  "sha256": "8a24df58500e0d5b4e9e1c17c8d26ab414bb7a1b3679f35290ea80714882c908"
+}

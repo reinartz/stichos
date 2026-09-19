@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "id": "comment-annot-pdf-001",
+  "title": "Text annotation (comment) on page 1",
+  "source": "generated",
+  "generator": {
+    "name": "p5-02-pdf-fixtures",
+    "version": "0.1.0"
+  },
+  "format": "pdf",
+  "categories": [
+    "pdf-annot-comment"
+  ],
+  "features": {
+    "pdf:pages": 1,
+    "pdf:annotations": 1,
+    "pdf:annot-types": "/Text",
+    "pdf:sig-fields": 0
+  },
+  "reference_text": "corpus/reference/comment-annot-pdf-001.txt",
+  "expected": {
+    "page_count_min": 1,
+    "page_count_max": 1
+  },
+  "render": {
+    "dpis": [
+      150
+    ],
+    "engines": [
+      "soffice-26.2.5"
+    ]
+  },
+  "notes": "Single Text annotation (comment icon) with Contents and Name fields.",
+  "sha256": "210603d43cdd87a827ca6dfcb16391e8e10c21f0ca268a14d8fd2db7a29e090d"
+}

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT OR Apache-2.0
 import pytest
 
 from metrics import text_f1, tokenize

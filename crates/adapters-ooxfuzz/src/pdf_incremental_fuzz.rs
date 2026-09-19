@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! PDF incremental writer fuzz fixtures (P3-27).
 //!
 //! Deterministic fuzz fixtures targeting `adapters_pdf::incremental::*`

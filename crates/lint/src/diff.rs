@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! IR structural diff and XML part diff for stichos.
 //!
 //! Anchored to element IDs (P4/C2) for stable references across edits.

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! Font analysis: reference font set, substitution detection, and missing-glyph (tofu) heuristics.
 //!
 //! LIN-02: font substitution + missing-glyph checks (Wave D, P1-34)

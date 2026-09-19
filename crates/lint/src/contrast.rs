@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 // lint: luminance/contrast checking for layout quality
 // LIN-W-005 / LIN-W-006: contrast quality codes
 

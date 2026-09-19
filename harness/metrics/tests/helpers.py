@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT OR Apache-2.0
 """Fixture builders shared by the metrics tests."""
 from __future__ import annotations
 

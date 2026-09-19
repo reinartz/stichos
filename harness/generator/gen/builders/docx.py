@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT OR Apache-2.0
 """docx category builders (python-docx + raw XML injection where needed)."""
 
 from ..core import BuildResult, builder, normalize_zip, pin_docx_props, png_rgb_bytes

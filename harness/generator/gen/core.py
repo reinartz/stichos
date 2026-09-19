@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT OR Apache-2.0
 """Fixture generator framework (HAR-02).
 
 A builder registers for (category, format), produces a package file in a temp

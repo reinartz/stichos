@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! ODF revision enumeration — walk `text:inserted`/`text:deleted` trees into C11 `Revision` objects.
 //!
 //! Provides `enumerate_revisions()` which depth-first traverses a parsed ODF

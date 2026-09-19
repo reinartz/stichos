@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! engines: engine runners for stichos.
 //!
 //! Spawns external rendering engines (LibreOffice, pandoc) as subprocesses.

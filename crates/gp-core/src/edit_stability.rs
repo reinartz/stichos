@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! Edit stability — ID preservation during patch-set application.
 //!
 //! This module provides functions to apply patch sets to IR documents while

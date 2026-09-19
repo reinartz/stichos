@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! Create a brand-new OPC package (docx) from an IR `Document`.
 //!
 //! Writes a valid WordprocessingML document with all required parts:

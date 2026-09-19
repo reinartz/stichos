@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! Platform handler for opening files with system default application.
 //!
 //! Provides platform-specific file opening (xdg-open on Linux, open on macOS)

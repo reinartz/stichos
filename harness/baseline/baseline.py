@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT OR Apache-2.0
 #!/usr/bin/env python3
 """stichos HAR-06 — baseline measurement: soffice round-trip + pandoc + pdftoppm.
 

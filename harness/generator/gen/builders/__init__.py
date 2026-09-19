@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT OR Apache-2.0
 """Category builders. Each module registers via gen.core.builder(cat, fmt).
 
 Modules are optional: a missing module only means its (category, format)

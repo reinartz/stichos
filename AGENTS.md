@@ -1,10 +1,10 @@
 # stichos
 
-Phases 0–3 complete and gated (tags `m1-closeout`, `m2`, `m3`; M3 verified 2026-09-16: full test
-suite green, clippy/fmt/deny clean, `phase3_gate.sh` 26/26). Phase 4 (human loop) is next —
-concept `docs/phase4-concept.md`, plan `docs/phase4-plan.md`. Rust workspace lives in
-`crates/`; `harness/`, `corpus/`, `docker/`, `baseline/`, `.github/` hold the M0 Python fidelity
-harness and supporting material.
+Phases 0–4 complete and gated (tags `m1-closeout`, `m2`, `m3`, `m4`; M4 verified 2026-09-18: 1 851
+tests green, clippy/fmt clean, `phase4_gate.sh` 26/26 headless). Phase 5 (PDF-native loop + trust)
+is drafted, not started — concept `docs/phase5-concept.md`, plan `docs/phase5-plan.md`. Rust
+workspace lives in `crates/`; `harness/`, `corpus/`, `docker/`, `baseline/`, `.github/` hold the M0
+Python fidelity harness and supporting material.
 
 ## Source of truth
 - `project_concept.md` — decisions D1–D22, architecture, verification log. Claims there are marked
@@ -27,11 +27,15 @@ harness and supporting material.
 - Three icon tiers are measured, not decorative: Full ≥64px, Tight 16–48px, Glyph ≥20px (outline only). Don't merge tiers or "simplify".
 - Lockups must embed the Full-tier mark (Tight reads as a checkbox at lockup sizes).
 
-## Phase-4 status
+## Phase status
 
-Not started. Plan: `docs/phase4-plan.md`. Live status: `docs/phase4-status.json`.
-Phase-3 records: `docs/phase3-plan.md`, `docs/phase3-status.json`, `docs/m3-acceptance.md` (§7 has
-post-acceptance corrections, incl. the gate-script `tee /dev/tty` caveat → fixed by P4-01).
+Phase 4 (M4) shipped 2026-09-18: tag `m4` on the gate-green commit, `main` + `m4` pushed.
+Records: `docs/phase4-plan.md`, `docs/phase4-status.json`, `docs/m4-acceptance.md` (Git-State section
+has the tag-re-anchoring correction — milestone tags move only to committed gate-green trees).
+Phase 5 (M5) drafted 2026-09-18, **not started**: `docs/phase5-concept.md`, `docs/phase5-plan.md`,
+live status `docs/phase5-status.json`. M6 intake (COM impl, formula eval, actual launch, ODS/ODP
+revisions) is listed in phase5-concept §6. Phase-3 records: `docs/phase3-plan.md`,
+`docs/phase3-status.json`, `docs/m3-acceptance.md` (§7 has post-acceptance corrections).
 
 ## Phase-3 tech
 
@@ -46,7 +50,7 @@ post-acceptance corrections, incl. the gate-script `tee /dev/tty` caveat → fix
 | `engines` | Render engine abstraction (libreoffice, pandoc, chromium, typst live; ms-office COM deferred) |
 | `lint` | Fidelity linting (budget, ssim, contrast, font, diff, cropper) |
 | `mcp` | MCP protocol (jsonrpc, dispatch, server, tools, transport, http, spec) |
-| `cli` | `stichos` binary — 16 verbs (inspect, region, render, diff, doctor, serve, schema, apply, edit, annotate, revert, journal, perf, create, script, update) |
+| `cli` | `stichos` binary — 19 verbs (inspect, region, render, diff, doctor, serve, schema, apply, edit, annotate, revert, journal, perf, create, script, update, revisions, review, open) |
 | `adapters-ooxfuzz` | Fuzzing harness for OOXML adapters (dev-only) |
 
 Engines are spawned subprocesses, never linked; zero hard external deps.

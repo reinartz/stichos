@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! OPC surgical writer — applies mutations while preserving zip metadata.
 //!
 //! This module provides byte-identical round-trip through the OOXML writer:

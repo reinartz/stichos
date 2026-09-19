@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 // engines: unified creation API for write-direction conversions.
 //
 // This module provides a single entry point for creating documents from

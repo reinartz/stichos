@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 // lint: page-count delta checking between original and rendered documents
 // LIN-E-005 / LIN-E-006 / LIN-W-004: page-count delta codes
 

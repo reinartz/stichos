@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! Doctor: engine × fixture capability matrix, font probe, system info.
 //!
 //! The doctor tool probes all known engines against standard fixtures,

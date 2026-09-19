@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 // lint: SSIM (Structural SIMilarity) index for perceptual image comparison
 // C9 contract: 11x11 Gaussian window, sigma=1.5, 8-bit grayscale, 150 DPI reference
 

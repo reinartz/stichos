@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! ODF revision accept/reject executor — surgical XML patching engine.
 //!
 //! Provides accept/reject operations on ODF documents using span-based

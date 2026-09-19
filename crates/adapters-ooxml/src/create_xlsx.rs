@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! Create a valid xlsx from a `gp_core::ir::Spreadsheet` IR.
 //!
 //! Writes a valid SpreadsheetML workbook with:

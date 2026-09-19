@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! adapters-pdf: PDF reader for stichos.
 //!
 //! Parses PDF object streams, the page tree, annotations, AcroForm fields,
@@ -6,6 +7,7 @@
 //! Modules:
 //! - `parser`: core PDF parser (objects, xref, page tree, streams)
 //! - `annot`: annotation extraction from page /Annots arrays
+//! - `annot_write`: annotation write-back executor (P5-05)
 //! - `outline`: outline/tree extraction from /Outlines
 //! - `metadata`: XMP metadata parsing from /Metadata stream
 //! - `form`: AcroForm (interactive form fields) and XFA detection
@@ -15,6 +17,7 @@
 //! - `patch_executor`: PDF-aware patch executor implementing PatchExecutor trait (P3-14)
 
 pub mod annot;
+pub mod annot_write;
 pub mod form;
 pub mod incremental;
 pub mod metadata;

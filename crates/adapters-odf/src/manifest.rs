@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! ODF manifest.xml parser and encryption detection.
 //!
 //! Parses `META-INF/manifest.xml` from ODF packages (.odt/.ods/.odp) to extract

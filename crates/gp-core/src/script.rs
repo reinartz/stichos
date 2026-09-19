@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! Rhai-script sandbox: execute untrusted scripts with strict limits and scoped host functions.
 //!
 //! This module provides a sandboxed Rhai scripting engine for the escape-hatch use case

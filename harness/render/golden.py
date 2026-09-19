@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT OR Apache-2.0
 #!/usr/bin/env python3
 """stichos HAR-05 — golden render pipeline + content-addressed approved store.
 

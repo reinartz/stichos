@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! XML DOM-lite with byte spans.
 //!
 //! A minimal, order-preserving, namespace-aware XML parser that tracks

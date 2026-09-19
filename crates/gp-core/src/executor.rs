@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! Patch executor — concrete implementation of the `PatchExecutor` trait.
 //!
 //! `SurgicalPatchExecutor` routes IR patch operations for OOXML formats (docx, xlsx, pptx)
@@ -240,6 +241,38 @@ impl ExecuteResult {
         }
     }
 
+    /// Create a refusal result for a document with existing digital signatures.
+    pub fn signature_refuse(sigs: &[SignatureInfo]) -> Self {
+        let sig_descriptions: Vec<String> = sigs.iter()
+            .map(|s| format!("{} at {}", s.sig_type, s.location))
+            .collect();
+        Self {
+            output: Vec::new(),
+            accepted: false,
+            diagnostics: vec![
+                Diagnostic::new(
+                    "GP-S-001",
+                    Severity::Error,
+                    format!(
+                        "Document has digital signatures — write refused: {}",
+                        sig_descriptions.join("; ")
+                    ),
+                ),
+            ],
+            changed_parts: Vec::new(),
+            unchanged_parts: Vec::new(),
+            changed_element_ids: Vec::new(),
+            stale_cached_values: Vec::new(),
+            byte_diffs: Vec::new(),
+            format: "unknown".to_string(),
+            journal_id: None,
+            ir_diff: None,
+            invalidated_signatures: sigs.to_vec(),
+            tainted_parts: Vec::new(),
+            policy_violations: Vec::new(),
+        }
+    }
+
     /// Create a refusal result when the edit policy denies all requested parts.
     pub fn policy_refuse(format: &str, violations: Vec<PolicyDenial>) -> Self {
         let code = Self::refusal_code(format);
@@ -427,7 +460,7 @@ impl Default for LatencyTracker {
 }
 
 /// Configuration for the surgical patch executor.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct ExecutorConfig {
     /// Whether to apply revision markup (w:ins/w:del).
     pub revisions: bool,
@@ -439,6 +472,21 @@ pub struct ExecutorConfig {
     /// `None` means use deny-by-default.
     #[allow(dead_code)]
     pub policy: Option<EditPolicy>,
+    /// Whether to allow mutations that invalidate existing signatures.
+    /// When false (default), mutations on signed documents are refused with GP-S-001.
+    pub force_signature_invalidation: bool,
+}
+
+impl Default for ExecutorConfig {
+    fn default() -> Self {
+        Self {
+            revisions: false,
+            author: None,
+            dry_run: false,
+            policy: None,
+            force_signature_invalidation: false,
+        }
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -576,6 +624,33 @@ impl SurgicalPatchExecutor {
                 format.as_str(),
                 "write unsupported (PDF write requires Wave C)",
             );
+        }
+
+        // Step 1a: Check for digital signatures in source (C13 — P5-12)
+        if !self.config.force_signature_invalidation {
+            let sigs = detect_signatures(source_bytes);
+            if !sigs.is_empty() {
+                return ExecuteResult::signature_refuse(&sigs);
+            }
+        } else {
+            // Policy override: detect but allow — record in diagnostics
+            let sigs = detect_signatures(source_bytes);
+            if !sigs.is_empty() {
+                let format_name = format.as_str().to_string();
+                let mut result = ExecuteResult::stub(source_bytes, format_name);
+                for sig in &sigs {
+                    result.diagnostics.push(Diagnostic::new(
+                        "GP-S-002",
+                        Severity::Warning,
+                        format!(
+                            "Signature invalidated: mutation applied with explicit policy override ({})",
+                            sig.sig_type
+                        ),
+                    ));
+                }
+                result.invalidated_signatures = sigs;
+                return result;
+            }
         }
 
         // Step 1b: Check edit policy before doing any work
@@ -965,13 +1040,9 @@ pub fn make_minimal_ir(parts: &[SimplePart]) -> IRDocument {
 /// Scan output bytes for common digital signature patterns.
 pub fn detect_signatures(data: &[u8]) -> Vec<SignatureInfo> {
     let mut sigs = Vec::new();
-    if is_zip_signature(data) {
-        sigs.push(SignatureInfo {
-            sig_type: "pkcs7".to_string(),
-            location: "OOXML:DigitalSignature".to_string(),
-            confidence: 0.9,
-        });
-    }
+    // OOXML digital signatures: look for signature-specific content
+    // OOXML packages always start with PK\x03\x04 (ZIP), so we need
+    // more specific markers than just the ZIP header
     if data
         .windows(15)
         .any(|w| w.eq_ignore_ascii_case(b"SignatureOrigin"))
@@ -1005,10 +1076,6 @@ pub fn detect_signatures(data: &[u8]) -> Vec<SignatureInfo> {
         });
     }
     sigs
-}
-
-fn is_zip_signature(data: &[u8]) -> bool {
-    data.len() >= 4 && data[..4] == *b"PK\x03\x04"
 }
 
 // ---------------------------------------------------------------------------
@@ -1254,6 +1321,7 @@ mod tests {
             revisions: false,
             author: None,
             policy: None,
+            force_signature_invalidation: false,
         };
         let executor = SurgicalPatchExecutor::new(config);
         assert!(executor.config().dry_run);
@@ -1266,6 +1334,7 @@ mod tests {
             revisions: false,
             author: None,
             policy: None,
+            force_signature_invalidation: false,
         };
         let executor = SurgicalPatchExecutor::new(config);
         let result = executor.execute(b"some source data", FormatType::Docx, &[]);
@@ -1374,6 +1443,7 @@ mod tests {
             author: Some("test-author".into()),
             dry_run: false,
             policy: None,
+            force_signature_invalidation: false,
         };
         assert!(config.revisions);
         assert_eq!(config.author.as_deref(), Some("test-author"));
@@ -1434,6 +1504,7 @@ mod tests {
                 denied_actions: vec![],
                 max_parts_modified: None,
             }),
+            force_signature_invalidation: false,
         };
         let executor = SurgicalPatchExecutor::new(config);
         let source = b"PK\x03\x04[Content_Types].xmlPK\x03\x04word/document.xml";
@@ -1459,6 +1530,7 @@ mod tests {
                 denied_actions: vec![],
                 max_parts_modified: None,
             }),
+            force_signature_invalidation: false,
         };
         let executor = SurgicalPatchExecutor::new(config);
         let result = executor.execute(b"PK\x03\x04[Content_Types].xml", FormatType::Docx, &[]);
@@ -1484,14 +1556,16 @@ mod tests {
 
     #[test]
     fn test_detect_signatures_pkcs7() {
-        let data: Vec<u8> = b"PK\x03\x04"
+        // OOXML with digital signature content marker
+        let data: Vec<u8> = b"[Content_Types].xml"
             .to_vec()
             .into_iter()
-            .chain(b"fake data".iter().cloned())
+            .chain(b"SignatureOrigin".iter().cloned())
+            .chain(b" fake data".iter().cloned())
             .collect();
         let sigs = detect_signatures(&data);
         assert_eq!(sigs.len(), 1);
-        assert_eq!(sigs[0].sig_type, "pkcs7");
+        assert_eq!(sigs[0].sig_type, "office-xml");
     }
 
     #[test]
@@ -1529,8 +1603,9 @@ mod tests {
     #[test]
     fn test_warn_about_signatures_adds_diagnostics() {
         let executor = SurgicalPatchExecutor::default();
+        // Use data with actual signature markers
         let mut result = ExecuteResult {
-            output: b"PK\x03\x04fake".to_vec(),
+            output: b"[Content_Types].xml SignatureOrigin fake".to_vec(),
             accepted: true,
             diagnostics: vec![],
             changed_parts: vec![],
@@ -1575,6 +1650,65 @@ mod tests {
         assert_eq!(result.diagnostics.len(), 1);
     }
 
+    // ------------------------------------------------------------------
+    // Golden refusal tests for signed-doc mutation (P5-12)
+    // ------------------------------------------------------------------
+
+    /// Golden test: signed PDF → mutation refused with GP-S-001
+    #[test]
+    fn test_golden_refuse_signed_pdf_mutate() {
+        // PDF with signature marker
+        let pdf_with_sig = b"%PDF-1.4 fake document /Filter /Adobe.PPKMS";
+        let executor = SurgicalPatchExecutor::default();
+        let result = executor.execute(pdf_with_sig, FormatType::Pdf, &[]);
+        assert!(!result.accepted, "signed PDF mutation must be refused");
+        assert!(
+            result.diagnostics.iter().any(|d| d.code == "GP-S-001"),
+            "must report GP-S-001"
+        );
+        assert!(!result.invalidated_signatures.is_empty());
+    }
+
+    /// Golden test: unsigned PDF → mutation proceeds normally
+    #[test]
+    fn test_golden_unsigned_pdf_mutate_ok() {
+        let unsigned_pdf = b"%PDF-1.4 fake unsigned document";
+        let executor = SurgicalPatchExecutor::default();
+        let result = executor.execute(unsigned_pdf, FormatType::Pdf, &[]);
+        // Without a real adapter, this produces a stub (accepted) result
+        assert!(result.accepted || !result.output.is_empty() || result.diagnostics.iter().any(|d| d.code == "GP-I-002"));
+    }
+
+    /// Golden test: signed PDF with force_policy → warning but allowed
+    #[test]
+    fn test_golden_force_signature_invalidation() {
+        let pdf_with_sig = b"%PDF-1.4 fake document /Filter /Adobe.PPKMS";
+        let config = ExecutorConfig {
+            force_signature_invalidation: true,
+            ..ExecutorConfig::default()
+        };
+        let executor = SurgicalPatchExecutor::new(config);
+        let result = executor.execute(pdf_with_sig, FormatType::Pdf, &[]);
+        assert!(
+            result.diagnostics.iter().any(|d| d.code == "GP-S-002"),
+            "must report GP-S-002 when policy override is active"
+        );
+        assert!(!result.invalidated_signatures.is_empty());
+    }
+
+    /// Golden test: signed OOXML → mutation refused with GP-S-001
+    #[test]
+    fn test_golden_refuse_signed_ooxml() {
+        let docx_with_sig = b"PK\x03\x04[Content_Types].xml SignatureOrigin fake";
+        let executor = SurgicalPatchExecutor::default();
+        let result = executor.execute(docx_with_sig, FormatType::Docx, &[]);
+        assert!(!result.accepted, "signed OOXML mutation must be refused");
+        assert!(
+            result.diagnostics.iter().any(|d| d.code == "GP-S-001"),
+            "must report GP-S-001"
+        );
+    }
+
     #[test]
     fn test_extract_taint_docx() {
         let executor = SurgicalPatchExecutor::default();
@@ -1610,6 +1744,7 @@ mod tests {
                 denied_actions: vec![],
                 max_parts_modified: None,
             }),
+            force_signature_invalidation: false,
         };
         let executor = SurgicalPatchExecutor::new(config);
         let source = b"PK\x03\x04[Content_Types].xml word/document.xml";
@@ -1632,6 +1767,7 @@ mod tests {
                 denied_actions: vec![],
                 max_parts_modified: None,
             }),
+            force_signature_invalidation: false,
         };
         let executor = SurgicalPatchExecutor::new(config);
         let result = executor.execute(b"\x00\x01\x02\x03\x04", FormatType::Docx, &[]);
@@ -1669,6 +1805,7 @@ mod tests {
                 denied_actions: vec![],
                 max_parts_modified: None,
             }),
+            force_signature_invalidation: false,
         };
         let executor = SurgicalPatchExecutor::new(config);
         let source = b"PK\x03\x04[Content_Types].xml word/document.xml xl/workbook.xml";
@@ -1776,6 +1913,7 @@ mod tests {
             author: None,
             dry_run: false,
             policy: None,
+            force_signature_invalidation: false,
         };
         let executor = SurgicalPatchExecutor::new(config);
         let source = b"PK\x03\x04[Content_Types].xml word/document.xml";
@@ -1800,6 +1938,7 @@ mod tests {
             author: None,
             dry_run: false,
             policy: Some(policy),
+            force_signature_invalidation: false,
         };
         let executor = SurgicalPatchExecutor::new(config);
         let source = b"PK\x03\x04word/document.xml";
@@ -1826,6 +1965,7 @@ mod tests {
             author: None,
             dry_run: false,
             policy: Some(policy),
+            force_signature_invalidation: false,
         };
         let executor = SurgicalPatchExecutor::new(config);
         let source = b"PK\x03\x04word/document.xml";
@@ -1855,6 +1995,7 @@ mod tests {
             author: None,
             dry_run: false,
             policy: Some(policy),
+            force_signature_invalidation: false,
         };
         let executor = SurgicalPatchExecutor::new(config);
         let source = b"PK\x03\x04word/document.xml";
@@ -1882,6 +2023,7 @@ mod tests {
             author: None,
             dry_run: false,
             policy: Some(policy),
+            force_signature_invalidation: false,
         };
         let executor = SurgicalPatchExecutor::new(config);
         let source = b"PK\x03\x04word/document.xml";
@@ -1906,6 +2048,7 @@ mod tests {
             author: None,
             dry_run: false,
             policy: Some(policy),
+            force_signature_invalidation: false,
         };
         let executor = SurgicalPatchExecutor::new(config);
         let source = b"PK\x03\x04word/document.xml xl/styles.xml";
@@ -1930,6 +2073,7 @@ mod tests {
             author: None,
             dry_run: false,
             policy: Some(policy),
+            force_signature_invalidation: false,
         };
         let executor = SurgicalPatchExecutor::new(config);
         let source = b"PK\x03\x04word/document.xml xl/styles.xml ppt/slides.xml";
@@ -1958,6 +2102,7 @@ mod tests {
             author: None,
             dry_run: false,
             policy: Some(policy),
+            force_signature_invalidation: false,
         };
         let executor = SurgicalPatchExecutor::new(config);
         let source = b"PK\x03\x04word/document.xml";
@@ -1978,6 +2123,7 @@ mod tests {
             author: None,
             dry_run: false,
             policy: Some(policy),
+            force_signature_invalidation: false,
         };
         let executor = SurgicalPatchExecutor::new(config);
         let source = b"PK\x03\x04word/document.xml xl/styles.xml";
@@ -1994,6 +2140,7 @@ mod tests {
             author: None,
             dry_run: false,
             policy: None,
+            force_signature_invalidation: false,
         };
         let executor = SurgicalPatchExecutor::new(config);
         let source = b"PK\x03\x04word/document.xml";

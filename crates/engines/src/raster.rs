@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 // engines: rasterization ladder — poppler → gs → mutool → soffice
 
 use gp_core::diagnostics::{Diagnostic, Severity};

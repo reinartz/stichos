@@ -32,7 +32,7 @@
 
 ## Phase-4 Surface
 
-- **19 MCP tools** (up from 16 at M3): Added `list_revisions`, `accept_revisions`, `reject_revisions`
-- **18 CLI verbs** (up from 16 at M3): Added `revisions`, `review`
+- **20 MCP tools** (measured 2026-09-18: `mcp/spec.rs:824` asserts `TOOLS.len() == 20`): Added `list_revisions`, `accept_revisions`, `reject_revisions`, `add_comment`
+- **19 CLI verbs** (measured from `enum Command` in `cli/src/main.rs`): Added `revisions`, `review`, `open`, `schema` (19 total: inspect, region, render, diff, doctor, serve, schema, apply, edit, annotate, revert, journal, perf, create, script, update, revisions, review, open)
 - **Schema version:** 1.3.0 (additive-only since v1.0.0)
 - **Contracts:** C1 (minor additive), C7 (v1.3.0), C11 (frozen at M4)

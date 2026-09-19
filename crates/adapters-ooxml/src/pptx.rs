@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! adapters-ooxml: pptx → gp-core IR (slides, layouts, masters, placeholders).
 //!
 //! Walks a `.pptx` OPC package, extracts presentation.xml, slide XML, layout XML,

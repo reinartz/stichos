@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! qpdf integration: run `qpdf --check` on PDF files and report C3 diagnostics.
 //!
 //! qpdf is an optional (soft) dependency — if the binary is not available the

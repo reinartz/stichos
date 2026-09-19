@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! adapters-ooxml: feature census — count features in parsed IR and produce FidelityBudget.
 //!
 //! Every read response carries a `FidelityBudget` from gp-core. This module walks the

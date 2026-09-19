@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 // adapters-pdf: text extraction with word-level bounding boxes.
 #![allow(clippy::iter_cloned_collect)]
 use gp_core::diagnostics::Diagnostic;

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! MCP JSON-RPC 2.0 implementation.
 //!
 //! Minimal JSON-RPC 2.0 layer for the MCP protocol.

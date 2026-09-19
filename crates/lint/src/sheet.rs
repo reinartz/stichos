@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! Contact-sheet builder: full-document overview thumbnail grid.
 //!
 //! Per concept §10: the contact sheet is the default overview image

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! adapters-ooxml: OPC (Open Packaging Conventions) package parser and OOXML readers.
 //!
 //! Parses `.docx`, `.xlsx`, `.pptx` files as OPC packages (ZIP archives with

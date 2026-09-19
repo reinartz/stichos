@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT OR Apache-2.0
 """Page-count delta (C9 §5)."""
 from __future__ import annotations
 

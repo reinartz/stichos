@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! Performance measurement for the edit→render→look latency loop.
 //!
 //! OPS-02: P95 ≤ 2s CI gate for closed-loop edit→render→look latency.

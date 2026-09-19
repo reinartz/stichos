@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! Renderer negotiation: per-platform order, preference, session cache, honest feedback.
 //!
 //! This module provides renderer selection logic that chooses the best available

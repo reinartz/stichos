@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! IR (Intermediate Representation) types for stichos.
 //!
 //! The IR is a format-agnostic representation of documents, spreadsheets,
@@ -630,6 +631,19 @@ pub struct ReviewSession {
     pub audit_trail: Vec<AuditEntry>,
     /// Comment drafts created during this session.
     pub comment_drafts: Vec<serde_json::Value>,
+    /// Review mode: "docx-revisions" or "pdf-annot".
+    #[serde(default = "default_mode")]
+    pub mode: String,
+    /// SHA-256 hex digest of the original document bytes for write-back operations.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub doc_bytes_hash: Option<String>,
+    /// Whether the text layer is enabled for this session (pdf.js text extraction).
+    #[serde(default)]
+    pub text_layer: bool,
+}
+
+fn default_mode() -> String {
+    "docx-revisions".to_string()
 }
 
 impl ReviewSession {
@@ -654,6 +668,38 @@ impl ReviewSession {
                 details: serde_json::json!({}),
             }],
             comment_drafts: vec![],
+            mode: "docx-revisions".to_string(),
+            doc_bytes_hash: None,
+            text_layer: false,
+        }
+    }
+
+    /// Create a new review session with mode and doc_bytes_hash.
+    pub fn new_with_mode(
+        token: String,
+        doc_path: String,
+        doc_version_hash: String,
+        revision_snapshot: Vec<serde_json::Value>,
+        mode: String,
+        doc_bytes_hash: Option<String>,
+    ) -> Self {
+        let now = chrono::Utc::now().to_rfc3339();
+        ReviewSession {
+            token,
+            doc_path,
+            doc_version_hash,
+            created_at: now.clone(),
+            expires_at: None,
+            revision_snapshot,
+            audit_trail: vec![AuditEntry {
+                timestamp: now,
+                action: "create".to_string(),
+                details: serde_json::json!({}),
+            }],
+            comment_drafts: vec![],
+            mode,
+            doc_bytes_hash,
+            text_layer: false,
         }
     }
 
@@ -943,6 +989,32 @@ pub struct PdfDocument {
     pub form_fields: Vec<PdfFormField>,
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub tagged_structure: Vec<TaggedNode>,
+    /// Signature information detected during parsing (C13 — P5-11).
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub signatures: Vec<SignatureInfo>,
+}
+
+/// Signature information detected in a PDF document (C13 — P5-11).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct SignatureInfo {
+    /// Signature type: "pkcs7", "office-xml", "pdf-adobe", "pdf-pades", or "unknown".
+    pub sig_type: String,
+    /// Human-readable location description.
+    pub location: String,
+    /// Confidence 0.0..=1.0 of detection certainty.
+    pub confidence: f64,
+    /// Optional: X.509 subject CN (if certificate is parseable).
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub subject: Option<String>,
+    /// Optional: digest algorithm OID string (e.g. "2.16.840.1.101.3.4.2.1" for SHA-256).
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub digest_algorithm: Option<String>,
+    /// Optional: signature start byte offset in document.
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub byte_offset: Option<usize>,
+    /// Optional: signature end byte offset (byte-range end).
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub byte_end: Option<usize>,
 }
 
 /// Metadata for a PDF document (including XMP-derived fields).
@@ -975,6 +1047,50 @@ pub struct TextWithBbox {
     pub bbox: [f64; 4],
 }
 
+/// Annotation kinds supported by stichos PDF annotations.
+///
+/// Maps to PDF /Subtype values where applicable. Unknown subtypes
+/// are preserved in `annotation_type` and `kind` remains `None`.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum AnnotationKind {
+    Highlight,
+    Text,
+    FreeText,
+    Stamp,
+    Line,
+    Square,
+    Circle,
+    Underline,
+    StrikeOut,
+    Squiggly,
+    Caret,
+    Ink,
+    Popup,
+    FileAttachment,
+    Sound,
+    Movie,
+    Widget,
+    Screen,
+    PrinterMark,
+    TrapNet,
+    Watermark,
+}
+
+/// Annotation review state for the stichos review workflow.
+///
+/// Default state on construction is `Applied`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum AnnotationState {
+    /// The annotation is active / under review.
+    Applied,
+    /// The annotation has been resolved.
+    Resolved,
+    /// The annotation has been rejected.
+    Rejected,
+}
+
 /// A PDF annotation (links, text notes, highlights, stamps, etc.).
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct PdfAnnotation {
@@ -983,6 +1099,38 @@ pub struct PdfAnnotation {
     pub page_number: usize,
     pub rect: Option<[f64; 4]>,
     pub contents: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub kind: Option<AnnotationKind>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub author: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub date: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub quote: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub state: Option<AnnotationState>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub resolved: Option<bool>,
+}
+
+impl PdfAnnotation {
+    /// Return `true` if this annotation's kind is supported for processing.
+    ///
+    /// `None` kind is treated as supported (raw subtype in `annotation_type`).
+    pub fn is_supported_kind(&self) -> bool {
+        matches!(
+            self.kind,
+            None | Some(AnnotationKind::Highlight)
+                | Some(AnnotationKind::Text)
+                | Some(AnnotationKind::FreeText)
+                | Some(AnnotationKind::Stamp)
+        )
+    }
+
+    /// Transition this annotation to a new state.
+    pub fn transition_state(&mut self, new_state: AnnotationState) {
+        self.state = Some(new_state);
+    }
 }
 
 /// An outline item in a PDF outline tree (bookmarks / TOC).
@@ -1815,6 +1963,264 @@ mod tests {
         assert!(
             doc2.revisions.is_empty(),
             "revisions should default to empty vec on deserialization"
+        );
+    }
+
+    // ===== P5-03: PDF annotation tests =====
+
+    /// test_annotation_kind_serde — all AnnotationKind variants serialize to lowercase.
+    #[test]
+    fn test_annotation_kind_serde() {
+        let json = serde_json::to_string(&AnnotationKind::Highlight).unwrap();
+        assert_eq!(json, "\"highlight\"");
+        let json = serde_json::to_string(&AnnotationKind::Text).unwrap();
+        assert_eq!(json, "\"text\"");
+        let json = serde_json::to_string(&AnnotationKind::FreeText).unwrap();
+        assert_eq!(json, "\"free_text\"");
+        let json = serde_json::to_string(&AnnotationKind::Stamp).unwrap();
+        assert_eq!(json, "\"stamp\"");
+        let json = serde_json::to_string(&AnnotationKind::Line).unwrap();
+        assert_eq!(json, "\"line\"");
+        let json = serde_json::to_string(&AnnotationKind::Square).unwrap();
+        assert_eq!(json, "\"square\"");
+        let json = serde_json::to_string(&AnnotationKind::Circle).unwrap();
+        assert_eq!(json, "\"circle\"");
+        let json = serde_json::to_string(&AnnotationKind::Underline).unwrap();
+        assert_eq!(json, "\"underline\"");
+        let json = serde_json::to_string(&AnnotationKind::StrikeOut).unwrap();
+        assert_eq!(json, "\"strike_out\"");
+        let json = serde_json::to_string(&AnnotationKind::Squiggly).unwrap();
+        assert_eq!(json, "\"squiggly\"");
+        let json = serde_json::to_string(&AnnotationKind::Caret).unwrap();
+        assert_eq!(json, "\"caret\"");
+        let json = serde_json::to_string(&AnnotationKind::Ink).unwrap();
+        assert_eq!(json, "\"ink\"");
+        let json = serde_json::to_string(&AnnotationKind::Popup).unwrap();
+        assert_eq!(json, "\"popup\"");
+        let json = serde_json::to_string(&AnnotationKind::FileAttachment).unwrap();
+        assert_eq!(json, "\"file_attachment\"");
+        let json = serde_json::to_string(&AnnotationKind::Sound).unwrap();
+        assert_eq!(json, "\"sound\"");
+        let json = serde_json::to_string(&AnnotationKind::Movie).unwrap();
+        assert_eq!(json, "\"movie\"");
+        let json = serde_json::to_string(&AnnotationKind::Widget).unwrap();
+        assert_eq!(json, "\"widget\"");
+        let json = serde_json::to_string(&AnnotationKind::Screen).unwrap();
+        assert_eq!(json, "\"screen\"");
+        let json = serde_json::to_string(&AnnotationKind::PrinterMark).unwrap();
+        assert_eq!(json, "\"printer_mark\"");
+        let json = serde_json::to_string(&AnnotationKind::TrapNet).unwrap();
+        assert_eq!(json, "\"trap_net\"");
+        let json = serde_json::to_string(&AnnotationKind::Watermark).unwrap();
+        assert_eq!(json, "\"watermark\"");
+    }
+
+    /// test_annotation_state_serde — all AnnotationState variants.
+    #[test]
+    fn test_annotation_state_serde() {
+        let json = serde_json::to_string(&AnnotationState::Applied).unwrap();
+        assert_eq!(json, "\"applied\"");
+        let json = serde_json::to_string(&AnnotationState::Resolved).unwrap();
+        assert_eq!(json, "\"resolved\"");
+        let json = serde_json::to_string(&AnnotationState::Rejected).unwrap();
+        assert_eq!(json, "\"rejected\"");
+    }
+
+    /// test_annotation_full_roundtrip — create PdfAnnotation with all fields, roundtrip.
+    #[test]
+    fn test_annotation_full_roundtrip() {
+        let annot = PdfAnnotation {
+            id: ElementId::content_anchored("annotation", &["annot:0"], "highlight-test"),
+            annotation_type: "Highlight".to_string(),
+            page_number: 3,
+            rect: Some([10.0, 20.0, 100.0, 30.0]),
+            contents: Some("Review comment".to_string()),
+            kind: Some(AnnotationKind::Highlight),
+            author: Some("reviewer-a".to_string()),
+            date: Some("2026-09-18T10:00:00Z".to_string()),
+            quote: Some("highlighted text".to_string()),
+            state: Some(AnnotationState::Applied),
+            resolved: Some(false),
+        };
+        let json = serde_json::to_string(&annot).expect("serialize");
+        let a2: PdfAnnotation = serde_json::from_str(&json).expect("deserialize");
+        assert_eq!(annot.id, a2.id);
+        assert_eq!(annot.annotation_type, a2.annotation_type);
+        assert_eq!(annot.page_number, a2.page_number);
+        assert_eq!(annot.rect, a2.rect);
+        assert_eq!(annot.contents, a2.contents);
+        assert_eq!(annot.kind, a2.kind);
+        assert_eq!(annot.author, a2.author);
+        assert_eq!(annot.date, a2.date);
+        assert_eq!(annot.quote, a2.quote);
+        assert_eq!(annot.state, a2.state);
+        assert_eq!(annot.resolved, a2.resolved);
+    }
+
+    /// test_annotation_minimal_roundtrip — old-format annotation (new fields absent) roundtrips.
+    #[test]
+    fn test_annotation_minimal_roundtrip() {
+        let annot = PdfAnnotation {
+            id: ElementId::content_anchored("annotation", &["annot:0"], "minimal"),
+            annotation_type: "Link".to_string(),
+            page_number: 1,
+            rect: None,
+            contents: None,
+            kind: None,
+            author: None,
+            date: None,
+            quote: None,
+            state: None,
+            resolved: None,
+        };
+        let json = serde_json::to_string(&annot).expect("serialize");
+        let a2: PdfAnnotation = serde_json::from_str(&json).expect("deserialize");
+        assert_eq!(annot.id, a2.id);
+        assert_eq!(annot.annotation_type, a2.annotation_type);
+        assert!(a2.kind.is_none());
+        assert!(a2.author.is_none());
+        assert!(a2.date.is_none());
+        assert!(a2.quote.is_none());
+        assert!(a2.state.is_none());
+        assert!(a2.resolved.is_none());
+    }
+
+    /// test_annotation_new_fields_omitted_when_none — optional fields absent from JSON.
+    #[test]
+    fn test_annotation_new_fields_omitted_when_none() {
+        let annot = PdfAnnotation {
+            id: ElementId::content_anchored("annotation", &["annot:0"], "minimal"),
+            annotation_type: "Text".to_string(),
+            page_number: 1,
+            rect: None,
+            contents: Some("note".to_string()),
+            kind: None,
+            author: None,
+            date: None,
+            quote: None,
+            state: None,
+            resolved: None,
+        };
+        let json = serde_json::to_string(&annot).expect("serialize");
+        // Optional fields with None should be omitted from JSON
+        assert!(!json.contains("\"kind\""));
+        assert!(!json.contains("\"author\""));
+        assert!(!json.contains("\"date\""));
+        assert!(!json.contains("\"quote\""));
+        assert!(!json.contains("\"state\""));
+        assert!(!json.contains("\"resolved\""));
+        // But contents is Some, so it should be present
+        assert!(json.contains("\"contents\""));
+        assert!(json.contains("\"note\""));
+    }
+
+    /// test_annotation_is_supported_kind — supported vs unsupported kinds.
+    #[test]
+    fn test_annotation_is_supported_kind() {
+        let annot = PdfAnnotation {
+            id: ElementId::content_anchored("annotation", &["annot:0"], "raw"),
+            annotation_type: "Unknown".to_string(),
+            page_number: 1,
+            rect: None,
+            contents: None,
+            kind: None,
+            author: None,
+            date: None,
+            quote: None,
+            state: None,
+            resolved: None,
+        };
+        // None kind is supported
+        assert!(annot.is_supported_kind());
+
+        // Supported kinds
+        let mut highlight = annot.clone();
+        highlight.kind = Some(AnnotationKind::Highlight);
+        assert!(highlight.is_supported_kind());
+
+        let mut text = annot.clone();
+        text.kind = Some(AnnotationKind::Text);
+        assert!(text.is_supported_kind());
+
+        let mut freetext = annot.clone();
+        freetext.kind = Some(AnnotationKind::FreeText);
+        assert!(freetext.is_supported_kind());
+
+        let mut stamp = annot.clone();
+        stamp.kind = Some(AnnotationKind::Stamp);
+        assert!(stamp.is_supported_kind());
+
+        // Unsupported kinds
+        let mut line = annot.clone();
+        line.kind = Some(AnnotationKind::Line);
+        assert!(!line.is_supported_kind());
+
+        let mut circle = annot.clone();
+        circle.kind = Some(AnnotationKind::Circle);
+        assert!(!circle.is_supported_kind());
+
+        let mut ink = annot.clone();
+        ink.kind = Some(AnnotationKind::Ink);
+        assert!(!ink.is_supported_kind());
+
+        let mut widget = annot.clone();
+        widget.kind = Some(AnnotationKind::Widget);
+        assert!(!widget.is_supported_kind());
+    }
+
+    /// test_annotation_transition_state — state transitions.
+    #[test]
+    fn test_annotation_transition_state() {
+        let mut annot = PdfAnnotation {
+            id: ElementId::content_anchored("annotation", &["annot:0"], "state-test"),
+            annotation_type: "Highlight".to_string(),
+            page_number: 1,
+            rect: None,
+            contents: None,
+            kind: Some(AnnotationKind::Highlight),
+            author: None,
+            date: None,
+            quote: None,
+            state: None,
+            resolved: None,
+        };
+        assert!(annot.state.is_none());
+        annot.transition_state(AnnotationState::Applied);
+        assert_eq!(annot.state, Some(AnnotationState::Applied));
+        annot.transition_state(AnnotationState::Resolved);
+        assert_eq!(annot.state, Some(AnnotationState::Resolved));
+        annot.transition_state(AnnotationState::Rejected);
+        assert_eq!(annot.state, Some(AnnotationState::Rejected));
+        annot.transition_state(AnnotationState::Applied);
+        assert_eq!(annot.state, Some(AnnotationState::Applied));
+    }
+
+    /// test_annotation_backward_compatible — old IR without new fields deserializes (C1 additive).
+    #[test]
+    fn test_annotation_backward_compatible() {
+        let old_json = r#"{
+            "id": "id-000000000000",
+            "annotation_type": "Highlight",
+            "page_number": 1,
+            "rect": [0, 0, 100, 20],
+            "contents": "old annotation"
+        }"#;
+        let annot: PdfAnnotation =
+            serde_json::from_str(old_json).expect("deserialize old IR annotation");
+        assert_eq!(annot.annotation_type, "Highlight");
+        assert_eq!(annot.page_number, 1);
+        assert_eq!(annot.contents, Some("old annotation".to_string()));
+        assert!(annot.kind.is_none(), "C1 additive: kind defaults to None");
+        assert!(
+            annot.author.is_none(),
+            "C1 additive: author defaults to None"
+        );
+        assert!(annot.date.is_none(), "C1 additive: date defaults to None");
+        assert!(annot.quote.is_none(), "C1 additive: quote defaults to None");
+        assert!(annot.state.is_none(), "C1 additive: state defaults to None");
+        assert!(
+            annot.resolved.is_none(),
+            "C1 additive: resolved defaults to None"
         );
     }
 }

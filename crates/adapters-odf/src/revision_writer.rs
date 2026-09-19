@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! ODF revision writer — wraps edits in `text:inserted`/`text:deleted` markup.
 //!
 //! Produces ODF 1.2+ tracked-change markup:

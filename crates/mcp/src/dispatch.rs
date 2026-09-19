@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! MCP tool dispatch: handler trait + boxed type for the transport layer.
 //!
 //! The `cli` crate provides a concrete `ToolHandler` that routes calls to the

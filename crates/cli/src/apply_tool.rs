@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! Apply patch tool implementation.
 //!
 //! Reads a document, applies patch operations, and returns the result with
@@ -68,6 +69,7 @@ pub fn apply_patch(
             Some(author.to_string())
         },
         policy: None,
+        force_signature_invalidation: false,
     };
     let executor = SurgicalPatchExecutor::new(config);
 
@@ -254,6 +256,7 @@ mod tests {
             dry_run: false,
             author: None, // direct=true → author is None
             policy: None,
+            force_signature_invalidation: false,
         };
         assert!(!config.revisions);
         assert!(config.author.is_none());
@@ -267,6 +270,7 @@ mod tests {
             dry_run: false,
             author: Some("agent".to_string()),
             policy: None,
+            force_signature_invalidation: false,
         };
         assert!(config.revisions);
         assert_eq!(config.author.as_deref(), Some("agent"));
@@ -280,6 +284,7 @@ mod tests {
             dry_run: false,
             author: Some("custom-author".to_string()),
             policy: None,
+            force_signature_invalidation: false,
         };
         assert!(config.revisions);
         assert_eq!(config.author.as_deref(), Some("custom-author"));

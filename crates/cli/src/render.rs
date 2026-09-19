@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! render_document tool: convert document to images via engine + rasterize + budget.
 //!
 //! This module implements the `render_document` CLI command, which:

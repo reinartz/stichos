@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT OR Apache-2.0
 import numpy as np
 
 from helpers import blank_with_text, smooth_gray, write_gray_png

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! Payload budget enforcer: ensures all tool responses respect C8 constraints.
 //!
 //! Every tool that returns images must pass through this enforcer.

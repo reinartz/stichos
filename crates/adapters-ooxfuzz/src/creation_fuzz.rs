@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! Creation IR input fuzz fixtures (P3-27).
 //!
 //! Deterministic fuzz fixtures targeting the creation writers with malformed IR.

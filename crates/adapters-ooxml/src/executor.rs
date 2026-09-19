@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! OOXML patch executor — concrete implementation that routes to format writers.
 //!
 //! `OoxmlExecutor` implements the `PatchExecutor` trait from gp-core and provides
@@ -731,6 +732,7 @@ mod tests {
             author: Some("test-author".into()),
             dry_run: false,
             policy: None,
+            force_signature_invalidation: false,
         };
         let executor = OoxmlExecutor::new(config);
         assert!(executor.config().revisions);
@@ -836,6 +838,7 @@ mod tests {
             revisions: false,
             author: None,
             policy: None,
+            force_signature_invalidation: false,
         };
         let executor = OoxmlExecutor::new(config);
         let source =
@@ -857,6 +860,7 @@ mod tests {
                 denied_actions: vec![],
                 max_parts_modified: None,
             }),
+            force_signature_invalidation: false,
         };
         let executor = OoxmlExecutor::new(config);
         let source = b"PK\x03\x04[Content_Types].xml";
@@ -878,6 +882,7 @@ mod tests {
             revisions: false,
             author: None,
             policy: None,
+            force_signature_invalidation: false,
         };
         let executor = OoxmlExecutor::new(config);
         let source = b"PK\x03\x04[Content_Types].xmlPK\x03\x04xl/workbook.xml";
@@ -894,6 +899,7 @@ mod tests {
             revisions: false,
             author: None,
             policy: None,
+            force_signature_invalidation: false,
         };
         let executor = OoxmlExecutor::new(config);
         let source = b"PK\x03\x04[Content_Types].xmlPK\x03\x04ppt/presentation.xml";
@@ -989,6 +995,7 @@ mod tests {
             author: None,
             dry_run: true,
             policy: Some(policy),
+            force_signature_invalidation: false,
         };
         let executor = OoxmlExecutor::new(config);
         let source = b"PK\x03\x04[Content_Types].xml word/document.xml";
@@ -1010,6 +1017,7 @@ mod tests {
             author: None,
             dry_run: false,
             policy: Some(policy),
+            force_signature_invalidation: false,
         };
         let executor = OoxmlExecutor::new(config);
         let source = b"PK\x03\x04[Content_Types].xml word/document.xml";

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! MCP transport initialization.
 //!
 //! Chooses the transport mode and starts the server.

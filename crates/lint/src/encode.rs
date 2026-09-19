@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! Model-copy encoding: resize + compress images for vision LLM consumption.
 //!
 //! Per concept §10: pre-resize to known sizes, JPEG q≈85, byte-exact accounting.

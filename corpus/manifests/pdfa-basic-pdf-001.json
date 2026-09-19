@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "id": "pdfa-basic-pdf-001",
+  "title": "PDF/A-1b sample fixture",
+  "source": "generated",
+  "generator": {
+    "name": "p5-02-pdf-fixtures",
+    "version": "0.1.0"
+  },
+  "format": "pdf",
+  "categories": [
+    "pdf-a"
+  ],
+  "features": {
+    "pdf:pages": 1,
+    "pdf:annotations": 0,
+    "pdf:annot-types": "none",
+    "pdf:sig-fields": 0
+  },
+  "reference_text": "corpus/reference/pdfa-basic-pdf-001.txt",
+  "expected": {
+    "page_count_min": 1,
+    "page_count_max": 1
+  },
+  "render": {
+    "dpis": [
+      150
+    ],
+    "engines": [
+      "soffice-26.2.5"
+    ]
+  },
+  "notes": "Best-effort PDF/A-1b fixture with XMP metadata, MarkInfo, and pdfaid scheme. Not veraPDF-validated (tool absent on host); CI path uses veraPDF.",
+  "sha256": "d49073a41929a24454ff4bd4c65d2813688ae3b7bca92d10aa5a06efa7d00b4f"
+}

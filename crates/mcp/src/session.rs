@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! Review session store — in-memory map of active sessions.
 //!
 //! Thread-safe, single-owner store for review sessions.
@@ -45,9 +46,73 @@ pub fn create_review_session(
     doc_bytes: &[u8],
     revision_snapshot: Vec<serde_json::Value>,
 ) -> String {
+    create_review_session_with_text_layer(store, doc_path, doc_bytes, revision_snapshot, false)
+}
+
+/// Create a new review session and return its token.
+///
+/// Computes the document version hash from the document bytes and
+/// stores the session in the session store.
+pub fn create_review_session_with_text_layer(
+    store: &ReviewSessionStore,
+    doc_path: String,
+    doc_bytes: &[u8],
+    revision_snapshot: Vec<serde_json::Value>,
+    text_layer: bool,
+) -> String {
     let token = generate_review_token();
     let doc_version_hash = sha256_hex(doc_bytes);
-    let session = ReviewSession::new(token.clone(), doc_path, doc_version_hash, revision_snapshot);
+    let mut session =
+        ReviewSession::new(token.clone(), doc_path, doc_version_hash, revision_snapshot);
+    session.text_layer = text_layer;
+    let mut store = store.lock().unwrap();
+    store.insert(token.clone(), session);
+    token
+}
+
+/// Create a new review session with explicit mode and doc_bytes_hash.
+///
+/// Used for PDF annotation mode sessions.
+pub fn create_review_session_with_mode(
+    store: &ReviewSessionStore,
+    doc_path: String,
+    doc_bytes: &[u8],
+    revision_snapshot: Vec<serde_json::Value>,
+    mode: String,
+    doc_bytes_hash: Option<String>,
+) -> String {
+    create_review_session_with_mode_and_text_layer(
+        store,
+        doc_path,
+        doc_bytes,
+        revision_snapshot,
+        mode,
+        doc_bytes_hash,
+        false,
+    )
+}
+
+/// Create a new review session with explicit mode, doc_bytes_hash, and text_layer opt-in.
+pub fn create_review_session_with_mode_and_text_layer(
+    store: &ReviewSessionStore,
+    doc_path: String,
+    doc_bytes: &[u8],
+    revision_snapshot: Vec<serde_json::Value>,
+    mode: String,
+    doc_bytes_hash: Option<String>,
+    text_layer: bool,
+) -> String {
+    let token = generate_review_token();
+    let doc_version_hash = sha256_hex(doc_bytes);
+    let mut session = ReviewSession::new_with_mode(
+        token.clone(),
+        doc_path,
+        doc_version_hash,
+        revision_snapshot,
+        mode,
+        doc_bytes_hash,
+    );
+    session.text_layer = text_layer;
     let mut store = store.lock().unwrap();
     store.insert(token.clone(), session);
     token

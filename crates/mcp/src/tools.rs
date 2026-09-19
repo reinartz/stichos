@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! mcp: MCP (Model Context Protocol) tool definitions.
 //!
 //! Re-exports the C7-compliant tool specification from `spec` module.

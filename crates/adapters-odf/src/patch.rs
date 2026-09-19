@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! ODF patch primitives — byte-level mutations on content.xml / styles.xml.
 //!
 //! This module provides span-based mutation functions for ODF XML documents

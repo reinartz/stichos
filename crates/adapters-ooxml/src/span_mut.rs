@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! Span-based mutation primitives for XML documents.
 //!
 //! Provides right-to-left span mutations with pre-verification: every mutation

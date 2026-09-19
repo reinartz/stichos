@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT OR Apache-2.0
 """ODF category builders (odt/ods/odp): hand-written zip+XML.
 
 odfpy is GPLv2 and deliberately unused (README); the package is assembled with

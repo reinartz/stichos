@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! XSD structural validation for OOXML parts.
 //!
 //! Validates OOXML XML parts against ECMA-376 structural constraints using

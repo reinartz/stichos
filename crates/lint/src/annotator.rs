@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! Annotator: draws numbered lint boxes on rendered pages.
 //!
 //! Per REN-06: every lint diagnostic on a changed page gets a numbered box.

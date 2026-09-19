@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! Diagnostic model: registry, error codes, severity, and error model.
 //!
 //! This module provides a statically-initialized `DiagnosticRegistry` that owns every known
@@ -547,6 +548,53 @@ impl DiagnosticRegistry {
             },
         );
 
+        // GP-A (PDF annotation) codes
+        entries.insert(
+            "GP-A-001",
+            CodeEntry {
+                code: "GP-A-001",
+                severity: Severity::Warning,
+                category: "unsupported",
+                description: "Unsupported annotation subtype '{}' — refusing to process",
+            },
+        );
+        entries.insert(
+            "GP-A-002",
+            CodeEntry {
+                code: "GP-A-002",
+                severity: Severity::Warning,
+                category: "validation",
+                description: "Annotation has no rectangle — cannot render",
+            },
+        );
+        entries.insert(
+            "GP-A-003",
+            CodeEntry {
+                code: "GP-A-003",
+                severity: Severity::Warning,
+                category: "validation",
+                description: "Duplicated annotation ID '{}' — keeping first occurrence",
+            },
+        );
+        entries.insert(
+            "GP-A-004",
+            CodeEntry {
+                code: "GP-A-004",
+                severity: Severity::Warning,
+                category: "validation",
+                description: "Annotation references unknown page {} (max: {})",
+            },
+        );
+        entries.insert(
+            "GP-A-005",
+            CodeEntry {
+                code: "GP-A-005",
+                severity: Severity::Warning,
+                category: "unsupported",
+                description: "XFA/XDP form detected in annotations — unsupported",
+            },
+        );
+
         // ENG (engines) codes
         entries.insert(
             "ENG-E-001",
@@ -899,6 +947,102 @@ impl DiagnosticRegistry {
                 category: "security",
                 description:
                     "macro-bearing format detected ({}) — content analyzed but NOT executed",
+            },
+        );
+
+        // GP-S (signature integrity, C13 — P5-11)
+        entries.insert(
+            "GP-S-001",
+            CodeEntry {
+                code: "GP-S-001",
+                severity: Severity::Error,
+                category: "security",
+                description: "Document has digital signatures — write refused",
+            },
+        );
+        entries.insert(
+            "GP-S-002",
+            CodeEntry {
+                code: "GP-S-002",
+                severity: Severity::Warning,
+                category: "security",
+                description:
+                    "Signature invalidated: mutation applied with explicit policy override",
+            },
+        );
+        entries.insert(
+            "GP-S-003",
+            CodeEntry {
+                code: "GP-S-003",
+                severity: Severity::Info,
+                category: "security",
+                description: "No signatures detected — mutation proceeds normally",
+            },
+        );
+        entries.insert(
+            "GP-S-010",
+            CodeEntry {
+                code: "GP-S-010",
+                severity: Severity::Error,
+                category: "unsupported",
+                description: "PAdES-T/LTV signing not supported (TSA absent)",
+            },
+        );
+        entries.insert(
+            "GP-S-011",
+            CodeEntry {
+                code: "GP-S-011",
+                severity: Severity::Error,
+                category: "unsupported",
+                description:
+                    "CA-signed certificate signing not supported (self-signed only for B-B)",
+            },
+        );
+        entries.insert(
+            "GP-S-012",
+            CodeEntry {
+                code: "GP-S-012",
+                severity: Severity::Error,
+                category: "unsupported",
+                description:
+                    "CRL/OCSP verification not implemented (B-B only checks signature validity)",
+            },
+        );
+        entries.insert(
+            "GP-S-013",
+            CodeEntry {
+                code: "GP-S-013",
+                severity: Severity::Error,
+                category: "unsupported",
+                description: "Smart card / HSM signing not supported (in-memory keys only)",
+            },
+        );
+        entries.insert(
+            "GP-S-014",
+            CodeEntry {
+                code: "GP-S-014",
+                severity: Severity::Error,
+                category: "validation",
+                description:
+                    "PKCS#12 input required (use openssl pkcs12 to convert PEM to PKCS#12)",
+            },
+        );
+        entries.insert(
+            "GP-S-015",
+            CodeEntry {
+                code: "GP-S-015",
+                severity: Severity::Error,
+                category: "validation",
+                description: "Signing refused: /AcroForm already contains /SigFields (conflicting signature fields)",
+            },
+        );
+        entries.insert(
+            "GP-S-016",
+            CodeEntry {
+                code: "GP-S-016",
+                severity: Severity::Error,
+                category: "validation",
+                description: "Signing refused: document already has signatures",
             },
         );
 
@@ -1825,6 +1969,11 @@ mod tests {
             "CLI-E-001",
             "CLI-E-002",
             "MCP-E-001",
+            "GP-A-001",
+            "GP-A-002",
+            "GP-A-003",
+            "GP-A-004",
+            "GP-A-005",
             "MCP-E-002",
         ];
         for code in &required {

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! Coordinate bookkeeping: convert between points (pt) and pixels (px).
 //!
 //! Per concept §10-5: the model returns pixel coords in resized image space.

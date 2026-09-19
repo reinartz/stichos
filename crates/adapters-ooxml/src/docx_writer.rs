@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! Docx patch writer — applies IR patch operations to OOXML documents.
 //!
 //! Routes patch ops to span mutations on document.xml, headers, and footers,

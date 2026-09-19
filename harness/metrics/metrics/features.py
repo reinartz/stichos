@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT OR Apache-2.0
 """Feature counting in OOXML/ODF packages + feature retention (C9 §6).
 
 Read-only streaming over the zip container: parts are parsed with

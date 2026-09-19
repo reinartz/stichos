@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! gp-core: core types, IR, diagnostics, traits, and content-addressed store for stichos.
 //!
 //! This crate defines the intermediate representation (IR) used by all stichos codecs,
@@ -18,6 +19,7 @@ pub mod patch;
 pub mod policy;
 pub mod script;
 pub mod selfupdate;
+pub mod signature;
 pub mod store;
 pub mod testkit;
 pub mod traits;

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 use gp_core::diagnostics::ReadError;
 
 /// Probe for veraPDF availability on the host system.

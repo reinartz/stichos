@@ -8,6 +8,9 @@ Naming: `ADR-NNNN-slug.md` — four digits, zero-padded, numbers never reused. S
 |---|---|---|---|
 | [ADR-0008](ADR-0008-com-logon-agent.md) | MS-Office COM logon agent (D13, ENG-12): deferred COM tier scaffold | **accepted** | 2026-09-16 |
 | [ADR-0007](ADR-0007-review-session.md) | Review session contract (P4-08, C11): review overlay state machine | **accepted** | 2026-09-16 |
+| [ADR-0009](ADR-0009-pdfjs-vendoring.md) | pdf.js vendoring: release pinning, hash manifest, offline serving, text-layer-only scope, XSS containment (D24) | **accepted** | 2026-09-18 |
+| [ADR-0010](ADR-0010-crypto-stack.md) | Pure-Rust crypto stack for PAdES-B-B (D25): RustCrypto crates, feature flags, `-sys` ban | **accepted** | 2026-09-18 |
+| [ADR-0006](ADR-0006-selfupdate-primitive.md) | Selfupdate primitive (DIS-05, G4/S4): `stichos update` opt-in channel | **accepted** | 2026-09-16 |
 | [ADR-0006](ADR-0006-selfupdate-primitive.md) | Selfupdate primitive (DIS-05, G4/S4): `stichos update` opt-in channel | **accepted** | 2026-09-16 |
 | [ADR-0005](ADR-0005-rhai-script-sandbox.md) | Rhai script sandbox contract (D17, API-09, C7): embedded escape hatch | **accepted** | 2026-09-16 |
 | [ADR-0004](ADR-0004-typst-cli-shellout.md) | Typst engine = CLI shell-out (ENG-11, D3): corrected from "pure-Rust lib" | **accepted** (owner 2026-09-16) | 2026-09-15 |

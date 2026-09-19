@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! inspect_region tool: crop and zoom a region from a rendered document.
 //!
 //! This module implements the `inspect_region` CLI command, which:

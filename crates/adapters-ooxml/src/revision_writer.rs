@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! Revision-aware docx patch writer.
 //!
 //! Wraps applied docx edits in w:ins/w:del markup with author/timestamp/paraId.

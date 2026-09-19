@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! Tool specification types for C7 contract compliance.
 
 /// A tool parameter definition.
@@ -761,6 +762,75 @@ pub const TOOLS: &[ToolSpec] = &[
         deprecation_notice: None,
         schema_version: "1.3.0",
     },
+    // P5-06: list_annotations tool (C7 v1.4.0 additive)
+    ToolSpec {
+        name: "list_annotations",
+        description: "List all PDF annotations in a document. Returns annotation IDs, types, pages, contents, and review state.",
+        params: &[
+            ParamDef {
+                name: "path",
+                param_type: ParamType::String,
+                required: true,
+                description: "Path to the PDF document.",
+            },
+        ],
+        idempotent: true,
+        deprecated: false,
+        deprecation_notice: None,
+        schema_version: "1.4.0",
+    },
+    // P5-06: resolve_annotations tool (C7 v1.4.0 additive)
+    ToolSpec {
+        name: "resolve_annotations",
+        description: "Resolve PDF annotations by ID. Applies incremental write-back to mark annotations as resolved.",
+        params: &[
+            ParamDef {
+                name: "path",
+                param_type: ParamType::String,
+                required: true,
+                description: "Path to the PDF document.",
+            },
+            ParamDef {
+                name: "annotation_ids",
+                param_type: ParamType::StringArray,
+                required: true,
+                description: "Annotation IDs to resolve.",
+            },
+            ParamDef {
+                name: "dry_run",
+                param_type: ParamType::Boolean,
+                required: false,
+                description: "Preview changes without writing (default false).",
+            },
+        ],
+        idempotent: false,
+        deprecated: false,
+        deprecation_notice: None,
+        schema_version: "1.4.0",
+    },
+    // P5-13: sign_document tool (C7 v1.5.0 additive — PAdES-B-B sign-later)
+    ToolSpec {
+        name: "sign_document",
+        description: "Sign a PDF document using PAdES-B-B sign-later. Creates a digital signature over the document.",
+        params: &[
+            ParamDef {
+                name: "path",
+                param_type: ParamType::String,
+                required: true,
+                description: "Path to the unsigned PDF document.",
+            },
+            ParamDef {
+                name: "subject",
+                param_type: ParamType::String,
+                required: false,
+                description: "Certificate subject CN (default: 'stichos').",
+            },
+        ],
+        idempotent: false,
+        deprecated: false,
+        deprecation_notice: None,
+        schema_version: "1.5.0",
+    },
 ];
 
 /// Check if a tool name is valid per C7.
@@ -793,12 +863,12 @@ pub fn verify_c7_compliance() -> Result<Vec<&'static str>, String> {
                     errors.push(format!("tool '{}' (1.0.0) is not idempotent", tool.name));
                 }
             }
-            "1.1.0" | "1.2.0" | "1.3.0" => {
-                // v1.1/v1.2/v1.3 additive: non-idempotent tools allowed
+            "1.1.0" | "1.2.0" | "1.3.0" | "1.4.0" | "1.5.0" => {
+                // v1.1/v1.2/v1.3/v1.4/v1.5 additive: non-idempotent tools allowed
             }
             ver => {
                 errors.push(format!(
-                    "tool '{}' has unexpected version '{}', expected '1.0.0', '1.1.0', '1.2.0', or '1.3.0'",
+                    "tool '{}' has unexpected version '{}', expected '1.0.0', '1.1.0', '1.2.0', '1.3.0', '1.4.0', or '1.5.0'",
                     tool.name, ver
                 ));
             }
@@ -818,10 +888,10 @@ mod tests {
     //! Breaking changes require a minor version bump.
     use super::*;
 
-    // test_all_tools_defined — all 20 tools present (19 original + add_comment)
+    // test_all_tools_defined — all 23 tools present (20 original + list_annotations + resolve_annotations + sign_document)
     #[test]
     fn test_all_tools_defined() {
-        assert_eq!(TOOLS.len(), 20, "expected exactly 20 tools");
+        assert_eq!(TOOLS.len(), 23, "expected exactly 23 tools");
         let names: Vec<_> = TOOLS.iter().map(|t| t.name).collect();
         assert!(names.contains(&"inspect_document"));
         assert!(names.contains(&"render_document"));
@@ -843,6 +913,9 @@ mod tests {
         assert!(names.contains(&"accept_revisions"));
         assert!(names.contains(&"reject_revisions"));
         assert!(names.contains(&"add_comment"));
+        assert!(names.contains(&"list_annotations"));
+        assert!(names.contains(&"resolve_annotations"));
+        assert!(names.contains(&"sign_document"));
     }
 
     // test_all_tools_idempotent — read-only tools are idempotent (apply_patch is not)
@@ -866,6 +939,8 @@ mod tests {
                 "list_revisions" | "accept_revisions" | "reject_revisions" | "add_comment" => {
                     "1.3.0"
                 }
+                "list_annotations" | "resolve_annotations" => "1.4.0",
+                "sign_document" => "1.5.0",
                 _ => "1.0.0",
             };
             assert_eq!(
@@ -899,6 +974,9 @@ mod tests {
         assert!(is_valid_tool("accept_revisions"));
         assert!(is_valid_tool("reject_revisions"));
         assert!(is_valid_tool("add_comment"));
+        assert!(is_valid_tool("list_annotations"));
+        assert!(is_valid_tool("resolve_annotations"));
+        assert!(is_valid_tool("sign_document"));
     }
 
     // test_invalid_tool_name — unknown tool returns false
@@ -934,6 +1012,9 @@ mod tests {
         assert!(get_tool("accept_revisions").is_some());
         assert!(get_tool("reject_revisions").is_some());
         assert!(get_tool("add_comment").is_some());
+        assert!(get_tool("list_annotations").is_some());
+        assert!(get_tool("resolve_annotations").is_some());
+        assert!(get_tool("sign_document").is_some());
     }
 
     // test_get_tool_not_found — unknown name returns None
@@ -950,8 +1031,8 @@ mod tests {
         let active = active_tool_names();
         assert_eq!(
             active.len(),
-            20,
-            "all 20 tools should be active (none deprecated)"
+            23,
+            "all 23 tools should be active (none deprecated)"
         );
         for name in &active {
             assert!(
@@ -974,8 +1055,8 @@ mod tests {
         let names = result.unwrap();
         assert_eq!(
             names.len(),
-            20,
-            "all 20 tools should be active after compliance check"
+            23,
+            "all 23 tools should be active after compliance check"
         );
     }
 

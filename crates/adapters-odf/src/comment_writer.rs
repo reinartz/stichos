@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! ODF comment write-back — add comments to odt files.
 //!
 //! Comments are written as <office:annotation> elements in content.xml,

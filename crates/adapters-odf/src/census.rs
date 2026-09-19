@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! ODF census — count elements in ODF content.xml and packages.
 //!
 //! Walks the parsed XML DOM of an ODF document to count structural elements:

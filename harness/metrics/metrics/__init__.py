@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT OR Apache-2.0
 """stichos Phase-0 fidelity metrics — C9 reference implementation.
 
 Public API (C9 §4-§7): ssim_pages, page_count_delta, feature_counts,

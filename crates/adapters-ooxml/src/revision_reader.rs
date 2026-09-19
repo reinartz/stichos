@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! OOXML revision enumeration — walk `w:ins`/`w:del` trees into C11 `Revision` objects.
 //!
 //! Provides `enumerate_revisions()` which depth-first traverses a parsed

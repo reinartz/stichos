@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 // engines: LibreOffice runner with isolated UserInstallation, --convert-to,
 // hard timeout, instance pool, and version parsing.
 //

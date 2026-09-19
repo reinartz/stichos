@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! OOXML revision accept/reject executor — span-surgical engine.
 //!
 //! Provides surgical XML patching for revision accept/reject operations on

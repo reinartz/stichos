@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 // adapters-pdf: XMP metadata extraction from PDF.
 //
 // Parses the /Metadata stream from the PDF catalog to extract XMP (Extensible
@@ -319,6 +320,7 @@ mod tests {
             metadata: None,
             has_encryption: false,
             diagnostics: Vec::new(),
+            signatures: Vec::new(),
         }
     }
 

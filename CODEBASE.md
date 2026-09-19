@@ -26,7 +26,7 @@ crates/
                               #   diff, annotator, a11y (veraPDF), perf, coords, cropper
   mcp/                        # MCP protocol: spec, tool registry, dispatch, jsonrpc,
                               #   server, transport, http (protocol layer only)
-  cli/                        # the `stichos` binary — 18 verbs, wires everything together
+  cli/                        # the `stichos` binary — 20 verbs, wires everything together
   adapters-ooxfuzz/           # fuzzing harness (dev-only): read + write-path fuzz corpora
 ```
 
@@ -178,18 +178,18 @@ MCP (Model Context Protocol) server. Protocol layer only — wiring lives in `cl
 | Module | Purpose |
 |--------|---------|
 | `spec` | Tool specification types (C7 compliance; per-tool `schema_version`) |
-| `tools` | Tool registry (19 specs) + validation |
+| `tools` | Tool registry (22 specs) + validation |
 | `dispatch` | Tool handler trait + closure adapter |
 | `jsonrpc` | JSON-RPC protocol |
 | `server` | MCP server implementation |
 | `transport` | Transport modes (stdio) |
 | `http` | HTTP transport (session store, `POST /` routing) |
 
-MCP tool surface (C7 v1.3.0, 19 specs): `inspect_document`, `render_document`,
+MCP tool surface (C7 v1.4.0, 22 specs): `inspect_document`, `render_document`,
 `inspect_region`, `diff_documents`, `doctor`, `serve` (v1.0.0); `apply_patch`, `edit_text`,
 `edit_cell`, `edit_structure`, `annotate_pages`, `revert_document`, `journal` (v1.1.0);
 `create_document`, `script_tool`, `check_update` (v1.2.0); `list_revisions`, `accept_revisions`,
-`reject_revisions` (v1.3.0).
+`reject_revisions` (v1.3.0); `list_annotations`, `resolve_annotations` (v1.4.0).
 
 ### cli
 
@@ -197,18 +197,19 @@ The `stichos` binary. Entry point, clap parsing, subcommand dispatch, engine/ada
 
 | Module | Purpose |
 |--------|---------|
-| `main` | CLI entry, 18-verb dispatch |
+| `main` | CLI entry, 20-verb dispatch |
 | `inspect` / `region` / `render` / `diff_tool` / `doctor_tool` | Read-side verbs |
 | `apply_tool` / `sugar_edits` | `apply`, `edit` — surgical edits + sugar (tracked revisions default) |
 | `journal_tool` | `journal` / `revert` |
+| `annots` | `annots list` / `annots resolve` — PDF annotation enumeration and write-back |
 | `perf_tool` | `perf` — OPS-02 latency gate |
 | `script_tool` | `script` — sandboxed Rhai runner |
 | `budget_enforcer` | INV-2 / C8 payload budget enforcement |
 | (verbs in `main.rs`) | `serve`, `schema`, `create`, `update` |
 
-Subcommands (18): `inspect`, `region`, `render`, `diff`, `doctor`, `serve`, `schema`, `apply`,
+Subcommands (20): `inspect`, `region`, `render`, `diff`, `doctor`, `serve`, `schema`, `apply`,
 `edit`, `annotate`, `revert`, `journal`, `perf`, `create`, `script`, `update`, `revisions`,
-`review`.
+`annots`, `review`, `open`.
 
 ### adapters-ooxfuzz
 

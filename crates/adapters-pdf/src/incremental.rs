@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! Append-only PDF incremental writer — produces byte-identical original prefix.
 //!
 //! This module provides `IncrementalWriter`, which takes an existing PDF and applies
@@ -539,6 +540,71 @@ fn scan_next_integer(data: &[u8], start: usize) -> Option<i64> {
     std::str::from_utf8(&data[s..i])
         .ok()
         .and_then(|s| s.parse::<i64>().ok())
+}
+
+/// Convert low-level signature detections to IR-format SignatureInfo.
+///
+/// This is a public helper for the parser module (C13 — P5-11).
+/// It takes the raw bytes and produces `gp_core::ir::SignatureInfo` entries.
+pub fn detect_signatures_raw(data: &[u8]) -> Vec<gp_core::ir::SignatureInfo> {
+    use gp_core::ir::SignatureInfo as IrSignatureInfo;
+
+    let raw = match detect_signatures(data) {
+        Some(r) => r,
+        None => return Vec::new(),
+    };
+
+    raw.iter()
+        .map(|loc| {
+            let (sig_type, location, confidence) = match loc.kind.as_str() {
+                "Adobe.PPKMS" => (
+                    "pdf-adobe".to_string(),
+                    "Adobe.PPKMS filter".to_string(),
+                    0.95,
+                ),
+                "adbe.pkcs7.detached" => (
+                    "pdf-pades".to_string(),
+                    "adbe.pkcs7.detached subfilter".to_string(),
+                    0.95,
+                ),
+                "adbe.x509.rsa" => (
+                    "pdf-pades".to_string(),
+                    "adbe.x509.rsa subfilter".to_string(),
+                    0.90,
+                ),
+                "ETSI.CAdES.detached" => (
+                    "pdf-pades".to_string(),
+                    "ETSI.CAdES.detached subfilter".to_string(),
+                    0.95,
+                ),
+                s if s.starts_with("SigFlags=") => {
+                    let val: String = s.chars().skip(9).collect();
+                    ("pdf-pades".to_string(), format!("SigFlags={}", val), 0.80)
+                }
+                "/Type /Sig" => (
+                    "pdf-pades".to_string(),
+                    "/Type /Sig annotation".to_string(),
+                    0.75,
+                ),
+                "/Type/Sig" => (
+                    "pdf-pades".to_string(),
+                    "/Type/Sig annotation".to_string(),
+                    0.75,
+                ),
+                _ => ("unknown".to_string(), loc.kind.clone(), 0.50),
+            };
+
+            IrSignatureInfo {
+                sig_type,
+                location,
+                confidence,
+                subject: None,
+                digest_algorithm: None,
+                byte_offset: Some(loc.offset),
+                byte_end: None,
+            }
+        })
+        .collect()
 }
 
 // ---------------------------------------------------------------------------

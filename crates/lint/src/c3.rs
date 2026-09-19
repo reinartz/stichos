@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! C3 v1 freeze: verify every diagnostic code used in the codebase is registered.
 //!
 //! C3 contract: `docs/contracts/C3.md`

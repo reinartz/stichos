@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT OR Apache-2.0
 """Text-extraction F1 (C9 §7).
 
 Tokenization per C9: NFC-normalize, Unicode whitespace (incl. U+00A0)

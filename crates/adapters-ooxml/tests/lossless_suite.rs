@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 /// Lossless proof suite for OOXML revisions.
 ///
 /// Two-tier assertions:

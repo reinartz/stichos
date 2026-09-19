@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! PDF-aware patch executor that implements the `PatchExecutor` trait.
 //!
 //! Routes PDF patch operations through the incremental writer.

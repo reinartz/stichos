@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! MS Office engine — compile-only skeleton for COM interop.
 //!
 //! This module provides the `MsOfficeEngine` implementation for Windows COM automation.

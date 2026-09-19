@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! Payload budgeter: enforces Claude vision constraints on image payloads.
 //!
 //! Per C8 contract: ≤20 image blocks, pre-resized to known sizes,

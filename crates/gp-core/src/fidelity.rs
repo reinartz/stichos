@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! Fidelity budget: what a read operation cost in terms of feature representation.
 //!
 //! Every read response carries a `FidelityBudget` — an accounting of what was faithfully

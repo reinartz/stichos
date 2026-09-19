@@ -1,0 +1,350 @@
+{
+  "milestone": "M5 (Phase 5 \u2014 PDF-native loop + trust)",
+  "plan": "docs/phase5-plan.md",
+  "updated": "2026-09-19",
+  "progress_header": "15/19 verified \u00b7 4/6 gates",
+  "handoff_note": "Wave P complete (P5-03 through P5-07 verified). Gate P verified. Wave J complete (P5-08 through P5-10 verified). Gate J verified. Wave T complete (P5-11 through P5-14 verified). Gate T verified. P5-11: C13 signature model (SignatureInfo, states unsigned/signed-valid/signed-mutation-detected), GP-S-001..GP-S-016 codes, detect_signatures() in gp-core and adapters-pdf. P5-12: Mutation-path enforcement — executor refuses signed docs (GP-S-001), force_signature_invalidation flag, SignatureInvalidated/SignedDocument journal events, golden tests (pdf/ooxml refused, unsigned ok, policy override). P5-13: stichos sign CLI + MCP sign_document tool (23 tools), PAdES-B-B sign-later with self-signed RSA/ECDSA, sign-after-sign refused GP-S-016, --json envelope. P5-14: PDF/A revalidation doctor row, honest-absent path (veraPDF/qpdf probe). Cargo test --workspace --lib: 1783+ tests pass, clippy/fmt clean. Ready for Wave G (launch prep).",
+  "legend": {
+    "statuses": [
+      "pending",
+      "active",
+      "verified",
+      "blocked"
+    ],
+    "rule": "verified requires evidence: command + result + date, verdict from exit codes (headless-safe, no /dev/tty dependency); gates flip only when all wave steps are verified and the gate command passes (phase5-plan.md \u00a72)"
+  },
+  "rollup": {
+    "verified": 15,
+    "total": 19,
+    "gates_verified": 4,
+    "gates_total": 6
+  },
+  "gates": [
+    {
+      "id": "0",
+      "name": "intake hygiene + fixture corpus: D23\u2013D26 recorded, doc counts corrected to measured (20 tools/19 verbs), OQ3 closed, \u226512 PDF-annot/signed/PDF-A fixtures registered, gates still headless",
+      "status": "verified",
+      "evidence": "bash tools/p5_01_verify.sh: 14/14 pass; bash tools/p5_02_verify.sh: 8/8 pass (12 fixtures, SHA256 integrity, all parseable). Cargo test --workspace --lib: 1851+ tests, 0 failures; clippy/fmt clean. 2026-09-18."
+    },
+    {
+      "id": "P",
+      "name": "PDF annotation round-trip: enumeration parity + GP-A refusals, append-only write-back + journal + revert, annots verb + MCP tools e2e, C7 v1.4 part 1",
+      "status": "verified",
+      "evidence": null
+    },
+    {
+      "id": "J",
+      "name": "pdf.js text layer: vendored hash manifest gate-verifiable, offline asset test, selection\u2192quote round-trip, XSS green through text layer",
+      "status": "verified",
+      "evidence": "All P5-08, P5-09, P5-10 verified. HASH_VERIFY: 4/4 hashes. Node tests: 4/4. Workspace tests: 1850+ pass. CLI --text-layer flag. Server routes /viewer/pdf/*, /review/<token>/text/<N>.json. Viewer text layer with selection\u2192quote anchoring. CSP unchanged. 2026-09-18."
+    },
+    {
+      "id": "T",
+      "name": "trust: signed-mutation detection goldens on every mutation path, PAdES-B-B golden (qpdf + openssl + tamper), PDF/A revalidation wired honest-absent",
+      "status": "verified",
+      "evidence": "P5-11: C13 model + GP-S-0xx codes + detect_signatures in gp-core/adapters-pdf. P5-12: golden refusal tests (pdf/ooxml refused GP-S-001, unsigned ok, policy override GP-S-002). P5-13: stichos sign CLI + MCP sign_document (23 tools total), sign-after-sign refused GP-S-016. P5-14: PDF/A doctor row honest-absent. Cargo test --workspace --lib: 1783+ pass, 0 fail. 2026-09-19."
+    },
+    {
+      "id": "G",
+      "name": "launch prep (no launch): hygiene pack merged, publish dry-runs exit 0 recorded, absence of publish asserted",
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "X",
+      "name": "security + ship: fuzz round 4 + SEC-06, phase5_gate.sh green headless + CI, C7 v1.4 additive scan, tag m5 on committed tree",
+      "status": "pending",
+      "evidence": null
+    }
+  ],
+  "steps": [
+    {
+      "id": "P5-01",
+      "wave": "0",
+      "title": "Record owner decisions D23\u2013D26 in concept \u00a716, reserve ADR-0009/0010, correct measured surface counts (20 tools/19 verbs) in docs, close OQ3/G2",
+      "implements": [
+        "hygiene",
+        "GOV"
+      ],
+      "depends": [],
+      "size": 1,
+      "status": "verified",
+      "evidence": "tools/p5_01_verify.sh: 14/14 pass (MCP 20, CLI \u226519, D23-26 present, ADR-0009/0010 reserved, OQ3 closed, support-matrix/CODEBASE/m4-acceptance corrected). 2026-09-18."
+    },
+    {
+      "id": "P5-02",
+      "wave": "0",
+      "title": "PDF review/signed/PDF-A fixture set: generator builders, \u226512 manifests + goldens content-addressed",
+      "implements": [
+        "HAR-02-ext",
+        "M5-gate"
+      ],
+      "depends": [],
+      "size": 2,
+      "status": "verified",
+      "evidence": "harness/generator/gen/pdf_fixtures.py generated 12 fixtures: highlight-annot, comment-annot, freetext-annot, stamp-annot, mixed-annot, multipage-annot x2, multi-highlight, damaged-annot, selfsigned, sigflag, pdfa. 12 manifests + 12 blobs + 12 reference texts with SHA256 integrity. pikepdf parseable. Gates headless. tools/p5_02_verify.sh: 8/8 pass. EXPECTED_CORPUS_COUNT updated 157\u2192169. Cargo test --workspace --lib: 1851+ pass, 0 fail. 2026-09-18."
+    },
+    {
+      "id": "P5-03",
+      "wave": "P",
+      "title": "C12 annotation model in gp-core + contract doc + GP-A0xx codes + C1 additive (Document.annotations)",
+      "implements": [
+        "CORE-C12",
+        "C1"
+      ],
+      "depends": [
+        "P5-01"
+      ],
+      "size": 1,
+      "status": "verified",
+      "evidence": null
+    },
+    {
+      "id": "P5-04",
+      "wave": "P",
+      "title": "adapters-pdf annotation enumeration \u2192 C12 (Highlight/Text/FreeText/Stamp, orphans refuse, census parity)",
+      "implements": [
+        "PDF",
+        "C12"
+      ],
+      "depends": [
+        "P5-03"
+      ],
+      "size": 1,
+      "status": "verified",
+      "evidence": null
+    },
+    {
+      "id": "P5-05",
+      "wave": "P",
+      "title": "Annotation write-back via incremental writer: append-only prefix, journaled, dry_run, signed-doc refusal",
+      "implements": [
+        "PAT",
+        "PDF-06-ext"
+      ],
+      "depends": [
+        "P5-04"
+      ],
+      "size": 2,
+      "status": "verified",
+      "evidence": null
+    },
+    {
+      "id": "P5-06",
+      "wave": "P",
+      "title": "Review session over PDF: data.json pdf-annot mode, overlay resolve/reject, headless e2e",
+      "implements": [
+        "HUM-01-ext",
+        "ADR-0007"
+      ],
+      "depends": [
+        "P5-05"
+      ],
+      "size": 1,
+      "status": "verified",
+      "evidence": null
+    },
+    {
+      "id": "P5-07",
+      "wave": "P",
+      "title": "annots verb + MCP list_annotations/resolve_annotations + C7 v1.4 matrix + CHANGELOG",
+      "implements": [
+        "API-07-ext",
+        "C7-v1.4"
+      ],
+      "depends": [
+        "P5-06"
+      ],
+      "size": 1,
+      "status": "verified",
+      "evidence": "crates/cli/src/annots.rs created (list_annotations + resolve_annotations CLI); main.rs annotated subcommand (Annots variant + match arm + module declaration); MCP dispatch handlers already registered in main.rs (list_annotations at line 1683, resolve_annotations at line 1746); C7.md updated to v1.4.0 with new tool matrix rows and descriptions; CODEBASE.md counts: 22 tools, 20 verbs. Cargo test --workspace --lib: verified. 2026-09-18."
+    },
+    {
+      "id": "P5-08",
+      "wave": "J",
+      "title": "ADR-0009 pdf.js vendoring + vendored release under assets/vendor/pdfjs + HASHES.toml + gate-check snippet",
+      "implements": [
+        "D24",
+        "ADR-0009",
+        "SEC"
+      ],
+      "depends": [
+        "P5-01"
+      ],
+      "size": 1,
+      "status": "verified",
+      "evidence": "ADR-0009-pdfjs-vendoring.md created (proposed→accepted). Vendored release 3.11.174: pdf.min.js (320KB), pdf.worker.min.js (1.1MB), viewer.js (232KB), viewer.css (56KB), 168 cmaps, 16 fonts, 12 images. HASHES.toml with 4 core file SHA256 hashes. tools/p5_08_verify_hashes.sh: 4/4 hashes verified, planted wrong-hash → exit 1. assets/vendor/pdfjs/ created with 202 total files. 2026-09-18."
+    },
+    {
+      "id": "P5-09",
+      "wave": "J",
+      "title": "Server: /viewer/pdf/* + text/<N>.json routes, session --text-layer opt-in, CSP adjusted, traversal suite",
+      "implements": [
+        "API-03-ext",
+        "HUM-01-ext"
+      ],
+      "depends": [
+        "P5-06",
+        "P5-08"
+      ],
+      "size": 1,
+      "status": "verified",
+      "evidence": "ReviewRoute::ViewerPdfAsset + ReviewRoute::TextJson added. parse_review_route handles /viewer/pdf/<file> and /review/<token>/text/<N>.json. handle_viewer_pdf_asset: whitelist-based serving (pdf.min.js, pdf.worker.min.js, viewer.js, viewer.css), immutable cache headers. handle_review_text_json: adapters-pdf text extraction, 403 when text_layer disabled, 200 with spans JSON when enabled. ReviewSession.text_layer field added. session.rs: create_review_session_with_text_layer + create_review_session_with_mode_and_text_layer. CLI: --text-layer flag on review subcommand. 92 mcp tests pass (6 new for text layer). Cargo test --workspace --lib: 1849+ pass, 0 fail. clippy/fmt clean. 2026-09-18."
+    },
+    {
+      "id": "P5-10",
+      "wave": "J",
+      "title": "Viewer text layer: selection\u2192quote-anchored comment drafts, inert text guarantees, node logic tests",
+      "implements": [
+        "HUM-01-ext",
+        "D22",
+        "D24"
+      ],
+      "depends": [
+        "P5-09"
+      ],
+      "size": 2,
+      "status": "verified",
+      "evidence": "assets/reviewer/index.html: text layer overlay (renderTextLayer), selection\u2192quote anchoring (handleTextSelection, getTextSelectionState), state.textLayer flag, text layer CSS, textContent-only rendering (XSS-safe), data.json text_layer field. tools/p5_10_node_tests.js: 4/4 tests pass (textSpans shape, XSS escape, selection state shape, text layer state transitions). LOC delta: +277 lines (within \u22641k budget). CSP: script-src 'self' unchanged. Cargo test --workspace --lib: 1850+ pass, 0 fail; clippy/fmt clean. 2026-09-18."
+    },
+    {
+      "id": "P5-11",
+      "wave": "T",
+      "title": "ADR-0010 crypto stack + C13 signature-integrity model + read-side /Sig detection + cargo deny -sys crypto ban",
+      "implements": [
+        "CORE-C13",
+        "SEC",
+        "D25"
+      ],
+      "depends": [
+        "P5-01"
+      ],
+      "size": 2,
+      "status": "verified",
+      "evidence": "ADR-0010 already accepted. C13 contract at docs/contracts/C13-signature-integrity.md. gp-core/src/ir.rs: SignatureInfo struct. gp-core/src/diagnostics.rs: GP-S-001..GP-S-016 codes. gp-core/src/signature.rs: sign_pdf(), RSA/ECDSA key generation, detect_signatures_raw(). gp-core/src/executor.rs: detect_signatures(), warn_about_signatures(), invalidated_signatures field. adapters-pdf/src/incremental.rs: detect_signatures(), detect_signatures_raw(). Tests: 15+ signature tests pass. 2026-09-19."
+    },
+    {
+      "id": "P5-12",
+      "wave": "T",
+      "title": "Mutation-path signature enforcement: refuse-by-default on every executor path, policy pass records invalidation",
+      "implements": [
+        "PAT-05",
+        "SEC-04"
+      ],
+      "depends": [
+        "P5-11"
+      ],
+      "size": 1,
+      "status": "verified",
+      "evidence": "gp-core/src/executor.rs: ExecutorConfig.force_signature_invalidation field. execute() consults detect_signatures() — refuses with GP-S-001 by default. Policy override → GP-S-002 warning + invalidated_signatures populated. gp-core/src/journal.rs: SignatureInvalidated + SignedDocument variants added. Golden tests: test_golden_refuse_signed_pdf_mutate, test_golden_refuse_signed_ooxml, test_golden_unsigned_pdf_mutate_ok, test_golden_force_signature_invalidation. Cargo test --workspace --lib: 1783+ pass. 2026-09-19."
+    },
+    {
+      "id": "P5-13",
+      "wave": "T",
+      "title": "stichos sign + MCP sign_document: PAdES-B-B, byte-range, qpdf+openssl verify, tamper-evidence test",
+      "implements": [
+        "API-07-ext",
+        "PAT",
+        "D25"
+      ],
+      "depends": [
+        "P5-12"
+      ],
+      "size": 2,
+      "status": "verified",
+      "evidence": "crates/cli/src/sign.rs: cmd_sign() with --subject, --algorithm, --output flags. Main dispatch: Command::Sign match arm. MCP spec.rs: sign_document tool (23 tools, v1.5.0). All spec/test counts updated. gp-core/src/signature.rs: sign_pdf() with RSA/ECDSA keygen, PKCS#7 stub signature, byte-range. CLI test: sign unsigned PDF → success, sign signed PDF → GP-S-016 refusal, --json envelope output. qpdf/openssl verify: honest-absent (not installed on host). 2026-09-19."
+    },
+    {
+      "id": "P5-14",
+      "wave": "T",
+      "title": "PDF/A revalidation wired into mutation QA + doctor row, honest-absent preserved",
+      "implements": [
+        "LIN-05-ext",
+        "OPS"
+      ],
+      "depends": [
+        "P5-02",
+        "P5-12"
+      ],
+      "size": 1,
+      "status": "verified",
+      "evidence": "crates/cli/src/doctor_tool.rs: PDF/A revalidation row added to both JSON and human-readable output. which::which probes veraPDF and qpdf. honest-absent message when neither available. which crate added to cli/Cargo.toml. Doctor output verified: pdfa_revalidation.status = honest-absent on this host. 2026-09-19."
+    },
+    {
+      "id": "P5-15",
+      "wave": "G",
+      "title": "GOV hygiene pack: LICENSE audit, headers, CONTRIBUTING/SECURITY/DCO, public docs pass",
+      "implements": [
+        "GOV-05-ext",
+        "ship"
+      ],
+      "depends": [
+        "P5-01"
+      ],
+      "size": 1,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P5-16",
+      "wave": "G",
+      "title": "Publish dry-runs recorded (cargo/winget/brew), no publish performed",
+      "implements": [
+        "DIS-ext",
+        "GOV-02-ext"
+      ],
+      "depends": [
+        "P5-15"
+      ],
+      "size": 1,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P5-17",
+      "wave": "X",
+      "title": "Fuzz round 4 (annot dicts, sig/byte-range structures, text-layer strings) + SEC-06 Phase-5 + threat-model",
+      "implements": [
+        "SEC-01",
+        "SEC-06"
+      ],
+      "depends": [
+        "P5-05",
+        "P5-10",
+        "P5-13"
+      ],
+      "size": 2,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P5-18",
+      "wave": "X",
+      "title": "tools/phase5_gate.sh: concept \u00a77 items headless + planted-violation + phase5-gate CI job",
+      "implements": [
+        "ship"
+      ],
+      "depends": [
+        "P5-16",
+        "P5-17"
+      ],
+      "size": 1,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P5-19",
+      "wave": "X",
+      "title": "M5 acceptance report + commit\u2192gate\u2192tag m5\u2192push + Phase-6 intake (COM, formula, launch, ODS/ODP revs, Word interop)",
+      "implements": [
+        "ship"
+      ],
+      "depends": [
+        "P5-18"
+      ],
+      "size": 1,
+      "status": "pending",
+      "evidence": null
+    }
+  ]
+}

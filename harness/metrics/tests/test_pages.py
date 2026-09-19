@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT OR Apache-2.0
 import pytest
 
 from metrics import MetricsError, page_count_delta

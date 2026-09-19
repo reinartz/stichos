@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! Markdown-to-IR converter for create-as-revisions (P3-22).
 //!
 //! Parses CommonMark-compatible markdown and produces a gp-core `Document` IR.

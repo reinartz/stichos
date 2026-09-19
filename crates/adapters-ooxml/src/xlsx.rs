@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! adapters-ooxml: xlsx → gp-core IR (sheets, cells, formulas, cached values, shared strings, styles, merges).
 //!
 //! Walks a `.xlsx` OPC package, extracts `xl/workbook.xml`, `xl/sharedStrings.xml`,

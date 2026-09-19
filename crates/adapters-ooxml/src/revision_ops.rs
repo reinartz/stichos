@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! Bulk + filtered revision operations with atomicity and policy gates.
 //!
 //! Provides `RevisionFilter` for selecting revisions by author, date, kind, or ID.

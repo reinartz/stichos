@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! Probe framework: real conversion tests to verify engine capabilities.
 //!
 //! This module provides a probe system that exercises engine conversion

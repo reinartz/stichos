@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! PPTX patch writer — applies IR patch operations to OOXML presentations.
 //!
 //! Routes patch ops to span mutations on slide XML, handles ReplaceText on shape text,

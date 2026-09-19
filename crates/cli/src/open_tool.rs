@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! `stichos open` — resolve platform handler, open current store version
 //! (or `--version <journal-id>` materialized copy), `--app libreoffice|default`,
 //! probe + doctor handoff row, never blocks.

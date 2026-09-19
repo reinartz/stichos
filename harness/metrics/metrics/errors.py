@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT OR Apache-2.0
 """Machine-readable error type shared by the metrics API and CLI."""
 
 

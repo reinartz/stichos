@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! Script tool: execute a sandboxed Rhai script against the document store.
 
 use anyhow::{bail, Context, Result};

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! stichos — proof before publish.
 //!
 //! CLI binary with verbs: inspect, render, diff, doctor, serve, apply.
@@ -7,6 +8,7 @@ use anyhow::{bail, Context, Result};
 use clap::{Parser, Subcommand};
 use mcp::dispatch::{self, BoxedHandler};
 
+mod annots;
 mod apply_tool;
 mod budget_enforcer;
 mod diff_tool;
@@ -20,6 +22,7 @@ mod render;
 mod review_tool;
 mod revisions_tool;
 mod script_tool;
+mod sign;
 mod sugar_edits;
 
 #[derive(Parser)]
@@ -298,6 +301,12 @@ enum Command {
         #[command(subcommand)]
         command: revisions_tool::RevisionsCommand,
     },
+    /// List or resolve annotations in a PDF document.
+    Annots {
+        /// Subcommand: list or resolve.
+        #[command(subcommand)]
+        command: annots::AnnotsCommand,
+    },
     /// Start a review session for a document.
     Review {
         /// Path to the document file.
@@ -311,6 +320,9 @@ enum Command {
         /// List active review sessions.
         #[arg(long)]
         list: bool,
+        /// Enable text layer (pdf.js text extraction for PDF review sessions).
+        #[arg(long)]
+        text_layer: bool,
     },
     /// Open a document in the default application.
     Open {
@@ -329,6 +341,21 @@ enum Command {
         /// Output as JSON.
         #[arg(long, short = 'j')]
         json: bool,
+    },
+    /// Sign a PDF document (PAdES-B-B sign-later, C13).
+    Sign {
+        /// Path to the unsigned PDF document.
+        #[arg()]
+        path: std::path::PathBuf,
+        /// Certificate subject CN (default: "stichos").
+        #[arg(long)]
+        subject: Option<String>,
+        /// Signature algorithm: "rsa" or "ecdsa" (default: rsa).
+        #[arg(long)]
+        algorithm: Option<String>,
+        /// Output path (default: input.signed.pdf).
+        #[arg(long, short = 'o')]
+        output: Option<std::path::PathBuf>,
     },
 }
 
@@ -513,13 +540,17 @@ async fn main() -> Result<()> {
         Command::Revisions { command } => {
             revisions_tool::handle_revisions(command).await?;
         }
+        Command::Annots { command } => {
+            annots::handle_annots(command).await?;
+        }
         Command::Review {
             path,
             no_browser,
             close,
             list,
+            text_layer,
         } => {
-            cmd_review(&path, no_browser, close.as_deref(), list).await?;
+            cmd_review(&path, no_browser, close.as_deref(), list, text_layer).await?;
         }
         Command::Open {
             path,
@@ -529,6 +560,14 @@ async fn main() -> Result<()> {
             json,
         } => {
             cmd_open(&path, version.as_deref(), app.as_deref(), no_browser, json)?;
+        }
+        Command::Sign {
+            path,
+            subject,
+            algorithm,
+            output,
+        } => {
+            sign::cmd_sign(&path, subject, algorithm, output)?;
         }
     }
 
@@ -1680,6 +1719,126 @@ async fn cmd_serve(transport: &str, port: u16) -> Result<()> {
 
                     result
                 }
+                "list_annotations" => {
+                    let path = args["path"]
+                        .as_str()
+                        .ok_or_else(|| "missing required field: path".to_string())?
+                        .to_string();
+
+                    let bytes = std::fs::read(&path)
+                        .map_err(|e| format!("failed to read {}: {}", path, e))?;
+                    let mut doc =
+                        adapters_pdf::parser::parse_pdf_data(&bytes).map_err(|diags| {
+                            let msgs: Vec<_> = diags.iter().map(|d| d.message.clone()).collect();
+                            msgs.join("; ")
+                        })?;
+                    let annotations = adapters_pdf::annot::extract_annotations(&mut doc);
+
+                    Ok(serde_json::json!({
+                        "tool": "list_annotations",
+                        "path": path,
+                        "annotation_count": annotations.len(),
+                        "annotations": annotations.iter().map(|a| {
+                            serde_json::json!({
+                                "id": a.id.to_string(),
+                                "annotation_type": a.annotation_type,
+                                "page_number": a.page_number,
+                                "kind": match &a.kind {
+                                    Some(k) => match k {
+                                        gp_core::ir::AnnotationKind::Highlight => Some("highlight"),
+                                        gp_core::ir::AnnotationKind::Text => Some("text"),
+                                        gp_core::ir::AnnotationKind::FreeText => Some("freetext"),
+                                        gp_core::ir::AnnotationKind::Stamp => Some("stamp"),
+                                        gp_core::ir::AnnotationKind::Line => Some("line"),
+                                        gp_core::ir::AnnotationKind::Square => Some("square"),
+                                        gp_core::ir::AnnotationKind::Circle => Some("circle"),
+                                        gp_core::ir::AnnotationKind::Underline => Some("underline"),
+                                        gp_core::ir::AnnotationKind::StrikeOut => Some("strikeout"),
+                                        gp_core::ir::AnnotationKind::Squiggly => Some("squiggly"),
+                                        gp_core::ir::AnnotationKind::Caret => Some("caret"),
+                                        gp_core::ir::AnnotationKind::Ink => Some("ink"),
+                                        gp_core::ir::AnnotationKind::Popup => Some("popup"),
+                                        gp_core::ir::AnnotationKind::FileAttachment => Some("fileattachment"),
+                                        gp_core::ir::AnnotationKind::Sound => Some("sound"),
+                                        gp_core::ir::AnnotationKind::Movie => Some("movie"),
+                                        gp_core::ir::AnnotationKind::Widget => Some("widget"),
+                                        gp_core::ir::AnnotationKind::Screen => Some("screen"),
+                                        gp_core::ir::AnnotationKind::PrinterMark => Some("printermark"),
+                                        gp_core::ir::AnnotationKind::TrapNet => Some("trapnet"),
+                                        gp_core::ir::AnnotationKind::Watermark => Some("watermark"),
+                                    },
+                                    None => None,
+                                },
+                                "contents": a.contents.clone(),
+                                "author": a.author.clone(),
+                                "date": a.date.clone(),
+                                "rect": a.rect,
+                                "state": a.state.map(|s| match s {
+                                    gp_core::ir::AnnotationState::Applied => "applied",
+                                    gp_core::ir::AnnotationState::Resolved => "resolved",
+                                    gp_core::ir::AnnotationState::Rejected => "rejected",
+                                }),
+                            })
+                        }).collect::<Vec<_>>(),
+                    }))
+                }
+                "resolve_annotations" => {
+                    let path = args["path"]
+                        .as_str()
+                        .ok_or_else(|| "missing required field: path".to_string())?
+                        .to_string();
+                    let annotation_ids: Vec<String> = args["annotation_ids"]
+                        .as_array()
+                        .map(|a| {
+                            a.iter()
+                                .filter_map(|v| v.as_str().map(String::from))
+                                .collect()
+                        })
+                        .unwrap_or_default();
+                    let dry_run = args["dry_run"].as_bool().unwrap_or(false);
+
+                    let bytes = std::fs::read(&path)
+                        .map_err(|e| format!("failed to read {}: {}", path, e))?;
+
+                    // Parse existing annotations to get the full list
+                    let mut doc =
+                        adapters_pdf::parser::parse_pdf_data(&bytes).map_err(|diags| {
+                            let msgs: Vec<_> = diags.iter().map(|d| d.message.clone()).collect();
+                            msgs.join("; ")
+                        })?;
+                    let annotations = adapters_pdf::annot::extract_annotations(&mut doc);
+
+                    // Build ops for resolve
+                    let ops: Vec<adapters_pdf::annot_write::AnnotOp> = annotation_ids
+                        .iter()
+                        .map(|id| adapters_pdf::annot_write::AnnotOp::Resolve { id: id.clone() })
+                        .collect();
+
+                    let result = adapters_pdf::annot_write::apply_annot_ops(
+                        &bytes,
+                        &annotations,
+                        &ops,
+                        dry_run,
+                        false, // force_signature_invalidation: default to false
+                    )
+                    .map_err(|diags| {
+                        let msgs: Vec<_> = diags.iter().map(|d| d.message.clone()).collect();
+                        msgs.join("; ")
+                    })?;
+
+                    Ok(serde_json::json!({
+                        "tool": "resolve_annotations",
+                        "path": path,
+                        "annotation_ids": annotation_ids,
+                        "accepted": result.accepted,
+                        "annotations_changed": result.annotations_changed,
+                        "byte_diff": {
+                            "original_size": result.byte_diff.original_size,
+                            "output_size": result.byte_diff.output_size,
+                        },
+                        "dry_run": dry_run,
+                    }))
+                }
                 _ => Err(format!("unknown tool: {}", name)),
             }
         }
@@ -1892,6 +2051,7 @@ async fn cmd_review(
     no_browser: bool,
     close_token: Option<&str>,
     list_sessions: bool,
+    text_layer: bool,
 ) -> Result<()> {
     let path_str = path.to_string_lossy().to_string();
 
@@ -1917,16 +2077,93 @@ async fn cmd_review(
     let ext = path_str.to_lowercase();
     let revision_snapshot = if ext.ends_with(".docx") {
         revisions_tool::list_revisions_docx(&bytes, None)?
+    } else if ext.ends_with(".pdf") {
+        // PDF: enumerate annotations
+        let mut doc = adapters_pdf::parser::parse_pdf_data(&bytes).map_err(|diags| {
+            anyhow::anyhow!(
+                "failed to parse PDF {}: diagnostics: {}",
+                path_str,
+                diags
+                    .iter()
+                    .map(|d| d.message.clone())
+                    .collect::<Vec<_>>()
+                    .join("; ")
+            )
+        })?;
+        let annotations = adapters_pdf::annot::extract_annotations(&mut doc);
+        annotations
+            .iter()
+            .map(|a| {
+                serde_json::json!({
+                    "id": a.id.to_string(),
+                    "annotation_type": a.annotation_type,
+                    "page_number": a.page_number,
+                    "kind": a.kind.as_ref().map(|k| match k {
+                        gp_core::ir::AnnotationKind::Highlight => "highlight",
+                        gp_core::ir::AnnotationKind::Text => "text",
+                        gp_core::ir::AnnotationKind::FreeText => "freetext",
+                        gp_core::ir::AnnotationKind::Stamp => "stamp",
+                        gp_core::ir::AnnotationKind::Line => "line",
+                        gp_core::ir::AnnotationKind::Square => "square",
+                        gp_core::ir::AnnotationKind::Circle => "circle",
+                        gp_core::ir::AnnotationKind::Underline => "underline",
+                        gp_core::ir::AnnotationKind::StrikeOut => "strikeout",
+                        gp_core::ir::AnnotationKind::Squiggly => "squiggly",
+                        gp_core::ir::AnnotationKind::Caret => "caret",
+                        gp_core::ir::AnnotationKind::Ink => "ink",
+                        gp_core::ir::AnnotationKind::Popup => "popup",
+                        gp_core::ir::AnnotationKind::FileAttachment => "fileattachment",
+                        gp_core::ir::AnnotationKind::Sound => "sound",
+                        gp_core::ir::AnnotationKind::Movie => "movie",
+                        gp_core::ir::AnnotationKind::Widget => "widget",
+                        gp_core::ir::AnnotationKind::Screen => "screen",
+                        gp_core::ir::AnnotationKind::PrinterMark => "printermark",
+                        gp_core::ir::AnnotationKind::TrapNet => "trapnet",
+                        gp_core::ir::AnnotationKind::Watermark => "watermark",
+                    }),
+                    "rect": a.rect,
+                    "contents": a.contents.clone(),
+                    "author": a.author.clone(),
+                    "date": a.date.clone(),
+                    "quote": a.quote.clone(),
+                    "resolved": a.resolved,
+                })
+            })
+            .collect()
     } else {
         Vec::new()
     };
 
-    let token = mcp::session::create_review_session(
-        &mcp::session::new_review_session_store(),
-        path_str.clone(),
-        &bytes,
-        revision_snapshot,
-    );
+    let mode = if ext.ends_with(".pdf") {
+        "pdf-annot".to_string()
+    } else {
+        "docx-revisions".to_string()
+    };
+
+    let token = if ext.ends_with(".pdf") {
+        // PDF: use mode-aware session creation
+        let doc_bytes_hash = if mode == "pdf-annot" {
+            Some(mcp::session::sha256_hex(&bytes))
+        } else {
+            None
+        };
+        mcp::session::create_review_session_with_mode_and_text_layer(
+            &mcp::session::new_review_session_store(),
+            path_str.clone(),
+            &bytes,
+            revision_snapshot,
+            mode.clone(),
+            doc_bytes_hash,
+            text_layer,
+        )
+    } else {
+        mcp::session::create_review_session(
+            &mcp::session::new_review_session_store(),
+            path_str.clone(),
+            &bytes,
+            revision_snapshot,
+        )
+    };
 
     let url = format!("http://127.0.0.1:8732/review/{}", token);
     eprintln!("review: session created");

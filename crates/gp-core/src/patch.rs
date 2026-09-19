@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! Patch operations for IR transformation.
 //!
 //! This module provides the `PatchOp` enum, the `apply_op` engine function,

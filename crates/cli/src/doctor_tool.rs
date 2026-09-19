@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! doctor tool: probe system capabilities.
 //!
 //! Wraps `engines::doctor::run_doctor()` to produce CLI-friendly output
@@ -35,6 +36,23 @@ pub fn run_doctor(json: bool) -> Result<String> {
     engine_refs.push(Box::leak(Box::new(mock)) as &dyn EngineExt);
 
     let result = engines::doctor::run_doctor_with_handoff(engine_refs, &fixtures, Some(handoff));
+
+    // PDF/A revalidation status
+    let (vera_available, qpdf_available): (bool, bool) = (
+        which::which("verapdf").is_ok(),
+        which::which("qpdf").is_ok(),
+    );
+    let pdfa_status = if vera_available || qpdf_available {
+        "available".to_string()
+    } else {
+        "honest-absent: PDF/A revalidation skipped (no veraPDF or qpdf on this host; available in CI)".to_string()
+    };
+
+    let pdfa_json = serde_json::json!({
+        "veraPDF_available": vera_available,
+        "qpdf_available": qpdf_available,
+        "status": pdfa_status,
+    });
 
     if json {
         let output = serde_json::json!({
@@ -74,6 +92,7 @@ pub fn run_doctor(json: bool) -> Result<String> {
                     "install_hint": h.install_hint,
                 })
             }),
+            "pdfa_revalidation": pdfa_json,
         });
         Ok(serde_json::to_string_pretty(&output)?)
     } else {
@@ -139,6 +158,10 @@ pub fn run_doctor(json: bool) -> Result<String> {
             lines.push("  not probed".to_string());
         }
 
+        // PDF/A revalidation
+        lines.push("PDF/A Revalidation:".to_string());
+        lines.push(format!("  {}", pdfa_status));
+
         lines.push("".to_string());
 
         // Append JSON block for machine consumption
@@ -179,6 +202,7 @@ pub fn run_doctor(json: bool) -> Result<String> {
                     "install_hint": h.install_hint,
                 })
             }),
+            "pdfa_revalidation": pdfa_json,
         });
         lines.push(serde_json::to_string_pretty(&json_block)?);
 

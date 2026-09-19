@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! Schema validation for OOXML XML parts and PDF output.
 //!
 //! Uses `xmllint` for OOXML structural validation (well-formedness +

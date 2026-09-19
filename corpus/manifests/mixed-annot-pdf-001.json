@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "id": "mixed-annot-pdf-001",
+  "title": "Multiple annotation types on page 1",
+  "source": "generated",
+  "generator": {
+    "name": "p5-02-pdf-fixtures",
+    "version": "0.1.0"
+  },
+  "format": "pdf",
+  "categories": [
+    "pdf-annot-mixed"
+  ],
+  "features": {
+    "pdf:pages": 1,
+    "pdf:annotations": 4,
+    "pdf:annot-types": "/FreeText,/Highlight,/Stamp,/Text",
+    "pdf:sig-fields": 0
+  },
+  "reference_text": "corpus/reference/mixed-annot-pdf-001.txt",
+  "expected": {
+    "page_count_min": 1,
+    "page_count_max": 1
+  },
+  "render": {
+    "dpis": [
+      150
+    ],
+    "engines": [
+      "soffice-26.2.5"
+    ]
+  },
+  "notes": "Four annotations on page 1: Highlight + Text + FreeText + Stamp (4 total).",
+  "sha256": "340480239019d26047082c106f466bab02256961465f32de02e2f1b42068305f"
+}

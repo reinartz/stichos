@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT OR Apache-2.0
 """pptx category builders (python-pptx + raw XML injection where needed)."""
 
 import re

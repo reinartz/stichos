@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! C10 contract test suite — end-to-end conformance checks for policy + taint.
 //!
 //! These tests verify that the producer types (EditPolicy, TaintMark,
@@ -106,6 +107,7 @@ fn test_c10_edit_policy_max_parts_cap() {
         author: None,
         dry_run: false,
         policy: Some(policy.clone()),
+        force_signature_invalidation: false,
     };
     let executor = SurgicalPatchExecutor::new(config);
     let source = b"PK\x03\x04word/document.xml xl/styles.xml ppt/slides.xml";
@@ -250,6 +252,7 @@ fn test_c10_executor_refuses_without_policy() {
         author: None,
         dry_run: false,
         policy: None,
+        force_signature_invalidation: false,
     };
     let executor = SurgicalPatchExecutor::new(config);
     let source = b"PK\x03\x04[Content_Types].xml word/document.xml";
@@ -278,6 +281,7 @@ fn test_c10_executor_allows_with_policy() {
         author: None,
         dry_run: false,
         policy: Some(policy),
+        force_signature_invalidation: false,
     };
     let executor = SurgicalPatchExecutor::new(config);
     let source = b"PK\x03\x04word/document.xml";
@@ -305,6 +309,7 @@ fn test_c10_executor_taint_on_source() {
             denied_actions: vec![],
             max_parts_modified: None,
         }),
+        force_signature_invalidation: false,
     };
     let executor = SurgicalPatchExecutor::new(config);
     let source = b"PK\x03\x04[Content_Types].xml word/document.xml";
@@ -331,6 +336,7 @@ fn test_c10_executor_policy_violations_in_result() {
         author: None,
         dry_run: false,
         policy: Some(policy),
+        force_signature_invalidation: false,
     };
     let executor = SurgicalPatchExecutor::new(config);
     // Source has both word/ and xl/ — xl/ is not in allow-list
@@ -362,6 +368,7 @@ fn test_c10_executor_taint_propagates_through_dry_run() {
             denied_actions: vec![],
             max_parts_modified: None,
         }),
+        force_signature_invalidation: false,
     };
     let executor = SurgicalPatchExecutor::new(config);
 
@@ -399,6 +406,7 @@ fn test_c10_executor_denied_actions_always_block() {
         author: None,
         dry_run: false,
         policy: Some(policy),
+        force_signature_invalidation: false,
     };
     let executor = SurgicalPatchExecutor::new(config);
     let source = b"PK\x03\x04word/document.xml";
@@ -453,6 +461,7 @@ fn test_c10_policy_denial_diagnostic_codes() {
         author: None,
         dry_run: false,
         policy: Some(policy),
+        force_signature_invalidation: false,
     };
     let executor = SurgicalPatchExecutor::new(config);
 
@@ -479,6 +488,7 @@ fn test_c10_policy_denial_diagnostic_codes() {
         author: None,
         dry_run: false,
         policy: Some(policy2),
+    force_signature_invalidation: false,
     };
     let executor2 = SurgicalPatchExecutor::new(config2);
     let source2 = b"PK\x03\x04word/document.xml xl/styles.xml ppt/slides.xml";
@@ -579,6 +589,7 @@ fn test_c10_executor_config_with_policy_none() {
         author: None,
         dry_run: false,
         policy: None,
+        force_signature_invalidation: false,
     };
     let executor = SurgicalPatchExecutor::new(config);
     let source = b"PK\x03\x04word/document.xml";

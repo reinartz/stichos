@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! gp-core: stub main — this crate is a library only.
 
 fn main() {

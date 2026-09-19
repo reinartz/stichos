@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! inspect_region cropper: crop from 300-DPI master with ~600-token budget.
 //!
 //! Per concept §10-3: crop-on-demand beats full high-res.

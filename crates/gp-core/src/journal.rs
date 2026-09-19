@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! Undo journal for the stichos content-addressed store.
 //!
 //! Conforms to C6 — Undo Journal Format.
@@ -30,6 +31,22 @@ pub enum JournalAction {
     Delete,
     Style,
     TrackedChange,
+    /// Mutation applied to a signed document (signature invalidated)
+    SignatureInvalidated {
+        /// Number of signatures invalidated
+        signature_count: usize,
+        /// Diagnostic codes for the invalidation
+        codes: Vec<String>,
+    },
+    /// Document signed via sign-later (PAdES-B-B)
+    SignedDocument {
+        /// Signature subject (from certificate)
+        subject: String,
+        /// Digest algorithm (e.g. "sha256")
+        digest: String,
+        /// Signature type (e.g. "pdf-pades")
+        signature_type: String,
+    },
 }
 
 impl std::fmt::Display for JournalAction {
@@ -40,6 +57,12 @@ impl std::fmt::Display for JournalAction {
             JournalAction::Delete => write!(f, "delete"),
             JournalAction::Style => write!(f, "style"),
             JournalAction::TrackedChange => write!(f, "tracked-change"),
+            JournalAction::SignatureInvalidated { signature_count, .. } => {
+                write!(f, "signature-invalidated({})", signature_count)
+            }
+            JournalAction::SignedDocument { subject, .. } => {
+                write!(f, "signed-document({})", subject)
+            }
         }
     }
 }

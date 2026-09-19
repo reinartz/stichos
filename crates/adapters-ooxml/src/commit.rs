@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! OPC commit path — routes patch-sets through format writers, verifies, and generates byte-diff reports.
 //!
 //! Provides the `CommitContext` type which routes IR patch operations through the

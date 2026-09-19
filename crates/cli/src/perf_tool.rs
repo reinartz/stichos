@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! Performance measurement CLI subcommand.
 //!
 //! `stichos perf --fixtures pr-subset --target 2000`

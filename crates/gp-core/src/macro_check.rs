@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! Macro-format detection and policy.
 //!
 //! Macro-bearing formats (xlsm, docm, pptm) are detected but NEVER executed.

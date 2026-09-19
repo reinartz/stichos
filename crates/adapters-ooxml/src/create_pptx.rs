@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! Create a valid pptx from a `gp_core::ir::Presentation` IR.
 //!
 //! Writes a valid PresentationML package with:

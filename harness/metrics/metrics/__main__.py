@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT OR Apache-2.0
 """``python -m metrics`` — JSON-first CLI for the C9 Phase-0 metrics.
 
 Every verb prints one JSON object on stdout (``{"ok": true, ...}`` on

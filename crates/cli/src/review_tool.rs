@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! `stichos review` subcommand — create/close/list review sessions.
 //!
 //! Subcommands:

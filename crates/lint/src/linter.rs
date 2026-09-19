@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 // lint: layout linter — checks for frame overflow, off-page/negative coords, overlaps, autofit shrink
 // LIN-01: layout linter core (Wave D, P1-33)
 

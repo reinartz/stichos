@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! XLSX patch writer — applies IR patch operations to OOXML spreadsheets.
 //!
 //! Routes patch ops to span mutations on worksheet XML, handles SetCellValue,

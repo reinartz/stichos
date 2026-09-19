@@ -3,6 +3,7 @@
 stichos is dual-licensed **MIT OR Apache-2.0** ([LICENSE-MIT](LICENSE-MIT),
 [LICENSE-APACHE](LICENSE-APACHE)); the choice was unblocked by G1 (ADR-0001 accepted 2026-09-08,
 concept D19). Contributing means you license your contribution under both grants. No CLA — DCO only.
+All participants must follow the [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## License headers (SPDX)
 

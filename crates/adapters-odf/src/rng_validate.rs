@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! ODF RelaxNG validation gate via `xmllint`.
 //!
 //! This module bundles a minimal ODF 1.2 RelaxNG schema (rng format) covering

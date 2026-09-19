@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! MCP (Model Context Protocol) transport server for stichos.
 //!
 //! Implements stdio JSON-RPC transport. Exposes the stichos tool

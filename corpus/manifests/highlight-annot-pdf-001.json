@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "id": "highlight-annot-pdf-001",
+  "title": "Highlight annotation on page 1",
+  "source": "generated",
+  "generator": {
+    "name": "p5-02-pdf-fixtures",
+    "version": "0.1.0"
+  },
+  "format": "pdf",
+  "categories": [
+    "pdf-annot-highlight"
+  ],
+  "features": {
+    "pdf:pages": 1,
+    "pdf:annotations": 1,
+    "pdf:annot-types": "/Highlight",
+    "pdf:sig-fields": 0
+  },
+  "reference_text": "corpus/reference/highlight-annot-pdf-001.txt",
+  "expected": {
+    "page_count_min": 1,
+    "page_count_max": 1
+  },
+  "render": {
+    "dpis": [
+      150
+    ],
+    "engines": [
+      "soffice-26.2.5"
+    ]
+  },
+  "notes": "Single highlight annotation with QuadPoints on page 1; yellow color [1,1,0].",
+  "sha256": "532dd2b0ab3bf3c500888ab3d48b1fe1ebc30d17ba596eb712b19a27c78bdb0b"
+}

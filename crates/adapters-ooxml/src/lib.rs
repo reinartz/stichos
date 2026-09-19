@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! adapters-ooxml: OOXML (.docx, .xlsx, .pptx) readers and writers for stichos.
 //!
 //! Implements OPC (Open Packaging Conventions) parsing, XML content extraction,

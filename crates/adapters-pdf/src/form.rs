@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! PDF AcroForm (interactive form fields) reader and XFA detection.
 //!
 //! Parses `/AcroForm` dictionaries from PDF documents, extracting field trees,
@@ -352,6 +353,7 @@ mod tests {
             metadata: None,
             has_encryption: false,
             diagnostics: diags,
+            signatures: Vec::new(),
         }
     }
 
@@ -384,6 +386,7 @@ mod tests {
             metadata: None,
             has_encryption: false,
             diagnostics: diags,
+            signatures: Vec::new(),
         };
 
         // Manually insert objects

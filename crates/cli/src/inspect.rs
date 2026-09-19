@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! inspect_document tool: read a document and return structure + IDs + coordinates + fidelity budget.
 //!
 //! This module implements the `inspect_document` CLI command, which reads a document file

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! Template-based native creation: reference docx as base package.
 //!
 //! Takes an existing template `.docx` file as a reference package, preserves

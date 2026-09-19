@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! Mock implementations and testkit for loading corpus manifests.
 //!
 //! This module provides mock implementations of the core traits (Codec, Engine, Probe,
@@ -368,7 +369,7 @@ pub fn load_pr_subset(
 }
 
 /// Get the expected corpus manifest count (151).
-pub const EXPECTED_CORPUS_COUNT: usize = 157;
+pub const EXPECTED_CORPUS_COUNT: usize = 169;
 
 // ---------------------------------------------------------------------------
 // Tests
@@ -502,7 +503,7 @@ mod tests {
         assert_eq!(result, patch.as_slice());
     }
 
-    /// test_load_all_manifests — load manifests from corpus/manifests/, count == EXPECTED_CORPUS_COUNT (157)
+    /// test_load_all_manifests — load manifests from corpus/manifests/, count == EXPECTED_CORPUS_COUNT (169: 157 M0-era + 12 P5-02 PDF fixtures)
     #[test]
     fn test_load_all_manifests() {
         let manifests_dir = workspace_root().join("corpus").join("manifests");

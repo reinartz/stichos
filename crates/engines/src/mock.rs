@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
 //! Mock engine for testing.
 //!
 //! Provides a configurable engine implementation that returns deterministic
