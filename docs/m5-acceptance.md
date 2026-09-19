@@ -288,7 +288,7 @@ $ cargo test --workspace --lib
 This section records the git state when the m5 tag is created. The tag must point to the gate-green
 commit that includes this acceptance report.
 
-**Commit:** 656a9ce12ba3bfc944c072aaa24f3418812871be
+**Commit:** 3096a2ce (gate-green commit, final status updates included)
 **Tag:** m5 (created 2026-09-19)
 
 Verification:
