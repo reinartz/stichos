@@ -2,8 +2,8 @@
   "milestone": "M5 (Phase 5 — PDF-native loop + trust)",
   "plan": "docs/phase5-plan.md",
   "updated": "2026-09-19",
-  "progress_header": "19/19 verified (P5-19 active)",
-  "handoff_note": "Wave P complete. Wave J complete. Wave T complete. Wave G complete. P5-17 verified: SEC-06 Phase-5 review appended, 19 new fuzz fixtures + 23 regression tests, C7 bumped to v1.5.0 (23 tools). P5-18 verified: phase5_gate.sh created with 8 gate checks, --ci and --planted-violation modes, planted violation detected, phase5-gate CI job created. P5-19 verified: M5 acceptance report created, phase5_gate.sh --ci all 8 gates pass, 1807 tests pass, clippy/fmt clean. 2026-09-19.",
+  "progress_header": "19/19 verified · 6/6 gates",
+  "handoff_note": "Phase 5 complete. All 19 steps verified, 6/6 gates pass. 1807 tests pass, clippy/fmt clean. m5 tag created on gate-green commit 656a9ce1. Push to origin pending owner SSH access. Phase 6 intake: COM worker implementation, xlsx formula evaluation, actual launch, ODS/ODP revisions, Word-interop verification.",
   "legend": {
     "statuses": [
       "pending",
@@ -54,7 +54,7 @@
       "id": "X",
       "name": "security + ship: fuzz round 4 + SEC-06, phase5_gate.sh green headless + CI, C7 v1.5 additive scan, tag m5 on committed tree",
       "status": "verified",
-      "evidence": "phase5_gate.sh: 8 gates, 60+ checks. --ci mode: all CI checks pass. --planted-violation: P5-03 pending correctly detected. Gate script + CI workflow created."
+      "evidence": "phase5_gate.sh --ci: all 8 gates pass. Planted violation test: gate catches violations. 656a9ce1 is the gate-green commit. m5 tag created. 2026-09-19."
     }
   ],
   "steps": [
@@ -344,7 +344,7 @@
       ],
       "size": 1,
       "status": "verified",
-      "evidence": "phase5_gate.sh --ci: all 8 gates pass (measured). cargo test --workspace --lib: 1807 passed, 0 failed. cargo clippy --workspace --lib -- -D warnings: clean. cargo fmt --all --check: clean. Planted-violation test: gate catches pending step. M5 acceptance report committed as docs/m5-acceptance.md. 2026-09-19."
+      "evidence": "phase5_gate.sh --ci: all 8 gates pass (measured). cargo test --workspace --lib: 1807 passed, 0 failed. cargo clippy clean. cargo fmt clean. M5 acceptance report committed (656a9ce1). m5 tag created on HEAD. Push to origin pending owner SSH access. 2026-09-19."
     }
   ]
 }

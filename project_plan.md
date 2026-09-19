@@ -1,12 +1,18 @@
 # stichos — Project Plan
 
-**Status:** **M0–M3 shipped** · derived from [`project_concept.md`](project_concept.md) (decisions D1–D22, phases §14)
-**Last updated:** 2026-09-16 — M0 ✅ (harness + 151-fixture corpus + goldens + baseline report-v1, nightly ×3
+**Status:** **M0–M4 shipped and tagged** · **M5 recorded gate-green 2026-09-19** (19/19 steps,
+`phase5_gate.sh --ci` 8 gates, 1 807 tests, `docs/m5-acceptance.md`; tag `m5` pending per ship-state
+rule) · derived from [`project_concept.md`](project_concept.md) (decisions D1–D27, phases §14)
+**Last updated:** 2026-09-19 — M0 ✅ (harness + 151-fixture corpus + goldens + baseline report-v1, nightly ×3
 green), M1 ✅ tag `m1-closeout`, M2 ✅ tag `m2`, M3 ✅ tag `m3` (creation + ODF/PDF write completion + Rhai
 sandbox + distribution automation; gate re-verified 2026-09-16: 1 644 tests, clippy/fmt/deny clean,
-`phase3_gate.sh` 26/26; `docs/m3-acceptance.md` §7 for corrections). Gates G1 ✅ (D19), G4 ✅ (no own repos);
-G3/G5 still open (Windows host / pdfium). **M4 (Phase 4 — human loop) is the active milestone**:
-[`docs/phase4-concept.md`](docs/phase4-concept.md) / [`docs/phase4-plan.md`](docs/phase4-plan.md).
+`phase3_gate.sh` 26/26; `docs/m3-acceptance.md` §7 for corrections), M4 ✅ tag `m4` (2026-09-18, human
+loop), M5 recorded ✅ (2026-09-19, PDF loop + trust; `m5` tag pending). Gates G1 ✅ (D19), G4 ✅ (no own repos);
+G3/G5 still open (Windows host / pdfium). **M6 (Phase 6 — context budget + intake) is the active
+milestone**: contract [`docs/contracts/C14-context-budget.md`](docs/contracts/C14-context-budget.md) +
+guide [`docs/implementation-guide-context-budget.md`](docs/implementation-guide-context-budget.md),
+decision **D27**, track **CTX** (§5). Surface measured 2026-09-19: **23 tools** (`spec.rs` assert) /
+**21 verbs** (`enum Command`), C7 **v1.5.0** — C14 lands at C7 additive **v1.6**.
 **Rule:** this file is a plan, not a decision record. If a plan choice contradicts the concept,
 resolve it in `project_concept.md` §16 (decision log) first, then reflect it here.
 Traceability: every task cites the concept section (§) or decision (D) it implements.
@@ -15,8 +21,8 @@ Traceability: every task cites the concept section (§) or decision (D) it imple
 
 ## 1. Reading guide
 
-- **Milestones** M0–M4 map 1:1 to concept §14 Phases 0–4, each with a hard exit gate.
-- **Tracks** are the fine-grained work split: 16 tracks, 114 tasks (+6 COM subtasks). Task IDs are stable
+- **Milestones** M0–M6 map 1:1 to concept §14 Phases 0–6, each with a hard exit gate.
+- **Tracks** are the fine-grained work split: 17 tracks, 120 tasks (+6 COM subtasks). Task IDs are stable
   (`HAR-03`); the `Depends` column is the internal work graph.
 - **Components** (§3) are the crates + repo-level dirs; their dependency DAG (§3.2) and the
   contract registry (§4) are the "well-maintained dependencies" mechanism — both CI-enforced.
@@ -32,7 +38,9 @@ Traceability: every task cites the concept section (§) or decision (D) it imple
 | **M1 ✅** (2026-09-14) | Phase 1 — read | read-only binary: `inspect`/`render`/`doctor` + MCP server, 6 targets | installs clean on all 6 targets; every tool response carries provenance (D6); read-path fuzz-clean (SEC-01/06); `doctor` capability matrix = real conversions (D8); edit tools **absent** | +8–12 w |
 | **M2 ✅** (2026-09-16) | Phase 2 — surgical edit | closed-loop editing: `apply`/`diff`, dry-run, tracked changes, per-edit lint | INV-1 surgical suite green (§3.4); edit→render→look ≤ 2 s P95 in CI perf gate (OPS-02); fidelity budget on 100 % of mutations (D6); tracked changes default (D7) | +10–14 w |
 | **M3 ✅** (2026-09-16) | Phase 3 — creation | create from IR/Markdown/HTML/Typst; Rhai escape hatch | created docs pass lint + schema validation; pandoc/Chromium/Typst paths measured against corpus | +6 w |
-| **M4** | Phase 4 — human loop | pdf.js overlay, accept/reject, Collabora/add-in handoff | tracked-change accept/reject round-trip lossless on corpus subset | +6–8 w |
+| **M4 ✅** (2026-09-18) | Phase 4 — human loop | review overlay **shipped as raster-over-masters (D22, not pdf.js)**, accept/reject on tracked changes (OOXML + ODF), comment write-back, `open` handoff | tracked-change accept/reject round-trip lossless on corpus subset — met (tag `m4`) | +6–8 w |
+| **M5 ✅** (rec. 2026-09-19) | Phase 5 — PDF loop + trust | PDF annotation round-trip (C12), review session over PDF + opt-in pdf.js text layer (D24), sign-later PAdES-B-B + signature integrity (C13/D25), PDF/A revalidation, launch prep only (D26) | `phase5_gate.sh` 8 gates headless green (recorded; `docs/m5-acceptance.md`); tag `m5` pending (ship-state rule) | +6 w |
+| **M6** | Phase 6 — context budget + intake | **context-budget defaults at C7 v1.6 (track CTX, D27):** summary-first inspect, URL-first images (temp files + TTL), caps (`max_elements`/`max_pages`/`max_ops`/`max_entries`), `dry_run`-true previews, `__budget` envelope; + COM-2..6 on arriving host, xlsx formula eval, ODS/ODP revisions, Word-interop verification | every **default** tool response fits one reasoning turn (contract tests, C14 §7.4); no base64 when `output="urls"`; `__budget`+`rendered_by`+`diagnostics` on 100 % of responses; C7 additive-only schema diff; COM/formula gates per M6 concept (to draft) | +6–8 w |
 
 Cross-cutting tracks (SEC, DIS, OPS, GOV) run continuously and are gated per milestone.
 
@@ -149,6 +157,10 @@ Each contract = a spec in `docs/contracts/`, a Rust type in `gp-core` (or owner 
 | C8 | **Payload rules** (D13): ≤20 image blocks, pre-resize table, token estimator (§10) | API | REN, LIN | M1 |
 | C9 | **Corpus manifest + metric definitions** incl. SSIM parity harness↔binary | HAR | LIN, CI | M0 |
 | C10 | **Policy model** (§11): edit allow-list, taint marks | SEC | PAT, API | M2 |
+| C11 | **Revisions model** (D7): accept/reject semantics, refuse list, two-tier losslessness | CORE | PAT, API, HUM | M4 v1 (frozen) |
+| C12 | **PDF annotation-review model** (Phase 5): kinds, page+rect+quote anchors, resolve states, GP-A0xx refusals | PDF | PAT, API, HUM | M5 v1 (draft → freeze at M6) |
+| C13 | **Signature & integrity states** (Phase 5): `/Sig` detection, invalidation events, sign-later PAdES-B-B, GP-S0xx | CORE | PAT, API | M5 v1 (draft → freeze at M6) |
+| C14 | **Context budget** (P7, D27): default caps, summary/URL modes, `dry_run`-true previews, `__budget` envelope | API | every tool, clients | M6 v1 (ships as C7 additive **v1.6**) |
 
 Versioning discipline: one workspace version for all crates and the binary; contracts
 semver independently; `tools/check-deps.sh` + `cargo deny` guard the DAG; `cargo-machete`
@@ -304,6 +316,22 @@ COM-6 logon-agent packaging: MSI component + task-scheduler XML + docs (§9 unat
 | API-09 | Rhai sandbox escape hatch (D17): host fns scoped to store only (no fs/net); `script` tool | PAT-03 | scripting | 3 |
 | API-10 | Creation tools + template handling (Phase 3, via AUT) | AUT-* | create tools | 2 |
 
+### Track CTX — context budget & response size (C14; concept §4-P7, §10-8, D27)
+
+Spec: [`docs/contracts/C14-context-budget.md`](contracts/C14-context-budget.md) · implementation
+detail: [`docs/implementation-guide-context-budget.md`](implementation-guide-context-budget.md).
+All changes **additive at the schema level**, shipped as C7 **v1.6.0**; the **behavioral default
+flips** (`dry_run=true`, base64→URLs, `max_ops` 20) are versioned and migration-noted (§7 risk row).
+
+| ID | Task | Deps | Deliverable | p-w |
+|---|---|---|---|---|
+| CTX-01 | Envelope types in `gp-core`: `RenderOutput`/`InspectDetail` enums, `ResponseBudget` (`__budget: tokens_est, elements_count, image_count`), shared preview shape; reuse REN-02 token estimator; `__budget` wired into **every** tool response alongside `diagnostics`/`rendered_by` (INV-2 schema gate updated) | CORE-*, REN-02 | envelope module + schema-gate update | 1.5 |
+| CTX-02 | `inspect_document` detail levels: `detail=summary\|elements\|all` (default **summary** ~150 tokens), `max_elements` (100), `hasMore` + cursor pagination (MCP pagination spec) | CTX-01, API-05 | summary/elements modes + budget tests (summary < 500 tokens) | 2 |
+| CTX-03 | Temp-file image path: `TempFileManager` (`$XDG_RUNTIME_DIR/stichos/renders/`, `{prefix}_{hash}_{page}.png`, 1 h TTL + startup sweep, `expiresAt` in responses); `output=urls\|base64\|both` (default **urls**) + `max_pages` (3; 5 for `annotate_pages`) on `render_document` / `inspect_region` / `annotate_pages` | CTX-01, API-05, REN-05 | temp-file module + URL modes + cleanup tests | 2 |
+| CTX-04 | Caps + summaries: `diff_documents` `max_ops` default **20** (was unlimited) + `summary` counters + `hasMore`/`totalOperations`; `journal` `max_entries` default **10** | CTX-01, API-06 | capped handlers + tests | 1 |
+| CTX-05 | Mutation-tool safety: `dry_run` default **true** for `apply_patch` + `edit_text/cell/structure`; ≤20-op preview with `estimatedTokenChange` + `diffSummary`; `includeFullDiff` opt-out; CLI mirrors every flag (`--detail`, `--output`, `--max-pages`, `--max-ops`, `--dry-run/--apply`) | CTX-01, API-07, API-04 | preview default + CLI flags + tests | 2 |
+| CTX-06 | Surface freeze: C7 **v1.6.0** matrix + per-tool `schema_version` bumps, additive-only scan, CHANGELOG with explicit **default-flip** section, C14 §7.4 contract-compliance tests, migration notes for base64-expecting clients | CTX-02..05, API-01 | frozen v1.6 + docs | 1 |
+
 ### Track SEC — security (concept §11)
 
 | ID | Task | Deps | Deliverable | p-w |
@@ -372,7 +400,7 @@ COM-6 logon-agent packaging: MSI component + task-scheduler XML + docs (§9 unat
 
 `HAR-03 → CORE-01 → CORE-03 → OOX-01 → OOX-03 → OOX-04 → ENG-03 → ENG-08 → API-02/05` (M1)
 `→ OOX-09 → PAT-01 → PAT-03 → API-07` (M2).
-Longest serial pole ≈ 40–45 p-w of the ≈ 226 total; everything else parallelizes around it. The two riskiest
+Longest serial pole ≈ 40–45 p-w of the ≈ 236 total; everything else parallelizes around it. The two riskiest
 path items are **CORE-04 (stable IDs)** and **OOX-09 (surgical XML patching)** — both have
 design ADRs before implementation and are staffed by the strongest kernel person.
 
@@ -384,7 +412,7 @@ design ADRs before implementation and are staffed by the strongest kernel person
 | E2 formats | OOX-*, ODF-* | ECMA-376/OASIS spec work; pairs with E1 on OOX-09 |
 | E3 render/QA | PDF-*, REN-*, LIN-* | bbox extraction, linter, payload pipeline |
 | E4 engines/ops | ENG-*, OPS-*, HAR infra | LO lifecycle, probes, later COM-1..6 |
-| E5 surface | API-*, DIS-* (+ GOV with legal) | MCP/CLI, packaging, release engineering |
+| E5 surface | API-*, CTX-*, DIS-* (+ GOV with legal) | MCP/CLI, context budget, packaging, release engineering |
 | shared | HAR-*, SEC-* | harness and security tasks rotate onto everyone; SEC-06 review is external-capable |
 
 ### 6.3 Wave plan (parallel tracks per wave; a wave ends when its tasks + gate pass)
@@ -396,7 +424,9 @@ design ADRs before implementation and are staffed by the strongest kernel person
 | **W2 ✅** (w7–12) | OOX-04..08 · ODF-01..03 · PDF-02..07 · ENG-04/05/06/08 · REN-01..04 · LIN-01..03/06..08 · API-01..06 · DIS-02..04 · HAR-07 | **M1 ship**: read-only binary + MCP across 6 targets |
 | **W3 ✅** (w13–22) | OOX-09/10 · ODF-04/05 · PDF-03 · PAT-01..06 · API-07/08 · SEC-03/04 · LIN-04/05 · REN-05/06 · ENG-09(COM-1..6, deferred — no Windows host) · OPS-01/02 · SEC-06 | **M2 ship**: closed-loop editing (COM tier deferred) |
 | **W4 ✅** (w23–28, closed 2026-09-16) | ENG-10/11 · AUT-01..05 · API-09/10 · DIS-05..08 (+ Phase-2b intake per S2: ODF-04/05, PDF-03; COM stays deferred; Typst=CLI shell-out per S3; see `docs/phase3-plan.md`) | **M3 ship**: creation |
-| **W5 ⏳** (Phase 4) | HUM-01..03 · OPS-03 · polish + corpus-driven hardening **+ ODF revision write (owner call 2026-09-16) + COM design/CI skeleton (implementation stays deferred)**; overlay = raster-over-masters (D22). Steps in `docs/phase4-plan.md` | **M4 ship**: human loop |
+| **W5 ✅** (Phase 4, closed 2026-09-18) | HUM-01..03 · OPS-03 · polish + corpus-driven hardening **+ ODF revision write (owner call 2026-09-16) + COM design/CI skeleton (implementation stays deferred)**; overlay = raster-over-masters (D22). Steps in `docs/phase4-plan.md` | **M4 ship**: human loop (tag `m4`) |
+| **W6 ✅** (Phase 5, rec. 2026-09-19) | PDF annotation round-trip (C12) · PDF review session + pdf.js text layer (D24, ADR-0009) · trust (C13/D25, ADR-0010, `sign`) · PDF/A row · launch prep (D26) · fuzz round 4; steps in `docs/phase5-plan.md` | **M5 ship**: PDF loop + trust — gate green headless (recorded); `m5` tag pending |
+| **W7 ⏳** (Phase 6) | **CTX-01..06 — context budget (C14, D27)** + M6 intake: COM-2..6 on arriving host, xlsx formula eval (ADR + minimal subset), ODS/ODP revision write, Word-interop verification, launch rehearsal only (D26); M6 concept/plan to draft at kickoff | **M6 ship**: every default tool response fits one reasoning turn (C7 v1.6) |
 
 ### 6.4 Decision gates (blocking; each has a decision-by wave and an owner)
 
@@ -420,6 +450,7 @@ design ADRs before implementation and are staffed by the strongest kernel person
 | Distro LibreOffice age/variability | layout truth varies; doctor blamed | fixture-based capability probes (D8), N/N-1 pinning (D15), version-in-report (D6) |
 | pdfium vs "C stays out" tension | raster/extract quality ceiling | G1/G5 gates with HAR-06 evidence; shell-out ladder (D11) as floor |
 | 20-image limit / vision pricing changes (D13) | payload design churn | estimator isolated in REN-02 behind C8; single config point |
+| C14 default flips (`dry_run=true`, base64→URLs, `max_ops` 20) change behavior for existing automation even though the **schema** stays additive | CI scripts silently receive previews or URL refs instead of full docs/base64 | flips ship only at C7 **v1.6** with explicit opt-outs (`output="base64"`, `dry_run=false`, `max_ops=0`); CHANGELOG default-flip section; legacy explicit-parameter tests prove old paths; gate asserts no base64 in URL mode and `__budget` presence (C14 §7.4) |
 | Corpus licensing (HAR-01) | cannot ship harness publicly | generated-fixture fallback (HAR-02); license review as first-class task |
 | ECMA-376 breadth underestimated | W2 slips | read-only M1 first (concept §14: "read ships safely"); feature census in OOX-07 turns gaps into budget, not bugs |
 | One-binary × 6 targets matrix breakage | release slips | DIS-01 from W0; install acceptance in every ship gate |
@@ -448,12 +479,14 @@ design ADRs before implementation and are staffed by the strongest kernel person
 | ENG (incl. COM) | 28.5 | | AUT | 10 |
 | REN | 9 | | HUM | 7.5 |
 | LIN | 14.5 | | OPS | 3.5 |
-| **Total** | | | | **≈ 226.5 p-w** |
+| CTX | 9.5 | | | |
+| **Total** | | | | **≈ 236 p-w** |
 
-≈ 114 tasks ≈ 45 engineer-weeks of elapsed time with 5 people; the W0–W5 calendar above
-(≈ 35 w) assumes 5–6 engineers with the harness/security rotation. Concept's own phase shape
-(§14) is preserved; nothing in this plan contradicts D1–D17 — the only items that could force
-a D-log edit are gates G1/G5 (pdfium/AGPL).
+≈ 120 tasks ≈ 48 engineer-weeks of elapsed time with 5 people; the W0–W7 calendar above
+(≈ 47 w) assumes 5–6 engineers with the harness/security rotation. Concept's own phase shape
+(§14) is preserved; nothing in this plan contradicts D1–D27 — the only items that could force
+a D-log edit are gates G1/G5 (pdfium/AGPL); the C14 default flips (D27) are recorded in the D-log
+at adoption time, not smuggled in as additive schema changes.
 
 
 

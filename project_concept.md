@@ -1,11 +1,14 @@
 # stichos — Project Concept & Decision Record
 
 **Tagline:** proof before publish.
-**Status:** concept agreed · naming agreed · **Phases 0–3 shipped and gated** (tags `m1-closeout`,
-`m2`, `m3`; M3 independently re-verified 2026-09-16 — 1 644 tests green, clippy/fmt/deny clean,
-`phase3_gate.sh` 26/26, acceptance `docs/m3-acceptance.md` §7); **Phase 4 (human loop) planned** —
-`docs/phase4-concept.md` / `docs/phase4-plan.md`
-**Last updated:** 2026-09-18 (D23–D26 recorded for Phase 5; OQ3 closed; surface counts corrected to 20 tools/19 verbs)
+**Status:** concept agreed · naming agreed · **Phases 0–4 shipped and gated** (tags `m1-closeout`,
+`m2`, `m3`, `m4`); **Phase 5 (PDF-native loop + trust) recorded gate-green 2026-09-19** — 19/19 steps,
+`phase5_gate.sh --ci` 8 gates, 1 807 tests (`docs/m5-acceptance.md`); tag `m5` pending per
+ship-state rule; **Phase 6 (context budget C14 + M6 intake) drafted** — decision **D27**,
+contract [`docs/contracts/C14-context-budget.md`](docs/contracts/C14-context-budget.md) +
+guide [`docs/implementation-guide-context-budget.md`](docs/implementation-guide-context-budget.md)
+**Last updated:** 2026-09-19 (D27 recorded — context budget C14; surface re-measured: **23 tools**
+(`spec.rs` assert) / **21 verbs** (`enum Command`), C7 v1.5.0)
 **Project root:** `/localdata/workspace/stichos`
 **Related:** [`brand.md`](brand.md) — identity, colour, typography, logo usage
 
@@ -88,6 +91,10 @@ FEEDBACK / QA
 - **P4 Stable element IDs** across sessions, so a 40-turn conversation doesn't lose "that third table".
 - **P5 Agent edits as tracked changes** by default for high-stakes formats; human accepts.
 - **P6 Never write in place** — original preserved, sidecar journal, one revert primitive.
+- **P7 Context budget (C14, D27)** — every default response fits one LLM reasoning turn (~4–8k output
+  tokens): summary-first inspect, images as expiring file URLs not inline base64, explicit caps
+  (`max_elements`/`max_pages`/`max_ops`/`max_entries`), `dry_run` preview as the default on mutation
+  tools, and `__budget: {tokens_est, …}` metadata on every response. Full detail stays an explicit opt-in.
 
 ---
 
@@ -255,6 +262,13 @@ text + manifest + images in a single round trip.
    (stacked lossy passes destroy small text).
 7. **PDF document blocks** are an alternative input path, but count toward the same 20-block limit and
    forfeit annotation/crop control.
+8. **Response-size budget (C14, D27):** defaults target one reasoning turn — `inspect_document` answers
+   `summary` first (~150 tokens, full structure is `detail:"all"` opt-in); rendered images default to
+   file URLs with `expiresAt` (`output:"urls"`, temp dir, 1 h TTL + startup sweep) instead of base64
+   blocks; caps `max_pages` 3 (5 for `annotate_pages`), `max_elements` 100, `max_ops` 20,
+   `max_entries` 10; every response carries `__budget: {tokens_est, elements_count, image_count}` so
+   the model knows what the last call cost it. Inline base64 and unbounded detail remain available,
+   always as explicit opt-in.
 
 Measured on this machine (plain docx, cold): pandoc→docx **0.29 s**, `soffice --convert-to pdf`
 **1.88 s**, `pdftoppm` **0.03 s**, pdfminer text+block extraction **0.08 s** → a full
@@ -362,10 +376,27 @@ LO/Word render + layout lint on every mutation, dry-run diffs.
 Chromium / Typst for branded output; native IR→OOXML creation; tracked-changes and comment output;
 ODF + PDF write paths complete on Linux.
 
-**Phase 4 ⏳ — human loop** (`docs/phase4-concept.md`). Annotation overlay review UI — **shipped as
+**Phase 4 ✅ — human loop** (M4, tag `m4`; `docs/phase4-concept.md`). Annotation overlay review UI — **shipped as
 a raster overlay over the 150-DPI PNG masters, not pdf.js (D22)** — accept/reject on tracked
 changes, ODF revision write, in-suite handoff (`open`); COM add-in stays a design-only spike until
 a Windows host exists.
+
+**Phase 5 ✅ — PDF-native loop + trust** (M5; recorded gate-green 2026-09-19 — `phase5_gate.sh --ci`
+8 gates, `docs/m5-acceptance.md`; tag `m5` pending per ship-state rule; `docs/phase5-concept.md`).
+PDF annotation round-trip (C12, incremental append-only write-back), review session over PDF with the
+vendored hash-pinned pdf.js **text layer** opt-in (D24), signature-integrity detection + PAdES-B-B
+sign-later (C13, D25), PDF/A revalidation row, launch prep only (D26). Surface measured 2026-09-19:
+**23 tools / 21 verbs**, C7 v1.5.0.
+
+**Phase 6 ⏳ — context budget + M6 intake** (decision **D27**; contract
+[`docs/contracts/C14-context-budget.md`](docs/contracts/C14-context-budget.md), guide
+[`docs/implementation-guide-context-budget.md`](docs/implementation-guide-context-budget.md),
+track CTX in `project_plan.md` §5). Response-size management across the whole tool surface at C7
+additive **v1.6**: summary-first `inspect_document`, URL-first images (temp files + TTL), caps
+(`max_elements` 100 / `max_pages` 3–5 / `max_ops` 20 / `max_entries` 10), `dry_run`-true previews on
+`apply_patch`/`edit_*`, `__budget` envelope on every response (P7); plus the M6 intake: COM worker
+implementation (COM-2..6 on the arriving Windows host), xlsx formula evaluation (ADR + minimal core
+subset), ODS/ODP revision write, Word-interop verification of accept/reject, owner-timed launch (D26).
 
 Crate layout: `core` (IR + patch engine, dep-free) · `adapters-ooxml` · `adapters-odf` · `adapters-pdf` ·
 `engines` (probe + subprocess runners) · `lint` · `mcp` · `cli`.
@@ -416,6 +447,7 @@ Crate layout: `core` (IR + patch engine, dep-free) · `adapters-ooxml` · `adapt
 | D24 | **pdf.js text-layer wave** fires — vendored, hash-pinned, **text layer only, opt-in per session**; raster remains default | M4 intake accepted the PDF review loop; text-selection anchoring is D22's stated trigger; containment beats bundling a viewer | humans need native annot rendering or pdf.js as primary medium |
 | D25 | **Pure-Rust crypto** for PAdES-B-B (RustCrypto family; no `ring`, no OpenSSL, no `-sys`) | D2/D4 preserved; signing must not drag C into the binary; `cargo deny` extends the `-sys` ban to crypto | a hard feature gap (e.g. required smart-card/TSA interop) forces a rung |
 | D26 | **Launch is owner-timed**; M5 ships prep only; D18 stays until the flip | registry/visibility flip is one-way; prep is reversible | owner call in M6 |
+| D27 | **Context budget adopted as contract C14** (Phase 6 / M6, track CTX): summary-first responses (`inspect_document detail="summary"` default), URL-first images (`output="urls"` default → temp dir, 1 h TTL + startup sweep, `expiresAt`), caps `max_elements=100` / `max_pages=3` (5 for `annotate_pages`) / `max_ops=20` / `max_entries=10`, `dry_run` defaults to `true` with a ≤20-op preview on `apply_patch`/`edit_*`, `__budget { tokens_est, elements_count, image_count }` on every response; shipped as **C7 additive v1.6** | response bloat starves the reasoning turn — full inspect of a 50-page doc exceeds 50k tokens, a 150-DPI base64 page ≈1.5k vision tokens (§10); C14 targets one turn (≈4–8k); the context-side twin of P2/D6; schema changes additive-only, the **default flips are versioned at v1.6 with migration notes** | client feedback shows a default flip hurting real workflows, or an MCP-native pagination/streaming story supersedes C14 |
 
 ---
 
@@ -456,8 +488,11 @@ Crate layout: `core` (IR + patch engine, dep-free) · `adapters-ooxml` · `adapt
 3. ~~`render_document` / `inspect_region` returning MCP image blocks + structured manifest.~~ Done (M1).
 4. ~~Deterministic layout linter before any VLM-in-the-loop.~~ Done (M1/M2).
 5. ~~Creation from IR + ODF/PDF write completion + sandbox + distribution.~~ Done (M3, tag `m3`).
-6. **Phase 4 — human loop** (`docs/phase4-plan.md`): revision accept/reject kernel (OOXML + ODF),
-   raster review overlay over the store's HTTP surface, comment write-back, `open` handoff;
-   COM stays design-only until a Windows host exists.
-7. Windows COM worker behind the same engine trait, logon-session process model — **implementation
-   still deferred** (design ADR + compile-only skeleton + Windows CI land in Phase 4 Wave H).
+6. ~~**Phase 4 — human loop** (`docs/phase4-plan.md`)~~ Done 2026-09-18 (M4, tag `m4`).
+   ~~Phase 5 — PDF-native loop + trust~~ Recorded gate-green 2026-09-19 (`docs/m5-acceptance.md`);
+   `m5` tag still to move per ship-state rule (commit → gate → tag → push).
+7. **Phase 6 — context budget (C14, D27) + M6 intake**: track CTX in `project_plan.md` §5 — `__budget`
+   envelope, summary/URL/cap defaults, `dry_run`-true previews, C7 v1.6 freeze; plus COM-2..6 on the
+   arriving Windows host (design ADR + skeleton already landed in Phase 4), xlsx formula evaluation
+   (ADR + minimal core subset), ODS/ODP revision write, Word-interop verification, owner-timed launch
+   (D26). M6 concept/plan to draft at kickoff.
