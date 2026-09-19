@@ -86,12 +86,18 @@ mod tests {
 
     #[test]
     fn test_parse_algorithm_none() {
-        assert!(matches!(parse_algorithm(None), Ok(SignAlgorithm::RsaSha256)));
+        assert!(matches!(
+            parse_algorithm(None),
+            Ok(SignAlgorithm::RsaSha256)
+        ));
     }
 
     #[test]
     fn test_parse_algorithm_rsa() {
-        assert!(matches!(parse_algorithm(Some("rsa")), Ok(SignAlgorithm::RsaSha256)));
+        assert!(matches!(
+            parse_algorithm(Some("rsa")),
+            Ok(SignAlgorithm::RsaSha256)
+        ));
     }
 
     #[test]

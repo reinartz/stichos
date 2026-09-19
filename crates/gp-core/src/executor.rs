@@ -243,22 +243,21 @@ impl ExecuteResult {
 
     /// Create a refusal result for a document with existing digital signatures.
     pub fn signature_refuse(sigs: &[SignatureInfo]) -> Self {
-        let sig_descriptions: Vec<String> = sigs.iter()
+        let sig_descriptions: Vec<String> = sigs
+            .iter()
             .map(|s| format!("{} at {}", s.sig_type, s.location))
             .collect();
         Self {
             output: Vec::new(),
             accepted: false,
-            diagnostics: vec![
-                Diagnostic::new(
-                    "GP-S-001",
-                    Severity::Error,
-                    format!(
-                        "Document has digital signatures — write refused: {}",
-                        sig_descriptions.join("; ")
-                    ),
+            diagnostics: vec![Diagnostic::new(
+                "GP-S-001",
+                Severity::Error,
+                format!(
+                    "Document has digital signatures — write refused: {}",
+                    sig_descriptions.join("; ")
                 ),
-            ],
+            )],
             changed_parts: Vec::new(),
             unchanged_parts: Vec::new(),
             changed_element_ids: Vec::new(),
@@ -460,7 +459,7 @@ impl Default for LatencyTracker {
 }
 
 /// Configuration for the surgical patch executor.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct ExecutorConfig {
     /// Whether to apply revision markup (w:ins/w:del).
     pub revisions: bool,
@@ -475,18 +474,6 @@ pub struct ExecutorConfig {
     /// Whether to allow mutations that invalidate existing signatures.
     /// When false (default), mutations on signed documents are refused with GP-S-001.
     pub force_signature_invalidation: bool,
-}
-
-impl Default for ExecutorConfig {
-    fn default() -> Self {
-        Self {
-            revisions: false,
-            author: None,
-            dry_run: false,
-            policy: None,
-            force_signature_invalidation: false,
-        }
-    }
 }
 
 // ---------------------------------------------------------------------------
@@ -1676,7 +1663,11 @@ mod tests {
         let executor = SurgicalPatchExecutor::default();
         let result = executor.execute(unsigned_pdf, FormatType::Pdf, &[]);
         // Without a real adapter, this produces a stub (accepted) result
-        assert!(result.accepted || !result.output.is_empty() || result.diagnostics.iter().any(|d| d.code == "GP-I-002"));
+        assert!(
+            result.accepted
+                || !result.output.is_empty()
+                || result.diagnostics.iter().any(|d| d.code == "GP-I-002")
+        );
     }
 
     /// Golden test: signed PDF with force_policy → warning but allowed

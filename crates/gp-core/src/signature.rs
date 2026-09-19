@@ -224,7 +224,6 @@ fn generate_rsa_keypair() -> Result<(String, String), crate::diagnostics::Diagno
 
 /// Generate an ECDSA P-384 key pair.
 fn generate_ecdsa_keypair() -> Result<(String, String), crate::diagnostics::Diagnostic> {
-    
     use p384::ecdsa::SigningKey;
     use rand_core::OsRng;
 

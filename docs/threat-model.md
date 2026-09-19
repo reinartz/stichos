@@ -172,3 +172,39 @@ No new vulnerabilities identified.
 
 Review completed by: p4-18 agent
 Date: 2026-09-18
+
+## SEC-06 Phase-5 Security Review
+
+### Phase-5 Attack Surface
+Phase 5 introduces new vectors: PDF annotation dictionaries (deep nesting, ref loops, oversized rects, malformed QuadPoints), signature/byte-range structures (maligned ranges, huge ByteRange ints, conflicting AcroForm/SigFields), text-layer data.json strings (XSS corpus reuse with Unicode evasion), and vendored-asset path attacks (traversal, null bytes, double-encoding, Unicode normalization).
+
+### Review Checklist
+- [x] Annotation dictionaries: hostile nested/ref-loop/oversized/malformed → parser rejects, no panic
+- [x] Signature/byte-range structures: maligned ranges, huge ints, conflicting AcroForm → detect_signatures refuses gracefully
+- [x] Text-layer data.json: XSS payloads (40+ techniques), Unicode homoglyph evasion, HTML entity bombs → JSON-serialized safely (serde_json), CSP script-src 'self' unchanged, textContent-only rendering
+- [x] Vendored asset routes: path traversal (dotdot, null bytes, double-encoding, Unicode normalization, 8KB paths) → whitelist-based serving, no traversal possible
+- [x] Annotation write-back: signed-doc detection → GP-S-001 refusal, never silent drop
+- [x] Sign-later: sign-after-sign refusal → GP-S-016, PKCS#12 only, self-signed only (B-B)
+- [x] C7 v1.5.0 additive: sign_document tool (23 tools total), no breaking changes
+- [x] CSP unchanged: script-src 'self', no eval, no external resources
+- [x] Fuzz regression corpus: 19 new fixture functions + 23 tests, all green
+
+### Findings
+No new vulnerabilities identified beyond Phase-4 threat model. The new components follow the same defensive patterns:
+- All inputs validated before processing
+- Errors returned as structured diagnostics (C3 codes), never panicking
+- Text layer uses textContent-only rendering (XSS-inert)
+- CSP script-src 'self' unchanged
+- Vendored assets served via whitelist (not path-based)
+- Signature detection + refusal on every mutation path
+- sign-later uses self-signed keys only (no CA, no TSA, honest-absent)
+
+### Mitigations Added
+- Hostile annotation fixtures (deep nesting, ref loops, oversized rects, malformed QuadPoints, damaged dicts)
+- Signature/byte-range hostile fixtures (maligned ranges, huge ints, conflicting AcroForm, nested sig dicts, corrupted PKCS#7)
+- Text-layer XSS corpus reuse (40+ techniques, Unicode evasion, entity bombs)
+- Vendored-asset path attack fixtures (traversal, null bytes, double-encoding, Unicode normalization, 8KB paths)
+- All added as deterministic regression tests in adapters-ooxfuzz (19 fixtures, 23 tests)
+
+Review completed by: p5-17 agent
+Date: 2026-09-19

@@ -57,7 +57,9 @@ impl std::fmt::Display for JournalAction {
             JournalAction::Delete => write!(f, "delete"),
             JournalAction::Style => write!(f, "style"),
             JournalAction::TrackedChange => write!(f, "tracked-change"),
-            JournalAction::SignatureInvalidated { signature_count, .. } => {
+            JournalAction::SignatureInvalidated {
+                signature_count, ..
+            } => {
                 write!(f, "signature-invalidated({})", signature_count)
             }
             JournalAction::SignedDocument { subject, .. } => {

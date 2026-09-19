@@ -1,0 +1,35 @@
+name: phase5-gate
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  phase5-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.98.0
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/registry
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - name: Gate 0: intake hygiene
+        run: bash tools/p5_01_verify.sh
+      - name: Gate 0: fixture corpus
+        run: bash tools/p5_02_verify.sh
+      - name: Gate P: PDF annotation round-trip
+        run: bash tools/phase5_gate.sh --ci
+      - name: Gate X: full gate
+        run: bash tools/phase5_gate.sh --ci
+      - name: Workspace tests
+        run: cargo test --workspace --lib
+      - name: Clippy
+        run: cargo clippy --workspace --lib -- -D warnings
+      - name: Format check
+        run: cargo fmt --all --check

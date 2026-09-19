@@ -488,7 +488,7 @@ fn test_c10_policy_denial_diagnostic_codes() {
         author: None,
         dry_run: false,
         policy: Some(policy2),
-    force_signature_invalidation: false,
+        force_signature_invalidation: false,
     };
     let executor2 = SurgicalPatchExecutor::new(config2);
     let source2 = b"PK\x03\x04word/document.xml xl/styles.xml ppt/slides.xml";

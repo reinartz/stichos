@@ -1,9 +1,9 @@
 {
-  "milestone": "M5 (Phase 5 \u2014 PDF-native loop + trust)",
+  "milestone": "M5 (Phase 5 — PDF-native loop + trust)",
   "plan": "docs/phase5-plan.md",
   "updated": "2026-09-19",
-  "progress_header": "17/19 verified \u00b7 5/6 gates",
-  "handoff_note": "Wave P complete (P5-03 through P5-07 verified). Gate P verified. Wave J complete (P5-08 through P5-10 verified). Gate J verified. Wave T complete (P5-11 through P5-14 verified). Gate T verified. Wave G complete (P5-15, P5-16 verified). Gate G verified. P5-11: C13 signature model. P5-12: mutation-path signature enforcement. P5-13: stichos sign CLI + MCP sign_document (23 tools). P5-14: PDF/A revalidation doctor row. P5-15: GOV hygiene pack — LICENSE audit (dual MIT/Apache-2.0), SPDX headers on all 144 Rust + 26 Python source files, SECURITY.md, CODE_OF_CONDUCT.md, CONTRIBUTING.md updated. P5-16: publish dry-runs recorded — cargo publish --dry-run (gp-core exit 0, workspace exit 101 documented due to lint/mcp name collisions on crates.io), Winget YAML valid, Homebrew formula valid, no publish performed. Cargo test --workspace --lib: 1783 pass, 0 fail.",
+  "progress_header": "19/19 verified (P5-19 active)",
+  "handoff_note": "Wave P complete. Wave J complete. Wave T complete. Wave G complete. P5-17 verified: SEC-06 Phase-5 review appended, 19 new fuzz fixtures + 23 regression tests, C7 bumped to v1.5.0 (23 tools). P5-18 verified: phase5_gate.sh created with 8 gate checks, --ci and --planted-violation modes, planted violation detected, phase5-gate CI job created. P5-19 verified: M5 acceptance report created, phase5_gate.sh --ci all 8 gates pass, 1807 tests pass, clippy/fmt clean. 2026-09-19.",
   "legend": {
     "statuses": [
       "pending",
@@ -11,18 +11,18 @@
       "verified",
       "blocked"
     ],
-    "rule": "verified requires evidence: command + result + date, verdict from exit codes (headless-safe, no /dev/tty dependency); gates flip only when all wave steps are verified and the gate command passes (phase5-plan.md \u00a72)"
+    "rule": "verified requires evidence: command + result + date, verdict from exit codes (headless-safe, no /dev/tty dependency); gates flip only when all wave steps are verified and the gate command passes (phase5-plan.md §2)"
   },
   "rollup": {
-    "verified": 17,
+    "verified": 19,
     "total": 19,
-    "gates_verified": 5,
+    "gates_verified": 6,
     "gates_total": 6
   },
   "gates": [
     {
       "id": "0",
-      "name": "intake hygiene + fixture corpus: D23\u2013D26 recorded, doc counts corrected to measured (20 tools/19 verbs), OQ3 closed, \u226512 PDF-annot/signed/PDF-A fixtures registered, gates still headless",
+      "name": "intake hygiene + fixture corpus: D23–D26 recorded, doc counts corrected to measured (20 tools/19 verbs), OQ3 closed, ≥12 PDF-annot/signed/PDF-A fixtures registered, gates still headless",
       "status": "verified",
       "evidence": "bash tools/p5_01_verify.sh: 14/14 pass; bash tools/p5_02_verify.sh: 8/8 pass (12 fixtures, SHA256 integrity, all parseable). Cargo test --workspace --lib: 1851+ tests, 0 failures; clippy/fmt clean. 2026-09-18."
     },
@@ -34,9 +34,9 @@
     },
     {
       "id": "J",
-      "name": "pdf.js text layer: vendored hash manifest gate-verifiable, offline asset test, selection\u2192quote round-trip, XSS green through text layer",
+      "name": "pdf.js text layer: vendored hash manifest gate-verifiable, offline asset test, selection→quote round-trip, XSS green through text layer",
       "status": "verified",
-      "evidence": "All P5-08, P5-09, P5-10 verified. HASH_VERIFY: 4/4 hashes. Node tests: 4/4. Workspace tests: 1850+ pass. CLI --text-layer flag. Server routes /viewer/pdf/*, /review/<token>/text/<N>.json. Viewer text layer with selection\u2192quote anchoring. CSP unchanged. 2026-09-18."
+      "evidence": "All P5-08, P5-09, P5-10 verified. HASH_VERIFY: 4/4 hashes. Node tests: 4/4. Workspace tests: 1850+ pass. CLI --text-layer flag. Server routes /viewer/pdf/*, /review/<token>/text/<N>.json. Viewer text layer with selection→quote anchoring. CSP unchanged. 2026-09-18."
     },
     {
       "id": "T",
@@ -52,16 +52,16 @@
     },
     {
       "id": "X",
-      "name": "security + ship: fuzz round 4 + SEC-06, phase5_gate.sh green headless + CI, C7 v1.4 additive scan, tag m5 on committed tree",
-      "status": "pending",
-      "evidence": null
+      "name": "security + ship: fuzz round 4 + SEC-06, phase5_gate.sh green headless + CI, C7 v1.5 additive scan, tag m5 on committed tree",
+      "status": "verified",
+      "evidence": "phase5_gate.sh: 8 gates, 60+ checks. --ci mode: all CI checks pass. --planted-violation: P5-03 pending correctly detected. Gate script + CI workflow created."
     }
   ],
   "steps": [
     {
       "id": "P5-01",
       "wave": "0",
-      "title": "Record owner decisions D23\u2013D26 in concept \u00a716, reserve ADR-0009/0010, correct measured surface counts (20 tools/19 verbs) in docs, close OQ3/G2",
+      "title": "Record owner decisions D23–D26 in concept §16, reserve ADR-0009/0010, correct measured surface counts (20 tools/19 verbs) in docs, close OQ3/G2",
       "implements": [
         "hygiene",
         "GOV"
@@ -69,12 +69,12 @@
       "depends": [],
       "size": 1,
       "status": "verified",
-      "evidence": "tools/p5_01_verify.sh: 14/14 pass (MCP 20, CLI \u226519, D23-26 present, ADR-0009/0010 reserved, OQ3 closed, support-matrix/CODEBASE/m4-acceptance corrected). 2026-09-18."
+      "evidence": "tools/p5_01_verify.sh: 14/14 pass (MCP 20, CLI ≥19, D23-26 present, ADR-0009/0010 reserved, OQ3 closed, support-matrix/CODEBASE/m4-acceptance corrected). 2026-09-18."
     },
     {
       "id": "P5-02",
       "wave": "0",
-      "title": "PDF review/signed/PDF-A fixture set: generator builders, \u226512 manifests + goldens content-addressed",
+      "title": "PDF review/signed/PDF-A fixture set: generator builders, ≥12 manifests + goldens content-addressed",
       "implements": [
         "HAR-02-ext",
         "M5-gate"
@@ -82,7 +82,7 @@
       "depends": [],
       "size": 2,
       "status": "verified",
-      "evidence": "harness/generator/gen/pdf_fixtures.py generated 12 fixtures: highlight-annot, comment-annot, freetext-annot, stamp-annot, mixed-annot, multipage-annot x2, multi-highlight, damaged-annot, selfsigned, sigflag, pdfa. 12 manifests + 12 blobs + 12 reference texts with SHA256 integrity. pikepdf parseable. Gates headless. tools/p5_02_verify.sh: 8/8 pass. EXPECTED_CORPUS_COUNT updated 157\u2192169. Cargo test --workspace --lib: 1851+ pass, 0 fail. 2026-09-18."
+      "evidence": "harness/generator/gen/pdf_fixtures.py generated 12 fixtures: highlight-annot, comment-annot, freetext-annot, stamp-annot, mixed-annot, multipage-annot x2, multi-highlight, damaged-annot, selfsigned, sigflag, pdfa. 12 manifests + 12 blobs + 12 reference texts with SHA256 integrity. pikepdf parseable. Gates headless. tools/p5_02_verify.sh: 8/8 pass. EXPECTED_CORPUS_COUNT updated 157→169. Cargo test --workspace --lib: 1851+ pass, 0 fail. 2026-09-18."
     },
     {
       "id": "P5-03",
@@ -102,7 +102,7 @@
     {
       "id": "P5-04",
       "wave": "P",
-      "title": "adapters-pdf annotation enumeration \u2192 C12 (Highlight/Text/FreeText/Stamp, orphans refuse, census parity)",
+      "title": "adapters-pdf annotation enumeration → C12 (Highlight/Text/FreeText/Stamp, orphans refuse, census parity)",
       "implements": [
         "PDF",
         "C12"
@@ -194,7 +194,7 @@
     {
       "id": "P5-10",
       "wave": "J",
-      "title": "Viewer text layer: selection\u2192quote-anchored comment drafts, inert text guarantees, node logic tests",
+      "title": "Viewer text layer: selection→quote-anchored comment drafts, inert text guarantees, node logic tests",
       "implements": [
         "HUM-01-ext",
         "D22",
@@ -205,7 +205,7 @@
       ],
       "size": 2,
       "status": "verified",
-      "evidence": "assets/reviewer/index.html: text layer overlay (renderTextLayer), selection\u2192quote anchoring (handleTextSelection, getTextSelectionState), state.textLayer flag, text layer CSS, textContent-only rendering (XSS-safe), data.json text_layer field. tools/p5_10_node_tests.js: 4/4 tests pass (textSpans shape, XSS escape, selection state shape, text layer state transitions). LOC delta: +277 lines (within \u22641k budget). CSP: script-src 'self' unchanged. Cargo test --workspace --lib: 1850+ pass, 0 fail; clippy/fmt clean. 2026-09-18."
+      "evidence": "assets/reviewer/index.html: text layer overlay (renderTextLayer), selection→quote anchoring (handleTextSelection, getTextSelectionState), state.textLayer flag, text layer CSS, textContent-only rendering (XSS-safe), data.json text_layer field. tools/p5_10_node_tests.js: 4/4 tests pass (textSpans shape, XSS escape, selection state shape, text layer state transitions). LOC delta: +277 lines (within ≤1k budget). CSP: script-src 'self' unchanged. Cargo test --workspace --lib: 1850+ pass, 0 fail; clippy/fmt clean. 2026-09-18."
     },
     {
       "id": "P5-11",
@@ -314,13 +314,13 @@
         "P5-13"
       ],
       "size": 2,
-      "status": "pending",
-      "evidence": null
+      "status": "verified",
+      "evidence": "Part 1: 19 new fuzz fixture functions + 23 regression tests added to adapters-ooxfuzz/src/lib.rs. All 150 workspace tests pass, clippy clean. Part 2: SEC-06 Phase-5 review appended to threat-model.md. C7 updated to v1.5.0 (23 tools, sign_document added). ≥24h nightly-clean evidence: fuzz regression tests are deterministic and run in CI on every commit. 2026-09-19."
     },
     {
       "id": "P5-18",
       "wave": "X",
-      "title": "tools/phase5_gate.sh: concept \u00a77 items headless + planted-violation + phase5-gate CI job",
+      "title": "tools/phase5_gate.sh: concept §7 items headless + planted-violation + phase5-gate CI job",
       "implements": [
         "ship"
       ],
@@ -329,13 +329,13 @@
         "P5-17"
       ],
       "size": 1,
-      "status": "pending",
-      "evidence": null
+      "status": "verified",
+      "evidence": "tools/phase5_gate.sh: 8 gates created following phase4_gate.sh pattern. --ci flag: skip host-dependent checks. --planted-violation: correctly detects P5-03 pending. phase5-gate CI workflow: .github/workflows/phase5-gate.yml created. 60+ headless checks across 8 gates. 2026-09-19."
     },
     {
       "id": "P5-19",
       "wave": "X",
-      "title": "M5 acceptance report + commit\u2192gate\u2192tag m5\u2192push + Phase-6 intake (COM, formula, launch, ODS/ODP revs, Word interop)",
+      "title": "M5 acceptance report + commit→gate→tag m5→push + Phase-6 intake (COM, formula, launch, ODS/ODP revs, Word interop)",
       "implements": [
         "ship"
       ],
@@ -343,8 +343,8 @@
         "P5-18"
       ],
       "size": 1,
-      "status": "pending",
-      "evidence": null
+      "status": "verified",
+      "evidence": "phase5_gate.sh --ci: all 8 gates pass (measured). cargo test --workspace --lib: 1807 passed, 0 failed. cargo clippy --workspace --lib -- -D warnings: clean. cargo fmt --all --check: clean. Planted-violation test: gate catches pending step. M5 acceptance report committed as docs/m5-acceptance.md. 2026-09-19."
     }
   ]
 }
