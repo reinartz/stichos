@@ -1,14 +1,17 @@
 # stichos — Project Concept & Decision Record
 
 **Tagline:** proof before publish.
-**Status:** concept agreed · naming agreed · **Phases 0–4 shipped and gated** (tags `m1-closeout`,
-`m2`, `m3`, `m4`); **Phase 5 (PDF-native loop + trust) recorded gate-green 2026-09-19** — 19/19 steps,
-`phase5_gate.sh --ci` 8 gates, 1 807 tests (`docs/m5-acceptance.md`); tag `m5` pending per
-ship-state rule; **Phase 6 (context budget C14 + M6 intake) drafted** — decision **D27**,
+**Status:** concept agreed · naming agreed · **Phases 0–5 shipped and gated** (tags `m1-closeout`,
+`m2`, `m3`, `m4`, `m5`); **Phase 5 (PDF-native loop + trust) shipped 2026-09-19** — 19/19 steps,
+`phase5_gate.sh --ci` 8 gates, 1 807 tests (`docs/m5-acceptance.md`, incl. §9 post-acceptance
+correction: `tools/check-deps.sh` fails at the `m5` tree on the `mcp -> adapters-pdf` edge,
+fixed by dependency inversion in Phase 6 Wave 0); **Phase 6 (context budget C14 + M6 intake) active**
+— concept [`docs/phase6-concept.md`](docs/phase6-concept.md), plan [`docs/phase6-plan.md`](docs/phase6-plan.md) —
+decision **D27**,
 contract [`docs/contracts/C14-context-budget.md`](docs/contracts/C14-context-budget.md) +
 guide [`docs/implementation-guide-context-budget.md`](docs/implementation-guide-context-budget.md)
-**Last updated:** 2026-09-19 (D27 recorded — context budget C14; surface re-measured: **23 tools**
-(`spec.rs` assert) / **21 verbs** (`enum Command`), C7 v1.5.0)
+**Last updated:** 2026-09-20 (Phase 6 kickoff — owner calls C6–C9 recorded in `docs/phase6-concept.md`
+§10; surface re-measured: **23 tools** (`spec.rs` assert) / **21 verbs** (`enum Command`), C7 v1.5.0)
 **Project root:** `/localdata/workspace/stichos`
 **Related:** [`brand.md`](brand.md) — identity, colour, typography, logo usage
 
@@ -381,22 +384,27 @@ a raster overlay over the 150-DPI PNG masters, not pdf.js (D22)** — accept/rej
 changes, ODF revision write, in-suite handoff (`open`); COM add-in stays a design-only spike until
 a Windows host exists.
 
-**Phase 5 ✅ — PDF-native loop + trust** (M5; recorded gate-green 2026-09-19 — `phase5_gate.sh --ci`
-8 gates, `docs/m5-acceptance.md`; tag `m5` pending per ship-state rule; `docs/phase5-concept.md`).
+**Phase 5 ✅ — PDF-native loop + trust** (M5; shipped 2026-09-19 — tag `m5` on the gate-green
+commit, pushed; `docs/m5-acceptance.md` incl. §9 post-acceptance correction on the `mcp ->
+adapters-pdf` DAG edge; `docs/phase5-concept.md`).
 PDF annotation round-trip (C12, incremental append-only write-back), review session over PDF with the
 vendored hash-pinned pdf.js **text layer** opt-in (D24), signature-integrity detection + PAdES-B-B
 sign-later (C13, D25), PDF/A revalidation row, launch prep only (D26). Surface measured 2026-09-19:
 **23 tools / 21 verbs**, C7 v1.5.0.
 
-**Phase 6 ⏳ — context budget + M6 intake** (decision **D27**; contract
+**Phase 6 ⏳ — context budget + M6 intake** (decision **D27**; concept
+[`docs/phase6-concept.md`](docs/phase6-concept.md), plan [`docs/phase6-plan.md`](docs/phase6-plan.md),
+contract
 [`docs/contracts/C14-context-budget.md`](docs/contracts/C14-context-budget.md), guide
 [`docs/implementation-guide-context-budget.md`](docs/implementation-guide-context-budget.md),
 track CTX in `project_plan.md` §5). Response-size management across the whole tool surface at C7
 additive **v1.6**: summary-first `inspect_document`, URL-first images (temp files + TTL), caps
 (`max_elements` 100 / `max_pages` 3–5 / `max_ops` 20 / `max_entries` 10), `dry_run`-true previews on
-`apply_patch`/`edit_*`, `__budget` envelope on every response (P7); plus the M6 intake: COM worker
-implementation (COM-2..6 on the arriving Windows host), xlsx formula evaluation (ADR + minimal core
-subset), ODS/ODP revision write, Word-interop verification of accept/reject, owner-timed launch (D26).
+`apply_patch`/`edit_*`, `__budget` envelope on every response (P7); Wave 0 first removes the
+`mcp -> adapters-pdf` DAG deviation by dependency inversion (`docs/m5-acceptance.md` §9); plus the
+M6 intake on the now-available Windows host: COM worker implementation (COM-2..6), xlsx formula
+evaluation (ADR + minimal core subset), ODS/ODP revision write, Word-interop verification,
+launch rehearsal only (D26, owner calls C6–C9 in `docs/phase6-concept.md` §10).
 
 Crate layout: `core` (IR + patch engine, dep-free) · `adapters-ooxml` · `adapters-odf` · `adapters-pdf` ·
 `engines` (probe + subprocess runners) · `lint` · `mcp` · `cli`.
@@ -489,10 +497,10 @@ Crate layout: `core` (IR + patch engine, dep-free) · `adapters-ooxml` · `adapt
 4. ~~Deterministic layout linter before any VLM-in-the-loop.~~ Done (M1/M2).
 5. ~~Creation from IR + ODF/PDF write completion + sandbox + distribution.~~ Done (M3, tag `m3`).
 6. ~~**Phase 4 — human loop** (`docs/phase4-plan.md`)~~ Done 2026-09-18 (M4, tag `m4`).
-   ~~Phase 5 — PDF-native loop + trust~~ Recorded gate-green 2026-09-19 (`docs/m5-acceptance.md`);
-   `m5` tag still to move per ship-state rule (commit → gate → tag → push).
-7. **Phase 6 — context budget (C14, D27) + M6 intake**: track CTX in `project_plan.md` §5 — `__budget`
+   ~~Phase 5 — PDF-native loop + trust~~ Shipped 2026-09-19 (tag `m5`; `docs/m5-acceptance.md`
+   incl. §9 post-acceptance correction on the `mcp -> adapters-pdf` DAG edge, fixed in Phase 6 Wave 0).
+7. **Phase 6 — context budget (C14, D27) + M6 intake** (`docs/phase6-concept.md`,
+   `docs/phase6-plan.md`, `docs/phase6-status.json`): Wave 0 DAG-inversion closeout, then `__budget`
    envelope, summary/URL/cap defaults, `dry_run`-true previews, C7 v1.6 freeze; plus COM-2..6 on the
-   arriving Windows host (design ADR + skeleton already landed in Phase 4), xlsx formula evaluation
-   (ADR + minimal core subset), ODS/ODP revision write, Word-interop verification, owner-timed launch
-   (D26). M6 concept/plan to draft at kickoff.
+   now-available Windows host, xlsx formula evaluation (ADR + minimal core subset), ODS/ODP revision
+   write, Word-interop verification, launch rehearsal only (D26; owner calls C6–C9).

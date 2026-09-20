@@ -1,0 +1,365 @@
+{
+  "milestone": "M6 (Phase 6 — context budget + M6 intake)",
+  "plan": "docs/phase6-plan.md",
+  "updated": "2026-09-20",
+  "progress_header": "0/20 verified · 0/7 gates",
+  "handoff_note": "Phase 6 kicked off 2026-09-20. Owner calls C6–C9 recorded (phase6-concept.md §10): Wave-0 DAG inversion first (no merges before P6-00 verified), Windows host available for COM-2..6, launch stays rehearsal-only (D26), formula is ADR + minimal subset. Baseline: m5 = 484496a, 23 tools / 21 verbs, C7 v1.5.0, 1807 lib tests.",
+  "legend": {
+    "statuses": [
+      "pending",
+      "active",
+      "verified",
+      "blocked"
+    ],
+    "rule": "verified requires evidence: command + result + date, verdict from exit codes (headless-safe, no /dev/tty dependency; Wave W + P6-10 evidence cites Windows host + build); gates flip only when all wave steps are verified and the gate command passes (phase6-plan.md §2)"
+  },
+  "rollup": {
+    "verified": 0,
+    "total": 20,
+    "gates_verified": 0,
+    "gates_total": 7
+  },
+  "gates": [
+    {
+      "id": "0",
+      "name": "Wave-0 closeout: mcp -> adapters-pdf edge removed by dependency inversion, check-deps.sh exits 0, text-layer e2e byte-identical",
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "C",
+      "name": "context budget: one-turn defaults, URL-first images, caps, dry_run-true previews, __budget on 100% of responses, C7 v1.6 additive",
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "F",
+      "name": "formula eval: ADR-0011 accepted, C15 draft, minimal subset with parity lint, GP-F0xx refusals exact",
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "R",
+      "name": "revisions + interop: ODS/ODP accept/reject lossless, Word-interop accept round-trip lossless",
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "W",
+      "name": "COM workers on Windows host: real-conversion probe matrix, Word/Excel/PPT workers, CompareDocuments, logon-agent packaging",
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "G",
+      "name": "launch rehearsal (no launch): hygiene green, dry-runs recorded, absence of publish asserted",
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "X",
+      "name": "security + ship: fuzz round 5 + SEC-06, phase6_gate.sh green headless + CI, post-report gate re-run, tag m6 on committed tree",
+      "status": "pending",
+      "evidence": null
+    }
+  ],
+  "steps": [
+    {
+      "id": "P6-00",
+      "wave": "0",
+      "title": "DAG inversion: gp-core text-span trait, impl in adapters-pdf, wiring in cli, drop mcp -> adapters-pdf edge",
+      "implements": [
+        "hygiene",
+        "CORE"
+      ],
+      "depends": [],
+      "size": 1,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P6-01",
+      "wave": "C",
+      "title": "CTX-01 envelope types in gp-core + INV-2 schema-gate update (RenderOutput/InspectDetail/ResponseBudget/__budget)",
+      "implements": [
+        "CTX-01",
+        "CORE"
+      ],
+      "depends": [
+        "P6-00"
+      ],
+      "size": 1,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P6-02",
+      "wave": "C",
+      "title": "CTX-02 inspect_document detail levels (summary/elements/all, max_elements, cursor pagination) + CLI flags",
+      "implements": [
+        "CTX-02",
+        "API"
+      ],
+      "depends": [
+        "P6-00",
+        "P6-01"
+      ],
+      "size": 1,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P6-03",
+      "wave": "C",
+      "title": "CTX-03 temp-file image path (TempFileManager, TTL + sweep, expiresAt) + output/max_pages on render/inspect_region/annotate_pages",
+      "implements": [
+        "CTX-03",
+        "API"
+      ],
+      "depends": [
+        "P6-02"
+      ],
+      "size": 2,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P6-04",
+      "wave": "C",
+      "title": "CTX-04 caps + summaries: diff max_ops=20 + summary counters, journal max_entries=10 + CLI flags",
+      "implements": [
+        "CTX-04",
+        "API"
+      ],
+      "depends": [
+        "P6-03"
+      ],
+      "size": 1,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P6-05",
+      "wave": "C",
+      "title": "CTX-05 mutation-tool safety: dry_run default true + <=20-op preview + includeFullDiff + CLI --dry-run/--apply",
+      "implements": [
+        "CTX-05",
+        "API"
+      ],
+      "depends": [
+        "P6-04"
+      ],
+      "size": 1,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P6-06",
+      "wave": "C",
+      "title": "CTX-06 surface freeze: C7 v1.6.0 matrix, additive-only scan, CHANGELOG default-flip section, C14 §7.4 tests",
+      "implements": [
+        "CTX-06",
+        "API"
+      ],
+      "depends": [
+        "P6-05"
+      ],
+      "size": 1,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P6-07",
+      "wave": "F",
+      "title": "ADR-0011 formula evaluation + C15 draft contract + GP-F0xx codes in C3 registry",
+      "implements": [
+        "CORE-C15",
+        "SEC"
+      ],
+      "depends": [
+        "P6-00"
+      ],
+      "size": 1,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P6-08",
+      "wave": "F",
+      "title": "Minimal formula subset (arithmetic/aggregate/logic) + cached-vs-computed parity lint + formula fixtures",
+      "implements": [
+        "PAT",
+        "OOX-ext"
+      ],
+      "depends": [
+        "P6-07",
+        "P6-01"
+      ],
+      "size": 2,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P6-09",
+      "wave": "R",
+      "title": "ODS/ODP revision write: accept/reject (C11 extended) + lossless round-trip suite + refusal matrix",
+      "implements": [
+        "ODF-ext",
+        "C11"
+      ],
+      "depends": [
+        "P6-00"
+      ],
+      "size": 2,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P6-10",
+      "wave": "R",
+      "title": "Word-interop verification harness on Windows host (accept round-trip lossless, matrix in support-matrix)",
+      "implements": [
+        "HUM-ext",
+        "OPS"
+      ],
+      "depends": [
+        "P6-09"
+      ],
+      "size": 1,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P6-11",
+      "wave": "W",
+      "title": "COM-2 probing for real (ProgIDs, CurVer, ClickToRun, WINWORD.EXE, Store editions) feeding doctor rows",
+      "implements": [
+        "ENG-COM-2"
+      ],
+      "depends": [
+        "P6-00"
+      ],
+      "size": 1,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P6-12",
+      "wave": "W",
+      "title": "COM-3 Word worker (DisplayAlerts=None, one-doc-per-instance, timeouts, wedge kill, activation handling)",
+      "implements": [
+        "ENG-COM-3"
+      ],
+      "depends": [
+        "P6-11"
+      ],
+      "size": 2,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P6-13",
+      "wave": "W",
+      "title": "COM-4 Excel + PowerPoint workers on the COM-3 harness with versioned provenance",
+      "implements": [
+        "ENG-COM-4"
+      ],
+      "depends": [
+        "P6-12"
+      ],
+      "size": 2,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P6-14",
+      "wave": "W",
+      "title": "COM-5 CompareDocuments authoritative track-changes diff (internal + diff backing)",
+      "implements": [
+        "ENG-COM-5"
+      ],
+      "depends": [
+        "P6-12"
+      ],
+      "size": 1,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P6-15",
+      "wave": "W",
+      "title": "COM-6 logon-agent packaging (MSI component + task-scheduler XML + docs, never a service)",
+      "implements": [
+        "ENG-COM-6",
+        "DIS"
+      ],
+      "depends": [
+        "P6-13"
+      ],
+      "size": 1,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P6-16",
+      "wave": "G",
+      "title": "Launch rehearsal: hygiene re-verified, publish dry-runs re-recorded, absence asserted (D26)",
+      "implements": [
+        "GOV-ext",
+        "DIS-ext"
+      ],
+      "depends": [
+        "P6-00"
+      ],
+      "size": 1,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P6-17",
+      "wave": "X",
+      "title": "Fuzz round 5 (CTX caps/parsers, formula evaluator, COM boundary strings) + SEC-06 Phase-6 + threat-model",
+      "implements": [
+        "SEC-01",
+        "SEC-06"
+      ],
+      "depends": [
+        "P6-05",
+        "P6-08",
+        "P6-13"
+      ],
+      "size": 2,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P6-18",
+      "wave": "X",
+      "title": "tools/phase6_gate.sh (concept §7 items 1–9 headless + planted-violation + post-report re-run hook) + CI job",
+      "implements": [
+        "ship"
+      ],
+      "depends": [
+        "P6-16",
+        "P6-17"
+      ],
+      "size": 1,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P6-19",
+      "wave": "X",
+      "title": "M6 acceptance report + commit→gate→report-commit→gate-re-run→tag m6→push + Phase-7 intake",
+      "implements": [
+        "ship"
+      ],
+      "depends": [
+        "P6-18"
+      ],
+      "size": 1,
+      "status": "pending",
+      "evidence": null
+    }
+  ]
+}

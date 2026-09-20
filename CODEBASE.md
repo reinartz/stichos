@@ -1,7 +1,7 @@
 # stichos — Codebase Structure
 
-> **Note:** This document reflects the current state of the Rust codebase (synced 2026-09-16,
-> tag `m3`). It is maintained by contributors; `project_plan.md` §3 is the authoritative plan
+> **Note:** This document reflects the current state of the Rust codebase (synced 2026-09-20,
+> tag `m5`). It is maintained by contributors; `project_plan.md` §3 is the authoritative plan
 > reference. Where reality and the plan DAG differ, §"Known DAG deviations" below records it.
 
 ## Workspace layout
@@ -49,6 +49,15 @@ gp-core                              (traits + types; no workspace deps)
 All edges are ratified in `project_plan.md` §3.2 as the canonical DAG.
 `tools/check-deps.sh` enforces cross-crate edge constraints (P4-02).
 
+## Known DAG deviations (measured 2026-09-20)
+
+- `mcp -> adapters-pdf` exists (`crates/mcp/src/http.rs` text-layer route calls
+  `adapters_pdf::text::extract_text_bytes`; edge in `crates/mcp/Cargo.toml`) but is **not** in the
+  `project_plan.md` §3.2 allow-list (`mcp`: `gp-core` only) — `tools/check-deps.sh` exits 1 at the
+  `m5` tree (see `docs/m5-acceptance.md` §9). Phase 6 Wave 0 removes it by dependency inversion
+  (text extraction behind a `gp-core` trait, wiring in `cli`); until then the deviation is
+  recorded here, not ratified.
+
 ## Crate details
 
 ### gp-core (foundation)
@@ -58,18 +67,19 @@ selfupdate. No workspace crate dependencies.
 
 | Module | Purpose | Key types |
 |--------|---------|-----------|
-| `ir` | Intermediate representation (C1) | `Document`, `Spreadsheet`, `Presentation`, `PdfDocument`, `IRDocument`, `ElementId`, template metadata |
+| `ir` | Intermediate representation (C1) | `Document`, `Spreadsheet`, `Presentation`, `PdfDocument`, `IRDocument`, `ElementId`, template metadata, `PdfAnnotation` (C12), `SignatureInfo` (C13), `Document.annotations` |
 | `patch` | Abstract patch ops + IR application + unified diff (P3) | `PatchOp` |
 | `diff` | IR structural diff | — |
-| `executor` | Format routing, refusal matrix, QA loop, byte-diff report | `FormatType`, `ExecuteResult`, `PartByteDiff`, `QALoopResult`, `RenderPage`, `SignatureInfo`, `PolicyDenial` |
-| `journal` | Undo journal + revert (C6, P6) | — |
+| `executor` | Format routing, refusal matrix, QA loop, byte-diff report, signature detection + enforcement | `FormatType`, `ExecuteResult`, `PartByteDiff`, `QALoopResult`, `RenderPage`, `SignatureInfo`, `PolicyDenial`, `ExecutorConfig.force_signature_invalidation` |
+| `journal` | Undo journal + revert (C6, P6), signature-invalidation events | `SignatureInvalidated`, `SignedDocument` |
 | `store` | Content-addressed blob store | `Store` |
 | `policy` | Edit allow-list + taint marks (C10) | — |
-| `fidelity` | Fidelity budget types + merge algebra (C4) | `FidelityBudget`, `RendererInfo` |
-| `diagnostics` | Diagnostic-code registry (C3) | `DiagnosticRegistry`, `DiagnosticCode`, `ReadError`, `Severity` |
+| `fidelity` | Fidelity budget types + merge algebra (C4, incl. signature-invalidation entry) | `FidelityBudget`, `RendererInfo` |
+| `diagnostics` | Diagnostic-code registry (C3): GP-A0xx (C12 refusals), GP-S001..016 (C13) | `DiagnosticRegistry`, `DiagnosticCode`, `ReadError`, `Severity` |
 | `script` | Sandboxed Rhai escape hatch (D17, ADR-0005) | `ScriptConfig`, `ScriptResult`, `run_script`, `has_sandbox_violations` |
 | `selfupdate` | Verify-before-swap update primitive (ADR-0006) | `UpdateChannel`, `UpdateManifest`, `UpdateResult` |
 | `traits` | Core trait definitions | `Codec`, `PatchExecutor`, `Engine`, `Probe`, `Linter`, `EngineInfo` |
+| `signature` | PAdES-B-B sign-later (D25, pure-Rust crypto): keygen, PKCS#7 stub, byte-range, `/Sig` detection | `sign_pdf()`, `detect_signatures()`, `detect_signatures_raw()` |
 | `edit_stability` | Element-ID stability property tests (C2) | — |
 | `macro_check` | Macro expansion checks | — |
 | `testkit` | Shared test utilities | — |
@@ -87,11 +97,12 @@ Open XML (OOXML) adapters: read, surgical write, create, revisions.
 | `xml` / `span_mut` | Namespace/order-preserving DOM-lite + byte-span patch primitives |
 | `docx` / `xlsx` / `pptx` | Readers → IR (structure, IDs, coordinates, budget) |
 | `docx_writer` / `xlsx_writer` / `pptx_writer` | Surgical part writers feeding `commit` |
-| `executor` | Patch execution + refusal matrix for OOXML |
+| `executor` | Patch execution + refusal matrix for OOXML (incl. signed-doc GP-S0xx refusal) |
 | `create` / `create_xlsx` / `create_pptx` | Native creation from IR (M3) |
 | `create_template` | Template-based creation; style/theme parts byte-identical |
 | `md_ir` | Markdown → IR converter |
 | `revision_writer` | Tracked-changes write (`w:ins`/`w:del`, `paraId` anchoring) + `create_as_revisions` |
+| `revision_reader` / `revision_executor` / `revision_ops` / `comment_writer` | Revision + comment read/write (C11, M4) |
 | `census` | Feature census → fidelity budget |
 | `validate` | Schema/structural validation gate |
 
@@ -107,6 +118,8 @@ OpenDocument Format (ODF) adapters. Full read + surgical write since M3.
 | `writer` | Surgical package writer: mimetype-first/stored, manifest updates, encryption refusal |
 | `patch` | Offset-based content.xml patch primitives (right-to-left, span re-verify) |
 | `patch_executor` | IR patch → odt/ods/odp routing (`PatchExecutor` impl) |
+| `revision_reader` / `revision_writer` / `revision_executor` / `comment_writer` | ODF revision + comment read/write (C11, M4; ODS/ODP revision write lands in M6) |
+| `lossless_suite` | Corpus lossless round-trip suite |
 | `census` | ODF feature census → budget |
 | `rng_validate` | RelaxNG validation gate (bundled ODF 1.2 rng, xmllint) |
 
@@ -118,12 +131,13 @@ pdf-writer, qpdf shell-out glue).
 | Module | Purpose |
 |--------|---------|
 | `parser` | PDF object layer parser (page tree, xref, object streams) |
-| `text` | Text extraction with bounding boxes |
+| `text` | Text extraction with bounding boxes (also serves the review text-layer route) |
 | `form` | AcroForm field read/write (XFA flagged unsupported) |
-| `annot` | Annotation read/write |
+| `annot` | Annotation read (Highlight/Text/FreeText/Stamp → C12) + enumeration parity |
+| `annot_write` | Annotation write-back via the incremental writer (append-only, journaled, `dry_run`) |
 | `outline` / `metadata` | TOC + metadata/XMP extraction and updates |
 | `qpdf` | `qpdf --check` runner glue (honest-absent) |
-| `incremental` | Append-only incremental writer (prefix invariant; refuses encrypted/xref-stream/obj-stm; signed-input refusal) |
+| `incremental` | Append-only incremental writer (prefix invariant; refuses encrypted/xref-stream/obj-stm; signed-input refusal) + `/Sig` detection |
 | `patch_executor` | IR patch → PDF increments (`PatchExecutor` impl) |
 
 ### engines
@@ -139,11 +153,13 @@ Render engines as spawned subprocesses, never linked (D3).
 | `creation` | Unified creation dispatcher (pandoc/chromium/typst/native/revisions) |
 | `probe` | Engine discovery + fixture-conversion capability probes (D8) |
 | `negotiate` | Renderer negotiation incl. `authoring_order()` per conversion |
-| `doctor` | Doctor probe matrix (engines × fixtures, incl. chromium/pandoc/typst rows) |
+| `doctor` | Doctor probe matrix (engines × fixtures, incl. chromium/pandoc/typst rows + PDF/A revalidation row) |
 | `raster` | Rasterization ladder (poppler → gs → mutool → soffice) |
 | `cache` | Render master cache (key per INV-4) |
 | `capability` | Capability matrix (C5) |
 | `mock` | Mock engine for testing |
+| `ms_office` | COM worker design + compile-only skeleton (COM-1; COM-2..6 implementation lands in M6) |
+| `open_handler` | Platform handoff resolver for `stichos open` (M4) |
 
 Engine identifiers: `libreoffice`, `pandoc`, `chromium`, `typst` (live); `ms-office` (defined,
 not implemented — COM tier deferred).
@@ -178,18 +194,20 @@ MCP (Model Context Protocol) server. Protocol layer only — wiring lives in `cl
 | Module | Purpose |
 |--------|---------|
 | `spec` | Tool specification types (C7 compliance; per-tool `schema_version`) |
-| `tools` | Tool registry (22 specs) + validation |
+| `tools` | Tool registry (23 specs) + validation |
 | `dispatch` | Tool handler trait + closure adapter |
 | `jsonrpc` | JSON-RPC protocol |
 | `server` | MCP server implementation |
+| `session` | Review sessions incl. PDF-annot mode + text-layer opt-in (M5) |
 | `transport` | Transport modes (stdio) |
-| `http` | HTTP transport (session store, `POST /` routing) |
+| `http` | HTTP transport (session store, `POST /` routing, `/viewer/pdf/*` + `/review/<token>/text/<N>.json` routes) |
 
-MCP tool surface (C7 v1.4.0, 22 specs): `inspect_document`, `render_document`,
+MCP tool surface (C7 v1.5.0, 23 specs): `inspect_document`, `render_document`,
 `inspect_region`, `diff_documents`, `doctor`, `serve` (v1.0.0); `apply_patch`, `edit_text`,
 `edit_cell`, `edit_structure`, `annotate_pages`, `revert_document`, `journal` (v1.1.0);
 `create_document`, `script_tool`, `check_update` (v1.2.0); `list_revisions`, `accept_revisions`,
-`reject_revisions` (v1.3.0); `list_annotations`, `resolve_annotations` (v1.4.0).
+`reject_revisions`, `add_comment` (v1.3.0); `list_annotations`, `resolve_annotations` (v1.4.0);
+`sign_document` (v1.5.0).
 
 ### cli
 
@@ -197,19 +215,23 @@ The `stichos` binary. Entry point, clap parsing, subcommand dispatch, engine/ada
 
 | Module | Purpose |
 |--------|---------|
-| `main` | CLI entry, 20-verb dispatch |
-| `inspect` / `region` / `render` / `diff_tool` / `doctor_tool` | Read-side verbs |
+| `main` | CLI entry, 21-verb dispatch |
+| `inspect` / `region` / `render` / `diff_tool` / `doctor_tool` | Read-side verbs (doctor incl. PDF/A revalidation row) |
 | `apply_tool` / `sugar_edits` | `apply`, `edit` — surgical edits + sugar (tracked revisions default) |
 | `journal_tool` | `journal` / `revert` |
 | `annots` | `annots list` / `annots resolve` — PDF annotation enumeration and write-back |
+| `sign` | `sign` — PAdES-B-B sign-later (M5) |
+| `revisions_tool` | `revisions` — accept/reject on tracked changes (OOXML + ODF, C11) |
+| `review_tool` | `review` — review sessions incl. PDF-annot mode + `--text-layer` opt-in |
+| `open_tool` | `open` — platform handoff resolver |
 | `perf_tool` | `perf` — OPS-02 latency gate |
 | `script_tool` | `script` — sandboxed Rhai runner |
 | `budget_enforcer` | INV-2 / C8 payload budget enforcement |
 | (verbs in `main.rs`) | `serve`, `schema`, `create`, `update` |
 
-Subcommands (20): `inspect`, `region`, `render`, `diff`, `doctor`, `serve`, `schema`, `apply`,
+Subcommands (21): `inspect`, `region`, `render`, `diff`, `doctor`, `serve`, `schema`, `apply`,
 `edit`, `annotate`, `revert`, `journal`, `perf`, `create`, `script`, `update`, `revisions`,
-`annots`, `review`, `open`.
+`annots`, `review`, `open`, `sign`.
 
 ### adapters-ooxfuzz
 
@@ -251,42 +273,52 @@ harness/
 corpus/
   PLAN.md                 # fixture generation plan
   GENERATION_REPORT.md    # generation results
-  # manifests, blobs, reference text; 151 fixtures (69 ODF), pr-subset.txt (27)
+  # manifests, blobs, reference text; 169 fixtures (157 M0–M4 + 12 PDF-annot/signed/PDF-A from P5-02), pr-subset.txt (27)
 ```
 
 ## Docs
 
 ```
 docs/
-  contracts/              # C1–C10 interface specs (C7 at v1.3.0)
-  adr/                    # ADR-0001..0006 + legacy pre-convention files (see README index)
+  contracts/              # C1–C14 interface specs (C7 at v1.5.0; C12/C13 frozen at M5; C14 draft for M6)
+  adr/                    # ADR-0001..0010 (0009 pdf.js vendoring, 0010 crypto stack) + legacy pre-convention files (see README index)
   gov/                    # name hygiene, registration
   harness/                # harness-specific docs
+  implementation-guide-context-budget.md  # C14 implementation detail (M6 input)
   phase0-execution.md     # M0 runbook
-  phase1-concept/plan/status · phase2-… · phase3-…   # per-phase artifacts
-  m2-acceptance.md · m3-acceptance.md                # milestone acceptance reports (m3 §7 = corrections)
+  phase1-concept/plan/status · phase2-… · phase3-… · phase4-… · phase5-…   # per-phase artifacts
+  phase6-concept/plan/status · m6-acceptance.md  # Phase 6 (M6, active)
+  m2-acceptance.md · m3-acceptance.md · m4-acceptance.md · m5-acceptance.md  # milestone acceptance reports (m3 §7, m4 Git-State, m5 §9 = post-acceptance corrections)
   creation-measurement.md/.csv                       # M3 creation-path matrix (C9)
-  threat-model.md         # M1–M3 threat model incl. SEC-06 reviews
+  threat-model.md         # threat model incl. SEC-06 reviews (M1–M5)
   KNOWN_ISSUES.md         # KI-01..05
   release-playbook.md     # DIS-08 release procedure
 ```
 
-## Test coverage summary (measured 2026-09-16, tag m3+, `cargo test --workspace`)
+## Reviewer + vendored assets
+
+```
+assets/
+  reviewer/index.html     # review overlay UI (raster-over-masters default + opt-in text layer, M5)
+  vendor/pdfjs/           # vendored pdf.js 3.11.174 (text layer only) + HASHES.toml (ADR-0009, D24)
+```
+
+## Test coverage summary (measured 2026-09-20, tag m5, `cargo test --workspace --lib`)
 
 | Crate | Passed | Failed | Ignored | Notes |
 |-------|--------|--------|---------|-------|
-| gp-core | 335 | 0 | 0 | incl. script sandbox + selfupdate suites |
-| adapters-ooxml | 282 | 0 | 0 | read + surgical write + creation + revisions |
-| adapters-odf | 146 | 0 | 0 | zero-patch ×69 in-suite |
-| adapters-pdf | 100 | 0 | 1 | prefix invariant in-suite |
-| engines | 219 | 0 | 0 | chromium/typst honest-absent paths |
+| gp-core | 360 | 0 | 0 | incl. script sandbox + selfupdate + C12/C13 suites |
+| adapters-ooxml | 332 | 0 | 0 | read + surgical write + creation + revisions (C11) |
+| adapters-odf | 211 | 0 | 0 | zero-patch in-suite + revision write |
+| adapters-pdf | 128 | 0 | 2 | prefix invariant in-suite + annot enumeration/write-back |
+| engines | 239 | 0 | 0 | chromium/typst honest-absent paths + COM skeleton |
 | lint | 294 | 0 | 0 | |
-| mcp | 62 | 0 | 0 | |
-| cli (bin) | 86 | 0 | 0 | |
-| cli integration (`tests/cli_tests.rs`) | 10 | 0 | 0 | end-to-end binary tests |
-| adapters-ooxfuzz | 107 | 0 | 0 | fuzz regressions locked as tests |
-| doctests | 3 | 0 | 0 | |
-| **Total** | **1733+** | **0** | **1** | |
+| mcp | 93 | 0 | 0 | incl. session/review + text-layer route tests |
+| adapters-ooxfuzz | 150 | 0 | 0 | fuzz regressions locked as tests (rounds 1–4) |
+| **Total (lib)** | **1 807** | **0** | **2** | |
+
+(CLI bin + integration + doctest suites from the m3-era table are exercised via the phase gates;
+see `docs/m5-acceptance.md` §3 for the gate transcript.)
 
 ## Naming conventions
 

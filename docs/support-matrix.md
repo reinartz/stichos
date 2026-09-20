@@ -1,7 +1,7 @@
 # stichos — Support Matrix
 
 > **Note:** This document tracks engine support, distro compatibility, deprecation notices,
-> and the evolving M4 phase-4 surface. It is a living reference — update it when tools/engines
+> and the evolving tool surface. It is a living reference — update it when tools/engines
 > are added or retired.
 
 ## Engines (N/N-1 support)
@@ -27,10 +27,23 @@
 
 - **M1 tool surface (v1.0.0):** Frozen. No removals planned; additive changes only.
 - **Typst engine:** Marked as honest-absent (not installed); future implementation may depend on D15.
-- **MS-Office COM engine:** Compile-only skeleton (ms-office feature flag); deferred until Windows host exists.
-- **pdf.js:** Not in scope for M4 (D22 — raster overlay uses 150-DPI masters).
+- **MS-Office COM engine:** Compile-only skeleton (ms-office feature flag); implementation
+  (COM-2..6) scheduled in Phase 6 — Windows host now available.
+- **pdf.js:** Vendored 3.11.174 under `assets/vendor/pdfjs/` (text layer only, opt-in per session,
+  D24); raster overlay remains the default medium.
 
-## Phase-4 Surface
+## Phase-5 Surface (current)
+
+- **23 MCP tools** (measured 2026-09-19: `mcp/spec.rs` asserts `TOOLS.len() == 23`): Added
+  `list_annotations`, `resolve_annotations`, `sign_document`
+- **21 CLI verbs** (measured from `enum Command` in `cli/src/main.rs`): Added `annots`, `sign`
+  (21 total: inspect, region, render, diff, doctor, serve, schema, apply, edit, annotate, revert,
+  journal, perf, create, script, update, revisions, annots, review, open, sign)
+- **Schema version:** 1.5.0 (additive-only since v1.0.0)
+- **Contracts:** C1 (minor additive), C7 (v1.5.0), C12 (frozen at M5), C13 (frozen at M5);
+  C14 draft (freezes at M6 as C7 v1.6)
+
+## Phase-4 Surface (historical)
 
 - **20 MCP tools** (measured 2026-09-18: `mcp/spec.rs:824` asserts `TOOLS.len() == 20`): Added `list_revisions`, `accept_revisions`, `reject_revisions`, `add_comment`
 - **19 CLI verbs** (measured from `enum Command` in `cli/src/main.rs`): Added `revisions`, `review`, `open`, `schema` (19 total: inspect, region, render, diff, doctor, serve, schema, apply, edit, annotate, revert, journal, perf, create, script, update, revisions, review, open)

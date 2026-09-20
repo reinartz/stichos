@@ -157,13 +157,16 @@ Based on `project_concept.md` Phase 6 considerations and M5 exit (measured: 23 t
 The M5 tag must point to the gate-green commit (same as M4 rule):
 
 ```
-test "$(git rev-parse m5^{commit})" = "$(git rev-parse HEAD)"  # PENDING — will be verified after tag creation
+test "$(git rev-parse m5^{commit})" = "$(git rev-parse HEAD)"  # passes at 484496a
 ```
 
-**Note:** The m5 tag was created on the committed gate-green tree. Push to origin requires owner SSH access (agent SSH key not available).
+**Resolved 2026-09-19:** the `m5` tag was created on the committed gate-green tree and pushed to
+origin (`git ls-remote` shows `refs/tags/m5` = `484496a`, equal to `main` HEAD). The "push pending
+owner SSH authentication" note from the draft report is superseded — push confirmed in
+`docs/phase5-status.json` (`484496a phase5: update evidence — push to origin confirmed`).
 
 Tag created: `git tag m5 HEAD`
-Push: pending owner SSH authentication
+Push: done (origin `refs/tags/m5` = `484496a`)
 
 ## 6. Evidence
 
@@ -318,3 +321,26 @@ test "$(git rev-parse m5^{commit})" = "$(git rev-parse HEAD)"  # passes
 6. Trust layer: C13 signature-integrity model, GP-S-001..GP-S-016 codes, PAdES-B-B structural support.
 7. Fuzz round 4: 19 new fixtures, 23 regression tests, SEC-06 Phase-5 threat-model updated.
 8. Launch prep: hygiene pack merged, publish dry-runs recorded, no publish performed.
+
+## 9. Post-acceptance correction (added 2026-09-20, Phase-6 kickoff verification)
+
+Re-running `bash tools/phase5_gate.sh --ci` at the `m5` tree (`484496a`, equal to `main` HEAD)
+**fails gate 8**: `tools/check-deps.sh` exits 1 —
+
+```
+ERROR: Cross-crate edge violation: mcp -> adapters-pdf (not in allow-list: gp-core)
+```
+
+Cause: P5-09's text-layer server route calls `adapters_pdf::text::extract_text_bytes` from
+`crates/mcp/src/http.rs`, with the edge declared in `crates/mcp/Cargo.toml` (landed in `3549fb3`).
+That edge violates `project_plan.md` §3.2 (row `mcp`: `gp-core` only) and the "protocol + tools
+layer standalone, no adapter/engine knowledge" rule — so the §1.8 / §6 gate transcript above
+("PASS: bash tools/check-deps.sh: dependency DAG green") does **not** reproduce at the tagged
+tree. `cargo test --workspace --lib` (1 807 passed, 0 failed), clippy, and fmt remain green;
+the defect is DAG-hygiene only, no behavior or schema break.
+
+Disposition (owner call C6, 2026-09-20): **fix the code, not the plan** — Phase 6 Wave 0
+(P6-00 in `docs/phase6-plan.md`) removes the edge by dependency inversion (text-span extraction
+behind a `gp-core` trait, concrete wiring moved to `cli`), after which `tools/check-deps.sh`
+must exit 0 at a committed tree before any M6 work merges. `CODEBASE.md` records the deviation
+until then. Milestone tags still move only to committed gate-green trees.

@@ -5,6 +5,30 @@ All notable changes to stichos. The format follows
 crates and the `stichos` binary. Tool-surface (C7) versioning is additive-only within a minor;
 breaking changes require a minor bump per `docs/contracts/C7.md`.
 
+## [Unreleased] — M4 + M5 (tags `m4`, `m5`)
+
+### Added
+- **Human loop (M4):** `revisions` verb + `list_revisions`, `accept_revisions`,
+  `reject_revisions`, `add_comment` tools (C7 v1.3.0); ODF revision read/write (C11);
+  `review` session + raster-over-masters overlay (D22); `open` platform handoff;
+  COM worker design + compile-only skeleton (`ms-office` feature flag).
+- **PDF-native loop (M5):** `annots` verb + `list_annotations`, `resolve_annotations` tools
+  (C7 v1.4.0); C12 annotation-review model (Highlight/Text/FreeText/Stamp, page+rect+quote
+  anchors, resolve states, GP-A0xx refusals); incremental annotation write-back (append-only,
+  journaled, `dry_run`); `review` sessions over PDF (`mode: "pdf-annot"`); opt-in vendored
+  pdf.js 3.11.174 text layer (`--text-layer`, D24, ADR-0009) with selection→quote anchoring.
+- **Trust (M5):** `sign` verb + `sign_document` tool (C7 v1.5.0); C13 signature-integrity model
+  (GP-S001..016); refuse-by-default mutation of signed documents with explicit policy pass;
+  PAdES-B-B sign-later over the incremental writer (pure-Rust crypto, D25, ADR-0010);
+  PDF/A revalidation wired into mutation QA + `doctor` row (honest-absent preserved).
+- **Hygiene (M5):** `SECURITY.md`, `CODE_OF_CONDUCT.md`, SPDX headers, dual-license audit (D26:
+  launch stays owner-timed, prep only).
+
+### Fixed
+- Post-acceptance correction (`docs/m5-acceptance.md` §9, 2026-09-20): `tools/check-deps.sh`
+  fails at the `m5` tree on the `mcp -> adapters-pdf` edge (P5-09 text-layer route); scheduled
+  for dependency-inversion repair in Phase 6 Wave 0. No schema change.
+
 ## [0.1.0] — 2026-09-16
 
 First packaged release (milestones M1–M3 shipped; tags `m1-closeout`, `m2`, `m3`).
