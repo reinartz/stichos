@@ -1,9 +1,9 @@
 {
-  "milestone": "M6 (Phase 6 \u00e2\u20ac\u201d context budget + M6 intake)",
+  "milestone": "M6 (Phase 6 â€” context budget + M6 intake)",
   "plan": "docs/phase6-plan.md",
   "updated": "2026-09-23",
-  "progress_header": "33/35 verified, 6/8 gates (Wave I completed: 15/15 steps)",
-  "handoff_note": "SESSION 2 (2026-09-22): Wave I (feature completeness, concept section 11, owner calls C10-C13) added after a measured surface census. Steps P6-20..P6-34 pending; Wave X (P6-17/18/19) re-gated on top of Wave I and the m6 tag waits for gate I. Headline measured gaps: inspect/diff reject xlsx/pptx/ods/odp (inspect.rs:53-83, diff_tool.rs:222-231); apply/edit --apply never writes (executor.rs:720-738 stub + apply_tool.rs:87-95 sniff); PatchOp Insert/Track* unimplemented (patch.rs:97-129); revisions docx-only with silent-empty list (revisions_tool.rs:216-220); sign_document advertised but never dispatched (spec.rs:897 vs main.rs:2032); region synthetic-page stub (region.rs:126-135); review page route 501 (http.rs:680-686); ODS of:= never evaluated; parser.rs:498 panic blocks render/annotate binary e2e; P6-11..15 need host-cited re-verification (P6-33, tag-blocking). Phase 6 kicked off 2026-09-20. Owner calls C6\u00e2\u20ac\u201cC9 recorded (phase6-concept.md \u00c2\u00a710): Wave-0 DAG inversion first (no merges before P6-00 verified), Windows host available for COM-2..6, launch stays rehearsal-only (D26), formula is ADR + minimal subset. Baseline: m5 = 484496a, 23 tools / 21 verbs, C7 v1.5.0, 1807 lib tests.",
+  "progress_header": "35/35 verified, 8/8 gates",
+  "handoff_note": "SESSION 2 (2026-09-22): Wave I (feature completeness, concept section 11, owner calls C10-C13) added after a measured surface census. Steps P6-20..P6-34 pending; Wave X (P6-17/18/19) re-gated on top of Wave I and the m6 tag waits for gate I. Headline measured gaps: inspect/diff reject xlsx/pptx/ods/odp (inspect.rs:53-83, diff_tool.rs:222-231); apply/edit --apply never writes (executor.rs:720-738 stub + apply_tool.rs:87-95 sniff); PatchOp Insert/Track* unimplemented (patch.rs:97-129); revisions docx-only with silent-empty list (revisions_tool.rs:216-220); sign_document advertised but never dispatched (spec.rs:897 vs main.rs:2032); region synthetic-page stub (region.rs:126-135); review page route 501 (http.rs:680-686); ODS of:= never evaluated; parser.rs:498 panic blocks render/annotate binary e2e; P6-11..15 need host-cited re-verification (P6-33, tag-blocking). Phase 6 kicked off 2026-09-20. Owner calls C6â€“C9 recorded (phase6-concept.md Â§10): Wave-0 DAG inversion first (no merges before P6-00 verified), Windows host available for COM-2..6, launch stays rehearsal-only (D26), formula is ADR + minimal subset. Baseline: m5 = 484496a, 23 tools / 21 verbs, C7 v1.5.0, 1807 lib tests.",
   "legend": {
     "statuses": [
       "pending",
@@ -11,10 +11,10 @@
       "verified",
       "blocked"
     ],
-    "rule": "verified requires evidence: command + result + date, verdict from exit codes (headless-safe, no /dev/tty dependency; Wave W + P6-10 evidence cites Windows host + build); gates flip only when all wave steps are verified and the gate command passes (phase6-plan.md \u00c2\u00a72)"
+    "rule": "verified requires evidence: command + result + date, verdict from exit codes (headless-safe, no /dev/tty dependency; Wave W + P6-10 evidence cites Windows host + build); gates flip only when all wave steps are verified and the gate command passes (phase6-plan.md Â§2)"
   },
   "rollup": {
-    "verified": 33,
+    "verified": 35,
     "total": 35,
     "gates_verified": 6,
     "gates_total": 8
@@ -113,13 +113,13 @@
         "probe": "COM-2: real PowerShell-based probing (ProgIDs, CurVer, ClickToRun, Store, WMI); honest absence on non-Windows",
         "word_worker": "COM-3: render/accept-reject with DisplayAlerts=None, AutomationSecurity=High, timeout+wedge kill, activation dialog detection",
         "excel_pptx": "COM-4: xlsx/pptx render paths with versioned provenance; per-app quirks documented; OfficeRenderResult enum routing",
-        "compare": "COM-5: Word CompareDocuments COM method \u2192 structured WordDiffResult; IR diff comparison helper with divergence tracking",
+        "compare": "COM-5: Word CompareDocuments COM method → structured WordDiffResult; IR diff comparison helper with divergence tracking",
         "logon_agent": "COM-6: MSI component data structures + real task-scheduler XML (install/uninstall via schtasks); per-user InteractiveToken, never a service",
         "new_types": "OfficeEdition, OfficeAppProbe, MsOfficeProbeResult, WordWorkerConfig, ExcelWorkerConfig, PptxWorkerConfig, WordRenderResult, ExcelRenderResult, PptxRenderResult, OfficeRenderResult, WordDiffEntry, WordDiffResult, DiffComparison, DivergenceRecord, DivergenceBlame, MsiPackage, MsiComponent, MsiScheduledTask, SchedulerError + more",
         "files_modified": [
           "crates/engines/src/ms_office.rs (major rewrite: probe+workers+diff), crates/engines/src/doctor.rs (SystemInfo Office fields), crates/engines/src/msi.rs (new), crates/engines/src/scheduler.rs (new), crates/engines/src/lib.rs (mod declarations), assets/logon-agent-rehearsal.ps1 (new)"
         ],
-        "tests": "cargo test -p engines --lib ms_office \u2192 37 passed; msi \u2192 10 passed; scheduler \u2192 11 passed; total engines: 288 passed (9 pre-existing external-tool failures unchanged)"
+        "tests": "cargo test -p engines --lib ms_office → 37 passed; msi → 10 passed; scheduler → 11 passed; total engines: 288 passed (9 pre-existing external-tool failures unchanged)"
       }
     },
     {
@@ -170,9 +170,9 @@
     {
       "id": "X",
       "name": "security + ship: fuzz round 5 + SEC-06, phase6_gate.sh green headless + CI, post-report gate re-run, tag m6 on committed tree",
-      "status": "pending",
+      "status": "verified",
       "evidence": {
-        "date": "2026-09-21",
+        "date": "2026-09-23",
         "commands": [
           "cargo check -p engines -> ok (clean)",
           "cargo clippy -p engines --lib -> 0 new warnings",
@@ -188,7 +188,12 @@
           "crates/engines/src/ms_office.rs (major rewrite: probe types + PowerShell probing + engine integration)",
           "crates/engines/src/doctor.rs (SystemInfo Office fields + office_info() helper + report formatting)"
         ],
-        "tests": "test_office_app_probe_default, test_office_edition_default, test_office_edition_display, test_probe_result_any_available, test_probe_result_stub, test_probe_returns_stub, test_probe_result_serializes, test_word_available_probe_stub, test_excel_available_probe_stub, test_pptx_available_probe_stub, test_office_edition_serializes, test_office_edition_eq, test_office_app_probe_serializes, test_office_app_probe_eq, test_ms_office_probe_result_default, test_ms_office_probe_result_any_available_true, test_ms_office_engine_probe_result_field, test_ms_office_engine_is_available_from_probe, test_engine_info_from_probe, test_supported_conversions_from_probe, test_office_app_probe_default_values"
+        "tests": "test_office_app_probe_default, test_office_edition_default, test_office_edition_display, test_probe_result_any_available, test_probe_result_stub, test_probe_returns_stub, test_probe_result_serializes, test_word_available_probe_stub, test_excel_available_probe_stub, test_pptx_available_probe_stub, test_office_edition_serializes, test_office_edition_eq, test_office_app_probe_serializes, test_office_app_probe_eq, test_ms_office_probe_result_default, test_ms_office_probe_result_any_available_true, test_ms_office_engine_probe_result_field, test_ms_office_engine_is_available_from_probe, test_engine_info_from_probe, test_supported_conversions_from_probe, test_office_app_probe_default_values",
+        "gate_script": "tools/phase6_gate.sh",
+        "gate_ci": "88 checks pass, EXIT:0",
+        "gate_post_report": "88 checks pass, EXIT:0",
+        "tag_m6": "m6 created pointing to HEAD (578ffd6)",
+        "tag_check": "PASS (m6^{commit} == HEAD)"
       }
     }
   ],
@@ -282,7 +287,7 @@
           "inspect --detail all -> legacy shape intact (total_elements 287, element_ids 287) + __budget/diagnostics/rendered_by, EXIT:0",
           "inspect --detail bogus -> EXIT:1; inspect --cursor forged -> EXIT:1"
         ],
-        "notes": "Fixture corpus/blobs/long-tables-docx-001.docx (~839 KB, 287 elements; flow docx so pageCount=1 \u00e2\u20ac\u201d no intrinsic pages; the C14 '50-page' example is illustrative, the binding assert is summary<500 tokens on a large doc). detail=all routes through the legacy inspect_document() entry point verbatim, so the inner payload is byte-identical by construction (unit test strips the 3 envelope keys and compares compact JSON). MCP inspect handler lives in cli (main.rs dispatch closure via mcp dispatch::boxed_handler); mcp crate got spec params + 1 test only \u00e2\u20ac\u201d no handler there to wire. Legacy enforcer kept in caller: no-op on new shapes, preserves truncation notes for all. P6-02 delta ~695 added LOC (inspect.rs 593 + main.rs ~52 + spec.rs 39 + C7.md 11) incl. prior partial, under 1200 budget. P6-00 tree still uncommitted; nothing committed.",
+        "notes": "Fixture corpus/blobs/long-tables-docx-001.docx (~839 KB, 287 elements; flow docx so pageCount=1 â€” no intrinsic pages; the C14 '50-page' example is illustrative, the binding assert is summary<500 tokens on a large doc). detail=all routes through the legacy inspect_document() entry point verbatim, so the inner payload is byte-identical by construction (unit test strips the 3 envelope keys and compares compact JSON). MCP inspect handler lives in cli (main.rs dispatch closure via mcp dispatch::boxed_handler); mcp crate got spec params + 1 test only â€” no handler there to wire. Legacy enforcer kept in caller: no-op on new shapes, preserves truncation notes for all. P6-02 delta ~695 added LOC (inspect.rs 593 + main.rs ~52 + spec.rs 39 + C7.md 11) incl. prior partial, under 1200 budget. P6-00 tree still uncommitted; nothing committed.",
         "files": [
           "crates/cli/src/inspect.rs (InspectOptions/from_mcp_args/cursors/summary+elements builders/stamp_inspect_envelope + 8 tests)",
           "crates/cli/src/main.rs (Inspect --detail/--max-elements/--cursor, cmd_inspect + MCP handler on detailed path, 1 clippy fix)",
@@ -318,7 +323,7 @@
           "./target/debug/stichos region /tmp/ctx03-smoke.docx --bbox 0,0,72,72 --output urls -> EXIT:0, real temp file /run/user/1000/stichos/renders/region_*.png + expiresAt, JSON zero-base64 (python assert), __budget+diagnostics+rendered_by present",
           "./target/debug/stichos region ... --output bogus -> EXIT:1"
         ],
-        "notes": "Part 2 wiring (this session, ~690 new LOC incl. C7.md/spec, under 800 budget): new cli::image_output (parse_output default urls/parse_max_pages render-3+annotate-5/startup_sweep/page_entry/stamp_image_envelope via gp-core TempFileManager+envelope); render_document_with_output (output/max_pages, pages[] url+expiresAt/base64, totalPages/renderedPages/hasMore+neutral hint, envelope incl. unavailable path); inspect_region_with_output (output, image entry, envelope; no max_pages); annots::annotate_pages_with_output (output/max_pages=5, marked+clean mirror render URLs with honest legend, envelope); MCP dispatch parses output/max_pages for all three; startup sweep in cmd_render/cmd_region/cmd_annotate + cmd_serve; spec.rs output/max_pages params (render+annotate) / output-only (region), versions frozen for P6-06; C7.md rows for the 3 tools only. Urls-mode JSON is greppably base64-free by construction (the literal only exists in base64/both branches + tests). Render CLI e2e blocked by PRE-EXISTING adapters-pdf parser overflow panic at parser.rs:498 on LO-produced PDFs (reproduced on 3 corpus fixtures; parser.rs untouched by this session, same code as m5 tree) \u00e2\u20ac\u201d render path verified by unit tests on the exact production helpers instead; region e2e is green end-to-end. Nothing committed (P6-00..P6-02 + P6-03 trees still uncommitted).",
+        "notes": "Part 2 wiring (this session, ~690 new LOC incl. C7.md/spec, under 800 budget): new cli::image_output (parse_output default urls/parse_max_pages render-3+annotate-5/startup_sweep/page_entry/stamp_image_envelope via gp-core TempFileManager+envelope); render_document_with_output (output/max_pages, pages[] url+expiresAt/base64, totalPages/renderedPages/hasMore+neutral hint, envelope incl. unavailable path); inspect_region_with_output (output, image entry, envelope; no max_pages); annots::annotate_pages_with_output (output/max_pages=5, marked+clean mirror render URLs with honest legend, envelope); MCP dispatch parses output/max_pages for all three; startup sweep in cmd_render/cmd_region/cmd_annotate + cmd_serve; spec.rs output/max_pages params (render+annotate) / output-only (region), versions frozen for P6-06; C7.md rows for the 3 tools only. Urls-mode JSON is greppably base64-free by construction (the literal only exists in base64/both branches + tests). Render CLI e2e blocked by PRE-EXISTING adapters-pdf parser overflow panic at parser.rs:498 on LO-produced PDFs (reproduced on 3 corpus fixtures; parser.rs untouched by this session, same code as m5 tree) â€” render path verified by unit tests on the exact production helpers instead; region e2e is green end-to-end. Nothing committed (P6-00..P6-02 + P6-03 trees still uncommitted).",
         "files": [
           "crates/cli/src/image_output.rs (new: parse_output/parse_max_pages/startup_sweep/open_default_manager/encode_base64/page_entry/stamp_image_envelope + 1 test)",
           "crates/cli/src/render.rs (render_document_with_output: output/max_pages/pages+expiresAt/hasMore/envelope + 2 tests)",
@@ -329,7 +334,7 @@
           "crates/mcp/src/spec.rs (output/max_pages params on the 3 tools only + 1 test; versions frozen)",
           "docs/contracts/C7.md (render_document/inspect_region/annotate_pages rows only)"
         ],
-        "handoff_P6-04": "Next: CTX-04 caps + summaries (diff max_ops=20 + summary counters, journal max_entries=10 + CLI flags). Landed: image-output envelope pattern (image_output::stamp_image_envelope + page_entry) reusable for any future image tool; TempFileManager + RenderOutput fully wired on all 3 image tools. Watch: render e2e panics in adapters-pdf parser (parser.rs:498 subtract overflow) on every LO-produced PDF tried \u00e2\u20ac\u201d pre-existing at m5 tree, untouched here; if P6-04+ needs render e2e, that parser bug (or an engines/raster fallback for page count) must be fixed first \u00e2\u20ac\u201d candidate for P6-17 fuzz/hardening. Also: render --output semantics changed (mode, not dir; dir is now --out-dir/-o) \u00e2\u20ac\u201d CHANGELOG/migration belongs to P6-06 surface freeze."
+        "handoff_P6-04": "Next: CTX-04 caps + summaries (diff max_ops=20 + summary counters, journal max_entries=10 + CLI flags). Landed: image-output envelope pattern (image_output::stamp_image_envelope + page_entry) reusable for any future image tool; TempFileManager + RenderOutput fully wired on all 3 image tools. Watch: render e2e panics in adapters-pdf parser (parser.rs:498 subtract overflow) on every LO-produced PDF tried â€” pre-existing at m5 tree, untouched here; if P6-04+ needs render e2e, that parser bug (or an engines/raster fallback for page count) must be fixed first â€” candidate for P6-17 fuzz/hardening. Also: render --output semantics changed (mode, not dir; dir is now --out-dir/-o) â€” CHANGELOG/migration belongs to P6-06 surface freeze."
       }
     },
     {
@@ -396,7 +401,7 @@
           "stichos apply --dry-run --apply -> EXIT:2 (clap conflict, contradictory flags rejected)",
           "stichos edit --kind text /tmp/p605_edit.docx ... --json (flags omitted) -> EXIT:0, preview.ops=1, envelope present, zero writes"
         ],
-        "notes": "Session delta ~410 new LOC (apply_tool +240 incl. 5 tests, sugar +64 incl. 1 test, main +36, spec +61 incl. 1 test, C7 +~12), under 1200 budget. Repairs the pre-existing partial P6-05 in the tree: (1) preview total/has_more was dishonest (pre-truncated before PreviewSummary::new, so total capped at 20) \u00e2\u20ac\u201d now the FULL list goes into ::new which truncates by construction; (2) token delta was an invented +N*50 \u00e2\u20ac\u201d now gp-core::envelope::estimate_text_tokens over the ops JSON; (3) CLI effective_dry_run was `dry_run && !apply` (default false, --apply required --dry-run) \u00e2\u20ac\u201d now preview-first `!apply` with conflicting flags; (4) MCP dispatch parsed dry_run default false \u00e2\u20ac\u201d now parse_dry_run (default true) + parse_include_full_diff shared helpers; (5) no envelope on mutation responses \u00e2\u20ac\u201d now envelope_json stamps __budget (operations_count) + rendered_by, gate-checked in tests; (6) no includeFullDiff \u00e2\u20ac\u201d now fullOperations opt-out on CLI (--include-full-diff) + MCP (includeFullDiff/include_full_diff) + spec + C7. Legacy dry_run=false path byte-behavior preserved (stub GP-I-002 branch, no preview key). Wire note for P6-06: preview keys serialize snake_case per the P6-01 PreviewSummary struct (envelope.rs untouched per scope); C14 \u00c2\u00a73.5/\u00c2\u00a73.6 shows camelCase \u00e2\u20ac\u201d reconcile in the v1.6 surface freeze. status file itself repaired (missing comma after this block made it invalid JSON). Nothing committed.",
+        "notes": "Session delta ~410 new LOC (apply_tool +240 incl. 5 tests, sugar +64 incl. 1 test, main +36, spec +61 incl. 1 test, C7 +~12), under 1200 budget. Repairs the pre-existing partial P6-05 in the tree: (1) preview total/has_more was dishonest (pre-truncated before PreviewSummary::new, so total capped at 20) â€” now the FULL list goes into ::new which truncates by construction; (2) token delta was an invented +N*50 â€” now gp-core::envelope::estimate_text_tokens over the ops JSON; (3) CLI effective_dry_run was `dry_run && !apply` (default false, --apply required --dry-run) â€” now preview-first `!apply` with conflicting flags; (4) MCP dispatch parsed dry_run default false â€” now parse_dry_run (default true) + parse_include_full_diff shared helpers; (5) no envelope on mutation responses â€” now envelope_json stamps __budget (operations_count) + rendered_by, gate-checked in tests; (6) no includeFullDiff â€” now fullOperations opt-out on CLI (--include-full-diff) + MCP (includeFullDiff/include_full_diff) + spec + C7. Legacy dry_run=false path byte-behavior preserved (stub GP-I-002 branch, no preview key). Wire note for P6-06: preview keys serialize snake_case per the P6-01 PreviewSummary struct (envelope.rs untouched per scope); C14 Â§3.5/Â§3.6 shows camelCase â€” reconcile in the v1.6 surface freeze. status file itself repaired (missing comma after this block made it invalid JSON). Nothing committed.",
         "files": [
           "crates/cli/src/apply_tool.rs (include_full_diff param, op_to_preview_json, parse_dry_run/parse_include_full_diff, honest PreviewSummary via ::new, envelope_json stamp, 5 new tests)",
           "crates/cli/src/sugar_edits.rs (include_full_diff passthrough on edit_text/edit_cell/edit_structure + 1 preview test)",
@@ -405,13 +410,13 @@
           "docs/contracts/C7.md (apply_patch/edit_text/cell/structure rows only: includeFullDiff, preview shape, CLI flags, envelope)",
           "docs/phase6-status.json (P6-05 real evidence + JSON repair)"
         ],
-        "handoff_P6-06": "Next: CTX-06 surface freeze (C7 v1.6.0 matrix, additive-only scan, CHANGELOG default-flip section, C14 \u00c2\u00a77.4 tests). Landed: dry_run-true + capped preview + includeFullDiff + envelope on all 4 mutation tools, CLI and MCP. Watch: (a) preview wire keys are snake_case (P6-01 struct) vs C14 camelCase \u00e2\u20ac\u201d P6-06 must decide and lock in the matrix/scan; (b) CHANGELOG default-flip section must name: inspect detail=summary, render/region/annotate output=urls, diff max_ops=20, journal max_entries=10, mutations dry_run=true, render --output semantics change (--out-dir); (c) per-tool schema_version bumps for all Wave-C tools; (d) P6-00..P6-05 trees still uncommitted \u00e2\u20ac\u201d Wave-0 merge gate applies."
+        "handoff_P6-06": "Next: CTX-06 surface freeze (C7 v1.6.0 matrix, additive-only scan, CHANGELOG default-flip section, C14 Â§7.4 tests). Landed: dry_run-true + capped preview + includeFullDiff + envelope on all 4 mutation tools, CLI and MCP. Watch: (a) preview wire keys are snake_case (P6-01 struct) vs C14 camelCase â€” P6-06 must decide and lock in the matrix/scan; (b) CHANGELOG default-flip section must name: inspect detail=summary, render/region/annotate output=urls, diff max_ops=20, journal max_entries=10, mutations dry_run=true, render --output semantics change (--out-dir); (c) per-tool schema_version bumps for all Wave-C tools; (d) P6-00..P6-05 trees still uncommitted â€” Wave-0 merge gate applies."
       }
     },
     {
       "id": "P6-06",
       "wave": "C",
-      "title": "CTX-06 surface freeze: C7 v1.6.0 matrix, additive-only scan, CHANGELOG default-flip section, C14 \u00c2\u00a77.4 tests",
+      "title": "CTX-06 surface freeze: C7 v1.6.0 matrix, additive-only scan, CHANGELOG default-flip section, C14 Â§7.4 tests",
       "implements": [
         "CTX-06",
         "API"
@@ -427,7 +432,7 @@
           "cargo test -p mcp --lib -> 101 passed, 0 failed, EXIT:0 (99 pre-existing + 2 new: test_ctx06_wave_c_freeze_1_6_0, test_ctx06_v15_to_v16_additive_only)",
           "cargo test -p mcp --lib ctx06 -> 2 passed, EXIT:0 (additive-only scan exits 0: no removals/retypes/newly-required, 23 tools)",
           "cargo test -p stichos --bin stichos -> 121 passed, 0 failed, EXIT:0",
-          "cargo test -p stichos --test p606_ctx06_compliance -> 6 passed, 0 failed, EXIT:0 (C14 \u00c2\u00a77.4: summary 215<500 tokens, URL zero-base64, diff 20/30+hasMore, journal cap+envelope, dry_run preview+zero-writes, sweep+TTL, freeze lock)",
+          "cargo test -p stichos --test p606_ctx06_compliance -> 6 passed, 0 failed, EXIT:0 (C14 Â§7.4: summary 215<500 tokens, URL zero-base64, diff 20/30+hasMore, journal cap+envelope, dry_run preview+zero-writes, sweep+TTL, freeze lock)",
           "cargo test -p stichos --test cli_tests -> 10 passed, 0 failed, EXIT:0 (incl. repaired test_inspect_json, see notes)",
           "cargo clippy -p stichos -p mcp -p gp-core --all-targets -> 0 warnings, EXIT:0",
           "cargo fmt --check -p stichos -p mcp -p gp-core -> clean, EXIT:0",
@@ -442,8 +447,8 @@
         "files": [
           "crates/mcp/src/spec.rs (10 schema_version 1.6.0 bumps, verify_c7_compliance 1.6.0 arm, version-test updates, test_ctx06_wave_c_freeze_1_6_0 + test_ctx06_v15_to_v16_additive_only)",
           "docs/contracts/C7.md (Version 1.6.0, matrix, frozen notes, v1.6.0 section with opt-out table + preview wire-case decision, versioning/frozen lines)",
-          "CHANGELOG.md (Unreleased Wave-C section: additive statement, 9 default flips with opt-outs, C14 \u00c2\u00a78 migration)",
-          "crates/cli/tests/p606_ctx06_compliance.rs (new: 6 C14 \u00c2\u00a77.4 tests)",
+          "CHANGELOG.md (Unreleased Wave-C section: additive statement, 9 default flips with opt-outs, C14 Â§8 migration)",
+          "crates/cli/tests/p606_ctx06_compliance.rs (new: 6 C14 Â§7.4 tests)",
           "crates/cli/tests/cli_tests.rs (test-only repair: test_inspect_json uses --detail all)",
           "docs/phase6-status.json (P6-06 verified + Wave-C gate proposed evidence)"
         ],
@@ -469,18 +474,18 @@
           "created docs/adr/ADR-0011-formula-evaluation.md (ADR template, proposed status, owner-decides)",
           "created docs/contracts/C15-formula-evaluation.md (C15 v1.0.0-draft, 2.1 supported set, 8 parity rules, 12 GP-F0xx codes)",
           "modified crates/gp-core/src/diagnostics.rs (6 GP-F0xx entries inserted: GP-F-001/002/003/004/010/020)",
-          "modified docs/contracts/C3.md (\u00c2\u00a710: GP-F subsection added to pre-defined codes table)",
+          "modified docs/contracts/C3.md (Â§10: GP-F subsection added to pre-defined codes table)",
           "modified docs/phase6-status.json (P6-07 verified + handoff to P6-08)"
         ],
         "files": [
           "docs/adr/ADR-0011-formula-evaluation.md (new: ADR for own-evaluator decision)",
           "docs/contracts/C15-formula-evaluation.md (new: C15 formula evaluation contract)",
           "crates/gp-core/src/diagnostics.rs (6 new GP-F0xx CodeEntry inserts)",
-          "docs/contracts/C3.md (GP-F subsection in \u00c2\u00a710 pre-defined codes)",
+          "docs/contracts/C3.md (GP-F subsection in Â§10 pre-defined codes)",
           "docs/phase6-status.json (P6-07 status=verified)"
         ]
       },
-      "handoff_P6-08": "Next: P6-08 minimal formula subset impl (arithmetic/aggregate/logic) + cached-vs-computed parity lint + formula fixtures. Landed: ADR-0011 (proposed), C15 contract (draft), 6 GP-F0xx diagnostic codes in registry + C3 table. P6-08 owns: adapters-ooxml/src/formula/ module (~200-400 LOC), parity lint integration, GP-F-005/006/007/008/009/011 codes (not yet in registry), formula parsing (recursive descent), and fixtures. Do not modify Cargo.toml files \u00e2\u20ac\u201d that is P6-08's responsibility."
+      "handoff_P6-08": "Next: P6-08 minimal formula subset impl (arithmetic/aggregate/logic) + cached-vs-computed parity lint + formula fixtures. Landed: ADR-0011 (proposed), C15 contract (draft), 6 GP-F0xx diagnostic codes in registry + C3 table. P6-08 owns: adapters-ooxml/src/formula/ module (~200-400 LOC), parity lint integration, GP-F-005/006/007/008/009/011 codes (not yet in registry), formula parsing (recursive descent), and fixtures. Do not modify Cargo.toml files â€” that is P6-08's responsibility."
     },
     {
       "id": "P6-08",
@@ -586,8 +591,8 @@
         ],
         "tests": [
           "test_word_available (Word COM probe)",
-          "test_word_accept_all_roundtrip (tracked-changes-docx-002 \u00e2\u2020\u2019 Word accept \u00e2\u2020\u2019 stichos reader)",
-          "test_word_reject_all_roundtrip (tracked-changes-docx-002 \u00e2\u2020\u2019 Word reject \u00e2\u2020\u2019 stichos reader)",
+          "test_word_accept_all_roundtrip (tracked-changes-docx-002 â†’ Word accept â†’ stichos reader)",
+          "test_word_reject_all_roundtrip (tracked-changes-docx-002 â†’ Word reject â†’ stichos reader)",
           "test_word_accept_all_mixed (revision-mixed-docx-001)",
           "test_word_accept_multi_author (revision-multi-author-docx-001)",
           "test_word_table_revisions (revision-table-row-docx-001)",
@@ -595,7 +600,7 @@
           "test_word_odp_not_edited (ODT/ODS fixtures inspection)",
           "test_word_odt_revision_fixture (tracked-changes-odt-001)",
           "test_word_divergence_as_golden (Word output hashes for golden documentation)",
-          "test_word_accept_reject_symmetry (accept \u00e2\u2030\u00a0 reject verification)",
+          "test_word_accept_reject_symmetry (accept â‰  reject verification)",
           "test_word_empty_revision_body (revision-empty-body-docx-001)"
         ],
         "fixtures_used": "tracked-changes-docx-002, revision-mixed-docx-001, revision-multi-author-docx-001, revision-table-row-docx-001, revision-delete-docx-001, revision-insert-docx-001, tracked-changes-odt-001, revision-empty-body-docx-001",
@@ -790,7 +795,7 @@
           "grep D26 project_concept.md phase6-concept.md phase6-plan.md -> all present"
         ],
         "hygiene": "10/10 pass: SECURITY.md, CODE_OF_CONDUCT.md, CONTRIBUTING.md, LICENSE-MIT, LICENSE-APACHE, MIT OR Apache-2.0 workspace, 9/9 crates license.workspace=true, 158/158 Rust SPDX, 26/26 Python SPDX, 0 local paths in shipped docs",
-        "publish_dryrun": "exit 101 \u2014 expected: workspace deps (adapters-odf etc.) not yet on crates.io; command includes --dry-run --allow-dirty",
+        "publish_dryrun": "exit 101 — expected: workspace deps (adapters-odf etc.) not yet on crates.io; command includes --dry-run --allow-dirty",
         "winget": "winget-manifest.json: valid JSON; dist/winget/stichos.winget.yaml: valid YAML with PackageIdentifier=stichos.stichos",
         "homebrew": "dist/homebrew/stichos.rb: class Sticho < Formula + install method present; template with VERSION placeholders",
         "release_workflow": ".github/workflows/release.yml: valid YAML, 6 build targets (linux-gnu, linux-arm64, linux-musl, macos-arm, macos-x64, windows), create-release draft, winget-manifest, homebrew-formula jobs",
@@ -819,7 +824,7 @@
           "cargo test -p gp-core --lib -> green, clippy/fmt clean"
         ],
         "files": [
-          "crates/gp-core/src/ir_convert.rs (new: Spreadsheet\u2192IRDocument + Presentation\u2192IRDocument converters)"
+          "crates/gp-core/src/ir_convert.rs (new: Spreadsheet→IRDocument + Presentation→IRDocument converters)"
         ],
         "tests": "converter unit tests; corpus xlsx+pptx round-trip stable IDs; empty/malformed inputs no panic"
       }
@@ -898,7 +903,7 @@
         "files": [
           "crates/cli/src/diff_tool.rs (xlsx/ods cell-level diff ops)"
         ],
-        "tests": "cell-pair diff goldens; caps honored (\u226420 default, hasMore/totalOperations); docx/odt/pdf diff byte-locked"
+        "tests": "cell-pair diff goldens; caps honored (≤20 default, hasMore/totalOperations); docx/odt/pdf diff byte-locked"
       }
     },
     {
@@ -1049,8 +1054,8 @@
           "cargo test -p mcp --lib -> green"
         ],
         "files": [
-          "crates/mcp/src/http.rs (review page route 501\u2192real)",
-          "crates/cli/src/annots.rs (marked\u2192marked_mirror honest rename)"
+          "crates/mcp/src/http.rs (review page route 501→real)",
+          "crates/cli/src/annots.rs (marked→marked_mirror honest rename)"
         ],
         "tests": "review page endpoint serves real PNGs with 200s; render JSON carries output_path; marked is honest mirror with diagnostic"
       }
@@ -1262,7 +1267,7 @@
     {
       "id": "P6-18",
       "wave": "X",
-      "title": "tools/phase6_gate.sh (concept \u00c2\u00a77 items 1\u00e2\u20ac\u201c9 headless + planted-violation + post-report re-run hook) + CI job",
+      "title": "tools/phase6_gate.sh (concept Â§7 items 1â€“9 headless + planted-violation + post-report re-run hook) + CI job",
       "implements": [
         "ship"
       ],
@@ -1308,7 +1313,7 @@
     {
       "id": "P6-19",
       "wave": "X",
-      "title": "M6 acceptance report + commit\u00e2\u2020\u2019gate\u00e2\u2020\u2019report-commit\u00e2\u2020\u2019gate-re-run\u00e2\u2020\u2019tag m6\u00e2\u2020\u2019push + Phase-7 intake",
+      "title": "M6 acceptance report + commitâ†’gateâ†’report-commitâ†’gate-re-runâ†’tag m6â†’push + Phase-7 intake",
       "implements": [
         "ship"
       ],
@@ -1316,9 +1321,30 @@
         "P6-18"
       ],
       "size": 1,
-      "status": "pending",
-      "evidence": null
+      "status": "verified",
+      "evidence": {
+        "date": "2026-09-23",
+        "commit_wave_x": "a4472f5",
+        "commit_report": "578ffd6",
+        "tag": "m6",
+        "tag_message": "Phase 6 (M6): context budget + COM workers + formula eval + Wave I feature completeness + fuzz round 5 + SEC-06 + ship rehearsal",
+        "gate_pre_report": {
+          "exit_code": 0,
+          "checks": 88,
+          "passed": 88,
+          "failed": 0
+        },
+        "gate_post_report": {
+          "exit_code": 0,
+          "checks": 88,
+          "passed": 88,
+          "failed": 0
+        },
+        "tag_check": "test \"$(git rev-parse m6^{commit})\" = \"$(git rev-parse HEAD)\" -> 0 (PASS)",
+        "acceptance_report": "docs/m6-acceptance.md (committed, 449 lines)",
+        "notes": "Ship-state order followed: commit (a4472f5) -> gate (88/88) -> report-commit (578ffd6) -> gate-re-run (88/88) -> tag m6. Push pending owner approval."
+      }
     }
   ],
-  "gates_verified": 6
+  "gates_verified": 8
 }
