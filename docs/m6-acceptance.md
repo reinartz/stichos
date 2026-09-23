@@ -370,5 +370,13 @@ the committed tree. The gate transcript in this report reproduces at the tagged 
 **Gate run 1 (pre-report):** 88/88 pass, EXIT:0
 **Gate run 2 (post-report, pre-tag):** 88/88 pass, EXIT:0
 
+
+**Gate post-tag note:** Running `phase6_gate.sh --ci` after the m6 tag is created
+fails check 7b ("No m6 version tags pushed") because the tag now exists. This is
+expected — the gate checks that no m6 tag exists _before_ tag creation. The gate
+transcript above was captured before the tag was created (as required by the
+ship-state rule). After tag creation, only the `test "$(git rev-parse m6^{commit})" =
+"$(git rev-parse HEAD)"` check is needed to verify the tag is on the correct commit.
+
 Both runs executed in CI mode (`--ci`) on this Linux host, with COM checks skipped and pre-existing
 OPC zip-bomb test failures accepted.
