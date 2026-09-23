@@ -2,10 +2,12 @@
 
 **Status:** planning artifact · derived from [`project_concept.md`](../project_concept.md) §14 + §16
 (decisions D1–D27) + [`m5-acceptance.md`](m5-acceptance.md) (§4 Phase-6 intake, §9 post-acceptance
-correction) + owner scope calls 2026-09-20 (§10: C6–C9) · **proposes no new decision rows**
-(Wave 0 preserves the §3.2 DAG; COM/formula/revisions/launch all execute existing decisions).
+correction) + owner scope calls 2026-09-20 (§10: C6–C9) + owner scope calls 2026-09-22 (§11:
+C10–C13, Wave I feature-completeness extension) · **proposes no new decision rows**
+(Wave 0 preserves the §3.2 DAG; COM/formula/revisions/launch all execute existing decisions;
+Wave I executes existing promises — D7, C11 exposure, the advertised 23-tool surface).
 **Companion:** [`phase6-plan.md`](phase6-plan.md) (steps) · [`phase6-status.json`](phase6-status.json) (progress).
-**Last updated:** 2026-09-20
+**Last updated:** 2026-09-22 (Wave I extension added as §11; §7 gains gate item 10)
 
 ---
 
@@ -185,6 +187,14 @@ an explicit **default-flip** section and migration notes (C14 §8).
    committed, gate-green tree**; acceptance report committed before the tag; the gate transcript
    is re-runnable at the tagged tree (M5 §9 lesson — P6-X asserts it by re-running the gate
    after the report commit, before the tag).
+10. **Feature completeness (Wave I — §11, added 2026-09-22)**: six-format `inspect_document`/
+    `diff_documents` (docx/odt + xlsx/ods + pptx/odp, PDF where defined); `apply`/`edit --apply`
+    write real bytes with journal + revert and refuse everything else explicitly (never silent
+    success); `revisions` list/accept/reject exposed for odt/ods/odp; `sign_document` dispatched
+    (spec↔dispatch parity test); `inspect_region` and the review page route serve real pixels
+    with honest `rendered_by`; ODS `of:=` formulas evaluated under C15 parity; the adapters-pdf
+    `parser.rs:498` panic is fixed (render/annotate binary e2e unblocked); P6-33 Wave W host
+    evidence re-recorded. Asserted by P6-18; the `m6` tag waits on this item (owner call C10).
 
 ## 8. Risks
 
@@ -229,3 +239,115 @@ ADR-0007 consumed (sessions unchanged), ADR-0001/D19 consumed (no new PDF write 
 - **C9** — **xlsx formula evaluation is ADR + minimal core subset**: arithmetic/aggregate/logic
   with cached-vs-computed parity lint; unsupported functions surface cached values via the
   fidelity budget; fuller coverage is post-M6, driven by the gap list M6 produces.
+
+## 11. Scope extension 2026-09-22 (session 2): feature completeness (Wave I)
+
+**Trigger (owner):** "are there functions not yet, or not yet fully, implemented?" A surface census
+was run against the **code, not the docs**; every finding below is measured (file:line at the
+2026-09-22 working tree) and classified: **defect** (an advertised behavior does not happen),
+**unwired capability** (an adapter does the work, no verb/tool routes it), **documented stub**
+(C13/D26 honesty — stays), or **doc-rot** (stale claim).
+
+### 11.1 Measured findings
+
+| # | Gap | Evidence | Class |
+|---|---|---|---|
+| 1 | `inspect_document` rejects xlsx/pptx/ods/odp — readers exist (`XlsxReader`→`Spreadsheet`, `PptxReader`→`Presentation`, ODS/ODP readers in `adapters-odf`) but no converter into the tagged-tree IR; `Spreadsheet`/`Presentation` have zero references in `cli`/`mcp` | `cli/src/inspect.rs:53-83` | unwired capability |
+| 2 | `diff_documents` rejects the same four formats | `cli/src/diff_tool.rs:222-231` | unwired capability |
+| 3 | `apply` / `edit text\|cell\|structure --apply` **write nothing**: the base executor returns a stub (`GP-I-002`) for every writable format and the apply tool sniffs that message to skip the write; the real executor paths (`OoxmlExecutor::execute_docx/xlsx/pptx`, ODF patch writer) are orphaned | `gp-core/src/executor.rs:720-738`, `cli/src/apply_tool.rs:87-95`, `cli/src/sugar_edits.rs` (all three edits delegate to `apply_patch`) | defect (and D7 — "docx edits land as tracked revisions" — never materializes through the patch pipeline) |
+| 4 | `PatchOp::Insert`/`TrackInsert`/`TrackDelete` are "not yet implemented" — `edit_structure insert` and tracked edit ops are no-ops | `gp-core/src/patch.rs:97-129` | defect |
+| 5 | `revisions` list/accept/reject is docx-only; **list returns a silent empty success** on other formats — the P6-09 ODS/ODP revision reader/writer exists in `adapters-odf` but no verb/tool routes it | `cli/src/revisions_tool.rs:216-220,246,268` | unwired capability + silent-empty defect |
+| 6 | MCP `sign_document` advertised since v1.5.0 (1 of the 23; spec-asserted) but never dispatched — runtime `unknown tool: sign_document` | `mcp/src/spec.rs:897` vs the `cli` dispatch fallthrough at `cli/src/main.rs:2032` | defect |
+| 7 | `region`/`inspect_region` crops a **synthetic gray page** (`read_master_page` P1 stub) while stamping `rendered_by: "libreoffice + poppler"` — fake pixels, false provenance | `cli/src/region.rs:126-135,110` | defect |
+| 8 | review page-image route returns HTTP 501 ("engine cache not wired"); `MasterCache` in `engines` is dead code | `mcp/src/http.rs:680-686`, `engines/src/cache.rs` | unwired capability |
+| 9 | `annotate_pages` `marked` artifact is a byte-mirror of `clean` (the legend is honest; the artifact is not the promised overlay) | `cli/src/annots.rs:341-362` | partial |
+| 10 | ODS formulas are parsed (`of:=` stored raw) but never evaluated — C15 parity reaches xlsx only | `adapters-odf/src/ods.rs:247,311-332` | unwired capability |
+| 11 | adapters-pdf `parser.rs:498` subtract-overflow panics on LO-produced PDFs — the recorded blocker of **binary** render/annotate e2e since P6-03 | `phase6-status.json` notes (reproduced on 3 corpus fixtures, present at the `m5` tree) | defect |
+| 12 | Wave W evidence gap: P6-11..15 cite Linux stub-mode `cargo test --lib ms_office` (37 tests) with no host run recorded, while the status legend and plan §5 require host-cited Wave W evidence (P6-10 has it: "Windows + Word 16.0") | `phase6-status.json` evidence fields | evidence gap |
+| 13 | doc-rot: `CODEBASE.md`/`CHANGELOG.md`/`AGENTS.md`/`support-matrix.md` still call the ms-office tier "compile-only skeleton/deferred"; `engines/Cargo.toml` comment says "deferred to Phase 5"; `formula/mod.rs` carries a stale Part-2 handoff checklist; `cmd_update` hard-codes a workspace fixture path | `engines/Cargo.toml:14-17`, `formula/mod.rs:19-26`, `cli/src/main.rs:2193-2195` | doc-rot + small defect |
+
+### 11.2 Wave I ships (owner call C10: inside Phase 6, before Wave X)
+
+- **Six-format read**: `inspect_document` for xlsx/pptx/ods/odp (summary/elements/all, caps and
+  cursors unchanged; cell records carry `formula` + value + parity flag — the C15 work finally
+  becomes visible through the surface) and `diff_documents` gets cell-level and slide-level diff
+  inside the CTX-04 caps.
+- **Mutation honesty**: real write-back for docx/xlsx/pptx/odt through the existing adapter
+  executors, journal + `revert` round-trip on the apply path; ods/odp/pdf refuse with explicit
+  codes (never silent success); `Insert`/`TrackInsert`/`TrackDelete` implemented so D7's tracked
+  docx edits finally land via the patch pipeline.
+- **Revisions exposure**: the `revisions` verb/tool covers odt/ods/odp (the P6-09 capability,
+  routed); silent-empty lists become explicit refusals; review snapshot mode labels the real format.
+- **Real pixels**: a master-page provider (engines cache / render pipeline) behind
+  `inspect_region` and the review page route; `rendered_by` names the engine that actually ran;
+  the `marked` annotate artifact gets a real numbered-box overlay **or** is honestly dropped.
+- **Dispatch honesty**: `sign_document` wired to the existing signing path; a spec↔dispatch parity
+  test proves all 23 tools resolve.
+- **Formula parity to ODS**: `of:=` translation into the C15 subset evaluator with the
+  cached-vs-computed lint; refuse semantics unchanged (cached surfaced, never invented).
+- **Parser fix**: the `:498` overflow fixed; the render/annotate binary e2e deferred by P6-03/P6-06
+  lands with it.
+- **Wave W evidence re-recorded (C13)** on the Windows + M365 host before the tag.
+- **Hardening + doc corrections**: `update` verb path fix, stale-doc sweep, ADR-0011/C15 freeze
+  checklist for P6-19, Phase-7 intake drafted.
+
+### 11.3 Surface and versioning (owner call C11)
+
+Still **23 tools / 21 verbs** — Wave I adds no tool, no verb, and no new parameters (formats and
+behavior only). C7 **v1.6.0 is amended, not bumped**: nothing has ever shipped at v1.6.0 (M6
+untagged, publishing rehearsal-only per D26), so amending the pre-tag `C7.md` matrix + CHANGELOG
+is the honest record; a v1.7.0 row for unshipped content would imply a release that never happened.
+Legacy explicit-parameter behavior is untouched; every Wave I response stays envelope-compliant
+(`__budget` + `diagnostics` + `rendered_by`).
+
+### 11.4 Explicitly out of Wave I (lands Phase 7)
+
+- Real PKCS#7/CMS signing + verification (owner call C12): the `signature.rs` stub stays as
+  documented (C13 honesty); the **ADR-0010 number is reserved** for the crypto-dependency
+  decision (D2/D25 — owner-gated new dependency surface).
+- `create` to xlsx/pptx/ods/odp (content-driven creation; `create_minimal_xlsx/pptx` stay internal).
+- Full formula-function coverage — the M6 parity-lint gap list drives Phase 7, unchanged.
+- `lint` encode/ssim refresh (the "deferred to Phase 2" notes are re-triaged to Phase 7, not kept silently).
+- Review-action write-back (stays audit-log), OQ2 non-Windows Word tier (G3), G5 pdfium,
+  multi-user review, PAdES-T/-LT/-LTV, redaction — all unchanged from §6.
+
+### 11.5 Behavior promises (each test-bound)
+
+- **Read parity**: `inspect_document` default summary < 500 tokens on corpus xlsx + pptx + ods +
+  odp fixtures; docx/odt/pdf outputs byte-locked unchanged; formula cells expose `formula` +
+  `value` (+ parity flag); unknown extensions stay explicit errors.
+- **Mutation truth**: `--apply` writes a byte-valid file re-readable by its adapter and renderable
+  by LO; a journal entry + `revert` restores the original bytes; refused formats write nothing
+  (fs-assert zero writes); after P6-26, a `direct=false` docx edit is visible through
+  `revisions list` as a tracked change (D7).
+- **Exposure honesty**: `revisions list` on an unsupported format returns a refusal diagnostic,
+  never an empty success; `sign_document` dispatches (spec==dispatch parity test in CI);
+  `region`/review pages are real pixels matching the rendered page with truthful `rendered_by`;
+  a `marked` annotate artifact is either a real overlay or absent-with-diagnostic — never a mirror.
+- **Formula parity (extended)**: `of:=` subset golden-evaluates against cached values; unsupported
+  → cached value + budget entry, never invented; GP-F0xx refusals unchanged.
+- **No panics**: the `:498` regression corpus parses clean; render/annotate binary e2e green
+  (closes the P6-03/P6-06 caveat).
+- **Host-cited Wave W**: every Wave W evidence string cites host + build before the `m6` tag (C13).
+
+### 11.6 Contracts/decisions touched
+
+C7 **v1.6.0 amended** (support-matrix rows + dispatch note; still additive over v1.5) ·
+C11 **consumed** (ODS/ODP revision capability routed to verbs; lossless tiers unchanged) ·
+C15 scope extended (ODS `of:=` under the same subset + parity rules; freeze at M6) ·
+C9 fixture extension (xlsx/pptx/ods/odp inspect fixtures, diff pairs, `of:=` fixtures, the
+parser-panic corpus, master-page crops) · C3 new GP-I-xxx refusal codes (explicit unsupported-write
+paths) · **no new ADRs** (ADR-0010 reserved, unallocated, for the Phase-7 CMS decision) ·
+D1–D27 unchanged — P6-26 finally *executes* D7.
+
+### 11.7 Owner scope calls 2026-09-22 (session 2)
+
+- **C10** — **Wave I runs inside Phase 6**: scheduled after Wave G, before Wave X; the `m6` tag
+  waits on the Wave I gate (concept §7 item 10).
+- **C11** — **C7 v1.6.0 is amended, not bumped**: nothing shipped at v1.6.0; the CHANGELOG records
+  Wave I under v1.6.0 before the tag.
+- **C12** — **real CMS signing defers to Phase 7** (ADR-0010 reserved). Wave I only dispatches the
+  already-advertised `sign_document` onto the existing (stub-backed, documented) signing path —
+  C13 honesty intact, no new dependency.
+- **C13** — **Wave W host re-verification is tag-blocking** (P6-33): stub-mode Linux evidence is
+  not host proof; concept §5 COM honesty and the plan §5 evidence rule apply.

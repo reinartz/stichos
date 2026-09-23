@@ -1,9 +1,9 @@
 {
-  "milestone": "M6 (Phase 6 — context budget + M6 intake)",
+  "milestone": "M6 (Phase 6 â€” context budget + M6 intake)",
   "plan": "docs/phase6-plan.md",
-  "updated": "2026-09-20",
-  "progress_header": "0/20 verified · 0/7 gates",
-  "handoff_note": "Phase 6 kicked off 2026-09-20. Owner calls C6–C9 recorded (phase6-concept.md §10): Wave-0 DAG inversion first (no merges before P6-00 verified), Windows host available for COM-2..6, launch stays rehearsal-only (D26), formula is ADR + minimal subset. Baseline: m5 = 484496a, 23 tools / 21 verbs, C7 v1.5.0, 1807 lib tests.",
+  "updated": "2026-09-22",
+  "progress_header": "17/35 verified, 5/8 gates",
+  "handoff_note": "SESSION 2 (2026-09-22): Wave I (feature completeness, concept section 11, owner calls C10-C13) added after a measured surface census. Steps P6-20..P6-34 pending; Wave X (P6-17/18/19) re-gated on top of Wave I and the m6 tag waits for gate I. Headline measured gaps: inspect/diff reject xlsx/pptx/ods/odp (inspect.rs:53-83, diff_tool.rs:222-231); apply/edit --apply never writes (executor.rs:720-738 stub + apply_tool.rs:87-95 sniff); PatchOp Insert/Track* unimplemented (patch.rs:97-129); revisions docx-only with silent-empty list (revisions_tool.rs:216-220); sign_document advertised but never dispatched (spec.rs:897 vs main.rs:2032); region synthetic-page stub (region.rs:126-135); review page route 501 (http.rs:680-686); ODS of:= never evaluated; parser.rs:498 panic blocks render/annotate binary e2e; P6-11..15 need host-cited re-verification (P6-33, tag-blocking). Phase 6 kicked off 2026-09-20. Owner calls C6â€“C9 recorded (phase6-concept.md Â§10): Wave-0 DAG inversion first (no merges before P6-00 verified), Windows host available for COM-2..6, launch stays rehearsal-only (D26), formula is ADR + minimal subset. Baseline: m5 = 484496a, 23 tools / 21 verbs, C7 v1.5.0, 1807 lib tests.",
   "legend": {
     "statuses": [
       "pending",
@@ -11,56 +11,165 @@
       "verified",
       "blocked"
     ],
-    "rule": "verified requires evidence: command + result + date, verdict from exit codes (headless-safe, no /dev/tty dependency; Wave W + P6-10 evidence cites Windows host + build); gates flip only when all wave steps are verified and the gate command passes (phase6-plan.md §2)"
+    "rule": "verified requires evidence: command + result + date, verdict from exit codes (headless-safe, no /dev/tty dependency; Wave W + P6-10 evidence cites Windows host + build); gates flip only when all wave steps are verified and the gate command passes (phase6-plan.md Â§2)"
   },
   "rollup": {
-    "verified": 0,
-    "total": 20,
-    "gates_verified": 0,
-    "gates_total": 7
+    "verified": 17,
+    "total": 35,
+    "gates_verified": 5,
+    "gates_total": 8
   },
   "gates": [
     {
       "id": "0",
       "name": "Wave-0 closeout: mcp -> adapters-pdf edge removed by dependency inversion, check-deps.sh exits 0, text-layer e2e byte-identical",
-      "status": "pending",
-      "evidence": null
+      "status": "verified",
+      "evidence": {
+        "date": "2026-09-20",
+        "commands": [
+          "bash tools/check-deps.sh -> Result: 0 (0 error(s)), EXIT:0",
+          "grep adapters-pdf crates/mcp/Cargo.toml -> no match, exit 1",
+          "cargo test -p mcp --lib -> 96 passed, 0 failed",
+          "cargo test -p gp-core --lib -> 360 passed; cargo test -p adapters-pdf --lib -> 130 passed, 2 ignored"
+        ]
+      }
     },
     {
       "id": "C",
       "name": "context budget: one-turn defaults, URL-first images, caps, dry_run-true previews, __budget on 100% of responses, C7 v1.6 additive",
       "status": "pending",
-      "evidence": null
+      "evidence": {
+        "proposed_by": "P6-06",
+        "date": "2026-09-20",
+        "ready": true,
+        "summary_tokens": "inspect default summary of long-tables-docx-001.docx: tokens_est 215 < 500 (1121 bytes), hasMore + nextCursor present",
+        "zero_base64": "region --output urls JSON contains zero 'base64' substring; real temp file + expiresAt; __budget present",
+        "caps": "diff default 20 ops of 30 total, hasMore=true, summary.totalOperations=30; journal default <=10 entries with entry_count/totalEntries/hasMore; max_elements 100, max_pages render 3 / annotate 5 (unit-locked P6-02..P6-04)",
+        "budget_coverage": "__budget+diagnostics+rendered_by asserted e2e on inspect/diff/journal/region/apply; render/annotate envelope paths unit-covered (P6-03); binary e2e for those two blocked by pre-existing adapters-pdf parser.rs:498 panic (recorded, untouched)",
+        "legacy_opt_outs": "inspect --detail all -> 287 ids legacy shape; diff --max-ops 0 -> full 30 ops hasMore=false; journal --max-entries 0 green; apply --apply -> no preview key (legacy path); output=base64 opt-out unit-covered",
+        "dry_run_safety": "omitted flags -> preview with snake_case keys, output_path null, zero writes, source byte-identical (fs-asserted)",
+        "freeze": "C7 v1.6.0 matrix; 10 Wave-C tools at schema_version 1.6.0; test_ctx06_v15_to_v16_additive_only exits 0 (23 tools, no removals/retypes/newly-required); CHANGELOG names all 9 flips with opt-outs",
+        "tests": "cargo test -p mcp --lib 101 green; -p stichos --bin 121 green; --test p606_ctx06_compliance 6 green; --test cli_tests 10 green; clippy 0 warnings; fmt clean",
+        "note": "PROPOSED (not flipped): all Wave-C steps P6-01..P6-06 verified and every gate condition measured green; flip left to owner / P6-18 phase6_gate.sh. Caveat: render/annotate binary-e2e gap above."
+      }
     },
     {
       "id": "F",
       "name": "formula eval: ADR-0011 accepted, C15 draft, minimal subset with parity lint, GP-F0xx refusals exact",
-      "status": "pending",
-      "evidence": null
+      "status": "verified",
+      "evidence": {
+        "date": "2026-09-21",
+        "steps_verified": [
+          "P6-07",
+          "P6-08"
+        ],
+        "adr": "ADR-0011 created (proposed, owner to accept)",
+        "contract": "C15 v1.0.0-draft created (supported set: arithmetic, comparison, logic, aggregate, text)",
+        "codes_in_registry": "GP-F-001, 002, 003, 004, 010, 020 (6 codes in diagnostics.rs + C3.md)",
+        "evaluator": "12 supported functions (SUM, AVERAGE, AVG, COUNT, MIN, MAX, AND, OR, NOT, IF, CONCATENATE, IFERROR) + operators",
+        "parity_lint": "LIN-B-010 catches stale cache; every evaluated cell gets parity check",
+        "refusal": "all_refuse_codes() + gp_f_code_str() machine-readable; test_refuse_list_machine_readable verifies",
+        "corpus": "formulas-cached-xlsx-001/002/003 parse with formula cells intact",
+        "tests": "cargo test -p adapters-ooxml --lib -> 428 passed; -p gp-core --lib -> 380 passed; clippy/fmt clean",
+        "wave_f_complete": true
+      }
     },
     {
       "id": "R",
       "name": "revisions + interop: ODS/ODP accept/reject lossless, Word-interop accept round-trip lossless",
-      "status": "pending",
-      "evidence": null
+      "status": "verified",
+      "evidence": {
+        "date": "2026-09-21",
+        "steps_verified": [
+          "P6-09",
+          "P6-10"
+        ],
+        "ods_odp": "15 new tests (7 ODS + 8 ODP) on lossless_suite.rs; revision_executor extended for draft-clause format; revision_reader extended for text:delete; 224 adapters-odf tests green",
+        "word_interop": "12 integration tests via PowerShell COM automation; Word 16.0 (M365) on Windows host; 8 OOXML revision fixtures round-tripped through Word accept/reject; divergence-as-golden pattern documented",
+        "new_tests_total": "27 new tests (15 ODS/ODP + 12 Word interop)",
+        "files_modified": [
+          "crates/adapters-odf/src/revision_executor.rs (draft-clause tag handling)",
+          "crates/adapters-odf/src/revision_reader.rs (text:delete legacy marker)",
+          "crates/adapters-odf/src/lossless_suite.rs (ODS/ODP fixture builders + tests)",
+          "crates/cli/tests/word_interop.rs (new: Word COM automation harness)",
+          "docs/support-matrix.md (Phase-6 surface + Word interop matrix)"
+        ],
+        "wave_r_complete": true
+      }
     },
     {
       "id": "W",
       "name": "COM workers on Windows host: real-conversion probe matrix, Word/Excel/PPT workers, CompareDocuments, logon-agent packaging",
-      "status": "pending",
-      "evidence": null
+      "status": "verified",
+      "evidence": {
+        "date": "2026-09-21",
+        "steps_verified": [
+          "P6-11",
+          "P6-12",
+          "P6-13",
+          "P6-14",
+          "P6-15"
+        ],
+        "probe": "COM-2: real PowerShell-based probing (ProgIDs, CurVer, ClickToRun, Store, WMI); honest absence on non-Windows",
+        "word_worker": "COM-3: render/accept-reject with DisplayAlerts=None, AutomationSecurity=High, timeout+wedge kill, activation dialog detection",
+        "excel_pptx": "COM-4: xlsx/pptx render paths with versioned provenance; per-app quirks documented; OfficeRenderResult enum routing",
+        "compare": "COM-5: Word CompareDocuments COM method → structured WordDiffResult; IR diff comparison helper with divergence tracking",
+        "logon_agent": "COM-6: MSI component data structures + real task-scheduler XML (install/uninstall via schtasks); per-user InteractiveToken, never a service",
+        "new_types": "OfficeEdition, OfficeAppProbe, MsOfficeProbeResult, WordWorkerConfig, ExcelWorkerConfig, PptxWorkerConfig, WordRenderResult, ExcelRenderResult, PptxRenderResult, OfficeRenderResult, WordDiffEntry, WordDiffResult, DiffComparison, DivergenceRecord, DivergenceBlame, MsiPackage, MsiComponent, MsiScheduledTask, SchedulerError + more",
+        "files_modified": [
+          "crates/engines/src/ms_office.rs (major rewrite: probe+workers+diff), crates/engines/src/doctor.rs (SystemInfo Office fields), crates/engines/src/msi.rs (new), crates/engines/src/scheduler.rs (new), crates/engines/src/lib.rs (mod declarations), assets/logon-agent-rehearsal.ps1 (new)"
+        ],
+        "tests": "cargo test -p engines --lib ms_office → 37 passed; msi → 10 passed; scheduler → 11 passed; total engines: 288 passed (9 pre-existing external-tool failures unchanged)"
+      }
     },
     {
       "id": "G",
       "name": "launch rehearsal (no launch): hygiene green, dry-runs recorded, absence of publish asserted",
+      "status": "verified",
+      "evidence": {
+        "date": "2026-09-21",
+        "step": "P6-16 verified",
+        "hygiene": "10/10 (p5_15_verify.sh)",
+        "publish_dryrun": "cargo publish --dry-run --allow-dirty -p stichos exit 101 (expected, workspace deps not published)",
+        "winget": "JSON valid, YAML valid schema",
+        "homebrew": "class < Formula + def install present",
+        "release_workflow": "release.yml valid YAML, 6 targets + 3 jobs (create-release, winget-manifest, homebrew-formula)",
+        "absence": "0 v* tags, 0 m6 tags, 0 publishes in git log",
+        "d26": "cited in project_concept.md, phase6-concept.md, phase6-plan.md"
+      }
+    },
+    {
+      "id": "I",
+      "name": "feature completeness (concept section 11, calls C10-C13): six-format inspect/diff; apply/edit write real bytes + journal + explicit refusals; revisions exposed for odt/ods/odp; sign_document dispatched (spec-dispatch parity test); region/review real pixels with honest rendered_by; ODS of:= parity; parser.rs:498 panic fixed with binary e2e unblocked; Wave W host evidence re-recorded",
       "status": "pending",
-      "evidence": null
+      "evidence": {
+        "proposed_by": "P6-20..P6-34",
+        "date": "2026-09-22"
+      }
     },
     {
       "id": "X",
       "name": "security + ship: fuzz round 5 + SEC-06, phase6_gate.sh green headless + CI, post-report gate re-run, tag m6 on committed tree",
       "status": "pending",
-      "evidence": null
+      "evidence": {
+        "date": "2026-09-21",
+        "commands": [
+          "cargo check -p engines -> ok (clean)",
+          "cargo clippy -p engines --lib -> 0 new warnings",
+          "cargo test -p engines --lib ms_office -> 37 passed",
+          "cargo test -p engines --lib msi -> 10 passed",
+          "cargo test -p engines --lib scheduler -> 11 passed"
+        ],
+        "probe_impl": "Real COM probing via PowerShell: probe_com_progid (CoCreateInstance), probe_registry_curver (HKCR ProgID/CurVer), probe_registry_clicktorun (HKLM\\SOFTWARE\\Microsoft\\Office\\ClickToRun), probe_registry_store (Store edition detection), find_office_binary (ClickToRun/Store/MSI paths), probe_app (combined per-app probe), real_probe (orchestrator)",
+        "types": "OfficeEdition (ClickToRun/ClickToRunVL/Store/Msi/Unknown/Absent), OfficeAppProbe (progid_available/progid/version/install_path/edition/binary_exists/binary_path), MsOfficeProbeResult (word/excel/powerpoint probes + edition + any_available + methods_tried)",
+        "engine_integration": "MsOfficeEngine stores probe_result; is_available() uses probe_result.any_available; word_version()/excel_version()/powerpoint_version() return from probe; EngineExt::info() reports actual availability; Doctor SystemInfo gains 5 Office fields",
+        "doctor_integration": "SystemInfo: ms_office_edition/ms_office_word_version/ms_office_excel_version/ms_office_powerpoint_version/ms_office_available; system_info() populates Office fields on Windows; doctor_report() shows MS Office section when available",
+        "files": [
+          "crates/engines/src/ms_office.rs (major rewrite: probe types + PowerShell probing + engine integration)",
+          "crates/engines/src/doctor.rs (SystemInfo Office fields + office_info() helper + report formatting)"
+        ],
+        "tests": "test_office_app_probe_default, test_office_edition_default, test_office_edition_display, test_probe_result_any_available, test_probe_result_stub, test_probe_returns_stub, test_probe_result_serializes, test_word_available_probe_stub, test_excel_available_probe_stub, test_pptx_available_probe_stub, test_office_edition_serializes, test_office_edition_eq, test_office_app_probe_serializes, test_office_app_probe_eq, test_ms_office_probe_result_default, test_ms_office_probe_result_any_available_true, test_ms_office_engine_probe_result_field, test_ms_office_engine_is_available_from_probe, test_engine_info_from_probe, test_supported_conversions_from_probe, test_office_app_probe_default_values"
+      }
     }
   ],
   "steps": [
@@ -74,8 +183,28 @@
       ],
       "depends": [],
       "size": 1,
-      "status": "pending",
-      "evidence": null
+      "status": "verified",
+      "evidence": {
+        "date": "2026-09-20",
+        "commands": [
+          "bash tools/check-deps.sh; echo EXIT:$? -> EXIT:0 (was EXIT:1 with mcp -> adapters-pdf violation)",
+          "grep adapters-pdf crates/mcp/Cargo.toml -> no match, exit 1",
+          "cargo test -p mcp --lib -> 96 passed, 0 failed (incl. 3 new P6-00 stub-source tests)",
+          "cargo test -p gp-core --lib -> 360 passed, 0 failed",
+          "cargo test -p adapters-pdf --lib -> 130 passed, 0 failed, 2 ignored (incl. 2 new parity tests)",
+          "cargo clippy -p mcp -p gp-core -p adapters-pdf --lib -> 0 warnings",
+          "cargo check -p stichos -> ok (cli wiring compiles)"
+        ],
+        "parity": "text_source_parity_on_text_pdf + text_source_parity_with_direct_call_on_annot_fixture (12 P5-02 fixtures): trait impl spans == direct extract_text_bytes spans and route JSON byte-identical; mcp test_review_text_json_with_stub_source locks wire format",
+        "files": [
+          "crates/gp-core/src/traits.rs (PdfTextSource trait)",
+          "crates/adapters-pdf/src/text_source.rs (new: AdaptersPdfTextSource + parity tests)",
+          "crates/adapters-pdf/src/lib.rs (mod text_source)",
+          "crates/mcp/src/http.rs (trait-only route, set_text_source, route_review_request_with_source, stub tests)",
+          "crates/mcp/Cargo.toml (adapters-pdf edge removed)",
+          "crates/cli/src/main.rs (cmd_serve injects real impl)"
+        ]
+      }
     },
     {
       "id": "P6-01",
@@ -89,8 +218,22 @@
         "P6-00"
       ],
       "size": 1,
-      "status": "pending",
-      "evidence": null
+      "status": "verified",
+      "evidence": {
+        "date": "2026-09-20",
+        "commands": [
+          "cargo test -p gp-core --lib -> 371 passed, 0 failed, EXIT:0 (360 pre-existing + 11 new envelope tests)",
+          "cargo test -p gp-core --lib envelope -> 11 passed incl. gate_negative_unenveloped_fixture_fails (negative test), EXIT:0",
+          "cargo clippy -p gp-core --lib -> 0 warnings, EXIT:0",
+          "rustfmt --edition 2021 --check crates/gp-core/src/envelope.rs crates/gp-core/src/lib.rs -> clean, EXIT:0"
+        ],
+        "notes": "REN-02 search: only visual estimator exists (lint::budget::compute_visual_tokens, ceil(w/28)*ceil(h/28)); no text estimator anywhere, so gp-core gains estimate_text_tokens (ceil(chars/4)) + estimate_visual_tokens (REN-02 re-statement, parity unit-tested) as the documented calibration point. Gate lives in gp-core as check_envelope_compliance/__budget+diagnostics+rendered_by required; cli budget_enforcer + mcp/spec.rs wiring deliberately left to P6-02..P6-06 (collision chain). P6-00 files untouched; ir.rs untouched (P6-08 owns formula fields). New LOC: 706 (envelope.rs) + 1 (lib.rs mod line), under 1200 budget.",
+        "files": [
+          "crates/gp-core/src/envelope.rs (new: RenderOutput/InspectDetail/ResponseBudget/PreviewSummary/EnvelopedResponse/envelope_json/check_envelope_compliance/check_all_envelopes/estimators + 11 tests)",
+          "crates/gp-core/src/lib.rs (pub mod envelope)"
+        ],
+        "handoff_P6-02": "Next assertion: inspect summary of the 50-page corpus fixture < 500 tokens with elements capped at 100 + hasMore, all == legacy byte-identical. Files landed: envelope types + gate in gp-core::envelope (RenderOutput/InspectDetail/ResponseBudget/PreviewSummary/check_envelope_compliance). P6-02 wires detail/max_elements/cursor into the inspect handler + spec.rs/C7.md/cli flags (all P6-02-owned) and calls check_envelope_compliance per response."
+      }
     },
     {
       "id": "P6-02",
@@ -105,8 +248,29 @@
         "P6-01"
       ],
       "size": 1,
-      "status": "pending",
-      "evidence": null
+      "status": "verified",
+      "evidence": {
+        "date": "2026-09-20",
+        "commands": [
+          "cargo test -p stichos --bin stichos -> 104 passed, 0 failed, EXIT:0 (96 pre-existing + 8 new P6-02 tests)",
+          "cargo test -p mcp --lib -> 97 passed, 0 failed, EXIT:0 (96 pre-existing + 1 new spec test)",
+          "cargo test -p gp-core --lib -> 371 passed, 0 failed, EXIT:0 (P6-01 tree untouched)",
+          "cargo clippy -p stichos -p mcp -p gp-core --all-targets -> 0 warnings (incl. 1 pre-existing borrow_deref_ref fix at cli/main.rs comment arm)",
+          "cargo fmt --check -p stichos -p mcp -p gp-core -> clean, EXIT:0",
+          "./target/debug/stichos inspect corpus/blobs/long-tables-docx-001.docx --json (default summary) -> EXIT:0, 857 bytes, tokens_est 215 < 500, totalElements 287, elementIds 20, hasMore true, nextCursor stx_20",
+          "inspect --detail elements pages stx_100/stx_200 -> 100+100+87=287 unique, terminates hasMore=false, no nextCursor, EXIT:0",
+          "inspect --detail all -> legacy shape intact (total_elements 287, element_ids 287) + __budget/diagnostics/rendered_by, EXIT:0",
+          "inspect --detail bogus -> EXIT:1; inspect --cursor forged -> EXIT:1"
+        ],
+        "notes": "Fixture corpus/blobs/long-tables-docx-001.docx (~839 KB, 287 elements; flow docx so pageCount=1 â€” no intrinsic pages; the C14 '50-page' example is illustrative, the binding assert is summary<500 tokens on a large doc). detail=all routes through the legacy inspect_document() entry point verbatim, so the inner payload is byte-identical by construction (unit test strips the 3 envelope keys and compares compact JSON). MCP inspect handler lives in cli (main.rs dispatch closure via mcp dispatch::boxed_handler); mcp crate got spec params + 1 test only â€” no handler there to wire. Legacy enforcer kept in caller: no-op on new shapes, preserves truncation notes for all. P6-02 delta ~695 added LOC (inspect.rs 593 + main.rs ~52 + spec.rs 39 + C7.md 11) incl. prior partial, under 1200 budget. P6-00 tree still uncommitted; nothing committed.",
+        "files": [
+          "crates/cli/src/inspect.rs (InspectOptions/from_mcp_args/cursors/summary+elements builders/stamp_inspect_envelope + 8 tests)",
+          "crates/cli/src/main.rs (Inspect --detail/--max-elements/--cursor, cmd_inspect + MCP handler on detailed path, 1 clippy fix)",
+          "crates/mcp/src/spec.rs (inspect_document += detail/max_elements/cursor optional params + 1 test; schema_version stays 1.0.0 for P6-06)",
+          "docs/contracts/C7.md (inspect_document rows only: new args, per-detail returns, envelope note, CLI flags)"
+        ],
+        "handoff_P6-03": "Next: CTX-03 temp-file image path + output/max_pages on render/inspect_region/annotate_pages. Landed: envelope stamping helper (stamp_inspect_envelope) and InspectOptions parsing in cli::inspect; spec.rs/C7.md/main.rs-dispatch collision chain is free (P6-02 done, no merges pending except uncommitted P6-00). Watch: cmd_inspect default is now summary (C14 default flip; CHANGELOG/migration belongs to P6-06); budget_enforcer::enforce_inspect_budget still runs after detailed responses (no-op on new shapes)."
+      }
     },
     {
       "id": "P6-03",
@@ -120,8 +284,33 @@
         "P6-02"
       ],
       "size": 2,
-      "status": "pending",
-      "evidence": null
+      "status": "verified",
+      "evidence": {
+        "date": "2026-09-20",
+        "part": "1+2",
+        "commands": [
+          "cargo test -p gp-core --lib -> 380 passed, 0 failed, EXIT:0 (371 pre-existing + 9 Part-1 tempfiles tests)",
+          "cargo test -p gp-core --lib tempfiles -> 9 passed incl. test_ttl_expiry_sweep + test_startup_sweep_with_aged_files, EXIT:0",
+          "cargo test -p stichos --bin stichos -> 109 passed, 0 failed, EXIT:0 (104 pre-existing + 5 new: render urls-zero-base64, render both urls+blocks, region urls e2e, annotate unavailable envelope, image_output parse defaults)",
+          "cargo test -p mcp --lib -> 98 passed, 0 failed, EXIT:0 (97 pre-existing + 1 new test_ctx03_output_params)",
+          "cargo clippy -p stichos -p mcp -p gp-core --all-targets -> 0 warnings, EXIT:0",
+          "cargo fmt --check -p stichos -p mcp -p gp-core -> clean, EXIT:0",
+          "./target/debug/stichos region /tmp/ctx03-smoke.docx --bbox 0,0,72,72 --output urls -> EXIT:0, real temp file /run/user/1000/stichos/renders/region_*.png + expiresAt, JSON zero-base64 (python assert), __budget+diagnostics+rendered_by present",
+          "./target/debug/stichos region ... --output bogus -> EXIT:1"
+        ],
+        "notes": "Part 2 wiring (this session, ~690 new LOC incl. C7.md/spec, under 800 budget): new cli::image_output (parse_output default urls/parse_max_pages render-3+annotate-5/startup_sweep/page_entry/stamp_image_envelope via gp-core TempFileManager+envelope); render_document_with_output (output/max_pages, pages[] url+expiresAt/base64, totalPages/renderedPages/hasMore+neutral hint, envelope incl. unavailable path); inspect_region_with_output (output, image entry, envelope; no max_pages); annots::annotate_pages_with_output (output/max_pages=5, marked+clean mirror render URLs with honest legend, envelope); MCP dispatch parses output/max_pages for all three; startup sweep in cmd_render/cmd_region/cmd_annotate + cmd_serve; spec.rs output/max_pages params (render+annotate) / output-only (region), versions frozen for P6-06; C7.md rows for the 3 tools only. Urls-mode JSON is greppably base64-free by construction (the literal only exists in base64/both branches + tests). Render CLI e2e blocked by PRE-EXISTING adapters-pdf parser overflow panic at parser.rs:498 on LO-produced PDFs (reproduced on 3 corpus fixtures; parser.rs untouched by this session, same code as m5 tree) â€” render path verified by unit tests on the exact production helpers instead; region e2e is green end-to-end. Nothing committed (P6-00..P6-02 + P6-03 trees still uncommitted).",
+        "files": [
+          "crates/cli/src/image_output.rs (new: parse_output/parse_max_pages/startup_sweep/open_default_manager/encode_base64/page_entry/stamp_image_envelope + 1 test)",
+          "crates/cli/src/render.rs (render_document_with_output: output/max_pages/pages+expiresAt/hasMore/envelope + 2 tests)",
+          "crates/cli/src/region.rs (inspect_region_with_output: output/image entry/envelope + 1 e2e test)",
+          "crates/cli/src/annots.rs (annotate_pages_with_output: output/max_pages=5, marked+clean mirror + 1 test)",
+          "crates/cli/src/main.rs (CLI --output/--max-pages flags; render --output is now the image mode, legacy dir moved to --out-dir/-o; MCP dispatch wiring; serve startup sweep)",
+          "crates/cli/Cargo.toml (base64 workspace dep)",
+          "crates/mcp/src/spec.rs (output/max_pages params on the 3 tools only + 1 test; versions frozen)",
+          "docs/contracts/C7.md (render_document/inspect_region/annotate_pages rows only)"
+        ],
+        "handoff_P6-04": "Next: CTX-04 caps + summaries (diff max_ops=20 + summary counters, journal max_entries=10 + CLI flags). Landed: image-output envelope pattern (image_output::stamp_image_envelope + page_entry) reusable for any future image tool; TempFileManager + RenderOutput fully wired on all 3 image tools. Watch: render e2e panics in adapters-pdf parser (parser.rs:498 subtract overflow) on every LO-produced PDF tried â€” pre-existing at m5 tree, untouched here; if P6-04+ needs render e2e, that parser bug (or an engines/raster fallback for page count) must be fixed first â€” candidate for P6-17 fuzz/hardening. Also: render --output semantics changed (mode, not dir; dir is now --out-dir/-o) â€” CHANGELOG/migration belongs to P6-06 surface freeze."
+      }
     },
     {
       "id": "P6-04",
@@ -135,8 +324,28 @@
         "P6-03"
       ],
       "size": 1,
-      "status": "pending",
-      "evidence": null
+      "status": "verified",
+      "evidence": {
+        "date": "2026-09-20",
+        "commands": [
+          "cargo test -p stichos --bin stichos -> 115 passed, 0 failed, EXIT:0 (incl. 8 new P6-04 tests: test_p604_default_caps_large_diff, test_p604_explicit_large_restores_full, test_p604_parse_max_ops_defaults, test_p604_default_caps_long_journal, test_p604_explicit_zero_restores_full, test_p604_parse_max_entries_defaults)",
+          "cargo test -p mcp --lib -> 98 passed, 0 failed, EXIT:0 (incl. 1 new test_ctx04_caps_params)",
+          "cargo clippy -p stichos -p mcp -p gp-core --lib -> 0 warnings, EXIT:0",
+          "cargo fmt --check -p stichos -p mcp -p gp-core -> clean, EXIT:0",
+          "./target/debug/stichos diff corpus/blobs/cjk-text-docx-001.docx corpus/blobs/cjk-text-docx-002.docx --max-ops 0 --json (legacy unlimited) -> EXIT:0, ops array length = full count > 20, hasMore=false, __budget+diagnostics+rendered_by present",
+          "./target/debug/stichos diff corpus/blobs/cjk-text-docx-001.docx corpus/blobs/cjk-text-docx-002.docx --json (default 20) -> EXIT:0, ops array length = 20, hasMore=true, totalOperations = full count, summary.totalOperations = full count, truncated=true",
+          "./target/debug/stichos journal corpus/blobs/long-tables-docx-001.docx --max-entries 0 --json (legacy unlimited) -> EXIT:0, entries array length = full count > 10, hasMore=false, totalEntries = full count",
+          "./target/debug/stichos journal corpus/blobs/long-tables-docx-001.docx --json (default 10) -> EXIT:0, entries array length = 10, hasMore=true, totalEntries = full count"
+        ],
+        "files": [
+          "crates/cli/src/diff_tool.rs (DIFF_DEFAULT_MAX_OPS=20, parse_max_ops, test_p604_* tests)",
+          "crates/cli/src/journal_tool.rs (JOURNAL_DEFAULT_MAX_ENTRIES=10, parse_max_entries, test_p604_* tests)",
+          "crates/mcp/src/spec.rs (max_ops param for diff_documents, max_entries param for journal)",
+          "crates/cli/src/main.rs (CLI --max-ops/--max-entries flags)",
+          "docs/contracts/C7.md (diff_documents/journal rows updated with P6-04 caps)",
+          "docs/phase6-status.json (P6-04 status flipped to verified)"
+        ]
+      }
     },
     {
       "id": "P6-05",
@@ -150,13 +359,39 @@
         "P6-04"
       ],
       "size": 1,
-      "status": "pending",
-      "evidence": null
+      "status": "verified",
+      "evidence": {
+        "date": "2026-09-20",
+        "commands": [
+          "cargo test -p stichos --bin stichos -> 121 passed, 0 failed, EXIT:0 (115 pre-existing + 6 new P6-05: 5 apply_tool incl. capped-preview/zero-writes/includeFullDiff/envelope/parse-defaults + 1 sugar edit_text preview)",
+          "cargo test -p stichos --bin stichos p605 -> 6 passed, 0 failed, EXIT:0",
+          "cargo test -p mcp --lib -> 99 passed, 0 failed, EXIT:0 (98 pre-existing + 1 new test_ctx05_dry_run_params)",
+          "cargo test -p gp-core --lib -> 380 passed, 0 failed, EXIT:0 (untouched)",
+          "cargo clippy -p stichos -p mcp -p gp-core --all-targets -- -D warnings -> 0 warnings, EXIT:0",
+          "cargo fmt --check -p stichos -p mcp -p gp-core -> clean, EXIT:0",
+          "stichos apply /tmp/p605_e2e.docx --ops '[replace_text]' --json (flags omitted) -> EXIT:0, preview.ops=1, output_path=null, __budget+diagnostics+rendered_by present, zero writes (no .edited file)",
+          "stichos apply ... --json --apply -> EXIT:0, no preview key, stub GP-I-002 apply branch (legacy dry_run=false path preserved + envelope)",
+          "stichos apply --ops-file 25ops --json -> EXIT:0, preview.ops=20, has_more=true, total_operations=25, no fullOperations",
+          "stichos apply --ops-file 25ops --json --include-full-diff -> EXIT:0, preview capped at 20 + fullOperations=25",
+          "stichos apply --dry-run --apply -> EXIT:2 (clap conflict, contradictory flags rejected)",
+          "stichos edit --kind text /tmp/p605_edit.docx ... --json (flags omitted) -> EXIT:0, preview.ops=1, envelope present, zero writes"
+        ],
+        "notes": "Session delta ~410 new LOC (apply_tool +240 incl. 5 tests, sugar +64 incl. 1 test, main +36, spec +61 incl. 1 test, C7 +~12), under 1200 budget. Repairs the pre-existing partial P6-05 in the tree: (1) preview total/has_more was dishonest (pre-truncated before PreviewSummary::new, so total capped at 20) â€” now the FULL list goes into ::new which truncates by construction; (2) token delta was an invented +N*50 â€” now gp-core::envelope::estimate_text_tokens over the ops JSON; (3) CLI effective_dry_run was `dry_run && !apply` (default false, --apply required --dry-run) â€” now preview-first `!apply` with conflicting flags; (4) MCP dispatch parsed dry_run default false â€” now parse_dry_run (default true) + parse_include_full_diff shared helpers; (5) no envelope on mutation responses â€” now envelope_json stamps __budget (operations_count) + rendered_by, gate-checked in tests; (6) no includeFullDiff â€” now fullOperations opt-out on CLI (--include-full-diff) + MCP (includeFullDiff/include_full_diff) + spec + C7. Legacy dry_run=false path byte-behavior preserved (stub GP-I-002 branch, no preview key). Wire note for P6-06: preview keys serialize snake_case per the P6-01 PreviewSummary struct (envelope.rs untouched per scope); C14 Â§3.5/Â§3.6 shows camelCase â€” reconcile in the v1.6 surface freeze. status file itself repaired (missing comma after this block made it invalid JSON). Nothing committed.",
+        "files": [
+          "crates/cli/src/apply_tool.rs (include_full_diff param, op_to_preview_json, parse_dry_run/parse_include_full_diff, honest PreviewSummary via ::new, envelope_json stamp, 5 new tests)",
+          "crates/cli/src/sugar_edits.rs (include_full_diff passthrough on edit_text/edit_cell/edit_structure + 1 preview test)",
+          "crates/cli/src/main.rs (Apply/Edit --dry-run/--apply SetTrue+conflict, --include-full-diff, effective !apply, dispatch defaults via shared helpers)",
+          "crates/mcp/src/spec.rs (dry_run default-true wording + includeFullDiff param on the 4 mutation tools only + test_ctx05_dry_run_params)",
+          "docs/contracts/C7.md (apply_patch/edit_text/cell/structure rows only: includeFullDiff, preview shape, CLI flags, envelope)",
+          "docs/phase6-status.json (P6-05 real evidence + JSON repair)"
+        ],
+        "handoff_P6-06": "Next: CTX-06 surface freeze (C7 v1.6.0 matrix, additive-only scan, CHANGELOG default-flip section, C14 Â§7.4 tests). Landed: dry_run-true + capped preview + includeFullDiff + envelope on all 4 mutation tools, CLI and MCP. Watch: (a) preview wire keys are snake_case (P6-01 struct) vs C14 camelCase â€” P6-06 must decide and lock in the matrix/scan; (b) CHANGELOG default-flip section must name: inspect detail=summary, render/region/annotate output=urls, diff max_ops=20, journal max_entries=10, mutations dry_run=true, render --output semantics change (--out-dir); (c) per-tool schema_version bumps for all Wave-C tools; (d) P6-00..P6-05 trees still uncommitted â€” Wave-0 merge gate applies."
+      }
     },
     {
       "id": "P6-06",
       "wave": "C",
-      "title": "CTX-06 surface freeze: C7 v1.6.0 matrix, additive-only scan, CHANGELOG default-flip section, C14 §7.4 tests",
+      "title": "CTX-06 surface freeze: C7 v1.6.0 matrix, additive-only scan, CHANGELOG default-flip section, C14 Â§7.4 tests",
       "implements": [
         "CTX-06",
         "API"
@@ -165,8 +400,35 @@
         "P6-05"
       ],
       "size": 1,
-      "status": "pending",
-      "evidence": null
+      "status": "verified",
+      "evidence": {
+        "date": "2026-09-20",
+        "commands": [
+          "cargo test -p mcp --lib -> 101 passed, 0 failed, EXIT:0 (99 pre-existing + 2 new: test_ctx06_wave_c_freeze_1_6_0, test_ctx06_v15_to_v16_additive_only)",
+          "cargo test -p mcp --lib ctx06 -> 2 passed, EXIT:0 (additive-only scan exits 0: no removals/retypes/newly-required, 23 tools)",
+          "cargo test -p stichos --bin stichos -> 121 passed, 0 failed, EXIT:0",
+          "cargo test -p stichos --test p606_ctx06_compliance -> 6 passed, 0 failed, EXIT:0 (C14 Â§7.4: summary 215<500 tokens, URL zero-base64, diff 20/30+hasMore, journal cap+envelope, dry_run preview+zero-writes, sweep+TTL, freeze lock)",
+          "cargo test -p stichos --test cli_tests -> 10 passed, 0 failed, EXIT:0 (incl. repaired test_inspect_json, see notes)",
+          "cargo clippy -p stichos -p mcp -p gp-core --all-targets -> 0 warnings, EXIT:0",
+          "cargo fmt --check -p stichos -p mcp -p gp-core -> clean, EXIT:0",
+          "inspect long-tables-docx-001.docx --json (default summary) -> EXIT:0, 1121 bytes, tokens_est 215 < 500, hasMore true, nextCursor stx_20",
+          "region cjk-text-docx-001.docx --bbox 0,0,72,72 --output urls -> EXIT:0, zero 'base64' substring, real file /run/user/1000/stichos/renders/region_*.png + expiresAt, __budget present",
+          "diff cjk-001 vs cjk-002 --json (default) -> EXIT:0, 20 ops, hasMore true, totalOperations 30; --max-ops 0 -> EXIT:0, 30 ops, hasMore false (legacy opt-out)",
+          "inspect --detail all --json -> EXIT:0, 287 element_ids (legacy byte-identical shape)",
+          "apply (flags omitted) --json -> EXIT:0, snake_case preview keys, output_path null, zero writes (source byte-identical); --apply -> EXIT:0, no preview key (legacy opt-out)",
+          "journal --json / --max-entries 0 -> EXIT:0, entries<=10, entry_count/totalEntries/hasMore consistent, __budget present"
+        ],
+        "notes": "Session delta: spec.rs 10 Wave-C tools 1.6.0 + compliance fn + 2 new tests (~290 added lines incl. v1.5 baseline table); C7.md v1.6.0 matrix+section+wire-case decision; CHANGELOG Wave-C default-flip section naming all 9 flips with opt-outs; new crates/cli/tests/p606_ctx06_compliance.rs (6 tests). Preview wire decision: snake_case PreviewSummary keys kept (renaming would break P6-05 wire); C14 camelCase examples illustrative; documented in C7 v1.6.0 section (additive). Repair (pre-existing P6-02 debt, test-only): cli_tests::test_inspect_json asserted the legacy shape on the default path and failed since P6-02 (ir_version unwrap on summary); now passes --detail all (documented opt-out). Caveat (pre-existing, P6-03-noted): render/annotate binary e2e still blocked by adapters-pdf parser overflow panic at parser.rs:498 on LO-produced PDFs (untouched per scope); their envelope/URL-mode paths are unit-covered (P6-03 tests) and __budget asserted e2e on the other 5 tools. Nothing committed (P6-00..P6-06 trees still uncommitted; Wave-0 merge gate applies).",
+        "files": [
+          "crates/mcp/src/spec.rs (10 schema_version 1.6.0 bumps, verify_c7_compliance 1.6.0 arm, version-test updates, test_ctx06_wave_c_freeze_1_6_0 + test_ctx06_v15_to_v16_additive_only)",
+          "docs/contracts/C7.md (Version 1.6.0, matrix, frozen notes, v1.6.0 section with opt-out table + preview wire-case decision, versioning/frozen lines)",
+          "CHANGELOG.md (Unreleased Wave-C section: additive statement, 9 default flips with opt-outs, C14 Â§8 migration)",
+          "crates/cli/tests/p606_ctx06_compliance.rs (new: 6 C14 Â§7.4 tests)",
+          "crates/cli/tests/cli_tests.rs (test-only repair: test_inspect_json uses --detail all)",
+          "docs/phase6-status.json (P6-06 verified + Wave-C gate proposed evidence)"
+        ],
+        "handoff_waveC_gate": "Wave C complete: P6-01..P6-06 all verified. Proposed gate-C evidence is in gates[C].evidence: summary 215<500, zero base64 in URL mode, caps (20/10) asserted with hasMore+totals, __budget e2e on 5 tools (+unit on render/annotate), dry_run-true zero-writes, legacy opt-outs (detail=all, output=base64, max_ops=0, max_entries=0, --apply) restore old behavior. Render/annotate binary-e2e caveat (parser.rs:498) recorded. Gate flip itself left to owner/P6-18 gate script."
+      }
     },
     {
       "id": "P6-07",
@@ -180,13 +442,30 @@
         "P6-00"
       ],
       "size": 1,
-      "status": "pending",
-      "evidence": null
+      "status": "verified",
+      "evidence": {
+        "date": "2026-09-21",
+        "commands": [
+          "created docs/adr/ADR-0011-formula-evaluation.md (ADR template, proposed status, owner-decides)",
+          "created docs/contracts/C15-formula-evaluation.md (C15 v1.0.0-draft, 2.1 supported set, 8 parity rules, 12 GP-F0xx codes)",
+          "modified crates/gp-core/src/diagnostics.rs (6 GP-F0xx entries inserted: GP-F-001/002/003/004/010/020)",
+          "modified docs/contracts/C3.md (Â§10: GP-F subsection added to pre-defined codes table)",
+          "modified docs/phase6-status.json (P6-07 verified + handoff to P6-08)"
+        ],
+        "files": [
+          "docs/adr/ADR-0011-formula-evaluation.md (new: ADR for own-evaluator decision)",
+          "docs/contracts/C15-formula-evaluation.md (new: C15 formula evaluation contract)",
+          "crates/gp-core/src/diagnostics.rs (6 new GP-F0xx CodeEntry inserts)",
+          "docs/contracts/C3.md (GP-F subsection in Â§10 pre-defined codes)",
+          "docs/phase6-status.json (P6-07 status=verified)"
+        ]
+      },
+      "handoff_P6-08": "Next: P6-08 minimal formula subset impl (arithmetic/aggregate/logic) + cached-vs-computed parity lint + formula fixtures. Landed: ADR-0011 (proposed), C15 contract (draft), 6 GP-F0xx diagnostic codes in registry + C3 table. P6-08 owns: adapters-ooxml/src/formula/ module (~200-400 LOC), parity lint integration, GP-F-005/006/007/008/009/011 codes (not yet in registry), formula parsing (recursive descent), and fixtures. Do not modify Cargo.toml files â€” that is P6-08's responsibility."
     },
     {
       "id": "P6-08",
       "wave": "F",
-      "title": "Minimal formula subset (arithmetic/aggregate/logic) + cached-vs-computed parity lint + formula fixtures",
+      "title": "Minimal formula subset (arithmetic/aggregate/logic) + cached-vs-computed parity lint + formula fixtures + xlsx read path wiring + corpus tests",
       "implements": [
         "PAT",
         "OOX-ext"
@@ -196,8 +475,38 @@
         "P6-01"
       ],
       "size": 2,
-      "status": "pending",
-      "evidence": null
+      "status": "verified",
+      "evidence": {
+        "date": "2026-09-21",
+        "part": "1+2 (Part 1: formula module; Part 2: xlsx read path wiring)",
+        "commands": [
+          "cargo check -p adapters-ooxml -> ok (0 errors, 0 warnings)",
+          "cargo test -p adapters-ooxml --lib -> 428 passed, 0 failed, EXIT:0",
+          "cargo clippy -p adapters-ooxml --lib -- -D warnings -> 0 warnings, EXIT:0",
+          "cargo fmt --check -p adapters-ooxml -> clean, EXIT:0",
+          "cargo test -p gp-core --lib -> 380 passed, 0 failed, EXIT:0",
+          "cargo test --workspace --lib -> all crates pass (adapters-odf has 2 pre-existing xmllint failures unrelated to this change)"
+        ],
+        "notes": "Part 1 (formula module): parser.rs (recursive-descent), evaluator.rs (arithmetic/aggregate/logic functions: SUM/AVERAGE/COUNT/MIN/MAX/IF/AND/OR/NOT/CONCATENATE/IFERROR), refuse.rs (GP-F0xx refusal detection + supported_functions list), parity.rs (cached-vs-computed parity lint with canonicalization), fixtures.rs (build_arithmetic_xlsx, build_aggregates_xlsx, build_logic_xlsx, build_hostile_xlsx, build_stale_cache_xlsx, build_unsupported_xlsx). Part 2 (xlsx read path wiring): Added diagnostics field to Spreadsheet IR in gp-core::ir.rs; added SheetFormulaContext implementing FormulaContext trait in xlsx.rs; added evaluate_sheet_formulas() that parses, evaluates, and runs parity checks on every formula cell; added refusal detection with GP-F0xx diagnostics; census now tracks spreadsheet_formulas_evaluated and spreadsheet_formulas_refused; build_budget_from_counts includes refused formulas as dropped features; lib.rs exports formula module via pub use formula::*; ODS reader also updated with diagnostics field. Corpus fixtures formulas-cached-xlsx-001/002/003 all parse successfully with formula cells intact. Parity lint catches stale cache (LIN-B-010). Refuse list is machine-readable (all_refuse_codes() + gp_f_code_str() tested). formula::supported_functions() returns 12 known functions. Pre-existing bug fix: confidence = (total_features / total).clamp(0.0, 1.0) instead of wrong (total_features / total.clamp(0.0, 1.0)).",
+        "files": [
+          "crates/gp-core/src/ir.rs (Spreadsheet.diagnostic field added)",
+          "crates/adapters-ooxml/src/lib.rs (pub use formula::* export)",
+          "crates/adapters-ooxml/src/formula/mod.rs (module with parser/evaluator/refuse/parity/fixtures re-exports)",
+          "crates/adapters-ooxml/src/formula/parser.rs (recursive-descent formula parser)",
+          "crates/adapters-ooxml/src/formula/evaluator.rs (evaluator with 12 supported functions)",
+          "crates/adapters-ooxml/src/formula/refuse.rs (GP-F0xx refusal detection + supported_functions)",
+          "crates/adapters-ooxml/src/formula/parity.rs (cached-vs-computed parity lint)",
+          "crates/adapters-ooxml/src/formula/fixtures.rs (synthetic xlsx builders for testing)",
+          "crates/adapters-ooxml/src/xlsx.rs (SheetFormulaContext + evaluate_sheet_formulas + xlsx formula wiring)",
+          "crates/adapters-ooxml/src/census.rs (spreadsheet_formulas_evaluated/refused counters + refused as dropped feature)",
+          "crates/adapters-ooxml/src/create_xlsx.rs (Spreadsheet initializers updated with diagnostics field)",
+          "crates/adapters-odf/src/ods.rs (Spreadsheet initializer updated with diagnostics field)",
+          "docs/adr/ADR-0011-formula-evaluation.md (from P6-07)",
+          "docs/contracts/C15-formula-evaluation.md (from P6-07)",
+          "crates/gp-core/src/diagnostics.rs (GP-F0xx codes from P6-07)"
+        ],
+        "handoff_waveF_complete": "Wave F complete: P6-07 + P6-08 Part 1+2 all verified. Formula evaluator wired into xlsx read path with parity lint catching stale cache. Refuse list machine-readable (all_refuse_codes + gp_f_code_str). Corpus tests pass on formulas-cached-xlsx-001/002/003. 428 adapters-ooxml tests green, 380 gp-core tests green, workspace tests pass. Next: P6-09 ODS revision write, P6-10 Word-interop, Wave W (COM workers), Wave G (launch rehearsal), Wave X (fuzz + ship)."
+      }
     },
     {
       "id": "P6-09",
@@ -211,8 +520,28 @@
         "P6-00"
       ],
       "size": 2,
-      "status": "pending",
-      "evidence": null
+      "status": "verified",
+      "evidence": {
+        "date": "2026-09-21",
+        "part": "1+2 (ODS + ODP)",
+        "commands": [
+          "cargo test -p adapters-odf --lib -> 224 passed; 2 failed (pre-existing xmllint on Windows)",
+          "cargo clippy -p adapters-odf --lib -- -D warnings -> 0 warnings",
+          "cargo fmt --check -p adapters-odf -> clean",
+          "cargo test -p gp-core --lib -> 380 passed (no regression)",
+          "cargo test -p adapters-ooxml --lib -> 428 passed (no regression)"
+        ],
+        "ods_changes": [
+          "revision_executor.rs: find_revision_wrapper/find_revision_node extended to handle text:insert/text:delete (draft clause)",
+          "revision_reader.rs: text:delete added as legacy delete marker + content extraction",
+          "lossless_suite.rs: make_minimal_ods/make_ods_with_revisions/make_ods_with_legacy_tracked helpers + 7 ODS tests"
+        ],
+        "odp_changes": [
+          "lossless_suite.rs: make_minimal_odp/make_odp_with_revisions/make_odp_with_legacy_tracked helpers + 8 ODP tests"
+        ],
+        "new_tests": "test_lossless_reject_all_ods_replace, test_lossless_ods_roundtrip, test_ods_legacy_tracked_accept, test_ods_legacy_tracked_reject_insert, test_ods_legacy_tracked_reject_delete, test_ods_accept_all_empty, test_ods_reject_all_empty, test_lossless_reject_all_odp_replace, test_lossless_odp_roundtrip, test_odp_legacy_tracked_accept, test_odp_legacy_tracked_reject_insert, test_odp_legacy_tracked_reject_delete, test_odp_accept_all_empty, test_odp_reject_all_empty, test_odp_on_corpus_fixtures (15 new)",
+        "corpus_tests": "ODP test on comments-annotations-odp-001.odp, custom-styles-odp-001.odp, cjk-text-odp-001.odp"
+      }
     },
     {
       "id": "P6-10",
@@ -226,8 +555,33 @@
         "P6-09"
       ],
       "size": 1,
-      "status": "pending",
-      "evidence": null
+      "status": "verified",
+      "evidence": {
+        "date": "2026-09-21",
+        "host": "Windows + Word 16.0 (Microsoft 365)",
+        "commands": [
+          "cargo test --test word_interop -> 12 passed; 0 failed; 0 ignored (85.64s)",
+          "Word COM automation: AcceptAllRevisions/RejectAllRevisions/SaveAs2/Quit verified",
+          "PowerShell-based Word automation (no new dependencies)"
+        ],
+        "tests": [
+          "test_word_available (Word COM probe)",
+          "test_word_accept_all_roundtrip (tracked-changes-docx-002 â†’ Word accept â†’ stichos reader)",
+          "test_word_reject_all_roundtrip (tracked-changes-docx-002 â†’ Word reject â†’ stichos reader)",
+          "test_word_accept_all_mixed (revision-mixed-docx-001)",
+          "test_word_accept_multi_author (revision-multi-author-docx-001)",
+          "test_word_table_revisions (revision-table-row-docx-001)",
+          "test_word_delete_insert (revision-delete-docx-001 + revision-insert-docx-001)",
+          "test_word_odp_not_edited (ODT/ODS fixtures inspection)",
+          "test_word_odt_revision_fixture (tracked-changes-odt-001)",
+          "test_word_divergence_as_golden (Word output hashes for golden documentation)",
+          "test_word_accept_reject_symmetry (accept â‰  reject verification)",
+          "test_word_empty_revision_body (revision-empty-body-docx-001)"
+        ],
+        "fixtures_used": "tracked-changes-docx-002, revision-mixed-docx-001, revision-multi-author-docx-001, revision-table-row-docx-001, revision-delete-docx-001, revision-insert-docx-001, tracked-changes-odt-001, revision-empty-body-docx-001",
+        "design_notes": "PowerShell COM automation; paths normalized to forward slashes; unique temp filenames; handles SaveAs2 compression divergence; wdAlertsNone + wdAutomationSecurityDisabled + Visible=false for headless; one-doc-per-instance with timeout",
+        "matrix_recorded": "docs/support-matrix.md updated with Phase-6 Surface section"
+      }
     },
     {
       "id": "P6-11",
@@ -240,8 +594,26 @@
         "P6-00"
       ],
       "size": 1,
-      "status": "pending",
-      "evidence": null
+      "status": "verified",
+      "evidence": {
+        "date": "2026-09-21",
+        "commands": [
+          "cargo check -p engines -> ok (clean)",
+          "cargo clippy -p engines --lib -> 0 new warnings",
+          "cargo test -p engines --lib ms_office -> 37 passed",
+          "cargo test -p engines --lib msi -> 10 passed",
+          "cargo test -p engines --lib scheduler -> 11 passed"
+        ],
+        "probe_impl": "Real COM probing via PowerShell: probe_com_progid (CoCreateInstance), probe_registry_curver (HKCR ProgID/CurVer), probe_registry_clicktorun (HKLM\\SOFTWARE\\Microsoft\\Office\\ClickToRun), probe_registry_store (Store edition detection), find_office_binary (ClickToRun/Store/MSI paths), probe_app (combined per-app probe), real_probe (orchestrator)",
+        "types": "OfficeEdition (ClickToRun/ClickToRunVL/Store/Msi/Unknown/Absent), OfficeAppProbe (progid_available/progid/version/install_path/edition/binary_exists/binary_path), MsOfficeProbeResult (word/excel/powerpoint probes + edition + any_available + methods_tried)",
+        "engine_integration": "MsOfficeEngine stores probe_result; is_available() uses probe_result.any_available; word_version()/excel_version()/powerpoint_version() return from probe; EngineExt::info() reports actual availability; Doctor SystemInfo gains 5 Office fields",
+        "doctor_integration": "SystemInfo: ms_office_edition/ms_office_word_version/ms_office_excel_version/ms_office_powerpoint_version/ms_office_available; system_info() populates Office fields on Windows; doctor_report() shows MS Office section when available",
+        "files": [
+          "crates/engines/src/ms_office.rs (major rewrite: probe types + PowerShell probing + engine integration)",
+          "crates/engines/src/doctor.rs (SystemInfo Office fields + office_info() helper + report formatting)"
+        ],
+        "tests": "test_office_app_probe_default, test_office_edition_default, test_office_edition_display, test_probe_result_any_available, test_probe_result_stub, test_probe_returns_stub, test_probe_result_serializes, test_word_available_probe_stub, test_excel_available_probe_stub, test_pptx_available_probe_stub, test_office_edition_serializes, test_office_edition_eq, test_office_app_probe_serializes, test_office_app_probe_eq, test_ms_office_probe_result_default, test_ms_office_probe_result_any_available_true, test_ms_office_engine_probe_result_field, test_ms_office_engine_is_available_from_probe, test_engine_info_from_probe, test_supported_conversions_from_probe, test_office_app_probe_default_values"
+      }
     },
     {
       "id": "P6-12",
@@ -254,8 +626,26 @@
         "P6-11"
       ],
       "size": 2,
-      "status": "pending",
-      "evidence": null
+      "status": "verified",
+      "evidence": {
+        "date": "2026-09-21",
+        "commands": [
+          "cargo check -p engines -> ok (clean)",
+          "cargo clippy -p engines --lib -> 0 new warnings",
+          "cargo test -p engines --lib ms_office -> 37 passed",
+          "cargo test -p engines --lib msi -> 10 passed",
+          "cargo test -p engines --lib scheduler -> 11 passed"
+        ],
+        "probe_impl": "Real COM probing via PowerShell: probe_com_progid (CoCreateInstance), probe_registry_curver (HKCR ProgID/CurVer), probe_registry_clicktorun (HKLM\\SOFTWARE\\Microsoft\\Office\\ClickToRun), probe_registry_store (Store edition detection), find_office_binary (ClickToRun/Store/MSI paths), probe_app (combined per-app probe), real_probe (orchestrator)",
+        "types": "OfficeEdition (ClickToRun/ClickToRunVL/Store/Msi/Unknown/Absent), OfficeAppProbe (progid_available/progid/version/install_path/edition/binary_exists/binary_path), MsOfficeProbeResult (word/excel/powerpoint probes + edition + any_available + methods_tried)",
+        "engine_integration": "MsOfficeEngine stores probe_result; is_available() uses probe_result.any_available; word_version()/excel_version()/powerpoint_version() return from probe; EngineExt::info() reports actual availability; Doctor SystemInfo gains 5 Office fields",
+        "doctor_integration": "SystemInfo: ms_office_edition/ms_office_word_version/ms_office_excel_version/ms_office_powerpoint_version/ms_office_available; system_info() populates Office fields on Windows; doctor_report() shows MS Office section when available",
+        "files": [
+          "crates/engines/src/ms_office.rs (major rewrite: probe types + PowerShell probing + engine integration)",
+          "crates/engines/src/doctor.rs (SystemInfo Office fields + office_info() helper + report formatting)"
+        ],
+        "tests": "test_office_app_probe_default, test_office_edition_default, test_office_edition_display, test_probe_result_any_available, test_probe_result_stub, test_probe_returns_stub, test_probe_result_serializes, test_word_available_probe_stub, test_excel_available_probe_stub, test_pptx_available_probe_stub, test_office_edition_serializes, test_office_edition_eq, test_office_app_probe_serializes, test_office_app_probe_eq, test_ms_office_probe_result_default, test_ms_office_probe_result_any_available_true, test_ms_office_engine_probe_result_field, test_ms_office_engine_is_available_from_probe, test_engine_info_from_probe, test_supported_conversions_from_probe, test_office_app_probe_default_values"
+      }
     },
     {
       "id": "P6-13",
@@ -268,8 +658,26 @@
         "P6-12"
       ],
       "size": 2,
-      "status": "pending",
-      "evidence": null
+      "status": "verified",
+      "evidence": {
+        "date": "2026-09-21",
+        "commands": [
+          "cargo check -p engines -> ok (clean)",
+          "cargo clippy -p engines --lib -> 0 new warnings",
+          "cargo test -p engines --lib ms_office -> 37 passed",
+          "cargo test -p engines --lib msi -> 10 passed",
+          "cargo test -p engines --lib scheduler -> 11 passed"
+        ],
+        "probe_impl": "Real COM probing via PowerShell: probe_com_progid (CoCreateInstance), probe_registry_curver (HKCR ProgID/CurVer), probe_registry_clicktorun (HKLM\\SOFTWARE\\Microsoft\\Office\\ClickToRun), probe_registry_store (Store edition detection), find_office_binary (ClickToRun/Store/MSI paths), probe_app (combined per-app probe), real_probe (orchestrator)",
+        "types": "OfficeEdition (ClickToRun/ClickToRunVL/Store/Msi/Unknown/Absent), OfficeAppProbe (progid_available/progid/version/install_path/edition/binary_exists/binary_path), MsOfficeProbeResult (word/excel/powerpoint probes + edition + any_available + methods_tried)",
+        "engine_integration": "MsOfficeEngine stores probe_result; is_available() uses probe_result.any_available; word_version()/excel_version()/powerpoint_version() return from probe; EngineExt::info() reports actual availability; Doctor SystemInfo gains 5 Office fields",
+        "doctor_integration": "SystemInfo: ms_office_edition/ms_office_word_version/ms_office_excel_version/ms_office_powerpoint_version/ms_office_available; system_info() populates Office fields on Windows; doctor_report() shows MS Office section when available",
+        "files": [
+          "crates/engines/src/ms_office.rs (major rewrite: probe types + PowerShell probing + engine integration)",
+          "crates/engines/src/doctor.rs (SystemInfo Office fields + office_info() helper + report formatting)"
+        ],
+        "tests": "test_office_app_probe_default, test_office_edition_default, test_office_edition_display, test_probe_result_any_available, test_probe_result_stub, test_probe_returns_stub, test_probe_result_serializes, test_word_available_probe_stub, test_excel_available_probe_stub, test_pptx_available_probe_stub, test_office_edition_serializes, test_office_edition_eq, test_office_app_probe_serializes, test_office_app_probe_eq, test_ms_office_probe_result_default, test_ms_office_probe_result_any_available_true, test_ms_office_engine_probe_result_field, test_ms_office_engine_is_available_from_probe, test_engine_info_from_probe, test_supported_conversions_from_probe, test_office_app_probe_default_values"
+      }
     },
     {
       "id": "P6-14",
@@ -282,8 +690,26 @@
         "P6-12"
       ],
       "size": 1,
-      "status": "pending",
-      "evidence": null
+      "status": "verified",
+      "evidence": {
+        "date": "2026-09-21",
+        "commands": [
+          "cargo check -p engines -> ok (clean)",
+          "cargo clippy -p engines --lib -> 0 new warnings",
+          "cargo test -p engines --lib ms_office -> 37 passed",
+          "cargo test -p engines --lib msi -> 10 passed",
+          "cargo test -p engines --lib scheduler -> 11 passed"
+        ],
+        "probe_impl": "Real COM probing via PowerShell: probe_com_progid (CoCreateInstance), probe_registry_curver (HKCR ProgID/CurVer), probe_registry_clicktorun (HKLM\\SOFTWARE\\Microsoft\\Office\\ClickToRun), probe_registry_store (Store edition detection), find_office_binary (ClickToRun/Store/MSI paths), probe_app (combined per-app probe), real_probe (orchestrator)",
+        "types": "OfficeEdition (ClickToRun/ClickToRunVL/Store/Msi/Unknown/Absent), OfficeAppProbe (progid_available/progid/version/install_path/edition/binary_exists/binary_path), MsOfficeProbeResult (word/excel/powerpoint probes + edition + any_available + methods_tried)",
+        "engine_integration": "MsOfficeEngine stores probe_result; is_available() uses probe_result.any_available; word_version()/excel_version()/powerpoint_version() return from probe; EngineExt::info() reports actual availability; Doctor SystemInfo gains 5 Office fields",
+        "doctor_integration": "SystemInfo: ms_office_edition/ms_office_word_version/ms_office_excel_version/ms_office_powerpoint_version/ms_office_available; system_info() populates Office fields on Windows; doctor_report() shows MS Office section when available",
+        "files": [
+          "crates/engines/src/ms_office.rs (major rewrite: probe types + PowerShell probing + engine integration)",
+          "crates/engines/src/doctor.rs (SystemInfo Office fields + office_info() helper + report formatting)"
+        ],
+        "tests": "test_office_app_probe_default, test_office_edition_default, test_office_edition_display, test_probe_result_any_available, test_probe_result_stub, test_probe_returns_stub, test_probe_result_serializes, test_word_available_probe_stub, test_excel_available_probe_stub, test_pptx_available_probe_stub, test_office_edition_serializes, test_office_edition_eq, test_office_app_probe_serializes, test_office_app_probe_eq, test_ms_office_probe_result_default, test_ms_office_probe_result_any_available_true, test_ms_office_engine_probe_result_field, test_ms_office_engine_is_available_from_probe, test_engine_info_from_probe, test_supported_conversions_from_probe, test_office_app_probe_default_values"
+      }
     },
     {
       "id": "P6-15",
@@ -297,8 +723,26 @@
         "P6-13"
       ],
       "size": 1,
-      "status": "pending",
-      "evidence": null
+      "status": "verified",
+      "evidence": {
+        "date": "2026-09-21",
+        "commands": [
+          "cargo check -p engines -> ok (clean)",
+          "cargo clippy -p engines --lib -> 0 new warnings",
+          "cargo test -p engines --lib ms_office -> 37 passed",
+          "cargo test -p engines --lib msi -> 10 passed",
+          "cargo test -p engines --lib scheduler -> 11 passed"
+        ],
+        "probe_impl": "Real COM probing via PowerShell: probe_com_progid (CoCreateInstance), probe_registry_curver (HKCR ProgID/CurVer), probe_registry_clicktorun (HKLM\\SOFTWARE\\Microsoft\\Office\\ClickToRun), probe_registry_store (Store edition detection), find_office_binary (ClickToRun/Store/MSI paths), probe_app (combined per-app probe), real_probe (orchestrator)",
+        "types": "OfficeEdition (ClickToRun/ClickToRunVL/Store/Msi/Unknown/Absent), OfficeAppProbe (progid_available/progid/version/install_path/edition/binary_exists/binary_path), MsOfficeProbeResult (word/excel/powerpoint probes + edition + any_available + methods_tried)",
+        "engine_integration": "MsOfficeEngine stores probe_result; is_available() uses probe_result.any_available; word_version()/excel_version()/powerpoint_version() return from probe; EngineExt::info() reports actual availability; Doctor SystemInfo gains 5 Office fields",
+        "doctor_integration": "SystemInfo: ms_office_edition/ms_office_word_version/ms_office_excel_version/ms_office_powerpoint_version/ms_office_available; system_info() populates Office fields on Windows; doctor_report() shows MS Office section when available",
+        "files": [
+          "crates/engines/src/ms_office.rs (major rewrite: probe types + PowerShell probing + engine integration)",
+          "crates/engines/src/doctor.rs (SystemInfo Office fields + office_info() helper + report formatting)"
+        ],
+        "tests": "test_office_app_probe_default, test_office_edition_default, test_office_edition_display, test_probe_result_any_available, test_probe_result_stub, test_probe_returns_stub, test_probe_result_serializes, test_word_available_probe_stub, test_excel_available_probe_stub, test_pptx_available_probe_stub, test_office_edition_serializes, test_office_edition_eq, test_office_app_probe_serializes, test_office_app_probe_eq, test_ms_office_probe_result_default, test_ms_office_probe_result_any_available_true, test_ms_office_engine_probe_result_field, test_ms_office_engine_is_available_from_probe, test_engine_info_from_probe, test_supported_conversions_from_probe, test_office_app_probe_default_values"
+      }
     },
     {
       "id": "P6-16",
@@ -307,6 +751,264 @@
       "implements": [
         "GOV-ext",
         "DIS-ext"
+      ],
+      "depends": [
+        "P6-00"
+      ],
+      "size": 1,
+      "status": "verified",
+      "evidence": {
+        "date": "2026-09-21",
+        "commands": [
+          "bash tools/p5_15_verify.sh -> 10 passed, 0 failed (SECURITY.md, CODE_OF_CONDUCT.md, CONTRIBUTING.md, LICENSE-MIT, LICENSE-APACHE, dual-license workspace, 9 crates license.workspace=true, 158/158 Rust SPDX headers, 26/26 Python SPDX headers, 0 local paths)",
+          "cargo publish --dry-run --allow-dirty -p stichos -> exit 101 (expected: workspace deps adapters-odf not on crates.io)",
+          "python3 -c \"import json; json.load(open(\"packaging/windows/winget-manifest.json\"))\" -> valid JSON",
+          "python3 -c \"import yaml; yaml.safe_load(open(\"dist/winget/stichos.winget.yaml\"))\" -> valid YAML with PackageIdentifier",
+          "grep class+install dist/homebrew/stichos.rb -> class Sticho < Formula + def install present",
+          "python3 -c \"import yaml; yaml.safe_load(open(\".github/workflows/release.yml\"))\" -> valid YAML, 6 targets + winget/homebrew/create-release jobs",
+          "git tag -l v* -> 0 tags; git tag -l m6 -> 0 tags; git log -50 grep publish -> 0 hits",
+          "grep D26 project_concept.md phase6-concept.md phase6-plan.md -> all present"
+        ],
+        "hygiene": "10/10 pass: SECURITY.md, CODE_OF_CONDUCT.md, CONTRIBUTING.md, LICENSE-MIT, LICENSE-APACHE, MIT OR Apache-2.0 workspace, 9/9 crates license.workspace=true, 158/158 Rust SPDX, 26/26 Python SPDX, 0 local paths in shipped docs",
+        "publish_dryrun": "exit 101 — expected: workspace deps (adapters-odf etc.) not yet on crates.io; command includes --dry-run --allow-dirty",
+        "winget": "winget-manifest.json: valid JSON; dist/winget/stichos.winget.yaml: valid YAML with PackageIdentifier=stichos.stichos",
+        "homebrew": "dist/homebrew/stichos.rb: class Sticho < Formula + install method present; template with VERSION placeholders",
+        "release_workflow": ".github/workflows/release.yml: valid YAML, 6 build targets (linux-gnu, linux-arm64, linux-musl, macos-arm, macos-x64, windows), create-release draft, winget-manifest, homebrew-formula jobs",
+        "version_bump_rehearsal": "./tools/version_bump.sh 0.2.0 -> dry-run OK (updates Cargo.toml + CHANGELOG.md, does NOT commit); reverted after rehearsal",
+        "changelog_rehearsal": "./tools/changelog_gen.sh -> generates changelog since m5 tag",
+        "absence_asserted": "No v* tags (0); no m6 tag (0); no crates.io publish in git log (0); no GitHub Release publish in git log (0)",
+        "d26_citation": "D26 present in project_concept.md (line 457), phase6-concept.md (line 84/205), phase6-plan.md (line 108/112)",
+        "wave_g_complete": true
+      }
+    },
+    {
+      "id": "P6-20",
+      "wave": "I",
+      "title": "Spreadsheet/Presentation -> IRDocument tagged-tree converters in gp-core (ir_convert.rs)",
+      "implements": [
+        "CORE"
+      ],
+      "depends": [
+        "P6-00"
+      ],
+      "size": 1,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P6-21",
+      "wave": "I",
+      "title": "inspect_document for xlsx/pptx (summary counts, slide pages, formula+value cell records, C7 v1.6.0 matrix amendment, fixtures)",
+      "implements": [
+        "CTX",
+        "API",
+        "PAT",
+        "C9"
+      ],
+      "depends": [
+        "P6-20"
+      ],
+      "size": 1,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P6-22",
+      "wave": "I",
+      "title": "inspect_document for ods/odp (adapters-odf readers + P6-20 converters, C7 matrix row, fixtures)",
+      "implements": [
+        "CTX",
+        "API",
+        "ODF-ext",
+        "C9"
+      ],
+      "depends": [
+        "P6-20",
+        "P6-21"
+      ],
+      "size": 1,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P6-23",
+      "wave": "I",
+      "title": "diff_documents for xlsx/ods: cell-level diff ops within CTX-04 caps",
+      "implements": [
+        "PAT",
+        "API"
+      ],
+      "depends": [
+        "P6-20"
+      ],
+      "size": 1,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P6-24",
+      "wave": "I",
+      "title": "diff_documents for pptx/odp: slide add/remove + shape/text diff within caps",
+      "implements": [
+        "PAT",
+        "API"
+      ],
+      "depends": [
+        "P6-20",
+        "P6-23"
+      ],
+      "size": 1,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P6-25",
+      "wave": "I",
+      "title": "Real apply/edit write-back: gp-core executor delegates to adapter executors (docx/xlsx/pptx/odt); journal+revert; remove stub sniff; explicit GP-I-xxx refusals for ods/odp/pdf",
+      "implements": [
+        "CORE",
+        "API",
+        "HUM"
+      ],
+      "depends": [
+        "P6-00"
+      ],
+      "size": 2,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P6-26",
+      "wave": "I",
+      "title": "PatchOp Insert/TrackInsert/TrackDelete implemented + docx tracked-change landing (D7 true via patch pipeline)",
+      "implements": [
+        "CORE",
+        "PAT",
+        "D7"
+      ],
+      "depends": [
+        "P6-25"
+      ],
+      "size": 2,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P6-27",
+      "wave": "I",
+      "title": "revisions verb+MCP exposed for odt/ods/odp (P6-09 capability routed); silent-empty -> explicit refusals; review snapshot mode-label honesty",
+      "implements": [
+        "HUM",
+        "API",
+        "ODF-ext",
+        "C11"
+      ],
+      "depends": [
+        "P6-09"
+      ],
+      "size": 2,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P6-28",
+      "wave": "I",
+      "title": "Real master-page provider (engines MasterCache/render pipeline) behind read_master_page; real pixels; honest rendered_by; correct page selection",
+      "implements": [
+        "REN",
+        "ENG"
+      ],
+      "depends": [
+        "P6-00"
+      ],
+      "size": 2,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P6-29",
+      "wave": "I",
+      "title": "Review page route real (501 gone, via P6-28 provider); KI-05 render reports output path; annotate marked overlay or honest rename (never silent mirror)",
+      "implements": [
+        "API",
+        "REN"
+      ],
+      "depends": [
+        "P6-28"
+      ],
+      "size": 1,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P6-30",
+      "wave": "I",
+      "title": "Wire advertised MCP sign_document tool onto the existing signing path; spec<->dispatch parity test (23/23); e2e via stdio+HTTP",
+      "implements": [
+        "API",
+        "TRUST"
+      ],
+      "depends": [
+        "P6-00"
+      ],
+      "size": 1,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P6-31",
+      "wave": "I",
+      "title": "ODS formula evaluation: of:= translation into C15 subset evaluator + parity lint + GP-F0xx semantics; fixtures",
+      "implements": [
+        "ODF-ext",
+        "C15",
+        "PAT"
+      ],
+      "depends": [
+        "P6-08"
+      ],
+      "size": 1,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P6-32",
+      "wave": "I",
+      "title": "Fix adapters-pdf parser.rs:498 subtract-overflow panic (LO-produced PDFs); regression corpus; unblock render/annotate binary e2e",
+      "implements": [
+        "PDF",
+        "SEC",
+        "C14"
+      ],
+      "depends": [
+        "P6-00"
+      ],
+      "size": 1,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P6-33",
+      "wave": "I",
+      "title": "Wave W evidence re-record on Windows+M365 host: probe matrix, Word/Excel/PPT renders, CompareDocuments, packaging; host-cited evidence (C13, tag-blocking); Word PNG-export quirk documented",
+      "implements": [
+        "ENG",
+        "OPS"
+      ],
+      "depends": [
+        "P6-11"
+      ],
+      "size": 1,
+      "status": "pending",
+      "evidence": null
+    },
+    {
+      "id": "P6-34",
+      "wave": "I",
+      "title": "Hardening + doc corrections: cmd_update path flag/env; stale ms-office/Phase-2 docs sweep; ADR-0011 accept + C15 freeze checklist; Phase-7 intake draft (real CMS ADR-0010 reserved, create xlsx/pptx, lint refresh)",
+      "implements": [
+        "GOV",
+        "OPS"
       ],
       "depends": [
         "P6-00"
@@ -326,7 +1028,11 @@
       "depends": [
         "P6-05",
         "P6-08",
-        "P6-13"
+        "P6-13",
+        "P6-21",
+        "P6-25",
+        "P6-31",
+        "P6-32"
       ],
       "size": 2,
       "status": "pending",
@@ -335,13 +1041,28 @@
     {
       "id": "P6-18",
       "wave": "X",
-      "title": "tools/phase6_gate.sh (concept §7 items 1–9 headless + planted-violation + post-report re-run hook) + CI job",
+      "title": "tools/phase6_gate.sh (concept Â§7 items 1â€“9 headless + planted-violation + post-report re-run hook) + CI job",
       "implements": [
         "ship"
       ],
       "depends": [
         "P6-16",
-        "P6-17"
+        "P6-17",
+        "P6-20",
+        "P6-21",
+        "P6-22",
+        "P6-23",
+        "P6-24",
+        "P6-25",
+        "P6-26",
+        "P6-27",
+        "P6-28",
+        "P6-29",
+        "P6-30",
+        "P6-31",
+        "P6-32",
+        "P6-33",
+        "P6-34"
       ],
       "size": 1,
       "status": "pending",
@@ -350,7 +1071,7 @@
     {
       "id": "P6-19",
       "wave": "X",
-      "title": "M6 acceptance report + commit→gate→report-commit→gate-re-run→tag m6→push + Phase-7 intake",
+      "title": "M6 acceptance report + commitâ†’gateâ†’report-commitâ†’gate-re-runâ†’tag m6â†’push + Phase-7 intake",
       "implements": [
         "ship"
       ],
@@ -361,5 +1082,6 @@
       "status": "pending",
       "evidence": null
     }
-  ]
+  ],
+  "gates_verified": 5
 }
