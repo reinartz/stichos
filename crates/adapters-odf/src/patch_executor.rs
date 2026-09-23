@@ -307,8 +307,60 @@ impl OdfPatchExecutor {
         }
     }
 
-    /// Execute a patch on ODF source bytes.
+    /// Execute a patch on ODF source bytes, returning an ExecuteResult.
     pub fn execute(
+        &self,
+        source_bytes: &[u8],
+        format: gp_core::executor::FormatType,
+        ops: &[PatchOp],
+    ) -> gp_core::executor::ExecuteResult {
+        let result = self.execute_internal(source_bytes, ops);
+        match result {
+            Ok(bytes) => {
+                let format_name = match format {
+                    gp_core::executor::FormatType::Odt => "odt",
+                    gp_core::executor::FormatType::Ods => "ods",
+                    gp_core::executor::FormatType::Odp => "odp",
+                    _ => "odf",
+                };
+                gp_core::executor::ExecuteResult::success(
+                    bytes,
+                    vec!["content.xml".to_string()],
+                    Vec::new(),
+                    Vec::new(),
+                    Vec::new(),
+                    Vec::new(),
+                    format_name,
+                )
+            }
+            Err(diags) => {
+                let format_name = match format {
+                    gp_core::executor::FormatType::Odt => "odt",
+                    gp_core::executor::FormatType::Ods => "ods",
+                    gp_core::executor::FormatType::Odp => "odp",
+                    _ => "odf",
+                };
+                gp_core::executor::ExecuteResult {
+                    output: Vec::new(),
+                    accepted: false,
+                    diagnostics: diags,
+                    changed_parts: Vec::new(),
+                    unchanged_parts: Vec::new(),
+                    changed_element_ids: Vec::new(),
+                    stale_cached_values: Vec::new(),
+                    byte_diffs: Vec::new(),
+                    format: format_name.to_string(),
+                    journal_id: None,
+                    ir_diff: None,
+                    invalidated_signatures: Vec::new(),
+                    tainted_parts: Vec::new(),
+                    policy_violations: Vec::new(),
+                }
+            }
+        }
+    }
+
+    fn execute_internal(
         &self,
         source_bytes: &[u8],
         ops: &[PatchOp],
@@ -671,9 +723,12 @@ mod tests {
             old: "Hello, ODF!".to_string(),
             new: "Patched!".to_string(),
         };
-        let result = executor.execute(&data, std::slice::from_ref(&op));
-        assert!(result.is_ok(), "execute should succeed: {:?}", result);
-        let output = result.unwrap();
+        let result = executor.execute(
+            &data,
+            gp_core::executor::FormatType::Odt,
+            std::slice::from_ref(&op),
+        );
+        let output = result.output;
         assert!(!output.is_empty(), "output should not be empty");
         // Verify output is a valid ZIP
         let reader = std::io::Cursor::new(&output);
@@ -685,10 +740,10 @@ mod tests {
     fn test_execute_empty_ops() {
         let data = create_minimal_odt();
         let executor = OdfPatchExecutor::new();
-        let result = executor.execute(&data, &[]);
-        assert!(result.is_ok());
+        let result = executor.execute(&data, gp_core::executor::FormatType::Odt, &[]);
+        assert!(result.accepted);
         // With zero ops, content.xml is unmodified
-        let output = result.unwrap();
+        let output = result.output;
         let reader = std::io::Cursor::new(&output);
         let mut archive = zip::ZipArchive::new(reader).expect("output ZIP");
         let mut content = Vec::new();

@@ -41,6 +41,12 @@ pub struct RevisionActionResult {
     pub changed_element_ids: Vec<String>,
     /// Diagnostics produced during the operation.
     pub diagnostics: Vec<Diagnostic>,
+    /// Total operations attempted (success + failure).
+    pub operations_performed: u64,
+    /// Operations that succeeded.
+    pub operations_succeeded: u64,
+    /// Operations that failed.
+    pub operations_failed: u64,
 }
 
 /// Result of a dry-run revision operation (zero writes).
@@ -256,6 +262,9 @@ fn process_revision(
         accepted,
         changed_element_ids: vec![revision.id.to_string()],
         diagnostics: diags,
+        operations_performed: 1,
+        operations_succeeded: 1,
+        operations_failed: 0,
     })
 }
 
@@ -394,6 +403,8 @@ fn process_all_revisions(
     let mut current_bytes = package_bytes.to_vec();
     let mut journal_ids: Vec<String> = Vec::new();
     let mut changed_ids: Vec<String> = Vec::new();
+    let mut success_count: u64 = 0;
+    let mut fail_count: u64 = 0;
 
     for rev in revisions {
         let action = if accepted {
@@ -407,10 +418,12 @@ fn process_all_revisions(
                 journal_ids.extend(result.journal_ids);
                 changed_ids.extend(result.changed_element_ids);
                 current_bytes = result.output;
+                success_count += 1;
                 diags.extend(result.diagnostics);
             }
             Err(d) => {
                 diags.extend(d);
+                fail_count += 1;
                 return Err(diags);
             }
         }
@@ -422,6 +435,9 @@ fn process_all_revisions(
         accepted,
         changed_element_ids: changed_ids,
         diagnostics: diags,
+        operations_performed: success_count + fail_count,
+        operations_succeeded: success_count,
+        operations_failed: fail_count,
     })
 }
 

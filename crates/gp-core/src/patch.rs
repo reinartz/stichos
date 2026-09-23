@@ -94,12 +94,21 @@ pub fn apply_op(ir: &mut IRDocument, op: &PatchOp) -> Result<ApplyResult, Vec<Di
     let mut changed: Vec<ElementId> = Vec::new();
 
     match op {
-        PatchOp::Insert { .. } => {
-            diagnostics.push(Diagnostic::new(
-                "GP-I-001",
-                crate::diagnostics::Severity::Info,
-                "Insert operation not yet implemented",
-            ));
+        PatchOp::Insert { anchor, kind } => {
+            let new_id = ElementId::derive(kind.as_str(), &[kind], &());
+            let new_node = TaggedNode {
+                id: new_id,
+                tag: kind.clone(),
+                alt_text: None,
+                bbox: None,
+                children: vec![],
+            };
+            if let Some(parent) = find_parent_mut(&mut ir.root, anchor) {
+                if let Some(pos) = parent.children.iter().position(|c| c.id == *anchor) {
+                    parent.children.insert(pos + 1, new_node);
+                    changed.push(parent.children[pos + 1].id.clone());
+                }
+            }
         }
         PatchOp::ReplaceText { elem, old: _, new } => {
             replace_text_in_tree(&mut ir.root, elem, new, &mut changed);
@@ -113,19 +122,48 @@ pub fn apply_op(ir: &mut IRDocument, op: &PatchOp) -> Result<ApplyResult, Vec<Di
         PatchOp::SetCellValue { cell, value } => {
             set_cell_value_in_tree(&mut ir.root, cell, value, &mut changed);
         }
-        PatchOp::TrackInsert { .. } => {
-            diagnostics.push(Diagnostic::new(
-                "GP-I-002",
-                crate::diagnostics::Severity::Info,
-                "TrackInsert operation not yet implemented",
-            ));
+        PatchOp::TrackInsert {
+            anchor,
+            kind,
+            author,
+            timestamp,
+        } => {
+            let new_id =
+                ElementId::derive(kind.as_str(), &[kind], &format!("track_ins_{}", author));
+            let new_node = TaggedNode {
+                id: new_id.clone(),
+                tag: kind.clone(),
+                alt_text: Some(format!(
+                    "tracked_insert:author={}:timestamp={}",
+                    author, timestamp
+                )),
+                bbox: None,
+                children: vec![],
+            };
+            if let Some(parent) = find_parent_mut(&mut ir.root, anchor) {
+                if let Some(pos) = parent.children.iter().position(|c| c.id == *anchor) {
+                    parent.children.insert(pos + 1, new_node);
+                    changed.push(parent.children[pos + 1].id.clone());
+                }
+            }
         }
-        PatchOp::TrackDelete { .. } => {
-            diagnostics.push(Diagnostic::new(
-                "GP-I-003",
-                crate::diagnostics::Severity::Info,
-                "TrackDelete operation not yet implemented",
-            ));
+        PatchOp::TrackDelete {
+            elem,
+            author,
+            timestamp,
+        } => {
+            if let Some(node) = find_node_mut(&mut ir.root, elem) {
+                let current = node.alt_text.clone().unwrap_or_default();
+                node.alt_text = Some(
+                    format!(
+                        "tracked_delete:author={}:timestamp={}:{}",
+                        author, timestamp, current
+                    )
+                    .trim_start_matches(':')
+                    .to_string(),
+                );
+                changed.push(node.id.clone());
+            }
         }
     }
 
@@ -260,6 +298,68 @@ pub fn op_to_json(op: &PatchOp) -> serde_json::Result<String> {
 /// Deserialize a patch operation from JSON bytes.
 pub fn op_from_json(data: &[u8]) -> serde_json::Result<PatchOp> {
     serde_json::from_slice(data)
+}
+
+/// Find a node in the tagged tree by ID (immutable borrow).
+fn find_node<'a>(node: &'a TaggedNode, target_id: &ElementId) -> Option<&'a TaggedNode> {
+    if &node.id == target_id {
+        Some(node)
+    } else {
+        for child in &node.children {
+            if let Some(found) = find_node(child, target_id) {
+                return Some(found);
+            }
+        }
+        None
+    }
+}
+
+/// Find the parent of a node by target ID (immutable borrow).
+fn find_parent<'a>(node: &'a TaggedNode, target_id: &ElementId) -> Option<&'a TaggedNode> {
+    for child in &node.children {
+        if &child.id == target_id {
+            return Some(node);
+        }
+        if let Some(found) = find_parent(child, target_id) {
+            return Some(found);
+        }
+    }
+    None
+}
+
+/// Find a node in the tagged tree by ID (mutable borrow).
+fn find_node_mut<'a>(
+    node: &'a mut TaggedNode,
+    target_id: &ElementId,
+) -> Option<&'a mut TaggedNode> {
+    if &node.id == target_id {
+        Some(node)
+    } else {
+        for child in &mut node.children {
+            if let Some(found) = find_node_mut(child, target_id) {
+                return Some(found);
+            }
+        }
+        None
+    }
+}
+
+/// Find the parent of a node by target ID (mutable borrow).
+fn find_parent_mut<'a>(
+    node: &'a mut TaggedNode,
+    target_id: &ElementId,
+) -> Option<&'a mut TaggedNode> {
+    for child in &mut node.children {
+        if &child.id == target_id {
+            return Some(node);
+        }
+    }
+    for child in &mut node.children {
+        if let Some(found) = find_parent_mut(child, target_id) {
+            return Some(found);
+        }
+    }
+    None
 }
 
 #[cfg(test)]
@@ -489,17 +589,18 @@ mod tests {
     }
 
     #[test]
-    fn apply_unimplemented_insert() {
+    fn apply_insert_after_anchor() {
         let mut ir = make_sample_doc();
-        let anchor = ElementId::content_anchored("paragraph", &["section:0"], "anchor");
+        let para_id = ElementId::content_anchored("paragraph", &["section:0"], "hello");
         let op = PatchOp::Insert {
-            anchor: anchor.clone(),
+            anchor: para_id.clone(),
             kind: "paragraph".to_string(),
         };
         let result = apply_op(&mut ir, &op).expect("apply");
-        assert!(result.changed_element_ids.is_empty());
-        assert_eq!(result.diagnostics.len(), 1);
-        assert_eq!(result.diagnostics[0].code, "GP-I-001");
+        assert_eq!(result.changed_element_ids.len(), 1);
+        assert_eq!(ir.root.children.len(), 2);
+        // Verify the inserted node is after the anchor
+        assert_eq!(ir.root.children[0].id, para_id);
     }
 
     // ------------------------------------------------------------------

@@ -7,7 +7,7 @@ C10–C13, Wave I feature-completeness extension) · **proposes no new decision 
 (Wave 0 preserves the §3.2 DAG; COM/formula/revisions/launch all execute existing decisions;
 Wave I executes existing promises — D7, C11 exposure, the advertised 23-tool surface).
 **Companion:** [`phase6-plan.md`](phase6-plan.md) (steps) · [`phase6-status.json`](phase6-status.json) (progress).
-**Last updated:** 2026-09-22 (Wave I extension added as §11; §7 gains gate item 10)
+**Last updated:** 2026-09-23 (Phase-7 intake added as §12; ADR-0011 accepted + C15 frozen)
 
 ---
 
@@ -351,3 +351,18 @@ D1–D27 unchanged — P6-26 finally *executes* D7.
   C13 honesty intact, no new dependency.
 - **C13** — **Wave W host re-verification is tag-blocking** (P6-33): stub-mode Linux evidence is
   not host proof; concept §5 COM honesty and the plan §5 evidence rule apply.
+
+## 12. Phase-7 intake (post-M6; out of scope for M6)
+
+The items below are out of scope for Phase 6 and M6. They are listed here as the
+post-M6 backlog, each with its current status. None are gated by Phase 6 completion
+except as noted.
+
+| Item | Description | Status | ADR/Contract |
+|---|---|---|---|
+| Real CMS/ADR-0010 reserved | Real PKCS#7/CMS signing + verification (owner call C12): the `signature.rs` stub stays documented; the ADR-0010 number is reserved for the crypto-dependency decision (D2/D25 — owner-gated new dependency surface) | reserved (ADR-0010 unallocated) | D2, D25, C13 (honesty), ADR-0010 |
+| xlsx/pptx create | `create` verb extended to xlsx and pptx (content-driven creation from IR, not template-preserving); docx create exists since M3 | out of scope | C1 |
+| Full formula coverage | All C15 function categories (date/time, financial, complex statistical, advanced text) — the M6 parity-lint gap list drives Phase 7 scope | out of scope | C15, D2, D25 |
+| Lint encode/ssim refresh | The "deferred to Phase 2" notes are re-triaged to Phase 7 (not kept silently): `lint::encode` fidelity tests, `lint::ssim` refresh with updated baselines | out of scope | C9, REN-02 |
+| PAdES-T/LTV | Progression beyond PAdES-B-B: timestamps (T), long-term validation (LTV) via OCSP/CRL, trusted certificates; requires ADR for crypto dependency | out of scope | C13, ADR-0010 reserved |
+| Redaction | PDF redaction / content-stream surgery — requires its own ADR | out of scope | D2, D19 |

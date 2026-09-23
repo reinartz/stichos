@@ -20,6 +20,7 @@ dependencies = [
  "adapters-odf",
  "adapters-ooxml",
  "adapters-pdf",
+ "base64",
  "gp-core",
  "lint",
  "lopdf",
@@ -1456,7 +1457,6 @@ dependencies = [
 name = "mcp"
 version = "0.1.0"
 dependencies = [
- "adapters-pdf",
  "anyhow",
  "async-trait",
  "bytes",
@@ -2547,6 +2547,7 @@ dependencies = [
  "adapters-ooxml",
  "adapters-pdf",
  "anyhow",
+ "base64",
  "chrono",
  "clap",
  "engines",

@@ -7,9 +7,10 @@
 
 use gp_core::diagnostics::Diagnostic;
 use gp_core::diagnostics::Severity;
+use std::collections::BTreeMap;
 
 use crate::xml::ByteSpan;
-use crate::xml::{TagName, XmlDocument, XmlNode};
+use crate::xml::{Namespace, TagName, XmlDocument, XmlNode};
 
 // ---------------------------------------------------------------------------
 // Mutation types
@@ -29,6 +30,7 @@ pub enum MutationKind {
     InsertNode(XmlNode),
     DeleteNode,
     SetAttribute { name: TagName, value: String },
+    WrapDelete,
 }
 
 /// Result of applying mutations.
@@ -247,6 +249,75 @@ fn apply_mut_to_node(
                 format!("Cannot SetAttribute on non-Element offset={}", span.offset),
             )),
         },
+        MutationKind::WrapDelete => {
+            // Wrap this node in a w:del element.
+            // Replace this node's children with the w:del wrapper containing the old content.
+            match node {
+                XmlNode::Element {
+                    name,
+                    attributes,
+                    namespaces,
+                    children,
+                    span: s,
+                } => {
+                    let now = std::time::SystemTime::now()
+                        .duration_since(std::time::UNIX_EPOCH)
+                        .unwrap_or_default();
+                    let del_id = format!("{:016x}", now.as_nanos());
+                    let timestamp = format!("{:010}.{:09}", now.as_secs(), now.subsec_nanos());
+                    let mut del_attrs = BTreeMap::new();
+                    del_attrs.insert(
+                        TagName {
+                            prefix: Some("w".into()),
+                            local_name: "id".into(),
+                            namespace_uri: None,
+                        },
+                        del_id.clone(),
+                    );
+                    del_attrs.insert(
+                        TagName {
+                            prefix: Some("w".into()),
+                            local_name: "author".into(),
+                            namespace_uri: None,
+                        },
+                        "stichos".into(),
+                    );
+                    del_attrs.insert(
+                        TagName {
+                            prefix: Some("w".into()),
+                            local_name: "date".into(),
+                            namespace_uri: None,
+                        },
+                        timestamp,
+                    );
+                    let del_node = XmlNode::Element {
+                        name: TagName::local("w:del"),
+                        attributes: del_attrs,
+                        namespaces: vec![super::xml::Namespace {
+                            prefix: "w".into(),
+                            uri: "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+                                .into(),
+                        }],
+                        children: vec![XmlNode::Element {
+                            name: name.clone(),
+                            attributes: attributes.clone(),
+                            namespaces: namespaces.clone(),
+                            children: children.clone(),
+                            span: s.clone(),
+                        }],
+                        span: s.clone(),
+                    };
+                    // Replace current node with the del wrapper
+                    *node = del_node;
+                    Ok(old_span)
+                }
+                _ => Err(Diagnostic::new(
+                    "OOX-E-002",
+                    Severity::Error,
+                    format!("Cannot WrapDelete on non-Element offset={}", span.offset),
+                )),
+            }
+        }
     }
 }
 

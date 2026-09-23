@@ -10,6 +10,7 @@ Naming: `ADR-NNNN-slug.md` — four digits, zero-padded, numbers never reused. S
 | [ADR-0007](ADR-0007-review-session.md) | Review session contract (P4-08, C11): review overlay state machine | **accepted** | 2026-09-16 |
 | [ADR-0009](ADR-0009-pdfjs-vendoring.md) | pdf.js vendoring: release pinning, hash manifest, offline serving, text-layer-only scope, XSS containment (D24) | **accepted** | 2026-09-18 |
 | [ADR-0010](ADR-0010-crypto-stack.md) | Pure-Rust crypto stack for PAdES-B-B (D25): RustCrypto crates, feature flags, `-sys` ban | **accepted** | 2026-09-18 |
+| [ADR-0011](ADR-0011-formula-evaluation.md) | Formula evaluation (C15 + GP-F0xx): own evaluator for xlsx/ods subset | **accepted** | 2026-09-23 |
 | [ADR-0006](ADR-0006-selfupdate-primitive.md) | Selfupdate primitive (DIS-05, G4/S4): `stichos update` opt-in channel | **accepted** | 2026-09-16 |
 | [ADR-0006](ADR-0006-selfupdate-primitive.md) | Selfupdate primitive (DIS-05, G4/S4): `stichos update` opt-in channel | **accepted** | 2026-09-16 |
 | [ADR-0005](ADR-0005-rhai-script-sandbox.md) | Rhai script sandbox contract (D17, API-09, C7): embedded escape hatch | **accepted** | 2026-09-16 |

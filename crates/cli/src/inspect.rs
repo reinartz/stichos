@@ -10,6 +10,7 @@
 
 use gp_core::fidelity::FidelityBudget;
 use gp_core::ir::*;
+use gp_core::ir_convert;
 use gp_core::traits::Codec;
 use serde_json::json;
 
@@ -36,6 +37,22 @@ fn parse_document(bytes: &[u8], path: &str) -> Result<IRDocument, anyhow::Error>
         let doc: Document = serde_json::from_slice(&result.ir)
             .map_err(|e| anyhow::anyhow!("failed to deserialize docx IR: {}", e))?;
         Ok(ir_document_from_document(&doc))
+    } else if ext.ends_with(".xlsx") {
+        let package = adapters_ooxml::opc::parse_opc(bytes)
+            .map_err(|diags| anyhow::anyhow!("xlsx OPC parse failed: {:?}", diags))?;
+        let result = adapters_ooxml::xlsx::read_xlsx(&package)
+            .map_err(|diags| anyhow::anyhow!("xlsx parse failed: {:?}", diags))?;
+        let ss: Spreadsheet = serde_json::from_slice(&result.ir)
+            .map_err(|e| anyhow::anyhow!("failed to deserialize xlsx IR: {}", e))?;
+        Ok(ir_convert::ir_document_from_spreadsheet(&ss))
+    } else if ext.ends_with(".pptx") {
+        let package = adapters_ooxml::opc::parse_opc(bytes)
+            .map_err(|diags| anyhow::anyhow!("pptx OPC parse failed: {:?}", diags))?;
+        let result = adapters_ooxml::pptx::read_pptx(&package)
+            .map_err(|diags| anyhow::anyhow!("pptx parse failed: {:?}", diags))?;
+        let pres: Presentation = serde_json::from_slice(&result.ir)
+            .map_err(|e| anyhow::anyhow!("failed to deserialize pptx IR: {}", e))?;
+        Ok(ir_convert::ir_document_from_presentation(&pres))
     } else if ext.ends_with(".odt") {
         let reader = adapters_odf::odt::OdtReader;
         let result = reader
@@ -44,6 +61,22 @@ fn parse_document(bytes: &[u8], path: &str) -> Result<IRDocument, anyhow::Error>
         let doc: Document = serde_json::from_slice(&result.ir)
             .map_err(|e| anyhow::anyhow!("failed to deserialize odt IR: {}", e))?;
         Ok(ir_document_from_document(&doc))
+    } else if ext.ends_with(".ods") {
+        let package = adapters_odf::manifest::parse_odf(bytes)
+            .map_err(|diags| anyhow::anyhow!("ods package parse failed: {:?}", diags))?;
+        let result = adapters_odf::ods::read_ods(&package)
+            .map_err(|diags| anyhow::anyhow!("ods parse failed: {:?}", diags))?;
+        let ss: Spreadsheet = serde_json::from_slice(&result.ir)
+            .map_err(|e| anyhow::anyhow!("failed to deserialize ods IR: {}", e))?;
+        Ok(ir_convert::ir_document_from_spreadsheet(&ss))
+    } else if ext.ends_with(".odp") {
+        let package = adapters_odf::manifest::parse_odf(bytes)
+            .map_err(|diags| anyhow::anyhow!("odp package parse failed: {:?}", diags))?;
+        let result = adapters_odf::odp::read_odp(&package)
+            .map_err(|diags| anyhow::anyhow!("odp parse failed: {:?}", diags))?;
+        let pres: Presentation = serde_json::from_slice(&result.ir)
+            .map_err(|e| anyhow::anyhow!("failed to deserialize odp IR: {}", e))?;
+        Ok(ir_convert::ir_document_from_presentation(&pres))
     } else if ext.ends_with(".pdf") {
         let reader = adapters_pdf::parser::PdfReader::new();
         let result = reader
@@ -235,18 +268,21 @@ fn build_fidelity_budget(_ir: &IRDocument) -> serde_json::Value {
 
 /// Get the document type name for the IR.
 fn document_type_name(ir: &IRDocument) -> &'static str {
-    // Check if this is a PDF document
-    let is_pdf = ir.root.children.iter().any(|c| c.tag == "page");
-    if is_pdf {
+    if ir.root.children.iter().any(|c| c.tag == "page") {
         return "pdf";
     }
-    // Check if this is a document (has section children)
-    let is_doc = ir
+    if ir.root.children.iter().any(|c| c.tag == "spreadsheet") {
+        return "spreadsheet";
+    }
+    if ir.root.children.iter().any(|c| c.tag == "presentation") {
+        return "presentation";
+    }
+    if ir
         .root
         .children
         .iter()
-        .any(|c| c.tag.starts_with("section:"));
-    if is_doc {
+        .any(|c| c.tag.starts_with("section:"))
+    {
         return "document";
     }
     "unknown"
@@ -254,24 +290,34 @@ fn document_type_name(ir: &IRDocument) -> &'static str {
 
 /// Build a structure summary for the IR.
 fn build_structure_summary(ir: &IRDocument) -> serde_json::Value {
-    let is_pdf = ir.root.children.iter().any(|c| c.tag == "page");
+    if ir.root.children.iter().any(|c| c.tag == "page") {
+        let page_count = ir.root.children.iter().filter(|c| c.tag == "page").count();
+        return json!({ "pages": page_count });
+    }
+    if ir.root.children.iter().any(|c| c.tag == "spreadsheet") {
+        let sheet_count = ir.root.children[0].children.len();
+        return json!({ "sheet_count": sheet_count });
+    }
+    if ir.root.children.iter().any(|c| c.tag == "presentation") {
+        let slide_count = ir.root.children[0]
+            .children
+            .iter()
+            .filter(|c| c.tag.starts_with("slide:"))
+            .count();
+        let layout_count = ir.root.children[0]
+            .children
+            .iter()
+            .filter(|c| c.tag.starts_with("layout:"))
+            .count();
+        return json!({ "slide_count": slide_count, "layout_count": layout_count });
+    }
     let section_count = ir
         .root
         .children
         .iter()
         .filter(|c| c.tag.starts_with("section:"))
         .count();
-
-    if is_pdf {
-        let page_count = ir.root.children.iter().filter(|c| c.tag == "page").count();
-        json!({
-            "pages": page_count,
-        })
-    } else {
-        json!({
-            "sections": section_count,
-        })
-    }
+    json!({ "sections": section_count })
 }
 
 /// Build a tagged tree root from a Document.

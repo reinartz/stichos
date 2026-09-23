@@ -158,11 +158,10 @@ Render engines as spawned subprocesses, never linked (D3).
 | `cache` | Render master cache (key per INV-4) |
 | `capability` | Capability matrix (C5) |
 | `mock` | Mock engine for testing |
-| `ms_office` | COM worker design + compile-only skeleton (COM-1; COM-2..6 implementation lands in M6) |
+| `ms_office` | COM worker implementation (COM-2..6) on the Windows host; cfg stubs on non-Windows |
 | `open_handler` | Platform handoff resolver for `stichos open` (M4) |
 
-Engine identifiers: `libreoffice`, `pandoc`, `chromium`, `typst` (live); `ms-office` (defined,
-not implemented — COM tier deferred).
+Engine identifiers: `libreoffice`, `pandoc`, `chromium`, `typst` (live); `ms-office` (Windows host; COM-2..6 implemented, D10 logon-agent model).
 
 ### lint
 

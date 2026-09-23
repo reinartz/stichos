@@ -393,7 +393,7 @@ impl<'a> DocxPatchWriter<'a> {
                     .or_default()
                     .push(SpanMutation {
                         span,
-                        kind: MutationKind::DeleteNode,
+                        kind: MutationKind::WrapDelete,
                     });
                 return Ok(());
             }

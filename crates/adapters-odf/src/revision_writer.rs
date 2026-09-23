@@ -167,9 +167,27 @@ impl RevisionWriter {
 
     /// Apply patch directly without revision markup.
     pub fn write_direct(&self) -> Result<Vec<u8>, Vec<Diagnostic>> {
-        // Reuse the existing patch_executor.execute() path.
+        let source_bytes = self.package_bytes()?;
         let executor = crate::patch_executor::OdfPatchExecutor::new();
-        executor.execute(&self.package_bytes()?, &self.ops)
+        let odf_type = self.detect_odf_type()?;
+        let format = match odf_type {
+            "odt" => gp_core::executor::FormatType::Odt,
+            "ods" => gp_core::executor::FormatType::Ods,
+            "odp" => gp_core::executor::FormatType::Odp,
+            _ => {
+                return Err(vec![Diagnostic::new(
+                    "ODF-E-001",
+                    Severity::Error,
+                    "Could not detect ODF type for write_direct",
+                )])
+            }
+        };
+        let result = executor.execute(&source_bytes, format, &self.ops);
+        if result.accepted && !result.output.is_empty() {
+            Ok(result.output)
+        } else {
+            Err(result.diagnostics)
+        }
     }
 
     /// Convert a list of PatchOps to span mutations with revision markup.

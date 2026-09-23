@@ -6,8 +6,12 @@
 use gp_core::diagnostics::{Diagnostic, Severity};
 use gp_core::ir::*;
 use gp_core::traits::{Codec, ReadResult};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 
+use super::formula::{
+    check_parity, check_refusal, eval_result_to_string, evaluate, gp_f_code_str, parse_formula,
+    CachedCellValue, FormulaContext, ParityResult,
+};
 use super::manifest::{parse_odf, OdfPackage, OdfPart};
 use super::xml::{parse_xml, TagName, XmlNode};
 
@@ -123,6 +127,10 @@ fn build_spreadsheet(data: &[u8]) -> Result<(Spreadsheet, Vec<Diagnostic>), Vec<
                 }
             }
         }
+    }
+    // Formula evaluation (C15)
+    for sheet in &sheets {
+        evaluate_odf_formulas(sheet, &mut diags);
     }
     if sheets.is_empty() {
         diags.push(Diagnostic::new(
@@ -331,6 +339,177 @@ fn parse_cell(
         cached_value: if formula.is_some() { cached } else { None },
         style_name: style,
     })
+}
+
+/// Evaluate formulas in a sheet, adding diagnostics for refused formulas and parity.
+fn evaluate_odf_formulas(sheet: &Sheet, diags: &mut Vec<Diagnostic>) {
+    // Build a cell map: cell_ref (e.g., "A1") -> cell value
+    let mut cell_map: HashMap<String, CachedCellValue> = HashMap::new();
+    for row in &sheet.rows {
+        for cell in &row.cells {
+            let ref_name = col_to_ref_odf(cell.col, cell.row);
+            if let Some(ref v) = cell.value {
+                if let Ok(n) = v.trim().parse::<f64>() {
+                    cell_map.insert(
+                        ref_name,
+                        CachedCellValue {
+                            numeric: Some(n),
+                            text: None,
+                            bool: None,
+                        },
+                    );
+                } else {
+                    cell_map.insert(
+                        ref_name,
+                        CachedCellValue {
+                            numeric: None,
+                            text: Some(v.clone()),
+                            bool: None,
+                        },
+                    );
+                }
+            } else if let Some(ref cv) = cell.cached_value {
+                if let Ok(n) = cv.trim().parse::<f64>() {
+                    cell_map.insert(
+                        ref_name,
+                        CachedCellValue {
+                            numeric: Some(n),
+                            text: None,
+                            bool: None,
+                        },
+                    );
+                } else {
+                    cell_map.insert(
+                        ref_name,
+                        CachedCellValue {
+                            numeric: None,
+                            text: Some(cv.clone()),
+                            bool: None,
+                        },
+                    );
+                }
+            }
+        }
+    }
+
+    let ctx = OdfCellContext { cell_map };
+
+    for row in &sheet.rows {
+        for cell in &row.cells {
+            if let Some(ref formula_str) = cell.formula {
+                // Strip leading "of:=" (ODF format: table:formula="of:=SUM(...)")
+                let formula = formula_str
+                    .trim()
+                    .strip_prefix("of:=")
+                    .unwrap_or(formula_str.trim());
+
+                if let Some(code) = check_refusal(formula) {
+                    let code_str = gp_f_code_str(code);
+                    diags.push(Diagnostic::new(
+                        code_str.to_string(),
+                        Severity::Warning,
+                        format!(
+                            "sheet '{}': formula refused ({}): {}",
+                            sheet.name, code_str, formula
+                        ),
+                    ));
+                    continue;
+                }
+
+                match parse_formula(formula) {
+                    Ok(node) => {
+                        if let Some(eval_result) = evaluate(&node, &ctx) {
+                            let computed_str = eval_result_to_string(&eval_result);
+                            let cached = cell.cached_value.as_deref();
+                            match check_parity(cached, &eval_result) {
+                                ParityResult::Match => {}
+                                ParityResult::Mismatch {
+                                    cached: ref cached_val,
+                                    computed: ref comp_val,
+                                } => {
+                                    diags.push(Diagnostic::new(
+                                        "GP-F-030",
+                                        Severity::Warning,
+                                        format!(
+                                            "sheet '{}': stale cache on {} — cached={}, computed={}",
+                                            sheet.name,
+                                            col_to_ref_odf(cell.col, cell.row),
+                                            cached_val,
+                                            comp_val
+                                        ),
+                                    ));
+                                }
+                                ParityResult::NoCache => {
+                                    diags.push(Diagnostic::new(
+                                        "GP-F-031",
+                                        Severity::Info,
+                                        format!(
+                                            "sheet '{}': no cache on {} — computed={}",
+                                            sheet.name,
+                                            col_to_ref_odf(cell.col, cell.row),
+                                            computed_str
+                                        ),
+                                    ));
+                                }
+                                ParityResult::Refused(_) => {}
+                            }
+                        } else {
+                            diags.push(Diagnostic::new(
+                                "GP-F-040",
+                                Severity::Info,
+                                format!(
+                                    "sheet '{}': formula {} references unresolved cells, using cached value",
+                                    sheet.name, formula
+                                ),
+                            ));
+                        }
+                    }
+                    Err(e) => {
+                        diags.push(Diagnostic::new(
+                            "GP-F-050",
+                            Severity::Warning,
+                            format!(
+                                "sheet '{}': formula parse error on {}: {}",
+                                sheet.name,
+                                col_to_ref_odf(cell.col, cell.row),
+                                e.message
+                            ),
+                        ));
+                    }
+                }
+            }
+        }
+    }
+}
+
+/// Convert column index and row index to Excel cell reference.
+fn col_to_ref_odf(col: usize, row: usize) -> String {
+    let mut col_str = String::new();
+    let mut c = col;
+    loop {
+        let ch = (b'A' + (c % 26) as u8) as char;
+        col_str.insert(0, ch);
+        c /= 26;
+        if c == 0 {
+            break;
+        }
+        c -= 1;
+    }
+    format!("{}{}", col_str, row + 1)
+}
+
+/// Cell context for formula evaluation during ODS parsing.
+struct OdfCellContext {
+    cell_map: HashMap<String, CachedCellValue>,
+}
+
+impl FormulaContext for OdfCellContext {
+    fn get_cell(&self, ref_name: &str) -> Option<CachedCellValue> {
+        self.cell_map.get(ref_name).cloned()
+    }
+    fn get_range(&self, _range: &str) -> Option<Vec<CachedCellValue>> {
+        None
+    }
 }
 
 // ===========================================================================

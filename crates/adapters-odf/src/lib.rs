@@ -15,6 +15,7 @@
 
 pub mod census;
 pub mod comment_writer;
+pub mod formula;
 pub mod lossless_suite;
 pub mod manifest;
 pub mod odf;

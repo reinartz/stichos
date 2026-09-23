@@ -11,8 +11,9 @@ workspace = true
 [features]
 default = ["unix"]
 # MS Office COM automation engine (Windows-only; stub on non-Windows).
-# The actual COM interop is deferred to Phase 5. This feature gate
-# ensures the skeleton compiles on all platforms via cfg attributes.
+# COM-1 skeleton ships at M4; COM-2..6 implementation landed on the
+# Windows host in Phase 6. This feature gate ensures the skeleton
+# compiles on all platforms via cfg attributes.
 ms-office = []
 # Enable Unix-specific pipe handling (poll, dup) for LibreOffice subprocess
 # stdout/stderr capture. On Windows, a simpler try_clone-based approach is used.

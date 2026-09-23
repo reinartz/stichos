@@ -208,3 +208,54 @@ No new vulnerabilities identified beyond Phase-4 threat model. The new component
 
 Review completed by: p5-17 agent
 Date: 2026-09-19
+
+## SEC-06 Phase-6 Security Review
+
+### Phase-6 Attack Surface
+Phase 6 introduces new vectors: CTX-01..05 envelope types and caps (max_elements, cursor pagination, temp file paths, diff max_ops, journal max_entries, dry_run boundary), C15 formula evaluator (deep nesting, huge integers, external references, macro patterns, unsupported functions), Wave I surface (Spreadsheet/Presentation IRDocument converters, apply-op against real writers), and parser.rs:498 regression corpus (LO-produced PDFs triggering subtract-overflow).
+
+- **CTX-01..05**: `inspect_document` with extreme `max_elements` (0, 2^31-1, negative, float overflow), cursor forgery (truncated, oversized, base64 garbage, null bytes), temp file path traversal (dot-dot, absolute path, null bytes, unicode normalization), caps boundary (max_ops=0 legacy opt-out, negative caps), mutation safety (conflicting dry_run + apply flags, huge op arrays).
+- **C15 Formula Evaluator**: Deeply nested formulas (100 levels of SUM), huge integers exceeding i64 range, external workbook references ([1]Sheet!$A$1, [Book2.xlsx]Sheet1!A1), R1C1-style ranges (R1C1:R1048576), macro patterns (SUBPROCESS, RUNMACRO, VBA, DDE|, OLE|), array/matrix functions (MMULT, TRANSPOSE), unsupported functions (VLOOKUP, INDEX, RANDBETWEEN), 1M-char text literals, 10000-function-argument calls, unbalanced parentheses.
+- **Wave I Surface**: Spreadsheet IR (empty sheets, empty rows, 100K rows, 1M-char cell values, malformed cell refs like A1:B1048576:extra, of:= ODF formula syntax, huge merged ranges, C15 deep-nesting refusal boundary). Presentation IR (empty slides, 10K shapes per slide, 500-level shape chains, 100 slides, many layouts/masters). Apply-op (deeply nested IR, non-existent element IDs, empty element IDs, 10KB element IDs, 1000-op batches, malformed ops, 1MB text replacement, null bytes in values).
+- **Parser Regression**: 25 LO-produced PDF fixtures targeting parser.rs:498 subtract-overflow fix (empty data, short data, boundary data at scan limit, binary garbage with stream bytes, UTF-8 BOM, CRLF stream delimiters, very long data at 10MB).
+
+### Review Checklist
+- [x] CTX caps: extreme max_elements values handled without panic (0, 2^31-1, -1, 1e308)
+- [x] Cursor forgery: truncated, oversized (102KB), base64 garbage, null bytes, newlines — all handled
+- [x] Temp path traversal: dot-dot, absolute path, null bytes, 8KB paths, unicode normalization — all handled
+- [x] Caps boundary: max_ops=0 (legacy opt-out), negative caps, journal max_entries=0 — all handled
+- [x] Mutation safety: conflicting dry_run+apply, huge op arrays (1000) — all handled
+- [x] Formula deep nesting: 100 levels of SUM parsing completes without panic (refusal triggered at 32+ paren depth)
+- [x] Formula huge integers: 10^20, f64::MAX, f64::NEG_MAX, division by zero, subtraction overflow — all handled
+- [x] Formula external refs: [1]Sheet, [Book2.xlsx], R1C1 ranges, multi-external refs — all caught by refusal detection
+- [x] Formula macro patterns: SUBPROCESS, RUNMACRO, VBA, DDE|, OLE| — all caught by refusal detection
+- [x] Formula unsupported functions: VLOOKUP, INDEX, RANDBETWEEN, MMULT, TRANSPOSE — all handled
+- [x] Formula edge cases: 100KB text literal, 10000 function args, unbalanced parens, empty string, operators only — all handled
+- [x] Sheet inspect: empty sheets, malformed refs, C15 deep-nesting formula — converters don't panic
+- [x] Sheet inspect stress: 100K rows, 1M-char cell, huge merged ranges, 10 sheets — converters don't panic
+- [x] Presentation inspect: empty slides, empty text shapes, many layouts/masters — converters don't panic
+- [x] Presentation inspect stress: 10K shapes, 100 slides, varied shape kinds — converters don't panic
+- [x] Apply-op: nonexistent/empty/long element IDs, oversized values, null bytes — all handled
+- [x] Apply-op batches: 1000-op arrays, malformed ops (missing fields, wrong types), circular props — all handled
+- [x] Parser regression: 25 PDF fixtures all pass find_stream_kw without panic (saturating_sub fix verified)
+- [x] Parser PDF parser: subset of regression fixtures pass full PDF parser without panic
+
+### Findings
+No new vulnerabilities identified beyond the Phase-5 threat model. The new attack surfaces are handled by existing defensive patterns:
+- All inputs validated before processing
+- Errors returned as structured diagnostics (C3 codes), never panicking
+- Formula refusal detection catches external refs, macro patterns, deep nesting
+- Parser.saturating_sub prevents underflow on short data
+- CTX caps use defensive defaults (max_elements defaults to large value, cursor validation is lenient)
+- Apply-op uses UnwindSafe for panic safety with mutable IRDocument
+
+### Mitigations Added
+- CTX fuzz fixtures (caps, cursor, temp paths, mutation safety): 25 fixtures, 15 tests
+- Formula fuzz fixtures (deep nesting, huge ints, external refs, macro patterns): 25 fixtures, 22 tests
+- Wave I fuzz fixtures (sheet/presentation IR, apply-op): 20 fixtures, 18 tests
+- Parser regression corpus (parser.rs:498): 25 fixtures, 12 tests
+- All added as deterministic regression tests in adapters-ooxfuzz
+- run_wave_x_fuzz() entry point for CI integration
+
+Review completed by: p6-17 agent
+Date: 2026-09-23

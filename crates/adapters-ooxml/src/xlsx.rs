@@ -15,8 +15,12 @@ use gp_core::diagnostics::Diagnostic;
 use gp_core::diagnostics::Severity;
 use gp_core::ir::*;
 use gp_core::traits::{Codec, ReadResult};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 
+use super::formula::{
+    check_parity, check_refusal, eval_result_to_string, evaluate, gp_f_code_str, parse_formula,
+    CachedCellValue, FormulaContext, ParityResult,
+};
 use super::opc::{parse_opc, OpcPackage, Part};
 use super::xml::{parse_xml, XmlNode};
 
@@ -439,6 +443,9 @@ fn read_sheet(
         }
     }
 
+    // Formula evaluation (C15)
+    evaluate_sheet_formulas(&sheet_rows, sheet_name, &mut diags);
+
     diags.push(Diagnostic::new(
         "OOX-R020",
         Severity::Info,
@@ -620,6 +627,189 @@ fn parse_cell(
         cached_value,
         style_name,
     })
+}
+
+/// Evaluate formulas across all cells in a sheet, adding diagnostics for
+/// refused formulas and parity mismatches.
+fn evaluate_sheet_formulas(rows: &[SheetRow], sheet_name: &str, diags: &mut Vec<Diagnostic>) {
+    // Build a cell map: cell_ref (e.g., "A1") -> cell value
+    let mut cell_map: HashMap<String, CachedCellValue> = HashMap::new();
+    for row in rows {
+        for cell in &row.cells {
+            let ref_name = col_to_ref(cell.col, cell.row);
+            if let Some(ref v) = cell.value {
+                if let Ok(n) = v.trim().parse::<f64>() {
+                    cell_map.insert(
+                        ref_name,
+                        CachedCellValue {
+                            numeric: Some(n),
+                            text: None,
+                            bool: None,
+                        },
+                    );
+                } else {
+                    cell_map.insert(
+                        ref_name,
+                        CachedCellValue {
+                            numeric: None,
+                            text: Some(v.clone()),
+                            bool: None,
+                        },
+                    );
+                }
+            } else if let Some(ref cv) = cell.cached_value {
+                if let Ok(n) = cv.trim().parse::<f64>() {
+                    cell_map.insert(
+                        ref_name,
+                        CachedCellValue {
+                            numeric: Some(n),
+                            text: None,
+                            bool: None,
+                        },
+                    );
+                } else {
+                    cell_map.insert(
+                        ref_name,
+                        CachedCellValue {
+                            numeric: None,
+                            text: Some(cv.clone()),
+                            bool: None,
+                        },
+                    );
+                }
+            }
+        }
+    }
+
+    // Build context
+    let ctx = XlsxCellContext { cell_map };
+
+    // Evaluate each formula
+    for row in rows {
+        for cell in &row.cells {
+            if let Some(ref formula_str) = cell.formula {
+                // Strip leading '=' if present
+                let formula = formula_str.trim_start_matches('=');
+
+                // Step 1: Check for hostile/unrefused formulas
+                if let Some(code) = check_refusal(formula) {
+                    let code_str = gp_f_code_str(code);
+                    diags.push(Diagnostic::new(
+                        code_str.to_string(),
+                        Severity::Warning,
+                        format!(
+                            "sheet '{}': formula refused ({}): {}",
+                            sheet_name, code_str, formula
+                        ),
+                    ));
+                    // Use cached value only - already in cell
+                    continue;
+                }
+
+                // Step 2: Parse and evaluate
+                match parse_formula(formula) {
+                    Ok(node) => {
+                        // Try to evaluate with available cell context
+                        if let Some(eval_result) = evaluate(&node, &ctx) {
+                            let computed_str = eval_result_to_string(&eval_result);
+                            let cached = cell.cached_value.as_deref();
+
+                            // Step 3: Parity check
+                            match check_parity(cached, &eval_result) {
+                                ParityResult::Match => {}
+                                ParityResult::Mismatch {
+                                    cached: ref cached_val,
+                                    computed: ref comp_val,
+                                } => {
+                                    diags.push(Diagnostic::new(
+                                        "GP-F-030",
+                                        Severity::Warning,
+                                        format!(
+                                            "sheet '{}': stale cache on {} — cached={}, computed={}",
+                                            sheet_name,
+                                            col_to_ref(cell.col, cell.row),
+                                            cached_val,
+                                            comp_val
+                                        ),
+                                    ));
+                                }
+                                ParityResult::NoCache => {
+                                    diags.push(Diagnostic::new(
+                                        "GP-F-031",
+                                        Severity::Info,
+                                        format!(
+                                            "sheet '{}': no cache on {} — computed={}",
+                                            sheet_name,
+                                            col_to_ref(cell.col, cell.row),
+                                            computed_str
+                                        ),
+                                    ));
+                                }
+                                ParityResult::Refused(_) => {
+                                    // Already handled above
+                                }
+                            }
+                        } else {
+                            // Evaluation returned None — cell references not in context
+                            diags.push(Diagnostic::new(
+                                "GP-F-040",
+                                Severity::Info,
+                                format!(
+                                    "sheet '{}': formula {} references unresolved cells, using cached value",
+                                    sheet_name, formula
+                                ),
+                            ));
+                        }
+                    }
+                    Err(e) => {
+                        diags.push(Diagnostic::new(
+                            "GP-F-050",
+                            Severity::Warning,
+                            format!(
+                                "sheet '{}': formula parse error on {}: {}",
+                                sheet_name,
+                                col_to_ref(cell.col, cell.row),
+                                e.message
+                            ),
+                        ));
+                    }
+                }
+            }
+        }
+    }
+}
+
+/// Convert column index and row index to Excel cell reference (e.g., (0,0) -> "A1").
+fn col_to_ref(col: usize, row: usize) -> String {
+    let mut col_str = String::new();
+    let mut c = col;
+    loop {
+        let ch = (b'A' + (c % 26) as u8) as char;
+        col_str.insert(0, ch);
+        c /= 26;
+        if c == 0 {
+            break;
+        }
+        c -= 1;
+    }
+    format!("{}{}", col_str, row + 1)
+}
+
+/// Cell context for formula evaluation during xlsx parsing.
+struct XlsxCellContext {
+    cell_map: HashMap<String, CachedCellValue>,
+}
+
+impl FormulaContext for XlsxCellContext {
+    fn get_cell(&self, ref_name: &str) -> Option<CachedCellValue> {
+        self.cell_map.get(ref_name).cloned()
+    }
+
+    fn get_range(&self, _range: &str) -> Option<Vec<CachedCellValue>> {
+        // Range lookups require full grid awareness; return None
+        // The evaluator will treat this as "unresolved" and use cached value
+        None
+    }
 }
 
 // ===========================================================================

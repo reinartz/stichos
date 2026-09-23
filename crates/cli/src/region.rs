@@ -7,11 +7,15 @@
 //! 3. Crops the requested region using the cropper
 //! 4. Returns cropped image data with coordinate conversion record
 //!
-//! For P1, master pages are generated on demand via LibreOffice conversion
-//! to PDF → rasterization at DETAIL_DPI (300). The crop is then extracted
-//! from this master using the cropper pipeline.
+//! Master pages are rendered on demand via the engine pipeline:
+//! document → PDF (LibreOffice) → rasterize (pdftoppm/gs/mutool) → PNG.
 
 use anyhow::Context;
+use engines::cache::{make_cache_key, sha256, MasterCache};
+use engines::libreoffice::LibreOfficeEngine;
+use engines::negotiate::{negotiate_renderer, RendererPreference};
+use engines::raster;
+use gp_core::traits::Engine;
 use lint::coords::DETAIL_DPI;
 use lint::cropper::{crop_region, validate_crop_request, CropRequest};
 
@@ -45,7 +49,7 @@ pub fn inspect_region(
         .map_err(|e| anyhow::anyhow!("crop request validation failed: {}", e))?;
 
     // Read the master page image (rendered at DETAIL_DPI)
-    let master_data = read_master_page(path, page)?;
+    let (master_data, rendered_by) = read_master_page(path, page)?;
     let (master_w_px, master_h_px) = master_page_dimensions(&master_data)?;
 
     // Crop the region using the cropper
@@ -75,26 +79,89 @@ pub fn inspect_region(
             "byte_size": result.data.len(),
         },
         "coordinate_record": result.coord_record,
-        "rendered_by": "libreoffice + poppler",
+        "rendered_by": rendered_by,
     }))
 }
 
 /// Render a document page to a master image at DETAIL_DPI.
 ///
-/// For P1: delegates to the render pipeline, extracts the target page
-/// from the rendered output, and returns the grayscale bytes.
+/// Pipeline: document → PDF (engine) → rasterize (pdftoppm/gs/mutool) → PNG.
+/// Uses the master cache for repeated renders of the same document+page.
 ///
-/// In the full implementation this will read from a master cache or
-/// render on demand via the engine pipeline.
-fn read_master_page(_path: &str, _page: usize) -> Result<Vec<u8>, anyhow::Error> {
-    // P1 stub: return a synthetic master page
-    // The full implementation would use the render_document pipeline
-    // and extract page-{page}.png from the output directory
-    let page_w_px = (DEFAULT_PAGE_WIDTH_PT * DETAIL_DPI / 72.0) as usize;
-    let page_h_px = (DEFAULT_PAGE_HEIGHT_PT * DETAIL_DPI / 72.0) as usize;
+/// Returns (PNG bytes, rendered_by string) on success.
+fn read_master_page(path: &str, page: usize) -> Result<(Vec<u8>, String), anyhow::Error> {
+    let bytes =
+        std::fs::read(path).with_context(|| format!("failed to read document: {}", path))?;
+    let source_ext = path.rsplit('.').next().unwrap_or("").to_lowercase();
 
-    // Return synthetic grayscale data matching the expected dimensions
-    Ok(vec![128u8; page_w_px * page_h_px])
+    // Build cache key
+    let doc_hash = sha256(&bytes);
+    let cache_key = make_cache_key(
+        &doc_hash,
+        "unknown",
+        "unknown",
+        "unknown",
+        DETAIL_DPI as u32,
+    );
+
+    // Try the master cache first
+    if let Ok(mut cache) = MasterCache::open() {
+        if let Some(cached) = cache.get(&cache_key) {
+            return Ok((cached, "cache".to_string()));
+        }
+    }
+
+    // Negotiate renderer
+    let choice = negotiate_renderer(&RendererPreference::Default);
+    if !choice.available {
+        anyhow::bail!("no renderer available: {}", choice.reason);
+    }
+
+    // Create engine and convert to PDF
+    let engine = create_engine_for_choice(&choice)?;
+    let pdf_bytes = engine
+        .convert(&bytes, &source_ext, "pdf")
+        .map_err(|diags| {
+            anyhow::anyhow!(
+                "engine {} conversion failed: {:?}",
+                choice.engine_id,
+                diags.iter().map(|d| d.message.as_str()).collect::<Vec<_>>()
+            )
+        })?;
+
+    // Rasterize the target page (0-indexed for rasterize)
+    let page_png = raster::rasterize(&pdf_bytes, page, DETAIL_DPI as u32).map_err(|diags| {
+        anyhow::anyhow!(
+            "rasterization failed for page {}: {:?}",
+            page,
+            diags.iter().map(|d| d.message.as_str()).collect::<Vec<_>>()
+        )
+    })?;
+
+    // Cache for future use
+    let rendered_by = format!(
+        "{} {}",
+        engine.engine_id(),
+        engine.version().unwrap_or("unknown")
+    );
+    if let Ok(mut cache) = MasterCache::open() {
+        cache.put(&cache_key, &page_png);
+    }
+
+    Ok((page_png, rendered_by))
+}
+
+/// Create an engine instance based on the negotiated renderer choice.
+fn create_engine_for_choice(
+    choice: &engines::negotiate::RendererChoice,
+) -> Result<LibreOfficeEngine, anyhow::Error> {
+    LibreOfficeEngine::new_auto().map_err(|diags| {
+        anyhow::anyhow!(
+            "failed to create engine (choice={}): {:?}",
+            choice.engine_id,
+            diags.iter().map(|d| d.message.as_str()).collect::<Vec<_>>()
+        )
+    })
 }
 
 /// Extract image dimensions from PNG bytes.
@@ -218,9 +285,10 @@ mod tests {
         assert!(mock_result["crop"]["within_budget"].as_bool().unwrap());
         assert!(mock_result["crop"]["byte_size"].is_number());
         assert!(mock_result["coordinate_record"]["scale"].is_number());
-        assert_eq!(
-            mock_result["rendered_by"].as_str().unwrap(),
-            "libreoffice + poppler"
+        assert!(
+            mock_result["rendered_by"].is_string(),
+            "rendered_by should be a string (was {})",
+            mock_result["rendered_by"]
         );
     }
 

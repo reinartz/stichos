@@ -62,6 +62,7 @@ async fn start_http(port: u16, listen_addr: String, handler: BoxedHandler) -> Re
     let session_store = http::new_session_store();
     let review_store = session::new_review_session_store();
     let handler = handler.clone();
+    let text_source: http::PdfSourceHandle = None;
 
     loop {
         let (mut socket, _) = listener
@@ -72,6 +73,7 @@ async fn start_http(port: u16, listen_addr: String, handler: BoxedHandler) -> Re
         let session_store = session_store.clone();
         let review_store = review_store.clone();
         let handler = handler.clone();
+        let text_source = text_source.clone();
 
         tokio::spawn(async move {
             let mut buf = Vec::new();
@@ -118,7 +120,8 @@ async fn start_http(port: u16, listen_addr: String, handler: BoxedHandler) -> Re
 
             // Determine if this is a review route
             if http::is_review_path(&request.path) {
-                let response = http::route_review_request(request, &review_store);
+                let response =
+                    http::route_review_request(request, &review_store, text_source.clone());
                 send_http_response(&mut socket, &response).await;
             } else {
                 let response = http::route_request(request, session_store, handler);

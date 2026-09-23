@@ -15,6 +15,7 @@ pub mod create_xlsx;
 pub mod docx;
 pub mod docx_writer;
 pub mod executor;
+pub mod formula;
 pub mod md_ir;
 pub mod opc;
 pub mod pptx;

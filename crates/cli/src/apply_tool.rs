@@ -9,10 +9,13 @@
 //! revision tracking.
 
 use anyhow::anyhow;
+use base64::Engine as _;
 use gp_core::{
     diff::diff_documents,
-    executor::{ExecutorConfig, FormatType, SurgicalPatchExecutor},
+    executor::{ExecutorConfig, FormatType},
+    journal::Journal,
     patch::PatchOp,
+    store::ContentStore,
 };
 
 /// Apply a surgical patch to a document.
@@ -71,24 +74,28 @@ pub fn apply_patch(
         policy: None,
         force_signature_invalidation: false,
     };
-    let executor = SurgicalPatchExecutor::new(config);
-
-    // Execute the patch
-    let result = executor.execute(&source_bytes, format.clone(), &ops);
+    // Select the appropriate executor based on format
+    let result = match &format {
+        FormatType::Docx | FormatType::Xlsx | FormatType::Pptx => {
+            let executor = adapters_ooxml::executor::OoxmlExecutor::new(config);
+            executor.execute(&source_bytes, format.clone(), &ops)
+        }
+        FormatType::Odt | FormatType::Ods | FormatType::Odp => {
+            let executor = adapters_odf::patch_executor::OdfPatchExecutor::new();
+            executor.execute(&source_bytes, format.clone(), &ops)
+        }
+        FormatType::Pdf => gp_core::executor::ExecuteResult::refuse(
+            "pdf",
+            "PDF write-back is not yet supported (GP-I-005)",
+        ),
+    };
 
     // Build the result envelope
     let (success, output_path) = if result.accepted && !dry_run {
-        // Check if this is stub mode (no real execution yet)
-        let is_stub = result
-            .diagnostics
-            .iter()
-            .any(|d| d.message.contains("Executor stub"));
-        if is_stub {
-            // Stub mode: no real edits, don't create output file
-            (true, None)
+        let output_bytes = &result.output;
+        if output_bytes.is_empty() {
+            (false, None)
         } else {
-            // Write output file (dry_run=false, accepted, real execution)
-            let output_bytes = &result.output;
             let base = std::path::Path::new(path);
             let stem = base
                 .file_stem()
@@ -103,6 +110,44 @@ pub fn apply_patch(
     } else {
         (result.accepted, None)
     };
+
+    // Journal entry for successful non-dry-run applies
+    let journal_id = if result.accepted && !dry_run && !result.output.is_empty() {
+        let store = ContentStore::open().unwrap_or_else(|_| {
+            let tmp = std::env::temp_dir().join("stichos-apply");
+            let _ = std::fs::remove_dir_all(&tmp);
+            ContentStore::open_at(&tmp).unwrap()
+        });
+        let mut journal = Journal::new(store, uuid::Uuid::new_v4().to_string());
+        let action = if ops.is_empty() {
+            gp_core::journal::JournalAction::Style
+        } else {
+            match &ops[0] {
+                PatchOp::Insert { .. } | PatchOp::TrackInsert { .. } => {
+                    gp_core::journal::JournalAction::Insert
+                }
+                PatchOp::Delete { .. } | PatchOp::TrackDelete { .. } => {
+                    gp_core::journal::JournalAction::Delete
+                }
+                _ => gp_core::journal::JournalAction::Replace,
+            }
+        };
+        let ir_patch = format!(
+            "1.0.0|{}",
+            base64::engine::general_purpose::STANDARD.encode(format!("{:?}", ops))
+        );
+        match journal.commit(action, &source_bytes, &result.output, ir_patch, Vec::new()) {
+            Ok(entry_id) => Some(entry_id),
+            Err(_) => None,
+        }
+    } else {
+        None
+    };
+
+    let mut result = result;
+    if journal_id.is_some() {
+        result.journal_id = journal_id;
+    }
 
     // Compute IR diff if dry_run and ops provided
     let ir_diff_value = if dry_run && !ops.is_empty() {

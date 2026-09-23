@@ -61,7 +61,7 @@ Phase-3 records: `docs/phase3-plan.md`,
 | `adapters-ooxml` | OOXML (docx, xlsx, pptx), OPC, XML parsing, revision read/write (C11) |
 | `adapters-odf` | ODF (odt, ods, odp), manifest, XML parsing, revision read/write |
 | `adapters-pdf` | PDF parsing (parser, text, form, annot, outline, metadata, qpdf), incremental annot write-back |
-| `engines` | Render engine abstraction (libreoffice, pandoc, chromium, typst live; ms-office COM design + compile-only skeleton) |
+| `engines` | Render engine abstraction (libreoffice, pandoc, chromium, typst live; ms-office COM on Windows host via logon-agent model) |
 | `lint` | Fidelity linting (budget, ssim, contrast, font, diff, cropper) |
 | `mcp` | MCP protocol (jsonrpc, dispatch, server, session/review incl. text-layer routes, tools, transport, http, spec) |
 | `cli` | `stichos` binary — 21 verbs (inspect, region, render, diff, doctor, serve, schema, apply, edit, annotate, revert, journal, perf, create, script, update, revisions, annots, review, open, sign) |

@@ -151,6 +151,16 @@ pub struct CapabilityEntry {
     pub works: bool,
 }
 
+/// Extract text with bounding boxes from PDF bytes.
+///
+/// This trait abstracts the PDF text extraction used by the MCP review
+/// text-layer route. Implementations (e.g. `adapters-pdf`) provide the
+/// actual parsing; the `mcp` crate depends only on this trait.
+pub trait PdfTextSource: Send + Sync {
+    /// Extract text with bounding boxes from raw PDF bytes.
+    fn extract_text(&self, pdf_bytes: &[u8]) -> Result<Vec<TextWithBbox>, Vec<Diagnostic>>;
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

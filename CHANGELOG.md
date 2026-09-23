@@ -5,13 +5,16 @@ All notable changes to stichos. The format follows
 crates and the `stichos` binary. Tool-surface (C7) versioning is additive-only within a minor;
 breaking changes require a minor bump per `docs/contracts/C7.md`.
 
-## [Unreleased] — M4 + M5 (tags `m4`, `m5`)
+## [Unreleased] — M4 + M5 + M6 (tags `m4`, `m5`, `m6`)
 
 ### Added
 - **Human loop (M4):** `revisions` verb + `list_revisions`, `accept_revisions`,
   `reject_revisions`, `add_comment` tools (C7 v1.3.0); ODF revision read/write (C11);
   `review` session + raster-over-masters overlay (D22); `open` platform handoff;
   COM worker design + compile-only skeleton (`ms-office` feature flag).
+- **COM implementation (M6):** COM-2..6 engine implementation on the Windows host
+  (Word/Excel/PPT workers, `CompareDocuments`, logon-agent design); MS-Office COM
+  engine compiles cross-platform behind the `ms-office` feature gate with cfg stubs.
 - **PDF-native loop (M5):** `annots` verb + `list_annotations`, `resolve_annotations` tools
   (C7 v1.4.0); C12 annotation-review model (Highlight/Text/FreeText/Stamp, page+rect+quote
   anchors, resolve states, GP-A0xx refusals); incremental annotation write-back (append-only,

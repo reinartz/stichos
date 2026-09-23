@@ -495,7 +495,7 @@ fn scan_indirect_objects(data: &[u8]) -> Vec<Result<(u32, u32, PdfObject), Diagn
 
 fn find_stream_kw(data: &[u8]) -> Option<usize> {
     let mut pos = 0;
-    let limit = (data.len() - 6).min(8192); // don't scan more than 8KB
+    let limit = (data.len().saturating_sub(6)).min(8192); // don't scan more than 8KB
     while pos < limit {
         if data[pos..].starts_with(b"stream") && pos > 0 {
             let prev = data[pos - 1];
@@ -2162,5 +2162,22 @@ mod tests {
     fn test_page_count_empty() {
         let r = page_count(b"");
         assert!(r.is_err(), "page_count should fail for empty input");
+    }
+
+    // ------------------------------------------------------------------
+    // P6-32: saturating_sub regression for find_stream_kw overflow
+    // ------------------------------------------------------------------
+
+    #[test]
+    fn test_find_stream_kw_empty() {
+        // empty input should not panic
+        let _result = scan_indirect_objects(b"");
+    }
+
+    #[test]
+    fn test_find_stream_kw_short_data() {
+        // Data shorter than 6 bytes would previously cause saturating subtraction
+        let short = b"1 0 obj";
+        let _result = scan_indirect_objects(short);
     }
 }

@@ -27,8 +27,10 @@
 
 - **M1 tool surface (v1.0.0):** Frozen. No removals planned; additive changes only.
 - **Typst engine:** Marked as honest-absent (not installed); future implementation may depend on D15.
-- **MS-Office COM engine:** Compile-only skeleton (ms-office feature flag); implementation
-  (COM-2..6) scheduled in Phase 6 — Windows host now available.
+- **MS-Office COM engine:** Implementation (COM-2..6) landed on the Windows host in Phase 6;
+  `ms-office` feature flag gates the crate for non-Windows compile. The COM worker runs
+  interactively on Windows (D10 logon-agent model) with LibreOffice as the honest-absent
+  fallback on other platforms (D9).
 - **pdf.js:** Vendored 3.11.174 under `assets/vendor/pdfjs/` (text layer only, opt-in per session,
   D24); raster overlay remains the default medium.
 

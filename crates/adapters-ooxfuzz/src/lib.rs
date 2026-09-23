@@ -36,6 +36,19 @@ pub mod pdf_incremental_fuzz;
 pub mod rhai_corpus;
 
 // ---------------------------------------------------------------------------
+// P6-17 Wave X fuzz fixtures
+// ---------------------------------------------------------------------------
+
+#[cfg(test)]
+pub mod ctx_fuzz;
+#[cfg(test)]
+pub mod formula_fuzz;
+#[cfg(test)]
+pub mod parser_regression;
+#[cfg(test)]
+pub mod wave_i_fuzz;
+
+// ---------------------------------------------------------------------------
 // OPC fixtures
 // ---------------------------------------------------------------------------
 
@@ -2262,7 +2275,7 @@ mod tests {
         review_store: &mcp::session::ReviewSessionStore,
     ) -> FuzzResult {
         let result = std::panic::catch_unwind(|| {
-            let _resp = route_review_request(req, review_store);
+            let _resp = route_review_request(req, review_store, None);
         });
         match result {
             Ok(()) => FuzzResult::Ok,
@@ -3702,7 +3715,7 @@ mod tests {
             headers: HashMap::new(),
             body: Vec::new(),
         };
-        let resp = route_review_request(req, &store);
+        let resp = route_review_request(req, &store, None);
         assert_eq!(resp.status, 200);
 
         // Verify the body is valid JSON (not HTML)
@@ -3762,7 +3775,7 @@ mod tests {
                 headers: HashMap::new(),
                 body: Vec::new(),
             };
-            let resp = route_review_request(req, &store);
+            let resp = route_review_request(req, &store, None);
             assert_eq!(
                 resp.status, 200,
                 "status for payload {}: {}",
@@ -4177,6 +4190,100 @@ mod tests {
         assert!(
             matches!(result, FuzzResult::Ok),
             "all Phase-5 fuzz fixtures should pass: {}",
+            result
+        );
+    }
+
+    // ------------------------------------------------------------------
+    // P6-17 Wave X fuzz tests
+    // ------------------------------------------------------------------
+
+    /// Run all P6-17 Wave X fuzz fixtures through their respective fuzzers.
+    ///
+    /// This is a single entry point that runs:
+    /// - CTX-01..05 caps, cursor, and temp path fuzz
+    /// - Formula evaluator deep nesting, huge integers, external refs, macro patterns
+    /// - Wave I surface fuzz: Sheet/Presentation IR inputs, apply-op fuzz
+    /// - Parser regression corpus: 25 LO-produced PDF regressions for parser.rs:498
+    fn run_wave_x_fuzz() -> FuzzResult {
+        // CTX fuzz (caps, cursor, temp paths, mutation safety)
+        match ctx_fuzz::run_ctx_fuzz() {
+            FuzzResult::Ok => {}
+            r => return r,
+        }
+
+        // Formula fuzz (deep nesting, huge ints, external refs, macro patterns)
+        match formula_fuzz::run_formula_fuzz() {
+            FuzzResult::Ok => {}
+            r => return r,
+        }
+
+        // Wave I surface fuzz (sheet/presentation inspect + apply-op)
+        match wave_i_fuzz::run_wave_i_fuzz() {
+            FuzzResult::Ok => {}
+            r => return r,
+        }
+
+        // Parser regression corpus (parser.rs:498 fix)
+        match parser_regression::run_parser_regression_all() {
+            FuzzResult::Ok => {}
+            r => return r,
+        }
+
+        FuzzResult::Ok
+    }
+
+    /// test_p617_ctx_fuzz: CTX-01..05 fuzz fixtures pass without panic.
+    #[test]
+    fn test_p617_ctx_fuzz() {
+        let result = ctx_fuzz::run_ctx_fuzz();
+        assert!(
+            matches!(result, FuzzResult::Ok),
+            "ctx fuzz should pass: {}",
+            result
+        );
+    }
+
+    /// test_p617_formula_fuzz: formula evaluator fuzz fixtures pass without panic.
+    #[test]
+    fn test_p617_formula_fuzz() {
+        let result = formula_fuzz::run_formula_fuzz();
+        assert!(
+            matches!(result, FuzzResult::Ok),
+            "formula fuzz should pass: {}",
+            result
+        );
+    }
+
+    /// test_p617_wave_i_fuzz: Wave I surface fuzz fixtures pass without panic.
+    #[test]
+    fn test_p617_wave_i_fuzz() {
+        let result = wave_i_fuzz::run_wave_i_fuzz();
+        assert!(
+            matches!(result, FuzzResult::Ok),
+            "wave I fuzz should pass: {}",
+            result
+        );
+    }
+
+    /// test_p617_parser_regression: parser regression fixtures pass without panic.
+    #[test]
+    fn test_p617_parser_regression() {
+        let result = parser_regression::run_parser_regression_all();
+        assert!(
+            matches!(result, FuzzResult::Ok),
+            "parser regression should pass: {}",
+            result
+        );
+    }
+
+    /// test_p617_run_wave_x_fuzz: all Wave X fuzz fixtures pass.
+    #[test]
+    fn test_p617_run_wave_x_fuzz() {
+        let result = run_wave_x_fuzz();
+        assert!(
+            matches!(result, FuzzResult::Ok),
+            "all Wave X fuzz fixtures should pass: {}",
             result
         );
     }

@@ -487,10 +487,10 @@ mod tests {
         }
 
         #[test]
-        fn patch_set_diagnostics_on_unknown_op(
+        fn patch_set_on_insert_op(
             _ in 0..1u8,
         ) {
-            // Insert operations produce diagnostics but don't fail
+            // Insert operations succeed without diagnostics
             let before = sample_ir_document();
             let op = PatchOp::Insert {
                 anchor: ElementId::content_anchored("run", &["section:0", "paragraph:0", "run:0"], "run"),
@@ -500,8 +500,8 @@ mod tests {
             let result = apply_patch_set(&before, &[op]).expect("apply patch set");
 
             assert!(
-                !result.diagnostics.is_empty(),
-                "Insert should produce diagnostics"
+                result.diagnostics.is_empty(),
+                "Insert should not produce diagnostics"
             );
         }
     }
