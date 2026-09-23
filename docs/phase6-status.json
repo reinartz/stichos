@@ -2,7 +2,7 @@
   "milestone": "M6 (Phase 6 â€” context budget + M6 intake)",
   "plan": "docs/phase6-plan.md",
   "updated": "2026-09-23",
-  "progress_header": "35/35 verified, 8/8 gates",
+  "progress_header": "35/35 verified, 7/8 gates (Wave I completed: 15/15 steps)",
   "handoff_note": "SESSION 2 (2026-09-22): Wave I (feature completeness, concept section 11, owner calls C10-C13) added after a measured surface census. Steps P6-20..P6-34 pending; Wave X (P6-17/18/19) re-gated on top of Wave I and the m6 tag waits for gate I. Headline measured gaps: inspect/diff reject xlsx/pptx/ods/odp (inspect.rs:53-83, diff_tool.rs:222-231); apply/edit --apply never writes (executor.rs:720-738 stub + apply_tool.rs:87-95 sniff); PatchOp Insert/Track* unimplemented (patch.rs:97-129); revisions docx-only with silent-empty list (revisions_tool.rs:216-220); sign_document advertised but never dispatched (spec.rs:897 vs main.rs:2032); region synthetic-page stub (region.rs:126-135); review page route 501 (http.rs:680-686); ODS of:= never evaluated; parser.rs:498 panic blocks render/annotate binary e2e; P6-11..15 need host-cited re-verification (P6-33, tag-blocking). Phase 6 kicked off 2026-09-20. Owner calls C6â€“C9 recorded (phase6-concept.md Â§10): Wave-0 DAG inversion first (no merges before P6-00 verified), Windows host available for COM-2..6, launch stays rehearsal-only (D26), formula is ADR + minimal subset. Baseline: m5 = 484496a, 23 tools / 21 verbs, C7 v1.5.0, 1807 lib tests.",
   "legend": {
     "statuses": [
@@ -1346,5 +1346,5 @@
       }
     }
   ],
-  "gates_verified": 8
+  "gates_verified": 7
 }
