@@ -282,9 +282,14 @@ enum Command {
     /// and SHA-256 hash before swapping the binary. Rolls back on any failure.
     Update {
         /// Update channel to check (default: "stable").
-        /// For testing, use a local fixture path.
+        /// For testing, use "fixture" with --fixture-path or STICHOS_FIXTURE_PATH.
         #[arg(long, default_value = "stable")]
         channel: String,
+        /// Local fixture directory path for the "fixture" channel.
+        /// Takes precedence over channel="fixture" without a path.
+        /// Can also be set via the STICHOS_FIXTURE_PATH environment variable.
+        #[arg(long)]
+        fixture_path: Option<String>,
         /// Show what would happen without making changes.
         #[arg(long)]
         dry_run: bool,
@@ -531,11 +536,12 @@ async fn main() -> Result<()> {
         }
         Command::Update {
             channel,
+            fixture_path,
             dry_run,
             force,
             json,
         } => {
-            cmd_update(&channel, dry_run, force, json)?;
+            cmd_update(&channel, fixture_path.as_deref(), dry_run, force, json)?;
         }
         Command::Revisions { command } => {
             revisions_tool::handle_revisions(command).await?;
@@ -1555,7 +1561,7 @@ async fn cmd_serve(transport: &str, port: u16) -> Result<()> {
                         .to_string();
                     let author = args["author"].as_str();
 
-                    let result = revisions_tool::list_revisions_docx_for_mcp(&path, author)
+                    let result = revisions_tool::list_revisions_for_mcp(&path, author)
                         .map_err(|e| e.to_string())?;
                     Ok(result)
                 }
@@ -1839,6 +1845,82 @@ async fn cmd_serve(transport: &str, port: u16) -> Result<()> {
                         "dry_run": dry_run,
                     }))
                 }
+                "sign_document" => {
+                    let path = match args.get("path") {
+                        Some(serde_json::Value::String(s)) => s.clone(),
+                        _ => return Err("missing required parameter: path".into()),
+                    };
+
+                    let subject = args
+                        .get("subject")
+                        .and_then(|v| v.as_str())
+                        .map(String::from);
+                    let algorithm = args
+                        .get("algorithm")
+                        .and_then(|v| v.as_str())
+                        .map(String::from);
+                    let output = args
+                        .get("output")
+                        .and_then(|v| v.as_str())
+                        .map(std::path::PathBuf::from);
+
+                    // Map algorithm string to SignAlgorithm
+                    let sign_algo = match algorithm.as_deref() {
+                        None | Some("rsa") | Some("rsa_sha256") => {
+                            gp_core::signature::SignAlgorithm::RsaSha256
+                        }
+                        Some("ecdsa") | Some("ecdsa_p384") => {
+                            gp_core::signature::SignAlgorithm::EcdsaP384
+                        }
+                        _ => return Err("invalid algorithm (use 'rsa' or 'ecdsa')".into()),
+                    };
+
+                    let identity = gp_core::signature::SigningIdentity {
+                        algorithm: sign_algo,
+                        subject_cn: subject.clone().unwrap_or_else(|| "stichos".to_string()),
+                    };
+
+                    let source = std::fs::read(&path)
+                        .map_err(|e| format!("failed to read document: {}", e))?;
+
+                    let result = gp_core::signature::sign_pdf(&source, &identity);
+
+                    if !result.success {
+                        let reasons: Vec<String> = result
+                            .diagnostics
+                            .iter()
+                            .map(|d| format!("{}: {}", d.code, d.message))
+                            .collect();
+                        return Err(format!("signing failed: {}", reasons.join("; ")));
+                    }
+
+                    let out_path = match output {
+                        Some(p) => p,
+                        None => {
+                            let mut p = std::path::PathBuf::from(&path);
+                            p.set_extension("signed.pdf");
+                            p
+                        }
+                    };
+
+                    std::fs::write(&out_path, &result.output)
+                        .map_err(|e| format!("failed to write output: {}", e))?;
+
+                    let sig = &result.signature;
+                    Ok(serde_json::json!({
+                        "tool": "sign_document",
+                        "success": true,
+                        "output_path": out_path.to_string_lossy().to_string(),
+                        "signature": {
+                            "subject": sig.subject,
+                            "algorithm": sig.algorithm,
+                            "digest": sig.digest,
+                            "signing_time": sig.signing_time,
+                            "byte_range": sig.byte_range,
+                        },
+                        "diagnostics": result.diagnostics,
+                    }))
+                }
                 _ => Err(format!("unknown tool: {}", name)),
             }
         }
@@ -1990,22 +2072,41 @@ fn cmd_schema() {
 }
 
 /// Handle the `stichos update` subcommand.
-fn cmd_update(channel: &str, dry_run: bool, _force: bool, json: bool) -> Result<()> {
+fn cmd_update(
+    channel: &str,
+    fixture_path: Option<&str>,
+    dry_run: bool,
+    _force: bool,
+    json: bool,
+) -> Result<()> {
     use gp_core::selfupdate::{download_and_install, UpdateChannel};
     use std::path::PathBuf;
+
+    // Resolve fixture path: CLI flag > env var > error (for "fixture" channel)
+    let fixture = if let Some(p) = fixture_path {
+        Some(p.to_owned())
+    } else {
+        std::env::var("STICHOS_FIXTURE_PATH").ok()
+    };
 
     // Determine channel
     let channel_name = channel.to_lowercase();
     let update_channel = if channel_name == "stable" {
         UpdateChannel::stable()
     } else if channel_name == "fixture" {
-        // Use a test fixture directory if available
-        UpdateChannel::fixture(PathBuf::from(
-            "/localdata/workspace/stichos/corpus/fixtures/update",
-        ))
+        match fixture {
+            Some(path) => UpdateChannel::fixture(PathBuf::from(path)),
+            None => bail!(
+                "update: fixture channel requested but no fixture path provided.\n\
+                 Set --fixture-path <path> or the STICHOS_FIXTURE_PATH environment variable."
+            ),
+        }
     } else {
         // Treat as a file path for fixture channels
-        UpdateChannel::fixture(PathBuf::from(channel))
+        match fixture {
+            Some(p) => UpdateChannel::fixture(PathBuf::from(p)),
+            None => UpdateChannel::fixture(PathBuf::from(channel)),
+        }
     };
 
     // Get current binary path
@@ -2290,5 +2391,58 @@ fn cmd_open(
             }
             std::process::exit(1)
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn test_dispatch_parity() {
+        // Every tool in mcp::spec::TOOLS must have a dispatch arm in the MCP handler.
+        let all_tool_names: Vec<&str> = mcp::spec::TOOLS.iter().map(|t| t.name).collect();
+        let spec_count = all_tool_names.len();
+
+        // Dispatch arms in the MCP handler closure (line-ordered).
+        let dispatched_tools = [
+            "inspect_document",
+            "render_document",
+            "inspect_region",
+            "diff_documents",
+            "doctor",
+            "serve",
+            "apply_patch",
+            "edit_text",
+            "edit_cell",
+            "edit_structure",
+            "annotate_pages",
+            "revert_document",
+            "journal",
+            "create_document",
+            "script_tool",
+            "check_update",
+            "list_revisions",
+            "accept_revisions",
+            "reject_revisions",
+            "add_comment",
+            "list_annotations",
+            "resolve_annotations",
+            "sign_document",
+        ];
+
+        for tool in &all_tool_names {
+            assert!(
+                dispatched_tools.contains(tool),
+                "Tool '{}' is declared in spec but has no dispatch arm in main.rs",
+                tool
+            );
+        }
+
+        assert_eq!(
+            dispatched_tools.len(),
+            spec_count,
+            "dispatch arms ({}) != spec tools ({})",
+            dispatched_tools.len(),
+            spec_count
+        );
     }
 }
