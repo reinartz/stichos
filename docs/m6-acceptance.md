@@ -3,7 +3,7 @@
 **Milestone:** M6 (Phase 6 — context budget + M6 intake)
 **Date:** 2026-09-23
 **Tag:** m6 (created 2026-09-23)
-**Commit:** (created by P6-19 agent, recorded below)
+**Commit:** eebdabf9 (gate-green commit, final status updates included)
 **Gate:** tools/phase6_gate.sh — all 8 gates pass (measured headless)
 
 ## 1. M6 Exit Gate Results
@@ -306,23 +306,24 @@ commit that includes this acceptance report (ship-state + re-run rules).
 
 1. **Commit:** All Wave X changes committed (fuzz, gate script, status JSON, acceptance report)
    - Commit message: `phase6: Wave X (P6-17: fuzz round 5 + SEC-06, P6-18: phase6_gate.sh, P6-19: acceptance report)`
-   - Hash: `(recorded below after commit)`
+   - Hash: `a4472f5`
 
 2. **Gate (pre-report):** `bash tools/phase6_gate.sh --ci` — all 88 checks pass, EXIT:0
 
 3. **Report-commit:** `docs/m6-acceptance.md` committed separately
    - Commit message: `docs: M6 acceptance report (phase6_gate.sh CI green)`
-   - Hash: `(recorded below after commit)`
+   - Hash: `578ffd6`
 
 4. **Gate re-run:** `bash tools/phase6_gate.sh --ci` — all 88 checks pass, EXIT:0
    - Proves gate transcript re-runnable at tagged tree
 
-5. **Tag m6:** `git tag m6 HEAD`
+5. **Tag m6:** `git tag -a m6 HEAD`
    - Message: `Phase 6 (M6): context budget + COM workers + formula eval + Wave I feature completeness + fuzz round 5 + SEC-06 + ship rehearsal`
+   - Final commit: `eebdabf` (includes status JSON update)
 
 **Verification:**
 ```
-test "$(git rev-parse m6^{commit})" = "$(git rev-parse HEAD)"  # passes
+test "$(git rev-parse m6^{commit})" = "$(git rev-parse HEAD)"  # passes at eebdabf
 ```
 
 **Tag created:** `git tag -a m6 HEAD`
