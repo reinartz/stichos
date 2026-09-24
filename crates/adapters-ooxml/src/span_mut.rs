@@ -10,7 +10,7 @@ use gp_core::diagnostics::Severity;
 use std::collections::BTreeMap;
 
 use crate::xml::ByteSpan;
-use crate::xml::{Namespace, TagName, XmlDocument, XmlNode};
+use crate::xml::{TagName, XmlDocument, XmlNode};
 
 // ---------------------------------------------------------------------------
 // Mutation types

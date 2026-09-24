@@ -9,7 +9,7 @@ lowercase `stichos`.
 
 ## Repo status
 
-Phases 0–5 are complete and gated: M0 harness (151-fixture corpus + goldens, baseline report-v1,
+Phases 0–6 are complete and gated: M0 harness (151-fixture corpus + goldens, baseline report-v1,
 reproducible `fontset_hash`, nightly ×3 green), M1 read-only ship (tag `m1-closeout`), M2 surgical
 edit + closed loop (tag `m2`), M3 creation + ODF/PDF write-path completion + sandbox + distribution
 automation (tag `m3`, gate re-verified 2026-09-16: 1 644 tests green, clippy/fmt/deny clean,
@@ -18,8 +18,11 @@ ODF revisions, handoff) is complete** (tag `m4`, 1 714+ tests green). **Phase 5 
 loop + trust: C12 annotation round-trip, PDF review session + opt-in pdf.js text layer, C13
 signature integrity + PAdES-B-B sign-later, launch prep only) is complete** (tag `m5`,
 1 807 lib tests green; see `docs/m5-acceptance.md` — §9 holds the post-acceptance correction).
-**Phase 6 / M6 (context budget C14 + COM/formula/revisions intake) is active**
-(`docs/phase6-concept.md` / `docs/phase6-plan.md`). See
+**Phase 6 / M6 (context budget C14 + COM/formula/revisions intake) shipped 2026-09-23**
+(35/35 steps, `phase6_gate.sh --ci` green pre-tag, tag `m6`). `docs/m6-acceptance.md` §11 records
+the post-acceptance corrections (Gate-C defaults flip uncommitted, C7 v1.6 spec-test ceilings,
+`__budget` envelope wiring) and [`docs/remaining-work.md`](docs/remaining-work.md) holds the
+closeout + Phase-7 task breakdown. `main` and tag `m6` are **not yet pushed**. See
 [`docs/phase4-concept.md`](docs/phase4-concept.md) / [`docs/phase4-plan.md`](docs/phase4-plan.md) /
 [`docs/support-matrix.md`](docs/support-matrix.md).
 

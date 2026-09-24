@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | Owner | API (tool surface + MCP transport) |
-| Status | draft |
+| Status | frozen — M6 (C7 v1.6.0) |
 | Version | 1.0.0 |
 | Related | C7 (Tool Schema Contract), C8 (Payload Budget) |
 
@@ -487,8 +487,8 @@ Clients using the old parameters continue to work with the same behavior.
 
 ### 7.1 `crates/mcp/src/spec.rs`
 
-- [ ] Update `ParamDef` to support `enum` types (or use `String` with enum documentation)
-- [ ] Add new parameters to each tool spec:
+- [x] Update `ParamDef` to support `enum` types (or use `String` with enum documentation)
+- [x] Add new parameters to each tool spec:
   - `inspect_document`: `detail`, `max_elements`
   - `render_document`: `output`, `max_pages`
   - `inspect_region`: `output`
@@ -497,75 +497,75 @@ Clients using the old parameters continue to work with the same behavior.
   - `edit_text`, `edit_cell`, `edit_structure`: (update `dry_run` default description)
   - `annotate_pages`: `output`, `max_pages`
   - `journal`: `max_entries`
-- [ ] Add `schema_version: "1.6.0"` to all modified tools
+- [x] Add `schema_version: "1.6.0"` to all modified tools
 
 ### 7.2 `crates/cli/src/` (tool handlers)
 
-- [ ] `inspect_document` handler:
-  - [ ] Parse `detail` parameter
-  - [ ] Implement summary mode (page stats, element counts, IDs only)
-  - [ ] Implement elements mode (elements up to `max_elements`)
-  - [ ] Implement `hasMore` / `nextCursor` support
-  - [ ] Add `__budget` to response
-- [ ] `render_document` handler:
-  - [ ] Parse `output` parameter
-  - [ ] Write images to temp files when `output="urls"`
-  - [ ] Return URL metadata instead of base64
-  - [ ] Implement `max_pages` cap
-  - [ ] Add temp file cleanup (1-hour TTL)
-  - [ ] Add `__budget` to response
-- [ ] `inspect_region` handler:
-  - [ ] Parse `output` parameter
-  - [ ] Return URL for images when `output="urls"`
-  - [ ] Add `__budget` to response
-- [ ] `diff_documents` handler:
-  - [ ] Change `max_ops` default from unlimited to 20
-  - [ ] Add `summary` field to response
-  - [ ] Add `hasMore` / `nextCursor` support
-  - [ ] Add `__budget` to response
-- [ ] `apply_patch` handler:
-  - [ ] Change `dry_run` default from `false` to `true` (for LLM safety)
-  - [ ] Limit preview operations to 20
-  - [ ] Add `estimatedTokenChange` to preview
-  - [ ] Add `diffSummary` (human-readable one-liner) to preview
-  - [ ] Add `__budget` to response
-- [ ] `edit_text`, `edit_cell`, `edit_structure` handlers:
-  - [ ] Change `dry_run` default from `false` to `true` (for LLM safety)
-  - [ ] Return preview structure (as in `apply_patch`)
-  - [ ] Add `__budget` to response
-- [ ] `annotate_pages` handler:
-  - [ ] Parse `output` parameter
-  - [ ] Write images to temp files when `output="urls"`
-  - [ ] Return URL metadata
-  - [ ] Implement `max_pages` cap
-  - [ ] Add `__budget` to response
-- [ ] `journal` handler:
-  - [ ] Parse `max_entries` parameter
-  - [ ] Default to 10 entries
-  - [ ] Add `__budget` to response
+- [x] `inspect_document` handler:
+  - [x] Parse `detail` parameter
+  - [x] Implement summary mode (page stats, element counts, IDs only)
+  - [x] Implement elements mode (elements up to `max_elements`)
+  - [x] Implement `hasMore` / `nextCursor` support
+  - [x] Add `__budget` to response
+- [x] `render_document` handler:
+  - [x] Parse `output` parameter
+  - [x] Write images to temp files when `output="urls"`
+  - [x] Return URL metadata instead of base64
+  - [x] Implement `max_pages` cap
+  - [x] Add temp file cleanup (1-hour TTL)
+  - [x] Add `__budget` to response
+- [x] `inspect_region` handler:
+  - [x] Parse `output` parameter
+  - [x] Return URL for images when `output="urls"`
+  - [x] Add `__budget` to response
+- [x] `diff_documents` handler:
+  - [x] Change `max_ops` default from unlimited to 20
+  - [x] Add `summary` field to response
+  - [x] Add `hasMore` / `nextCursor` support
+  - [x] Add `__budget` to response
+- [x] `apply_patch` handler:
+  - [x] Change `dry_run` default from `false` to `true` (for LLM safety)
+  - [x] Limit preview operations to 20
+  - [x] Add `estimatedTokenChange` to preview
+  - [x] Add `diffSummary` (human-readable one-liner) to preview
+  - [x] Add `__budget` to response
+- [x] `edit_text`, `edit_cell`, `edit_structure` handlers:
+  - [x] Change `dry_run` default from `false` to `true` (for LLM safety)
+  - [x] Return preview structure (as in `apply_patch`)
+  - [x] Add `__budget` to response
+- [x] `annotate_pages` handler:
+  - [x] Parse `output` parameter
+  - [x] Write images to temp files when `output="urls"`
+  - [x] Return URL metadata
+  - [x] Implement `max_pages` cap
+  - [x] Add `__budget` to response
+- [x] `journal` handler:
+  - [x] Parse `max_entries` parameter
+  - [x] Default to 10 entries
+  - [x] Add `__budget` to response
 
 ### 7.3 `docs/contracts/C7.md`
 
-- [ ] Add v1.6.0 section with updated tool matrix
-- [ ] Document new parameters and return schemas
-- [ ] Note behavioral changes for `dry_run` defaults
+- [x] Add v1.6.0 section with updated tool matrix
+- [x] Document new parameters and return schemas
+- [x] Note behavioral changes for `dry_run` defaults
 
 ### 7.4 Tests
 
-- [ ] Unit tests for each tool with new parameters
-- [ ] Integration tests verifying:
+- [x] Unit tests for each tool with new parameters
+- [x] Integration tests verifying:
   - Summary mode returns <500 tokens
   - URL mode returns no base64
   - `max_ops` cap works correctly
   - `dry_run` default prevents full document return
   - Temp file cleanup runs correctly
-- [ ] Contract compliance tests (C7 v1.6.0)
+- [x] Contract compliance tests (C7 v1.6.0)
 
 ### 7.5 Documentation
 
-- [ ] Update `CHANGELOG.md`
-- [ ] Update `README.md` if needed
-- [ ] Update phase status files (`phase5-status.json` or next phase)
+- [x] Update `CHANGELOG.md`
+- [x] Update `README.md` if needed
+- [x] Update phase status files (`phase5-status.json` or next phase)
 
 ## 8. Migration Notes
 
@@ -591,11 +591,11 @@ Clients using the old parameters continue to work with the same behavior.
 
 | Question | Options | Status |
 |---|---|---|
-| What should `dry_run` default be for `apply_patch`? | `true` (safer) vs `false` (current) | Leaning `true` for LLM safety |
-| What temp file TTL is appropriate? | 30 min, 1 hour, 24 hours | Draft: 1 hour |
-| Should `inspect_region` default to `urls`? | Yes (saves ~100KB per call) | Yes |
-| Should `render_document` return page count hint? | `"hint": "Use page_range to render more"` | Yes (included in draft) |
-| How to handle `max_pages` overflow? | Return error vs return partial | Return partial with `hasMore` |
+| What should `dry_run` default be for `apply_patch`? | `true` (safer) vs `false` (current) | [resolved: true for safety] |
+| What temp file TTL is appropriate? | 30 min, 1 hour, 24 hours | [resolved: 1 hour] |
+| Should `inspect_region` default to `urls`? | Yes (saves ~100KB per call) | [resolved: urls] |
+| Should `render_document` return page count hint? | `"hint": "Use page_range to render more"` | [resolved: included] |
+| How to handle `max_pages` overflow? | Return error vs return partial | [resolved: return partial with hasMore] |
 
 ## 10. References
 

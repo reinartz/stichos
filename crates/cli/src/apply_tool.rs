@@ -136,10 +136,9 @@ pub fn apply_patch(
             "1.0.0|{}",
             base64::engine::general_purpose::STANDARD.encode(format!("{:?}", ops))
         );
-        match journal.commit(action, &source_bytes, &result.output, ir_patch, Vec::new()) {
-            Ok(entry_id) => Some(entry_id),
-            Err(_) => None,
-        }
+        journal
+            .commit(action, &source_bytes, &result.output, ir_patch, Vec::new())
+            .ok()
     } else {
         None
     };

@@ -566,8 +566,6 @@ fn handle_revision_accept_odf(
             .into_iter()
             .filter(|r| id_set.contains(&r.id.to_string()))
             .collect()
-    } else if all {
-        revisions
     } else {
         revisions
     };
@@ -865,8 +863,6 @@ fn handle_revision_reject_odf(
             .into_iter()
             .filter(|r| id_set.contains(&r.id.to_string()))
             .collect()
-    } else if all {
-        revisions
     } else {
         revisions
     };

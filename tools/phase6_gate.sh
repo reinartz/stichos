@@ -269,25 +269,25 @@ if [ -n "$INSPECT_OUTPUT" ]; then
     if [ "$TOKENS_EST" -lt 500 ] 2>/dev/null; then
         pass "inspect summary tokens_est=${TOKENS_EST} < 500"
     else
-        pass "inspect summary tokens_est=${TOKENS_EST} (below 500 threshold)"
+        fail "inspect summary tokens_est=${TOKENS_EST} >= 500 (CTX-06 budget violation)"
     fi
 else
     pass "inspect summary: stichos binary not built or fixture missing (skipped)"
 fi
 
-# 1c. Region --output urls JSON contains zero 'base64'
-echo "  Running: ./target/debug/stichos region cjk-text-docx-001.docx --bbox 0,0,72,72 --output urls --json"
+# 1c. Region output contains zero 'base64' data URIs
+echo "  Running: ./target/debug/stichos region cjk-text-docx-001.docx --bbox 0,0,72,72"
 set +e
-REGION_OUTPUT=$("./target/debug/stichos" region corpus/blobs/cjk-text-docx-001.docx --bbox 0,0,72,72 --output urls --json 2>/dev/null) || true
+REGION_OUTPUT=$("./target/debug/stichos" region corpus/blobs/cjk-text-docx-001.docx --bbox 0,0,72,72 2>/dev/null) || true
 set -e
 if [ -n "$REGION_OUTPUT" ]; then
-    if ! echo "$REGION_OUTPUT" | grep -q 'base64'; then
-        pass "region --output urls: zero 'base64' substring"
+    if ! echo "$REGION_OUTPUT" | grep -q 'data:image'; then
+        pass "region: zero 'data:image' (base64) URI"
     else
-        fail "region --output urls: contains 'base64'"
+        fail "region: contains 'data:image' base64 URI"
     fi
 else
-    pass "region --output urls: stichos binary not built or fixture missing (skipped)"
+    pass "region: stichos binary not built or fixture missing (skipped)"
 fi
 
 # 1d. Diff default returns ≤ 20 ops with hasMore + totalOperations
@@ -296,13 +296,13 @@ set +e
 DIFF_OUTPUT=$("./target/debug/stichos" diff corpus/blobs/cjk-text-docx-001.docx corpus/blobs/cjk-text-docx-002.docx --json 2>/dev/null) || true
 set -e
 if [ -n "$DIFF_OUTPUT" ]; then
-    HAS_MORE=$(echo "$DIFF_OUTPUT" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('hasMore',False))" 2>/dev/null) || HAS_MORE="false"
-    TOTAL_OPS=$(echo "$DIFF_OUTPUT" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('totalOperations',0))" 2>/dev/null) || TOTAL_OPS=0
-    OPS_LEN=$(echo "$DIFF_OUTPUT" | python3 -c "import json,sys; d=json.load(sys.stdin); ops=d.get('ops',[]); print(len(ops))" 2>/dev/null) || OPS_LEN=0
+    HAS_MORE=$(echo "$DIFF_OUTPUT" | python3 -c "import json,sys; d=json.load(sys.stdin); ir=d.get('ir_diff',{}); print(ir.get('hasMore',False))" 2>/dev/null) || HAS_MORE="false"
+    TOTAL_OPS=$(echo "$DIFF_OUTPUT" | python3 -c "import json,sys; d=json.load(sys.stdin); ir=d.get('ir_diff',{}); print(ir.get('total_operations',ir.get('total_ops',0)))" 2>/dev/null) || TOTAL_OPS=0
+    OPS_LEN=$(echo "$DIFF_OUTPUT" | python3 -c "import json,sys; d=json.load(sys.stdin); ops=d.get('ir_diff',{}).get('ops',[]); print(len(ops))" 2>/dev/null) || OPS_LEN=0
     if [ "$OPS_LEN" -le 20 ] 2>/dev/null && [ "$HAS_MORE" = "True" ]; then
         pass "diff default: ${OPS_LEN} ops (≤20), hasMore=true, totalOperations=${TOTAL_OPS}"
     else
-        pass "diff default: ${OPS_LEN} ops, hasMore=${HAS_MORE}, totalOperations=${TOTAL_OPS}"
+        fail "diff default: ${OPS_LEN} ops, hasMore=${HAS_MORE}, totalOperations=${TOTAL_OPS} (exceeds cap or missing hasMore)"
     fi
 else
     pass "diff default: stichos binary not built or fixture missing (skipped)"
@@ -314,12 +314,12 @@ set +e
 JOURNAL_OUTPUT=$("./target/debug/stichos" journal corpus/blobs/long-tables-docx-001.docx --json 2>/dev/null) || true
 set -e
 if [ -n "$JOURNAL_OUTPUT" ]; then
-    ENTRY_COUNT=$(echo "$JOURNAL_OUTPUT" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('entry_count',0))" 2>/dev/null) || ENTRY_COUNT=0
-    TOTAL_ENTRIES=$(echo "$JOURNAL_OUTPUT" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('totalEntries',0))" 2>/dev/null) || TOTAL_ENTRIES=0
+    ENTRY_COUNT=$(echo "$JOURNAL_OUTPUT" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('entry_count',d.get('entries',[])|.length if hasattr(d.get('entries',[]),'length') else 0))" 2>/dev/null) || ENTRY_COUNT=0
+    TOTAL_ENTRIES=$(echo "$JOURNAL_OUTPUT" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('totalEntries',d.get('total_entries',0)))" 2>/dev/null) || TOTAL_ENTRIES=0
     if [ "$ENTRY_COUNT" -le 10 ] 2>/dev/null; then
         pass "journal default: ${ENTRY_COUNT} entries (≤10), totalEntries=${TOTAL_ENTRIES}"
     else
-        pass "journal default: ${ENTRY_COUNT} entries, totalEntries=${TOTAL_ENTRIES}"
+        fail "journal default: ${ENTRY_COUNT} entries > 10, totalEntries=${TOTAL_ENTRIES} (cap violation)"
     fi
 else
     pass "journal default: stichos binary not built or fixture missing (skipped)"
@@ -333,13 +333,41 @@ if [ -n "$INSPECT_OUTPUT" ]; then
     if [ "$HAS_BUDGET" = "yes" ] && [ "$HAS_DIAG" = "yes" ] && [ "$HAS_RENDERED" = "yes" ]; then
         pass "inspect: __budget + diagnostics + rendered_by present"
     else
-        pass "inspect: __budget=${HAS_BUDGET}, diagnostics=${HAS_DIAG}, rendered_by=${HAS_RENDERED}"
+        fail "inspect: __budget=${HAS_BUDGET}, diagnostics=${HAS_DIAG}, rendered_by=${HAS_RENDERED} (C14 envelope missing)"
     fi
 else
     pass "inspect envelope keys: stichos binary not built (skipped)"
 fi
 
-# 1g. Legacy opt-outs
+# 1g. Envelope on diff output (non-empty response with __budget)
+if [ -n "$DIFF_OUTPUT" ]; then
+    HAS_BUDGET_DIFF=$(echo "$DIFF_OUTPUT" | python3 -c "import json,sys; d=json.load(sys.stdin); print('yes' if '__budget' in d else 'no')" 2>/dev/null) || HAS_BUDGET_DIFF="no"
+    HAS_DIAG_DIFF=$(echo "$DIFF_OUTPUT" | python3 -c "import json,sys; d=json.load(sys.stdin); print('yes' if 'diagnostics' in d else 'no')" 2>/dev/null) || HAS_DIAG_DIFF="no"
+    HAS_RENDERED_DIFF=$(echo "$DIFF_OUTPUT" | python3 -c "import json,sys; d=json.load(sys.stdin); print('yes' if 'rendered_by' in d else 'no')" 2>/dev/null) || HAS_RENDERED_DIFF="no"
+    if [ "$HAS_BUDGET_DIFF" = "yes" ] && [ "$HAS_DIAG_DIFF" = "yes" ] && [ "$HAS_RENDERED_DIFF" = "yes" ]; then
+        pass "diff: __budget + diagnostics + rendered_by present"
+    else
+        fail "diff: __budget=${HAS_BUDGET_DIFF}, diagnostics=${HAS_DIAG_DIFF}, rendered_by=${HAS_RENDERED_DIFF} (C14 envelope missing)"
+    fi
+else
+    pass "diff envelope keys: stichos binary not built (skipped)"
+fi
+
+# 1h. Envelope on journal output
+if [ -n "$JOURNAL_OUTPUT" ]; then
+    HAS_BUDGET_J=$(echo "$JOURNAL_OUTPUT" | python3 -c "import json,sys; d=json.load(sys.stdin); print('yes' if '__budget' in d else 'no')" 2>/dev/null) || HAS_BUDGET_J="no"
+    HAS_DIAG_J=$(echo "$JOURNAL_OUTPUT" | python3 -c "import json,sys; d=json.load(sys.stdin); print('yes' if 'diagnostics' in d else 'no')" 2>/dev/null) || HAS_DIAG_J="no"
+    HAS_RENDERED_J=$(echo "$JOURNAL_OUTPUT" | python3 -c "import json,sys; d=json.load(sys.stdin); print('yes' if 'rendered_by' in d else 'no')" 2>/dev/null) || HAS_RENDERED_J="no"
+    if [ "$HAS_BUDGET_J" = "yes" ] && [ "$HAS_DIAG_J" = "yes" ] && [ "$HAS_RENDERED_J" = "yes" ]; then
+        pass "journal: __budget + diagnostics + rendered_by present"
+    else
+        fail "journal: __budget=${HAS_BUDGET_J}, diagnostics=${HAS_DIAG_J}, rendered_by=${HAS_RENDERED_J} (C14 envelope missing)"
+    fi
+else
+    pass "journal envelope keys: stichos binary not built (skipped)"
+fi
+
+# 1i. Legacy opt-outs
 echo "  Running: ./target/debug/stichos inspect long-tables-docx-001.docx --detail all --json"
 set +e
 LEGACY_OUTPUT=$("./target/debug/stichos" inspect corpus/blobs/long-tables-docx-001.docx --detail all --json 2>/dev/null) || true
@@ -349,7 +377,7 @@ if [ -n "$LEGACY_OUTPUT" ]; then
     if [ "$LEGACY_HAS_TOTAL" = "yes" ]; then
         pass "inspect --detail all: restores legacy shape (total_elements present)"
     else
-        pass "inspect --detail all: legacy shape (total_elements=${LEGACY_HAS_TOTAL})"
+        fail "inspect --detail all: missing total_elements (legacy opt-out broken)"
     fi
 else
     pass "inspect --detail all: stichos binary not built (skipped)"
@@ -364,7 +392,7 @@ if [ -n "$DIFF_FULL" ]; then
     if [ "$DIFF_HASMORE" = "False" ]; then
         pass "diff --max-ops 0: restores full ops (hasMore=false)"
     else
-        pass "diff --max-ops 0: hasMore=${DIFF_HASMORE}"
+        fail "diff --max-ops 0: hasMore=${DIFF_HASMORE} (legacy opt-out not restoring unlimited ops)"
     fi
 else
     pass "diff --max-ops 0: stichos binary not built (skipped)"
@@ -457,18 +485,17 @@ else
     fail "P6-06: surface freeze not verified"
 fi
 
-# 3a. cargo test -p mcp --lib ctx06 (additive-only scan)
-echo "  Running: cargo test -p mcp --lib ctx06"
+# 3a. cargo test -p mcp --lib (full suite — ceiling tests must not hide)
+echo "  Running: cargo test -p mcp --lib"
 set +e
-cargo test -p mcp --lib ctx06 > "$LOG" 2>&1
+cargo test -p mcp --lib > "$LOG" 2>&1
 CTX06_RC=$?
 set -e
 if [ "$CTX06_RC" -eq 0 ]; then
-    CTX06_COUNT=$(gcount "test " "$LOG")
-    pass "cargo test -p mcp --lib ctx06 passes (${CTX06_COUNT} tests)"
+    CTX06_COUNT=$(grep -c 'test ' "$LOG" 2>/dev/null || echo "0")
+    pass "cargo test -p mcp --lib passes (${CTX06_COUNT} tests)"
 else
-    # ctx06 tests may not exist yet if Wave-C code is uncommitted
-    pass "cargo test -p mcp --lib ctx06: tests not yet committed (Wave-C pending)"
+    fail "cargo test -p mcp --lib failed (ceiling tests exposed)"
 fi
 
 # 3b. cargo test -p stichos --test p606_ctx06_compliance

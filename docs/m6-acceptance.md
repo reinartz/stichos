@@ -380,3 +380,46 @@ ship-state rule). After tag creation, only the `test "$(git rev-parse m6^{commit
 
 Both runs executed in CI mode (`--ci`) on this Linux host, with COM checks skipped and pre-existing
 OPC zip-bomb test failures accepted.
+
+## 11. Post-acceptance corrections (2026-09-23 audit)
+
+A completion audit of the working tree (post-`m6`-tag) measured the following corrections to this
+report. None of them invalidate Waves 0/F/R/G/I/X; they scope the Gate-C (C14) closeout.
+
+1. **Gate-C defaults flip landed UNCOMMITTED.** The owner flip (inspect `detail=summary`,
+   region/render `output=urls`, mutation `dry_run=true` + CLI `--apply` opt-out, `spec.rs` 10 tools
+   → `schema_version` 1.6.0) is present in the working tree only; the `m6` tag (`23db42b`) points
+   at a tree without it. Per the repo rule, milestone tags move only to committed gate-green
+   trees — after the fixes below, the tree must be committed and `m6` re-anchored.
+2. **3 `mcp` spec tests red after the flip** (`cargo test -p mcp --lib`):
+   `test_all_tools_schema_version`, `test_apply_patch_is_non_idempotent`,
+   `test_verify_c7_compliance` still assert the 1.5.0 version ceiling. The gate's
+   `cargo test -p mcp --lib ctx06` filter does not cover them, so `phase6_gate.sh --ci` stayed
+   green — fix the ceilings and broaden the gate filter.
+3. **`__budget` + `rendered_by` are NOT stamped on 100 % of responses (D27/C14 headline).**
+   `gp-core::envelope` is used only by `cli/src/image_output.rs`. CLI `inspect`/`apply`/`diff`/
+   `journal` JSON and every MCP tool response lack `__budget`; MCP dispatch has no envelope
+   stamping. The exit-gate condition "every default response fits one reasoning turn with the
+   envelope" is therefore **not yet met** — tracked as closeout T-B in `docs/remaining-work.md`.
+4. **Gate checks 1b/1d/1e/1f are toothless** (`tools/phase6_gate.sh`): each calls `pass` in both
+   the pass and the fail branch (and 1d inspects top-level `ops`/`hasMore` while the CLI nests
+   them under `ir_diff`); the 1c region check passes `--output urls --json`, flags the CLI does
+   not accept, so empty output silently "passes". Re-gate with real fail branches.
+5. **`p606_ctx06_compliance.rs` was weakened during the flip**: envelope/cap/pagination asserts
+   (tokens_est < 500 via the estimator, zero-base64 URL purity, `ir_diff` 20-op cap + `hasMore`,
+   journal `totalEntries`, snake_case preview wire shape, source byte-identity) were replaced by
+   presence checks. Restore the strict contract asserts against a compliant implementation.
+6. **Contract docs lag the surface:** `docs/contracts/C7.md` still shows Version 1.5.0 (matrix +
+   v1.6 section pending); `docs/contracts/C14-context-budget.md` still `status: draft` with an
+   unchecked freeze checklist. C15/ADR-0011 are frozen and fine.
+7. **Git-state:** `main` is 8 commits ahead of `origin` and tag `m6` is local-only (origin tags
+   stop at `m5`); push is pending owner approval (D26). `cargo fmt --check` failed on the
+   uncommitted flip files (fixed in the working tree during the audit).
+
+Gate re-run measured during the audit (CI mode, working tree): **86/88** — 1 expected artifact
+("no m6 tag", documented above in the post-tag note) + the fmt failure (fixed). The toothless
+checks 1b/1d/1e/1f "passed" but measured no contract (see 4).
+
+**Closeout task breakdown:** `docs/remaining-work.md` (tracks T-A commit/freeze, T-B envelope
+wiring, T-C gate hardening, T-D tag/push; Phase-7 backlog unchanged from `docs/phase6-concept.md`
+§12).

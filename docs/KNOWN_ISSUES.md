@@ -128,4 +128,47 @@ return the output path or content hashes.
 
 ---
 
-*Last updated: 2026-09-12*
+## KI-06: Gate-C defaults flip uncommitted (M6 closeout blocking)
+
+**Status:** active — blocks pushing `main` + `m6`
+**Area:** CLI defaults, MCP envelope stamping, gate checks
+**Created:** 2026-09-23 (post-M6 audit)
+
+**What needs to be committed:**
+1. `--apply` opt-out, `dry_run=true` default, `spec.rs` 10 tools → `schema_version: "1.6.0"`
+   (in working tree but uncommitted)
+2. `__budget` + `diagnostics` + `rendered_by` envelope stamped on all CLI verb outputs
+   (T-B1 landed in working tree)
+3. Envelope stamped on all 23 MCP tool responses in serve handler (T-B2 landed in working tree)
+4. Gate checks 1b/1d/1e/1f/1g/1i hardened to fail on violations (T-C1 landed in working tree)
+
+**Effect of uncommitted state:**
+- `cargo test -p mcp --lib` fails 3/93 (version ceiling assertions still 1.5.0) — FIXED by T-A1
+- `p606_ctx06_compliance.rs` strict tests fail (envelope not stamped, caps not enforced) —
+  tests correctly detect the gap
+- `phase6_gate.sh` 1b/1d/1e/1f always pass even when violated — FIXED by T-C1
+
+**Resolution path:** Commit the Gate-C flip, re-run `phase6_gate.sh --ci` (should be green
+except for the expected `m6`-tag artifact), re-anchor the `m6` tag.
+
+---
+
+## KI-07: Toothless gate checks (historical, fixed via T-C1)
+
+**Status:** fixed — tracked here for audit trail
+**Area:** `tools/phase6_gate.sh` checks 1b, 1d, 1e, 1f
+
+**What happened:** Four Gate-1 checks had `pass` in both branches — they called `fail` on
+the success path and `pass` with a status note on the failure path. This meant the gate
+reported green even when the contract was violated.
+
+**Fix:** All four checks now call `fail` on violation with a descriptive message. The
+`--planted-violation` test mode confirms the gate catches each fixed check.
+
+**Evidence:** `phase6_gate.sh --ci` on the post-fix tree reports 5 failures (all expected
+due to KI-06 — the Gate-C flip is still uncommitted). Without T-C1, all 88 checks passed
+despite the violations.
+
+---
+
+*Last updated: 2026-09-23*

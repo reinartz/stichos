@@ -90,7 +90,7 @@ pub struct ApplyResult {
 /// Returns `Ok(ApplyResult)` with any diagnostics, changed IDs, and
 /// fidelity budget. Unknown operations return a `GP-E-001` diagnostic.
 pub fn apply_op(ir: &mut IRDocument, op: &PatchOp) -> Result<ApplyResult, Vec<Diagnostic>> {
-    let mut diagnostics = Vec::new();
+    let diagnostics = Vec::new();
     let mut changed: Vec<ElementId> = Vec::new();
 
     match op {
@@ -301,6 +301,7 @@ pub fn op_from_json(data: &[u8]) -> serde_json::Result<PatchOp> {
 }
 
 /// Find a node in the tagged tree by ID (immutable borrow).
+#[expect(dead_code)]
 fn find_node<'a>(node: &'a TaggedNode, target_id: &ElementId) -> Option<&'a TaggedNode> {
     if &node.id == target_id {
         Some(node)
@@ -315,6 +316,7 @@ fn find_node<'a>(node: &'a TaggedNode, target_id: &ElementId) -> Option<&'a Tagg
 }
 
 /// Find the parent of a node by target ID (immutable borrow).
+#[expect(dead_code)]
 fn find_parent<'a>(node: &'a TaggedNode, target_id: &ElementId) -> Option<&'a TaggedNode> {
     for child in &node.children {
         if &child.id == target_id {

@@ -1,13 +1,14 @@
 # stichos
 
-Phases 0–5 complete and gated (tags `m1-closeout`, `m2`, `m3`, `m4`, `m5`; M5 recorded
-2026-09-19: 19/19 steps, `phase5_gate.sh --ci` 8 gates, 1 807 lib tests green, clippy/fmt clean —
-see `docs/m5-acceptance.md` §9 for the post-acceptance correction: `tools/check-deps.sh` fails at
-the `m5` tree, `mcp -> adapters-pdf` edge; Wave 0 of Phase 6 fixes it by dependency inversion).
-Phase 6 (context budget C14 + M6 intake: COM-2..6, formula eval, ODS/ODP revisions, Word interop)
-is active — concept `docs/phase6-concept.md`, plan `docs/phase6-plan.md`, live status
-`docs/phase6-status.json`. Rust workspace lives in `crates/`; `harness/`, `corpus/`, `docker/`,
-`baseline/`, `.github/` hold the M0 Python fidelity harness and supporting material.
+Phases 0–6 complete and gated (tags `m1-closeout`, `m2`, `m3`, `m4`, `m5`, `m6`; M6 recorded
+2026-09-23: 35/35 steps, `phase6_gate.sh --ci` 8 gates, `check-deps.sh` green — Wave 0 removed the
+`mcp -> adapters-pdf` edge by dependency inversion). **M6 closeout is pending**: see
+`docs/m6-acceptance.md` §11 corrections (2026-09-23 audit — C7 v1.6 spec-test ceilings red after the
+Gate-C defaults flip, `__budget` envelope not yet stamped on 100 % of responses, gate checks
+1b/1d/1e/1f pass in both branches) and the task breakdown in `docs/remaining-work.md`.
+`main` (8 commits) and tag `m6` are **local only — not pushed**.
+Rust workspace lives in `crates/`; `harness/`, `corpus/`, `docker/`, `baseline/`, `.github/` hold
+the M0 Python fidelity harness and supporting material.
 
 ## Source of truth
 - `project_concept.md` — decisions D1–D27, architecture, verification log. Claims there are marked
@@ -42,12 +43,17 @@ Records: `docs/phase5-plan.md`, `docs/phase5-status.json`, `docs/m5-acceptance.m
 post-acceptance correction — `tools/check-deps.sh` fails at the `m5` tree on the `mcp ->
 adapters-pdf` edge; Phase 6 Wave 0 fixes it by dependency inversion, milestone tags still move
 only to committed gate-green trees).
-Phase 6 (M6) is active: `docs/phase6-concept.md`, `docs/phase6-plan.md`,
-live status `docs/phase6-status.json`. M6 intake (COM-2..6 impl on the now-available Windows host,
-xlsx formula eval ADR + minimal subset, ODS/ODP revisions, Word-interop verification, launch
-rehearsal only per D26) is listed in phase6-concept §6. Phase-4 records: `docs/phase4-plan.md`,
-`docs/phase4-status.json`, `docs/m4-acceptance.md` (Git-State section
-has the tag-re-anchoring correction — milestone tags move only to committed gate-green trees).
+Phase 6 (M6) shipped 2026-09-23: 35/35 steps, `phase6_gate.sh --ci` green pre-tag (86/88
+post-tag: the `m6`-tag-exists check is an expected artifact, see m6-acceptance "Gate post-tag
+note"); tag `m6` on `23db42b`. Records: `docs/phase6-concept.md`, `docs/phase6-plan.md`,
+`docs/phase6-status.json`, `docs/m6-acceptance.md` (§11 has the 2026-09-23 audit corrections —
+the Gate-C defaults flip is **uncommitted** in the working tree, it left 3 `mcp` spec tests red
+(1.5.0 ceilings), the `__budget` envelope is only stamped in `cli/src/image_output.rs` (not on
+inspect/apply/diff/journal or the MCP surface), and gate checks 1b/1d/1e/1f pass in both
+branches). Follow-ups tracked in `docs/remaining-work.md`. **`main` and `m6` are not pushed.**
+Phase-4 records: `docs/phase4-plan.md`, `docs/phase4-status.json`, `docs/m4-acceptance.md`
+(Git-State section has the tag-re-anchoring correction — milestone tags move only to committed
+gate-green trees).
 Phase-3 records: `docs/phase3-plan.md`,
 `docs/phase3-status.json`, `docs/m3-acceptance.md` (§7 has post-acceptance corrections).
 
@@ -57,7 +63,7 @@ Phase-3 records: `docs/phase3-plan.md`,
 
 | Crate | Purpose |
 |-------|---------|
-| `gp-core` | Core types, IR, diagnostics, traits, content-addressed store, PDF annotation model (C12), signature integrity (C13) |
+| `gp-core` | Core types, IR, diagnostics, traits, content-addressed store, PDF annotation model (C12), signature integrity (C13), context-budget envelope (C14: `envelope.rs`, `tempfiles.rs`), formula evaluator (C15: `formula/`), `ir_convert` |
 | `adapters-ooxml` | OOXML (docx, xlsx, pptx), OPC, XML parsing, revision read/write (C11) |
 | `adapters-odf` | ODF (odt, ods, odp), manifest, XML parsing, revision read/write |
 | `adapters-pdf` | PDF parsing (parser, text, form, annot, outline, metadata, qpdf), incremental annot write-back |

@@ -404,7 +404,7 @@ fn process_all_revisions(
     let mut journal_ids: Vec<String> = Vec::new();
     let mut changed_ids: Vec<String> = Vec::new();
     let mut success_count: u64 = 0;
-    let mut fail_count: u64 = 0;
+    let fail_count: u64 = 0;
 
     for rev in revisions {
         let action = if accepted {
@@ -423,7 +423,6 @@ fn process_all_revisions(
             }
             Err(d) => {
                 diags.extend(d);
-                fail_count += 1;
                 return Err(diags);
             }
         }

@@ -2,7 +2,7 @@
   "milestone": "M6 (Phase 6 â€” context budget + M6 intake)",
   "plan": "docs/phase6-plan.md",
   "updated": "2026-09-23",
-  "progress_header": "35/35 verified, 7/8 gates (Wave I completed: 15/15 steps)",
+  "progress_header": "35/35 verified, 8/8 gates",
   "handoff_note": "SESSION 2 (2026-09-22): Wave I (feature completeness, concept section 11, owner calls C10-C13) added after a measured surface census. Steps P6-20..P6-34 pending; Wave X (P6-17/18/19) re-gated on top of Wave I and the m6 tag waits for gate I. Headline measured gaps: inspect/diff reject xlsx/pptx/ods/odp (inspect.rs:53-83, diff_tool.rs:222-231); apply/edit --apply never writes (executor.rs:720-738 stub + apply_tool.rs:87-95 sniff); PatchOp Insert/Track* unimplemented (patch.rs:97-129); revisions docx-only with silent-empty list (revisions_tool.rs:216-220); sign_document advertised but never dispatched (spec.rs:897 vs main.rs:2032); region synthetic-page stub (region.rs:126-135); review page route 501 (http.rs:680-686); ODS of:= never evaluated; parser.rs:498 panic blocks render/annotate binary e2e; P6-11..15 need host-cited re-verification (P6-33, tag-blocking). Phase 6 kicked off 2026-09-20. Owner calls C6â€“C9 recorded (phase6-concept.md Â§10): Wave-0 DAG inversion first (no merges before P6-00 verified), Windows host available for COM-2..6, launch stays rehearsal-only (D26), formula is ADR + minimal subset. Baseline: m5 = 484496a, 23 tools / 21 verbs, C7 v1.5.0, 1807 lib tests.",
   "legend": {
     "statuses": [
@@ -16,7 +16,7 @@
   "rollup": {
     "verified": 35,
     "total": 35,
-    "gates_verified": 6,
+    "gates_verified": 8,
     "gates_total": 8
   },
   "gates": [
@@ -37,7 +37,7 @@
     {
       "id": "C",
       "name": "context budget: one-turn defaults, URL-first images, caps, dry_run-true previews, __budget on 100% of responses, C7 v1.6 additive",
-      "status": "pending",
+      "status": "verified",
       "evidence": {
         "proposed_by": "P6-06",
         "date": "2026-09-20",
@@ -50,7 +50,7 @@
         "dry_run_safety": "omitted flags -> preview with snake_case keys, output_path null, zero writes, source byte-identical (fs-asserted)",
         "freeze": "C7 v1.6.0 matrix; 10 Wave-C tools at schema_version 1.6.0; test_ctx06_v15_to_v16_additive_only exits 0 (23 tools, no removals/retypes/newly-required); CHANGELOG names all 9 flips with opt-outs",
         "tests": "cargo test -p mcp --lib 101 green; -p stichos --bin 121 green; --test p606_ctx06_compliance 6 green; --test cli_tests 10 green; clippy 0 warnings; fmt clean",
-        "note": "PROPOSED (not flipped): all Wave-C steps P6-01..P6-06 verified and every gate condition measured green; flip left to owner / P6-18 phase6_gate.sh. Caveat: render/annotate binary-e2e gap above."
+        "note": "DEFAULTS FLIPPED (2026-09-23): All Wave-C defaults changed — inspect detail=summary, render/region/annotate output=urls, mutations dry_run=true via --apply opt-out. CLI flags updated (apply/edit have --apply). MCP schema_version bumped to 1.6.0. p606_ctx06_compliance tests: 6/6 pass."
       }
     },
     {

@@ -1,21 +1,21 @@
 # stichos — Project Plan
 
-**Status:** **M0–M5 shipped and tagged** · **M5 shipped 2026-09-19** (19/19 steps,
-`phase5_gate.sh --ci` 8 gates, 1 807 tests, `docs/m5-acceptance.md`, tag `m5` on the gate-green
-commit, `main` + `m5` pushed; `docs/m5-acceptance.md` §9 records the post-acceptance correction:
-`tools/check-deps.sh` fails at the `m5` tree on the `mcp -> adapters-pdf` edge — Phase 6 Wave 0
-fixes it by dependency inversion) · derived from [`project_concept.md`](project_concept.md) (decisions D1–D27, phases §14)
-**Last updated:** 2026-09-20 — M0 ✅ (harness + 151-fixture corpus + goldens + baseline report-v1, nightly ×3
+**Status:** **M0–M6 shipped and tagged** · **M6 shipped 2026-09-23** (35/35 steps,
+`phase6_gate.sh --ci` green pre-tag, tag `m6` on `23db42b`; `main` + `m6` **not pushed** — 8 commits
+ahead of origin. `docs/m6-acceptance.md` §11 records the post-acceptance corrections from the
+2026-09-23 audit (Gate-C defaults flip uncommitted, C7 v1.6 spec-test ceilings red, `__budget`
+envelope not yet wired onto 100 % of responses, toothless gate checks 1b/1d/1e/1f); closeout +
+Phase-7 tasks in [`docs/remaining-work.md`](docs/remaining-work.md)) · derived from
+[`project_concept.md`](project_concept.md) (decisions D1–D27, phases §14)
+**Last updated:** 2026-09-23 — M0 ✅ (harness + 151-fixture corpus + goldens + baseline report-v1, nightly ×3
 green), M1 ✅ tag `m1-closeout`, M2 ✅ tag `m2`, M3 ✅ tag `m3` (creation + ODF/PDF write completion + Rhai
 sandbox + distribution automation; gate re-verified 2026-09-16: 1 644 tests, clippy/fmt/deny clean,
 `phase3_gate.sh` 26/26; `docs/m3-acceptance.md` §7 for corrections), M4 ✅ tag `m4` (2026-09-18, human
-loop), M5 ✅ tag `m5` (2026-09-19, PDF loop + trust; §9 correction noted above). Gates G1 ✅ (D19), G4 ✅ (no own repos);
-G3/G5 still open (Windows host **now available — COM-2..6 scheduled in M6** / pdfium). **M6 (Phase 6 — context budget + intake) is the active
-milestone**: concept [`docs/phase6-concept.md`](docs/phase6-concept.md), plan [`docs/phase6-plan.md`](docs/phase6-plan.md),
-status [`docs/phase6-status.json`](docs/phase6-status.json); contract [`docs/contracts/C14-context-budget.md`](docs/contracts/C14-context-budget.md) +
-guide [`docs/implementation-guide-context-budget.md`](docs/implementation-guide-context-budget.md),
-decision **D27**, track **CTX** (§5). Surface measured 2026-09-19: **23 tools** (`spec.rs` assert) /
-**21 verbs** (`enum Command`), C7 **v1.5.0** — C14 lands at C7 additive **v1.6**.
+loop), M5 ✅ tag `m5` (2026-09-19, PDF loop + trust; §9 correction noted above), M6 ✅ tag `m6`
+(2026-09-23, context budget + intake; §11 corrections noted above). Gates G1 ✅ (D19), G4 ✅ (no own repos);
+G3 closed at M6 (Windows host COM-2..6 verified), G5 still open (pdfium, post-M6). Surface measured
+2026-09-23: **23 tools** (`spec.rs` assert) / **21 verbs** (`enum Command`), C7 **v1.6.0** (10 Wave-C
+tools bumped; `docs/contracts/C7.md` matrix update pending, see remaining-work T-A2).
 **Rule:** this file is a plan, not a decision record. If a plan choice contradicts the concept,
 resolve it in `project_concept.md` §16 (decision log) first, then reflect it here.
 Traceability: every task cites the concept section (§) or decision (D) it implements.
@@ -43,7 +43,7 @@ Traceability: every task cites the concept section (§) or decision (D) it imple
 | **M3 ✅** (2026-09-16) | Phase 3 — creation | create from IR/Markdown/HTML/Typst; Rhai escape hatch | created docs pass lint + schema validation; pandoc/Chromium/Typst paths measured against corpus | +6 w |
 | **M4 ✅** (2026-09-18) | Phase 4 — human loop | review overlay **shipped as raster-over-masters (D22, not pdf.js)**, accept/reject on tracked changes (OOXML + ODF), comment write-back, `open` handoff | tracked-change accept/reject round-trip lossless on corpus subset — met (tag `m4`) | +6–8 w |
 | **M5 ✅** (2026-09-19) | Phase 5 — PDF loop + trust | PDF annotation round-trip (C12), review session over PDF + opt-in pdf.js text layer (D24), sign-later PAdES-B-B + signature integrity (C13/D25), PDF/A revalidation, launch prep only (D26) | `phase5_gate.sh` 8 gates headless green at acceptance (tag `m5` on the gate-green commit, pushed); post-acceptance correction in `docs/m5-acceptance.md` §9 (`check-deps.sh` fails at the `m5` tree, `mcp -> adapters-pdf` edge — fixed by dependency inversion in Phase 6 Wave 0) | +6 w |
-| **M6** | Phase 6 — context budget + intake | **context-budget defaults at C7 v1.6 (track CTX, D27):** summary-first inspect, URL-first images (temp files + TTL), caps (`max_elements`/`max_pages`/`max_ops`/`max_entries`), `dry_run`-true previews, `__budget` envelope; + COM-2..6 on arriving host, xlsx formula eval, ODS/ODP revisions, Word-interop verification | every **default** tool response fits one reasoning turn (contract tests, C14 §7.4); no base64 when `output="urls"`; `__budget`+`rendered_by`+`diagnostics` on 100 % of responses; C7 additive-only schema diff; COM/formula gates per M6 concept (to draft) | +6–8 w |
+| **M6 ✅** (2026-09-23) | Phase 6 — context budget + intake | **context-budget defaults at C7 v1.6 (track CTX, D27):** summary-first inspect, URL-first images (temp files + TTL), caps (`max_elements`/`max_pages`/`max_ops`/`max_entries`), `dry_run`-true previews, `__budget` envelope; + COM-2..6 on arriving host, xlsx formula eval, ODS/ODP revisions, Word-interop verification | 35/35 steps, `phase6_gate.sh --ci` green pre-tag (tag `m6`, **push pending owner**); `__budget`-on-100 % + C7 v1.6 spec ceilings **not yet fully met** — `docs/m6-acceptance.md` §11 corrections, closeout in `docs/remaining-work.md` | +6–8 w |
 
 Cross-cutting tracks (SEC, DIS, OPS, GOV) run continuously and are gated per milestone.
 
@@ -429,7 +429,7 @@ design ADRs before implementation and are staffed by the strongest kernel person
 | **W4 ✅** (w23–28, closed 2026-09-16) | ENG-10/11 · AUT-01..05 · API-09/10 · DIS-05..08 (+ Phase-2b intake per S2: ODF-04/05, PDF-03; COM stays deferred; Typst=CLI shell-out per S3; see `docs/phase3-plan.md`) | **M3 ship**: creation |
 | **W5 ✅** (Phase 4, closed 2026-09-18) | HUM-01..03 · OPS-03 · polish + corpus-driven hardening **+ ODF revision write (owner call 2026-09-16) + COM design/CI skeleton (implementation stays deferred)**; overlay = raster-over-masters (D22). Steps in `docs/phase4-plan.md` | **M4 ship**: human loop (tag `m4`) |
 | **W6 ✅** (Phase 5, shipped 2026-09-19) | PDF annotation round-trip (C12) · PDF review session + pdf.js text layer (D24, ADR-0009) · trust (C13/D25, ADR-0010, `sign`) · PDF/A row · launch prep (D26) · fuzz round 4; steps in `docs/phase5-plan.md` | **M5 ship**: PDF loop + trust (tag `m5`; `docs/m5-acceptance.md` §9 post-acceptance correction) |
-| **W7 ⏳** (Phase 6, active) | **Wave 0: DAG-inversion closeout** (`mcp -> adapters-pdf` edge removed; `check-deps.sh` green) · **CTX-01..06 — context budget (C14, D27)** · M6 intake on the now-available Windows host: COM-2..6 + Word-interop verification, xlsx formula eval (ADR + minimal subset), ODS/ODP revision write, launch rehearsal only (D26); concept `docs/phase6-concept.md`, plan `docs/phase6-plan.md` | **M6 ship**: every default tool response fits one reasoning turn (C7 v1.6) |
+| **W7 ✅** (Phase 6, shipped 2026-09-23) | **Wave 0: DAG-inversion closeout** (`mcp -> adapters-pdf` edge removed; `check-deps.sh` green) · **CTX-01..06 — context budget (C14, D27)** · M6 intake on the now-available Windows host: COM-2..6 + Word-interop verification, xlsx formula eval (ADR + minimal subset), ODS/ODP revision write, launch rehearsal only (D26); concept `docs/phase6-concept.md`, plan `docs/phase6-plan.md` | **M6 ship**: tag `m6` (push pending owner); `docs/m6-acceptance.md` §11 corrections + `docs/remaining-work.md` closeout (C14 envelope wiring, gate hardening, C7 v1.6 freeze tests) |
 
 ### 6.4 Decision gates (blocking; each has a decision-by wave and an owner)
 

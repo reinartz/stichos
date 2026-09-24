@@ -36,7 +36,7 @@
 
 ## Phase-5 Surface (current)
 
-- **23 MCP tools** (measured 2026-09-19: `mcp/spec.rs` asserts `TOOLS.len() == 23`): Added
+- **23 MCP tools** (measured 2026-09-23: `mcp/spec.rs` asserts `TOOLS.len() == 23`): Added
   `list_annotations`, `resolve_annotations`, `sign_document`
 - **21 CLI verbs** (measured from `enum Command` in `cli/src/main.rs`): Added `annots`, `sign`
   (21 total: inspect, region, render, diff, doctor, serve, schema, apply, edit, annotate, revert,
@@ -44,6 +44,36 @@
 - **Schema version:** 1.5.0 (additive-only since v1.0.0)
 - **Contracts:** C1 (minor additive), C7 (v1.5.0), C12 (frozen at M5), C13 (frozen at M5);
   C14 draft (freezes at M6 as C7 v1.6)
+
+## Phase-6 Surface (shipped 2026-09-23)
+
+- **23 MCP tools:** 10 tools updated to `schema_version: "1.6.0"` (additive defaults):
+  `inspect_document`, `render_document`, `inspect_region`, `diff_documents`, `apply_patch`,
+  `edit_text`, `edit_cell`, `edit_structure`, `annotate_pages`, `journal`
+- **Default changes (CTO-01..06):**
+  - `inspect_document`: `detail="summary"` (was full detail)
+  - `render_document`: `output="urls"` (was base64 inline)
+  - `inspect_region`: `output="urls"` (was base64 inline)
+  - `diff_documents`: `max_ops=20` (was unlimited)
+  - `apply_patch`: `dry_run=true` (was false — applied immediately)
+  - `edit_*`: `dry_run=true` (was false — applied immediately)
+  - `annotate_pages`: `output="urls"`, `max_pages=5`
+  - `journal`: `max_entries=10`
+- **C14 envelope:** Every response carries `__budget` (tokens_est, elements_count, image_count),
+  `diagnostics`, and `rendered_by`
+- **Legacy opt-outs:** `inspect --detail=all`, `render --output=base64`, `diff --max-ops=0`,
+  mutation without `--apply` restores legacy behavior
+- **Contracts:** C7 frozen at v1.6.0; C14 frozen at v1.0.0
+
+## Phase-7 Intake (post-M6)
+
+- xlsx/pptx create (content-driven from IR)
+- Full formula coverage (C15 extension)
+- Lint encode/ssim refresh
+- PAdES-T/LTV progression
+- PDF redaction
+- Real CMS signing (PKCS#7/CMS)
+- pdfium raster rung
 
 ## Phase-4 Surface (historical)
 

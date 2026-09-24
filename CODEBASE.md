@@ -1,8 +1,10 @@
 # stichos — Codebase Structure
 
-> **Note:** This document reflects the current state of the Rust codebase (synced 2026-09-20,
-> tag `m5`). It is maintained by contributors; `project_plan.md` §3 is the authoritative plan
+> **Note:** This document reflects the current state of the Rust codebase (synced 2026-09-23,
+> tag `m6`). It is maintained by contributors; `project_plan.md` §3 is the authoritative plan
 > reference. Where reality and the plan DAG differ, §"Known DAG deviations" below records it.
+> M6 closeout items (`__budget` envelope wiring, C7 v1.6 freeze tests) are tracked in
+> `docs/remaining-work.md` and `docs/m6-acceptance.md` §11.
 
 ## Workspace layout
 
@@ -13,20 +15,25 @@ deny.toml                     # cargo-deny config (license allow-list, ban rules
 
 crates/
   gp-core/                    # core types, IR, diagnostics, traits, store, journal, patch,
-                              #   executor, policy, Rhai sandbox, selfupdate, testkit
+                              #   executor, policy, Rhai sandbox, selfupdate, testkit;
+                              #   M6: envelope.rs (C14 __budget), tempfiles.rs (URL/TTL),
+                              #   formula/ (C15 evaluator+parser+parity+refuse), ir_convert
   adapters-ooxml/             # OOXML (docx, xlsx, pptx): OPC, readers, surgical writers,
                               #   creation writers, revision writer, census, validation
   adapters-odf/               # ODF (odt, ods, odp): manifest, readers, surgical writer,
-                              #   patch primitives, census, RelaxNG gate
+                              #   patch primitives, census, RelaxNG gate; M6: ODS/ODP revisions
   adapters-pdf/               # PDF: parser, text/bboxes, forms, annotations, outline,
                               #   metadata, qpdf glue, incremental (append-only) writer
   engines/                    # render engines as subprocesses: libreoffice, pandoc,
-                              #   chromium, typst; probe, negotiate, doctor, cache, raster
+                              #   chromium, typst; probe, negotiate, doctor, cache, raster;
+                              #   M6: ms_office COM workers (feature `ms-office`), msi.rs,
+                              #   scheduler.rs (logon-agent model)
   lint/                       # fidelity linting: layout, budget, ssim, contrast, font,
                               #   diff, annotator, a11y (veraPDF), perf, coords, cropper
   mcp/                        # MCP protocol: spec, tool registry, dispatch, jsonrpc,
-                              #   server, transport, http (protocol layer only)
-  cli/                        # the `stichos` binary — 20 verbs, wires everything together
+                              #   server, transport, http (protocol layer only; Wave 0
+                              #   removed the adapters-pdf edge via gp-core::traits)
+  cli/                        # the `stichos` binary — 21 verbs, wires everything together
   adapters-ooxfuzz/           # fuzzing harness (dev-only): read + write-path fuzz corpora
 ```
 
@@ -49,14 +56,13 @@ gp-core                              (traits + types; no workspace deps)
 All edges are ratified in `project_plan.md` §3.2 as the canonical DAG.
 `tools/check-deps.sh` enforces cross-crate edge constraints (P4-02).
 
-## Known DAG deviations (measured 2026-09-20)
+## Known DAG deviations (measured 2026-09-23)
 
-- `mcp -> adapters-pdf` exists (`crates/mcp/src/http.rs` text-layer route calls
-  `adapters_pdf::text::extract_text_bytes`; edge in `crates/mcp/Cargo.toml`) but is **not** in the
-  `project_plan.md` §3.2 allow-list (`mcp`: `gp-core` only) — `tools/check-deps.sh` exits 1 at the
-  `m5` tree (see `docs/m5-acceptance.md` §9). Phase 6 Wave 0 removes it by dependency inversion
-  (text extraction behind a `gp-core` trait, wiring in `cli`); until then the deviation is
-  recorded here, not ratified.
+- **None open.** The former `mcp -> adapters-pdf` edge (`crates/mcp/src/http.rs` text-layer route)
+  was removed in Phase 6 Wave 0 by dependency inversion: text extraction moved behind
+  `gp-core::traits::PdfTextSource` with the impl in `adapters-pdf` and wiring in `cli`.
+  `tools/check-deps.sh` now exits 0 (the `m5`-tree failure recorded in `docs/m5-acceptance.md` §9
+  is resolved).
 
 ## Crate details
 
@@ -118,7 +124,7 @@ OpenDocument Format (ODF) adapters. Full read + surgical write since M3.
 | `writer` | Surgical package writer: mimetype-first/stored, manifest updates, encryption refusal |
 | `patch` | Offset-based content.xml patch primitives (right-to-left, span re-verify) |
 | `patch_executor` | IR patch → odt/ods/odp routing (`PatchExecutor` impl) |
-| `revision_reader` / `revision_writer` / `revision_executor` / `comment_writer` | ODF revision + comment read/write (C11, M4; ODS/ODP revision write lands in M6) |
+| `revision_reader` / `revision_writer` / `revision_executor` / `comment_writer` | ODF revision + comment read/write (C11, M4; ODS/ODP revision write landed in M6) |
 | `lossless_suite` | Corpus lossless round-trip suite |
 | `census` | ODF feature census → budget |
 | `rng_validate` | RelaxNG validation gate (bundled ODF 1.2 rng, xmllint) |
@@ -279,8 +285,11 @@ corpus/
 
 ```
 docs/
-  contracts/              # C1–C14 interface specs (C7 at v1.5.0; C12/C13 frozen at M5; C14 draft for M6)
-  adr/                    # ADR-0001..0010 (0009 pdf.js vendoring, 0010 crypto stack) + legacy pre-convention files (see README index)
+  contracts/              # C1–C15 interface specs (C7 v1.6.0 in spec.rs — C7.md matrix update
+                          #   pending, remaining-work T-A2; C12/C13 frozen at M5; C14 draft
+                          #   pending envelope wiring; C15 frozen at M6)
+  adr/                    # ADR-0001..0011 (0009 pdf.js vendoring, 0010 crypto stack reserved,
+                          #   0011 formula evaluation) + legacy pre-convention files (see README index)
   gov/                    # name hygiene, registration
   harness/                # harness-specific docs
   implementation-guide-context-budget.md  # C14 implementation detail (M6 input)

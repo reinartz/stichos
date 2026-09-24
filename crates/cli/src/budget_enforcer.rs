@@ -6,6 +6,65 @@
 
 use serde_json::Value;
 
+/// Stamp the C14 context-budget envelope on a CLI-side tool response.
+///
+/// Wraps `gp_core::envelope::envelope_json` so every CLI verb can get
+/// `__budget` + `diagnostics` + `rendered_by` without adding a gp-core
+/// dep to `mcp`. This function is idempotent: if the three keys are
+/// already present they are left untouched.
+pub fn stamp_envelope(response: Value) -> Value {
+    let json_text = serde_json::to_string(&response).unwrap_or_default();
+    let tokens_est = gp_core::envelope::estimate_text_tokens(&json_text);
+    let elements_count = response
+        .get("element_ids")
+        .and_then(|v| v.as_array())
+        .map(|a| a.len())
+        .unwrap_or(0)
+        + response
+            .get("elements")
+            .and_then(|v| v.as_array())
+            .map(|a| a.len())
+            .unwrap_or(0)
+        + response
+            .get("pages")
+            .and_then(|v| v.as_array())
+            .map(|a| a.len())
+            .unwrap_or(0)
+        + response
+            .get("entries")
+            .and_then(|v| v.as_array())
+            .map(|a| a.len())
+            .unwrap_or(0)
+        + response
+            .get("operations")
+            .and_then(|v| v.as_array())
+            .map(|a| a.len())
+            .unwrap_or(0);
+
+    let image_count = response
+        .get("image_count")
+        .and_then(|v| v.as_u64())
+        .unwrap_or(0) as usize
+        + response
+            .get("image_blocks")
+            .and_then(|v| v.as_array())
+            .map(|a| a.len())
+            .unwrap_or(0)
+        + response
+            .get("blocks")
+            .and_then(|v| v.as_array())
+            .map(|a| a.len())
+            .unwrap_or(0);
+
+    let budget = gp_core::envelope::ResponseBudget::new(tokens_est, elements_count, image_count);
+    let rendered_by = gp_core::envelope::default_rendered_by();
+
+    match gp_core::envelope::envelope_json(response.clone(), &budget, None, &rendered_by) {
+        Ok(s) => s,
+        Err(_) => response,
+    }
+}
+
 /// Enforce the payload budget on a tool response JSON value.
 ///
 /// Returns Ok(response) if within budget, Err with diagnostic if not.
@@ -186,6 +245,7 @@ pub fn enforce_inspect_budget(mut response: Value) -> Result<Value, Value> {
 }
 
 /// Check that a tool response includes required INV-2 fields.
+#[allow(dead_code)]
 pub fn check_inv2_compliance(response: &Value) -> Result<(), Vec<String>> {
     let mut errors = Vec::new();
 
@@ -211,6 +271,7 @@ pub fn check_inv2_compliance(response: &Value) -> Result<(), Vec<String>> {
 }
 
 /// Check all known tool response shapes for INV-2 compliance.
+#[allow(dead_code)]
 pub fn check_all_tools_inv2() {
     let tools = vec![
         "inspect_document",
@@ -247,6 +308,7 @@ fn ensure_diagnostics_with_entry(response: &mut Value, code: &str, message: &str
 }
 
 /// Build a mock tool response for schema testing.
+#[allow(dead_code)]
 pub fn mock_tool_response(tool: &str) -> Value {
     match tool {
         "inspect_document" => serde_json::json!({
