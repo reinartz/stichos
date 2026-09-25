@@ -13,6 +13,7 @@ use gp_core::ir::*;
 use gp_core::ir_convert;
 use gp_core::traits::Codec;
 use serde_json::json;
+use std::collections::BTreeMap;
 
 /// Inspect a document and return its IR, element IDs, coordinate manifest, and fidelity budget.
 pub fn inspect_document(path: &str) -> Result<serde_json::Value, anyhow::Error> {
@@ -94,6 +95,16 @@ fn build_inspect_result(ir: &IRDocument, path: &str) -> serde_json::Value {
     let mut ids: Vec<serde_json::Value> = Vec::new();
     collect_ids(ir, "", &mut ids);
 
+    // Build compact representation: element kind counts + first 5 samples
+    let mut kind_counts: BTreeMap<String, usize> = BTreeMap::new();
+    for entry in &ids {
+        if let Some(kind) = entry.get("kind").and_then(|k| k.as_str()) {
+            *kind_counts.entry(kind.to_string()).or_insert(0) += 1;
+        }
+    }
+    let sample_len = ids.len().min(5);
+    let element_ids_sample: Vec<serde_json::Value> = ids[..sample_len].to_vec();
+
     // Build coordinate manifest
     let coordinates = build_coordinate_manifest(ir);
 
@@ -106,7 +117,8 @@ fn build_inspect_result(ir: &IRDocument, path: &str) -> serde_json::Value {
         "ir_version": IR_VERSION,
         "document_type": document_type_name(ir),
         "structure": build_structure_summary(ir),
-        "element_ids": ids,
+        "element_kinds": kind_counts,
+        "element_ids_sample": element_ids_sample,
         "total_elements": ids.len(),
         "coordinates": coordinates,
         "fidelity_budget": budget,
@@ -767,22 +779,31 @@ mod tests {
         assert_eq!(result["ir_version"].as_str().unwrap(), IR_VERSION);
         assert_eq!(result["document_type"].as_str().unwrap(), "document");
         assert!(result["structure"].is_object());
-        assert!(result["element_ids"].is_array());
+        assert!(result["element_kinds"].is_object());
+        assert!(result["element_ids_sample"].is_array());
         assert!(result["total_elements"].is_number());
         assert!(result["coordinates"].is_array());
         assert!(result["fidelity_budget"].is_object());
 
-        // Verify element_ids have required fields
-        for entry in result["element_ids"].as_array().unwrap() {
+        // Verify element_ids_sample entries have required fields
+        for entry in result["element_ids_sample"].as_array().unwrap() {
             assert!(entry["kind"].is_string(), "Missing kind in: {}", entry);
             assert!(entry["path"].is_string(), "Missing path in: {}", entry);
             assert!(entry["id"].is_string(), "Missing id in: {}", entry);
         }
 
-        // Verify total_elements matches
+        // Verify element_kinds counts sum to total_elements
         let total = result["total_elements"].as_u64().unwrap() as usize;
-        let count = result["element_ids"].as_array().unwrap().len();
-        assert_eq!(total, count);
+        let kinds_sum: usize = result["element_kinds"]
+            .as_object()
+            .unwrap()
+            .values()
+            .map(|v| v.as_u64().unwrap() as usize)
+            .sum();
+        assert_eq!(
+            total, kinds_sum,
+            "element_kinds counts must sum to total_elements"
+        );
     }
 
     /// test_inspect_table_document — verify table ID collection.

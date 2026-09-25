@@ -162,6 +162,7 @@ pub fn list_journal(path: &str, session_id: Option<&str>) -> Result<serde_json::
         "session_id": sid,
         "head_id": head,
         "entry_count": entry_values.len(),
+        "total_entries": entry_values.len(),
         "chain_integrity": chain_ok,
         "entries": entry_values,
     });

@@ -423,3 +423,62 @@ checks 1b/1d/1e/1f "passed" but measured no contract (see 4).
 **Closeout task breakdown:** `docs/remaining-work.md` (tracks T-A commit/freeze, T-B envelope
 wiring, T-C gate hardening, T-D tag/push; Phase-7 backlog unchanged from `docs/phase6-concept.md`
 §12).
+
+## 12. Closeout round 1 status (2026-09-24, committed `ff80f8e`)
+
+1. **Committed + pushed.** The Gate-C defaults flip and closeout round 1 landed in `ff80f8e`;
+   tag `m6` re-anchored to `ff80f8e`; `origin/main` == `m6` == `ff80f8e` (measured via
+   `git ls-remote`). Old T-D2/T-D3 done.
+2. **T-A done:** `cargo test -p mcp --lib` **93/93**; C7.md v1.6.0 matrix; C14 status
+   `frozen — M6 (C7 v1.6.0)`.
+3. **T-B partial:** envelope stamped on all CLI verbs + the 23-tool serve boundary
+   (`crates/cli/src/budget_enforcer.rs`); `__budget` measured present on inspect/diff JSON.
+4. **T-C done:** hardened checks now **measure** — and find 3 real CTX-06 violations at
+   `ff80f8e` with `./target/debug/stichos` built (`phase6_gate.sh --ci` **86/90**): inspect
+   summary `tokens_est=5988` ≥ 500 (`element_ids` dump), `diff` default 30 ops with no
+   `hasMore`/`totalOperations` wire fields, `diff --max-ops 0` returns 0 ops. Plus `region`
+   lacks `--json`/`--output` (exit 2). `p606_ctx06_compliance` 3/6. Recorded as
+   `docs/KNOWN_ISSUES.md` KI-08; the gate's "binary not built (skipped)" masking as KI-09.
+5. **Git-state correction:** `m6` therefore sits on a **not fully gate-green** tree (the
+   skipped-binary path hid the violations at tag time). Track A′ in `docs/remaining-work.md`
+   closes this; after it is green, `m6` re-anchors once more + force-push (👤).
+6. **Working tree (2026-09-24):** uncommitted P7-7 WIP (real manual-DER CMS builder in
+    `gp-core/src/signature.rs` replacing the stub; 17 sig tests green; signed attrs/byte-range/
+    verify open; `sign` JSON wire change) + untracked Phase-7 intake specs and ADR-0012/0013
+    (proposed). `cargo check --all-targets`, fmt, clippy (lib, `-D warnings`), `check-deps.sh`
+    all clean with the WIP; `cargo test --workspace --lib` 2020 pass / 4 known zip-bomb fails.
+
+## 13. Closeout round 2 status (2026-09-24, working tree)
+
+Track A′ complete. All 3 CTX-06 violations fixed. Gate re-runs green.
+
+1. **R-A1 (inspect summary budget):** `element_ids` replaced with `element_kinds` map + 5-entry sample.
+   `tokens_est` dropped from 5988 → ~230 (< 500). JSON payload: 34 KB → 1,385 bytes.
+2. **R-B1 (diff default cap):** Applied `max_ops=20` default in `diff_tool.rs`. Gate 1d: `ops=20 ≤ 20`,
+   `hasMore=true`, `totalOperations=30` — all pass.
+3. **R-B2 (diff --max-ops 0):** `Some(0)` normalized to unlimited. Gate 1j: `ops=30`, `hasMore=false`.
+4. **R-C1 (region flags):** Added `--json` and `--output urls|base64|both` to CLI `region` verb.
+   `ctx06_url_mode_zero_base64` passes.
+5. **R-D1 (gate binary build):** Added `cargo build -p stichos` at gate start — no more silent skips.
+6. **R-D2 (check 7b m6-aware):** Gate passes when `HEAD == m6^{commit}` (post-tag tree).
+7. **R-D3 (planted violations):** Extended to inspect budget + diff cap demonstration.
+8. **Journal wire:** Added `total_entries` field to `list_journal` output.
+9. **R-B3 (MCP code path):** Verified MCP `diff_documents` handler shares `diff_tool::diff_documents()`
+   with CLI — same cap + wire shape apply.
+
+**Measured state (working tree):**
+- `cargo test --workspace --lib`: 2020 pass / 4 known zip-bomb fails (unchanged)
+- `cargo test -p mcp --lib`: **93/93** green
+- `cargo test -p stichos --test p606_ctx06_compliance`: **6/6** green
+- `phase6_gate.sh --ci`: **90/90** green
+- `cargo clippy --workspace --lib -- -D warnings`: clean
+- `cargo fmt --all --check`: clean
+- `check-deps.sh`: green
+- `--planted-violation`: catches all fixed violation types
+
+**Next steps (👤 = owner):**
+1. Move uncommitted P7-7 WIP to branch `p7-7-cms` (owner decision 2026-09-24)
+2. Commit Track A′ files on `main` (keep P7-7 WIP separate)
+3. **Re-anchor tag `m6`** to the committed gate-green tree
+4. `git push origin main` + `git push --force-with-lease origin m6` (approved 2026-09-24)
+5. Clean local `tmp-7` branch + stale remote-tracking refs

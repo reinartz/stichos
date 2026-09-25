@@ -16,10 +16,15 @@ pub fn stamp_envelope(response: Value) -> Value {
     let json_text = serde_json::to_string(&response).unwrap_or_default();
     let tokens_est = gp_core::envelope::estimate_text_tokens(&json_text);
     let elements_count = response
-        .get("element_ids")
+        .get("element_ids_sample")
         .and_then(|v| v.as_array())
         .map(|a| a.len())
         .unwrap_or(0)
+        + response
+            .get("element_ids")
+            .and_then(|v| v.as_array())
+            .map(|a| a.len())
+            .unwrap_or(0)
         + response
             .get("elements")
             .and_then(|v| v.as_array())
@@ -35,8 +40,10 @@ pub fn stamp_envelope(response: Value) -> Value {
             .and_then(|v| v.as_array())
             .map(|a| a.len())
             .unwrap_or(0)
+        // diff tool: ops array nested in ir_diff
         + response
-            .get("operations")
+            .get("ir_diff")
+            .and_then(|d| d.get("ops"))
             .and_then(|v| v.as_array())
             .map(|a| a.len())
             .unwrap_or(0);
@@ -174,17 +181,17 @@ pub fn enforce_payload_budget(mut response: Value) -> Result<Value, Value> {
 pub fn enforce_inspect_budget(mut response: Value) -> Result<Value, Value> {
     let mut truncated: Vec<String> = Vec::new();
 
-    // Cap the element list; total_elements (set before truncation) keeps the
+    // Cap the element sample; total_elements (set before truncation) keeps the
     // real count so the caller can see how much was omitted.
     if let Some(ids) = response
-        .get_mut("element_ids")
+        .get_mut("element_ids_sample")
         .and_then(|v| v.as_array_mut())
     {
         let total = ids.len();
         if total > MAX_INSPECT_ELEMENTS {
             ids.truncate(MAX_INSPECT_ELEMENTS);
             truncated.push(format!(
-                "element_ids {} -> {} ({} omitted)",
+                "element_ids_sample {} -> {} ({} omitted)",
                 total,
                 MAX_INSPECT_ELEMENTS,
                 total - MAX_INSPECT_ELEMENTS
@@ -317,7 +324,8 @@ pub fn mock_tool_response(tool: &str) -> Value {
             "ir_version": "1.0.0",
             "document_type": "document",
             "structure": {},
-            "element_ids": [],
+            "element_kinds": {},
+            "element_ids_sample": [],
             "total_elements": 0,
             "coordinates": [],
             "fidelity_budget": {
@@ -375,11 +383,12 @@ pub fn mock_tool_response(tool: &str) -> Value {
             "path_b": "b.docx",
             "document_type": "docx",
             "ir_diff": {
-                "total_ops": 0,
+                "totalOperations": 0,
                 "removed": 0,
                 "added": 0,
                 "modified": 0,
                 "identical": true,
+                "hasMore": false,
                 "ops": [],
             },
             "xml_diffs": [],
@@ -709,17 +718,17 @@ mod tests {
             "tool": "inspect_document",
             "path": "small.docx",
             "total_elements": ids.len(),
-            "element_ids": ids,
+            "element_ids_sample": ids,
             "coordinates": [],
             "fidelity_budget": {"confidence": 1.0},
         });
         let result = enforce_inspect_budget(response).unwrap();
-        assert_eq!(result["element_ids"].as_array().unwrap().len(), 500);
+        assert_eq!(result["element_ids_sample"].as_array().unwrap().len(), 500);
         assert_eq!(result["total_elements"].as_u64().unwrap(), 500);
         assert!(result.get("budget_exceeded").is_none());
     }
 
-    /// test_enforce_inspect_truncates_element_ids — element_ids capped to MAX_INSPECT_ELEMENTS.
+    /// test_enforce_inspect_truncates_element_ids — element_ids_sample capped to MAX_INSPECT_ELEMENTS.
     #[test]
     fn test_enforce_inspect_truncates_element_ids() {
         let ids: Vec<_> = (0..1500)
@@ -735,15 +744,15 @@ mod tests {
             "tool": "inspect_document",
             "path": "big.docx",
             "total_elements": ids.len(),
-            "element_ids": ids,
+            "element_ids_sample": ids,
             "coordinates": [],
             "fidelity_budget": {"confidence": 1.0},
         });
         let result = enforce_inspect_budget(response).unwrap();
         assert_eq!(
-            result["element_ids"].as_array().unwrap().len(),
+            result["element_ids_sample"].as_array().unwrap().len(),
             1000,
-            "element_ids should be capped to 1000"
+            "element_ids_sample should be capped to 1000"
         );
         // total_elements preserves the original count
         assert_eq!(result["total_elements"].as_u64().unwrap(), 1500);
@@ -756,7 +765,7 @@ mod tests {
         let diags = result["diagnostics"].as_array().unwrap();
         assert!(
             diags.iter().any(|d| d["code"] == "API-E-001"),
-            "API-E-001 diagnostic expected when element_ids truncated"
+            "API-E-001 diagnostic expected when element_ids_sample truncated"
         );
     }
 
@@ -776,13 +785,13 @@ mod tests {
             "tool": "inspect_document",
             "path": "wide.xlsx",
             "total_elements": 50000,
-            "element_ids": ids,
+            "element_ids_sample": ids,
             "coordinates": [],
             "fidelity_budget": {"confidence": 1.0},
         });
         let result = enforce_inspect_budget(response).unwrap();
-        // element_ids capped
-        assert_eq!(result["element_ids"].as_array().unwrap().len(), 1000);
+        // element_ids_sample capped
+        assert_eq!(result["element_ids_sample"].as_array().unwrap().len(), 1000);
         // total_elements from build_inspect_result, not the truncated array
         assert_eq!(result["total_elements"].as_u64().unwrap(), 50000);
     }
@@ -813,7 +822,7 @@ mod tests {
             "tool": "inspect_document",
             "path": "big.pdf",
             "total_elements": 0,
-            "element_ids": [],
+            "element_ids_sample": [],
             "coordinates": pages,
             "fidelity_budget": {"confidence": 1.0},
         });
@@ -837,7 +846,7 @@ mod tests {
             "tool": "inspect_document",
             "path": "small.odt",
             "total_elements": 10,
-            "element_ids": [],
+            "element_ids_sample": [],
             "coordinates": [],
             "fidelity_budget": {"confidence": 1.0},
         });
@@ -852,7 +861,7 @@ mod tests {
             "tool": "inspect_document",
             "path": "ok.docx",
             "total_elements": 5,
-            "element_ids": [],
+            "element_ids_sample": [],
             "coordinates": [],
             "fidelity_budget": {"confidence": 1.0},
         });

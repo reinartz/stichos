@@ -11,13 +11,23 @@ use lint::diff::IrDiff;
 
 /// Compare two documents and return structural + XML differences.
 ///
-/// If `max_ops` is set, the ops array is truncated to that many entries
-/// and the `ir_diff.truncated` flag is set to `true`.
+/// If `max_ops` is set, the ops array is truncated to that many entries.
+/// `--max-ops 0` is treated as unlimited (opt-out from the default cap).
+/// Default cap is 20 when max_ops is not explicitly provided.
 pub fn diff_documents(
     a_path: &str,
     b_path: &str,
     max_ops: Option<usize>,
 ) -> Result<serde_json::Value> {
+    // Default cap of 20 when max_ops is not explicitly provided.
+    // A value >= usize::MAX / 2 means unlimited (opt-out via --max-ops 0).
+    let unlimited_threshold = usize::MAX / 2;
+    let max_ops = match max_ops {
+        None => Some(20),
+        Some(v) if v >= unlimited_threshold => None,
+        Some(v) => Some(v),
+    };
+
     let a_bytes = std::fs::read(a_path).with_context(|| format!("read {}", a_path))?;
     let b_bytes = std::fs::read(b_path).with_context(|| format!("read {}", b_path))?;
 
@@ -102,12 +112,12 @@ pub fn diff_documents(
         "path_b": b_path,
         "document_type": response_type,
         "ir_diff": {
-            "total_ops": total_ops,
+            "totalOperations": total_ops,
             "removed": ir_diff.removed,
             "added": ir_diff.added,
             "modified": ir_diff.modified,
             "identical": ir_diff.identical,
-            "truncated": truncated,
+            "hasMore": truncated,
             "ops": ops_json,
         },
         "xml_diffs": Vec::<serde_json::Value>::new(),

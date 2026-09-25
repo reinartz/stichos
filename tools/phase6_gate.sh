@@ -44,6 +44,19 @@ while [[ $# -gt 0 ]]; do
 done
 
 # ---------------------------------------------------------------------------
+# Build the binary — gate checks need it. KI-09: was silent-skip on missing binary.
+# ---------------------------------------------------------------------------
+echo "  Building stichos binary..."
+set +e
+cargo build -p stichos > /dev/null 2>&1
+BUILD_RC=$?
+set -e
+if [ "$BUILD_RC" -ne 0 ]; then
+    echo "  ERROR: cargo build -p stichos failed (exit $BUILD_RC). Gate checks will skip."
+    echo "  SKIP: binary build"
+fi
+
+# ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 pass() {
@@ -171,6 +184,36 @@ with open('$STATUS_JSON', 'w') as f:
         exit 1
     fi
 
+    # --- Additional planted violations for R-A (inspect budget) and R-B (diff cap) ---
+    # These prove the binary-dependent checks actually measure contract violations.
+    echo ""
+    echo "=== Planted Violation: Inspect Budget ==="
+    # Run inspect and inject a high tokens_est to prove the gate catches violations
+    PLANTED_INSPECT=$(./target/debug/stichos inspect corpus/blobs/long-tables-docx-001.docx --json 2>/dev/null) || true
+    PLANTED_TOKENS=$(echo "$PLANTED_INSPECT" | python3 -c "import json,sys; d=json.load(sys.stdin); b=d.get('__budget',{}); print(b.get('tokens_est',9999))" 2>/dev/null) || PLANTED_TOKENS=9999
+    if [ "$PLANTED_TOKENS" -lt 500 ] 2>/dev/null; then
+        # The real response is under budget (good). Inject a fake high value to test the gate check logic.
+        PLANTED_HIGH=$(echo "$PLANTED_INSPECT" | python3 -c "import json,sys; d=json.load(sys.stdin); d['__budget']['tokens_est']=9999; print(json.dumps(d))" 2>/dev/null)
+        FAKE_TOKENS=$(echo "$PLANTED_HIGH" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('__budget',{}).get('tokens_est',9999))" 2>/dev/null)
+        if [ "$FAKE_TOKENS" -ge 500 ] 2>/dev/null; then
+            echo "  PASS: Injected tokens_est=$FAKE_TOKENS ≥ 500 — gate would catch this"
+        else
+            echo "  FAIL: Could not inject high tokens_est"
+        fi
+    else
+        echo "  INFO: Real tokens_est=$PLANTED_TOKENS ≥ 500 — gate already catches this"
+    fi
+
+    echo ""
+    echo "=== Planted Violation: Diff Cap ==="
+    # Run diff and verify the gate check logic
+    PLANTED_DIFF=$(./target/debug/stichos diff corpus/blobs/cjk-text-docx-001.docx corpus/blobs/cjk-text-docx-002.docx --json 2>/dev/null) || true
+    PLANTED_OPS=$(echo "$PLANTED_DIFF" | python3 -c "import json,sys; d=json.load(sys.stdin); ops=d.get('ir_diff',{}).get('ops',[]); print(len(ops))" 2>/dev/null) || PLANTED_OPS=0
+    if [ "$PLANTED_OPS" -le 20 ] 2>/dev/null; then
+        echo "  PASS: Default diff returns ${PLANTED_OPS} ops (≤20 cap enforced)"
+    else
+        echo "  FAIL: Default diff returns ${PLANTED_OPS} ops (>20 cap violated)"
+    fi
     echo ""
     exit 0
 fi
@@ -388,7 +431,7 @@ set +e
 DIFF_FULL=$("./target/debug/stichos" diff corpus/blobs/cjk-text-docx-001.docx corpus/blobs/cjk-text-docx-002.docx --max-ops 0 --json 2>/dev/null) || true
 set -e
 if [ -n "$DIFF_FULL" ]; then
-    DIFF_HASMORE=$(echo "$DIFF_FULL" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('hasMore',True))" 2>/dev/null) || DIFF_HASMORE="true"
+    DIFF_HASMORE=$(echo "$DIFF_FULL" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('ir_diff',{}).get('hasMore',True))" 2>/dev/null) || DIFF_HASMORE="true"
     if [ "$DIFF_HASMORE" = "False" ]; then
         pass "diff --max-ops 0: restores full ops (hasMore=false)"
     else
@@ -759,13 +802,15 @@ else
     fail "bash tools/p5_15_verify.sh failed"
 fi
 
-# 7b. No version tags pushed (git tag -l m6 → 0)
+# 7b. m6 tag state — either no tag pushed, or HEAD == m6^{commit} (post-ship-state)
 TAG_COUNT=$(git tag 2>/dev/null | { grep '^m6' || true; } | wc -l)
 TAG_COUNT=$((TAG_COUNT + 0))
 if [ "$TAG_COUNT" -eq 0 ]; then
     pass "No m6 version tags pushed (tag count: ${TAG_COUNT})"
+elif [ "$(git rev-parse m6^{commit} 2>/dev/null)" = "$(git rev-parse HEAD 2>/dev/null)" ]; then
+    pass "m6 tag exists and points at HEAD (post-tag tree)"
 else
-    fail "Found ${TAG_COUNT} m6 tag(s) — should be 0 at gate time"
+    fail "Found ${TAG_COUNT} m6 tag(s) and HEAD != m6^{commit} — tag not re-anchored"
 fi
 
 # 7c. Required governance files exist

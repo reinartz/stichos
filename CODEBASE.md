@@ -1,10 +1,14 @@
 # stichos — Codebase Structure
 
-> **Note:** This document reflects the current state of the Rust codebase (synced 2026-09-23,
-> tag `m6`). It is maintained by contributors; `project_plan.md` §3 is the authoritative plan
-> reference. Where reality and the plan DAG differ, §"Known DAG deviations" below records it.
-> M6 closeout items (`__budget` envelope wiring, C7 v1.6 freeze tests) are tracked in
-> `docs/remaining-work.md` and `docs/m6-acceptance.md` §11.
+> **Note:** This document reflects the current state of the Rust codebase (synced 2026-09-24,
+> tag `m6` = `ff80f8e`, pushed). It is maintained by contributors; `project_plan.md` §3 is the
+> authoritative plan reference. Where reality and the plan DAG differ, §"Known DAG deviations"
+> below records it. M6 closeout round 1 (Gate-C flip, envelope wiring, C7 v1.6 freeze tests) landed
+> in `ff80f8e`; round 2 (3 CTX-06 cap/budget violations + `region` `--json`/`--output` flags) and
+> the Phase-7 backlog are tracked in `docs/remaining-work.md`; audit trail in `docs/m6-acceptance.md`
+> §11–§12. Working tree additionally holds uncommitted P7-7 WIP (real CMS builder in
+> `gp-core/src/signature.rs`) and untracked Phase-7 intake docs (`docs/track-b-p7-*.md`,
+> ADR-0012/0013 proposed).
 
 ## Workspace layout
 
@@ -85,7 +89,7 @@ selfupdate. No workspace crate dependencies.
 | `script` | Sandboxed Rhai escape hatch (D17, ADR-0005) | `ScriptConfig`, `ScriptResult`, `run_script`, `has_sandbox_violations` |
 | `selfupdate` | Verify-before-swap update primitive (ADR-0006) | `UpdateChannel`, `UpdateManifest`, `UpdateResult` |
 | `traits` | Core trait definitions | `Codec`, `PatchExecutor`, `Engine`, `Probe`, `Linter`, `EngineInfo` |
-| `signature` | PAdES-B-B sign-later (D25, pure-Rust crypto): keygen, PKCS#7 stub, byte-range, `/Sig` detection | `sign_pdf()`, `detect_signatures()`, `detect_signatures_raw()` |
+| `signature` | PAdES-B-B sign-later (D25, pure-Rust crypto): keygen, PKCS#7 stub (real manual-DER CMS builder in uncommitted P7-7 WIP), byte-range, `/Sig` detection | `sign_pdf()`, `detect_signatures()`, `detect_signatures_raw()` |
 | `edit_stability` | Element-ID stability property tests (C2) | — |
 | `macro_check` | Macro expansion checks | — |
 | `testkit` | Shared test utilities | — |
@@ -285,22 +289,27 @@ corpus/
 
 ```
 docs/
-  contracts/              # C1–C15 interface specs (C7 v1.6.0 in spec.rs — C7.md matrix update
-                          #   pending, remaining-work T-A2; C12/C13 frozen at M5; C14 draft
-                          #   pending envelope wiring; C15 frozen at M6)
-  adr/                    # ADR-0001..0011 (0009 pdf.js vendoring, 0010 crypto stack reserved,
-                          #   0011 formula evaluation) + legacy pre-convention files (see README index)
+  contracts/              # C1–C15 interface specs (C7 v1.6.0 in spec.rs AND C7.md matrix — T-A2
+                          #   landed ff80f8e; C12/C13 frozen at M5; C14 frozen at M6 (C7 v1.6.0);
+                          #   C15 frozen at M6)
+  adr/                    # ADR-0001..0013 (0009 pdf.js vendoring, 0010 crypto stack ACCEPTED,
+                          #   0011 formula evaluation, 0012 PAdES-T/LTV PROPOSED, 0013 PDF redaction
+                          #   PROPOSED) + legacy pre-convention files (see README index)
   gov/                    # name hygiene, registration
   harness/                # harness-specific docs
   implementation-guide-context-budget.md  # C14 implementation detail (M6 input)
   phase0-execution.md     # M0 runbook
   phase1-concept/plan/status · phase2-… · phase3-… · phase4-… · phase5-…   # per-phase artifacts
-  phase6-concept/plan/status · m6-acceptance.md  # Phase 6 (M6, active)
+  phase6-concept/plan/status · m6-acceptance.md  # Phase 6 (M6, shipped; closeout round 2 open)
+  track-b-p7-{1,2,3,4,7,8,9}-*.md  # Phase-7 intake specs (untracked; P7-1 xlsx create, P7-2 pptx
+                          #   create, P7-3 formula coverage, P7-4 lint encode/ssim, P7-7 CMS
+                          #   signing, P7-8 pdfium spike, P7-9 launch)
   m2-acceptance.md · m3-acceptance.md · m4-acceptance.md · m5-acceptance.md  # milestone acceptance reports (m3 §7, m4 Git-State, m5 §9 = post-acceptance corrections)
   creation-measurement.md/.csv                       # M3 creation-path matrix (C9)
-  threat-model.md         # threat model incl. SEC-06 reviews (M1–M5)
-  KNOWN_ISSUES.md         # KI-01..05
+  threat-model.md         # threat model incl. SEC-06 reviews (M1–M6)
+  KNOWN_ISSUES.md         # KI-01..09
   release-playbook.md     # DIS-08 release procedure
+  remaining-work.md       # post-M6 task map (Track A′ closeout round 2; Track B Phase-7 backlog)
 ```
 
 ## Reviewer + vendored assets

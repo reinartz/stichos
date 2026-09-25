@@ -1,12 +1,16 @@
 # stichos
 
-Phases 0–6 complete and gated (tags `m1-closeout`, `m2`, `m3`, `m4`, `m5`, `m6`; M6 recorded
-2026-09-23: 35/35 steps, `phase6_gate.sh --ci` 8 gates, `check-deps.sh` green — Wave 0 removed the
-`mcp -> adapters-pdf` edge by dependency inversion). **M6 closeout is pending**: see
-`docs/m6-acceptance.md` §11 corrections (2026-09-23 audit — C7 v1.6 spec-test ceilings red after the
-Gate-C defaults flip, `__budget` envelope not yet stamped on 100 % of responses, gate checks
-1b/1d/1e/1f pass in both branches) and the task breakdown in `docs/remaining-work.md`.
-`main` (8 commits) and tag `m6` are **local only — not pushed**.
+Phases 0–6 complete and gated (tags `m1-closeout`..`m6`; **`main` + all tags pushed**, 2026-09-24:
+`origin/main` == tag `m6` == `ff80f8e` — Gate-C defaults flip + closeout round 1 committed and
+pushed). **M6 closeout round 2 is pending**: the hardened `phase6_gate.sh` now truly measures and
+finds 3 real CTX-06 violations (inspect summary `tokens_est` 5988 ≥ 500 — `element_ids` dump; `diff`
+default 30 ops with no `hasMore` wire field; `diff --max-ops 0` returns 0 ops) plus `region` lacks
+the `--json`/`--output` flags (`p606_ctx06_compliance` 3/6 red). Task breakdown:
+`docs/remaining-work.md` (Track A′). The `m6` tag sits on a not-fully-green tree (checks skip when
+the binary is unbuilt) — re-anchor after the fixes. Working tree holds **uncommitted P7-7 WIP**:
+real manual-DER PKCS#7/CMS builder in `gp-core/src/signature.rs` (replaces the `m6`-tag stub;
+signed attrs + byte-range + verify still open) and untracked Phase-7 intake docs/ADRs
+(`docs/track-b-p7-*.md`, ADR-0012/0013 proposed).
 Rust workspace lives in `crates/`; `harness/`, `corpus/`, `docker/`, `baseline/`, `.github/` hold
 the M0 Python fidelity harness and supporting material.
 
@@ -43,17 +47,16 @@ Records: `docs/phase5-plan.md`, `docs/phase5-status.json`, `docs/m5-acceptance.m
 post-acceptance correction — `tools/check-deps.sh` fails at the `m5` tree on the `mcp ->
 adapters-pdf` edge; Phase 6 Wave 0 fixes it by dependency inversion, milestone tags still move
 only to committed gate-green trees).
-Phase 6 (M6) shipped 2026-09-23: 35/35 steps, `phase6_gate.sh --ci` green pre-tag (86/88
-post-tag: the `m6`-tag-exists check is an expected artifact, see m6-acceptance "Gate post-tag
-note"); tag `m6` on `23db42b`. Records: `docs/phase6-concept.md`, `docs/phase6-plan.md`,
-`docs/phase6-status.json`, `docs/m6-acceptance.md` (§11 has the 2026-09-23 audit corrections —
-the Gate-C defaults flip is **uncommitted** in the working tree, it left 3 `mcp` spec tests red
-(1.5.0 ceilings), the `__budget` envelope is only stamped in `cli/src/image_output.rs` (not on
-inspect/apply/diff/journal or the MCP surface), and gate checks 1b/1d/1e/1f pass in both
-branches). Follow-ups tracked in `docs/remaining-work.md`. **`main` and `m6` are not pushed.**
-Phase-4 records: `docs/phase4-plan.md`, `docs/phase4-status.json`, `docs/m4-acceptance.md`
-(Git-State section has the tag-re-anchoring correction — milestone tags move only to committed
-gate-green trees).
+Phase 6 (M6) shipped 2026-09-23: 35/35 steps; closeout round 1 (Gate-C flip + T-A freeze
+consistency + T-B envelope on all CLI verbs/MCP serve boundary + T-C gate hardening) committed in
+`ff80f8e`; tag `m6` re-anchored to `ff80f8e`; **`main` + `m6` pushed** 2026-09-24. Records:
+`docs/phase6-concept.md`, `docs/phase6-plan.md`, `docs/phase6-status.json`, `docs/m6-acceptance.md`
+(§11 = 2026-09-23 audit corrections, §12 = 2026-09-24 closeout-round-1 status). Closeout round 2
+remains: 3 CTX-06 contract violations + `region` `--json`/`--output` flags — `docs/remaining-work.md`
+Track A′. Measured 2026-09-24 at `ff80f8e` + working tree: `cargo test --workspace --lib` 2020
+pass / 4 known OPC zip-bomb fails; `cargo test -p mcp --lib` 93/93; `phase6_gate.sh --ci` 86/90
+(3 CTX-06 violations + 1 expected m6-tag artifact); fmt + clippy (lib, `-D warnings`) clean;
+`check-deps.sh` green.
 Phase-3 records: `docs/phase3-plan.md`,
 `docs/phase3-status.json`, `docs/m3-acceptance.md` (§7 has post-acceptance corrections).
 

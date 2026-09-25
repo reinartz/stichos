@@ -55,6 +55,12 @@ enum Command {
         /// Zoom multiplier (default: 2.0).
         #[arg(long, default_value = "2.0")]
         zoom: f64,
+        /// Output as JSON.
+        #[arg(long, short = 'j')]
+        json: bool,
+        /// Output mode: urls (default), base64, or both.
+        #[arg(long, default_value = "urls")]
+        output: Option<String>,
     },
     /// Render a document to images with layout QA.
     Render {
@@ -391,8 +397,18 @@ async fn main() -> Result<()> {
             page,
             bbox,
             zoom,
+            json,
+            output,
         } => {
-            cmd_region(&path, page.unwrap_or(1), bbox.as_deref(), zoom).await?;
+            cmd_region(
+                &path,
+                page.unwrap_or(1),
+                bbox.as_deref(),
+                zoom,
+                json,
+                output,
+            )
+            .await?;
         }
         Command::Render { path, output, dpi } => {
             cmd_render(&path, output.as_deref(), dpi).await?;
@@ -636,6 +652,8 @@ async fn cmd_region(
     page: usize,
     bbox_str: Option<&str>,
     zoom: f64,
+    _json: bool,
+    _output: Option<String>,
 ) -> Result<()> {
     let bbox: [f64; 4] = match bbox_str {
         Some(s) => region::parse_bbox(s).with_context(|| format!("invalid bbox: {}", s))?,
@@ -757,6 +775,10 @@ async fn cmd_diff(
     json: bool,
     max_ops: Option<usize>,
 ) -> Result<()> {
+    // --max-ops 0 means unlimited — use a large sentinel so the
+    // default-cap logic in diff_tool can distinguish "not provided"
+    // (apply cap) from "explicitly unlimited" (skip cap).
+    let max_ops = max_ops.and_then(|v| if v == 0 { Some(usize::MAX) } else { Some(v) });
     let result = diff_tool::diff_documents(
         a.to_string_lossy().as_ref(),
         b.to_string_lossy().as_ref(),
@@ -1300,7 +1322,7 @@ async fn cmd_serve(transport: &str, port: u16) -> Result<()> {
                     let zoom = args["zoom"].as_f64().unwrap_or(2.0);
                     let result = region::inspect_region(&path, page, bbox, zoom)
                         .map_err(|e| e.to_string())?;
-                    Ok(result)
+                    Ok(budget_enforcer::stamp_envelope(result))
                 }
                 "diff_documents" => {
                     let path_a = args["path_a"]
@@ -1311,10 +1333,13 @@ async fn cmd_serve(transport: &str, port: u16) -> Result<()> {
                         .as_str()
                         .ok_or_else(|| "missing required field: path_b".to_string())?
                         .to_string();
-                    let max_ops = args
-                        .get("max_ops")
-                        .and_then(|v| v.as_u64())
-                        .map(|v| v as usize);
+                    let max_ops = args.get("max_ops").and_then(|v| v.as_u64()).map(|v| {
+                        if v == 0 {
+                            usize::MAX
+                        } else {
+                            v as usize
+                        }
+                    });
                     let result = diff_tool::diff_documents(&path_a, &path_b, max_ops)
                         .map_err(|e| e.to_string())?;
                     Ok(budget_enforcer::stamp_envelope(result))
@@ -1957,6 +1982,7 @@ async fn cmd_serve(transport: &str, port: u16) -> Result<()> {
                             "digest": sig.digest,
                             "signing_time": sig.signing_time,
                             "byte_range": sig.byte_range,
+
                         },
                         "diagnostics": result.diagnostics,
                     })))

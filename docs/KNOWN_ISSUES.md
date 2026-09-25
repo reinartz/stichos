@@ -130,26 +130,22 @@ return the output path or content hashes.
 
 ## KI-06: Gate-C defaults flip uncommitted (M6 closeout blocking)
 
-**Status:** active — blocks pushing `main` + `m6`
+**Status:** resolved (committed 2026-09-24 in `ff80f8e`, pushed) — residual compliance
+violations re-filed as KI-08
 **Area:** CLI defaults, MCP envelope stamping, gate checks
 **Created:** 2026-09-23 (post-M6 audit)
 
-**What needs to be committed:**
+**What was committed in `ff80f8e`:**
 1. `--apply` opt-out, `dry_run=true` default, `spec.rs` 10 tools → `schema_version: "1.6.0"`
-   (in working tree but uncommitted)
-2. `__budget` + `diagnostics` + `rendered_by` envelope stamped on all CLI verb outputs
-   (T-B1 landed in working tree)
-3. Envelope stamped on all 23 MCP tool responses in serve handler (T-B2 landed in working tree)
-4. Gate checks 1b/1d/1e/1f/1g/1i hardened to fail on violations (T-C1 landed in working tree)
+2. `__budget` + `diagnostics` + `rendered_by` envelope stamped on all CLI verb outputs (T-B1,
+   `crates/cli/src/budget_enforcer.rs`)
+3. Envelope stamped on all 23 MCP tool responses in serve handler (T-B2)
+4. Gate checks 1b/1d/1e/1f/1g/1i hardened to fail on violations (T-C1); gate filter broadened
+   (T-C3); `mcp --lib` ceiling tests green 93/93 (T-A1); C7.md 1.6.0 + C14.md frozen (T-A2/T-A3)
+5. Tag `m6` re-anchored to `ff80f8e`; `main` + `m6` pushed.
 
-**Effect of uncommitted state:**
-- `cargo test -p mcp --lib` fails 3/93 (version ceiling assertions still 1.5.0) — FIXED by T-A1
-- `p606_ctx06_compliance.rs` strict tests fail (envelope not stamped, caps not enforced) —
-  tests correctly detect the gap
-- `phase6_gate.sh` 1b/1d/1e/1f always pass even when violated — FIXED by T-C1
-
-**Resolution path:** Commit the Gate-C flip, re-run `phase6_gate.sh --ci` (should be green
-except for the expected `m6`-tag artifact), re-anchor the `m6` tag.
+**Residual (see KI-08):** with the binary built, the hardened gate measures 3 real CTX-06
+violations — the tree the `m6` tag sits on is not fully gate-green.
 
 ---
 
@@ -171,4 +167,35 @@ despite the violations.
 
 ---
 
-*Last updated: 2026-09-23*
+## KI-08: CTX-06 contract violations measured by the hardened gate (M6 closeout round 2)
+
+**Status:** fixed — resolved by Track A′ (R-A1, R-B1, R-B2, R-C1) in 2026-09-24 working tree
+**Area:** `cli` inspect summary, diff caps/wire shape, region flags
+**Created:** 2026-09-24 (measured at `ff80f8e` with `./target/debug/stichos` built)
+**Fixed:** 2026-09-24
+
+Before (measured at `ff80f8e` with built binary): `phase6_gate.sh --ci` **86/90**, `p606_ctx06_compliance` **3/6**.
+
+After (working tree + `cargo build -p stichos`): `phase6_gate.sh --ci` **90/90**, `p606_ctx06_compliance` **6/6**.
+
+Fixes applied:
+1. **Inspect summary budget:** Replaced full `element_ids` array with `element_kinds` count map + 5-entry sample in `inspect.rs`. `tokens_est` dropped from 5988 to ~230 (target < 500). JSON payload: 1,385 bytes (was 34 KB).
+2. **Diff default cap:** Applied `max_ops=20` default in `diff_tool.rs`; added `--max-ops 0` → unlimited normalization.
+3. **Wire shape:** Renamed `truncated` → `hasMore`, `total_ops` → `totalOperations` in `ir_diff` JSON.
+4. **Region flags:** Added `--json` and `--output urls|base64|both` flags to CLI `region` verb.
+5. **Journal wire:** Added `total_entries` field to journal output.
+
+---
+
+## KI-09: Gate "binary not built (skipped)" paths can mask failures
+
+**Status:** fixed — resolved by Track A′ (R-D1) in 2026-09-24 working tree
+**Area:** `tools/phase6_gate.sh` checks 1b–1f
+**Created:** 2026-09-24
+**Fixed:** 2026-09-24
+
+Fixed: R-D1 added `cargo build -p stichos` at the beginning of the gate script. The gate now always builds the binary before running binary-dependent checks — no more silent skips. KI-08 violations were masked by this skip path at tag time.
+
+---
+
+*Last updated: 2026-09-24*

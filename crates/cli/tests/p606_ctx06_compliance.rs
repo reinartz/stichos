@@ -105,6 +105,23 @@ fn ctx06_diff_cap_20_and_journal_cap_10() {
     assert!(ops_len <= 20, "diff ops must be <= 20, got {}", ops_len);
     assert!(parsed.get("ir_diff").is_some(), "diff must have ir_diff");
 
+    // Wire shape: C14 expects totalOperations + hasMore
+    let total_ops = parsed
+        .get("ir_diff")
+        .and_then(|d| d.get("totalOperations"))
+        .and_then(|t| t.as_u64());
+    assert!(
+        total_ops.is_some(),
+        "diff must have ir_diff.totalOperations"
+    );
+    assert!(
+        parsed
+            .get("ir_diff")
+            .and_then(|d| d.get("hasMore"))
+            .is_some(),
+        "diff must have ir_diff.hasMore"
+    );
+
     // Journal cap on a copy.
     let dir = tempfile::TempDir::new().expect("tempdir");
     let doc = dir.path().join("ctx06_journal.docx");
