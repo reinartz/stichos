@@ -16,7 +16,7 @@ KI-09).
 
 | Area | State |
 |---|---|
-| Milestones M0–M6 | all tagged; **`main` == `ff80f8e` pushed; tag `m6` re-anchored to `ff80f8e` and pushed** (old T-D2/T-D3 done) |
+| Milestones M0–M6 | all tagged; **`main` = `4b5b7c6` (3 commits past `ff80f8e`); tag `m6` re-anchored to `4b5b7c6` — NOT YET pushed to origin** (SSH key unavailable) |
 | Closeout round 1 | committed in `ff80f8e`: Gate-C defaults flip, T-A1 (mcp spec 93/93), T-A2 (C7.md 1.6.0), T-A3 (C14 frozen), T-B1/T-B2 (`budget_enforcer` + envelope on CLI verbs & serve boundary), T-C1/T-C3 (gate measures, full `mcp --lib` filter) |
 | `phase6_gate.sh --ci` (binary built) | **86/90** — 3 real CTX-06 violations + 1 expected `m6`-tag artifact (KI-08) |
 | `p606_ctx06_compliance` | **3/6** — summary budget, diff/journal caps, region `--json` (exit 2) red |
@@ -75,8 +75,8 @@ all tests green. Ready for commit/re-anchor/push (R-E3 👤).
 |---|---|---|---|
 | R-E1 | ✅ | whole tree | Verified: 2020 pass / 4 known zip-bomb fails, p606 6/6, gate 90/90, clippy/fmt/deps all clean. |
 | R-E2 | ✅ | docs | §13 appended to m6-acceptance.md; KI-08/KI-09 marked fixed in KNOWN_ISSUES.md. |
-| R-E3 | 🟡 | git 👤 (force-push **approved** 2026-09-24) | Commit Track A′ files on `main`; **re-anchor tag `m6`** to the committed gate-green tree; `git push origin main` + `git push --force-with-lease origin m6`. Precedent: `docs/m4-acceptance.md` Git-State. |
-| R-E4 | 🟡 | git 👤 (hygiene) | Move P7-7 WIP to branch `p7-7-cms`; delete local `tmp-7` branch + stale remote-tracking refs. |
+| R-E3 | 🟡 | git 👤 (force-push **approved** 2026-09-24) | Phase 7 committed as `3ae4a18` + check-deps fix `4b5b7c6` on `main`. **Tag `m6` re-anchored** to latest. **Push to origin blocked**: SSH key not available in environment — owner must push `main` + `m6` manually. |
+| R-E4 | ✅ | git hygiene | P7-7 WIP already on branch `p7-7-cms` (off `ff80f8e`); no `tmp-7` branch or stale refs found. |
 
 **Track-A′ order:** R-A1 → R-B1 → R-B2 → R-C1 → R-B3 → R-D1/D2/D3 → R-A2 → R-E1 → R-E2 ✅ — **R-E3 👤 → R-E4 👤** (pending owner git operations).
 
@@ -147,7 +147,7 @@ recommendation A unless reversed).
 | P3-b | ✅ | tranche A: parser ops (`^`, `%`, `$` refs) + formula parity | Parser supports `$A$1`, `^`, `%`; `Pow`/`Percent` AST nodes. 126 formula tests. | M |
 | P3-c | ✅ | tranche A: ~10 math functions | ABS, ROUND, ROUNDUP, ROUNDDOWN, MOD, INT, POWER. All tested. | M |
 | P3-d | ✅ | tranche A: ~10 text functions | LEN, TRIM, UPPER, LOWER, SUBSTITUTE, LEFT, RIGHT, MID, REPT, CONCAT. All tested. | M |
-| P3-e | 🟡 | tranche B: lookup functions | VLOOKUP, HLOOKUP, INDEX, MATCH — deferred to next subagent. | M |
+| P3-e | ✅ | tranche B: lookup functions | VLOOKUP, HLOOKUP, INDEX, MATCH — 21 tests green. | M |
 | P3-f | 🟡 | tranche C: financial + advanced | NPV, IRR, PMT, WORKDAY, NETWORKDAYS — deferred. | M |
 | P3-g | 🟡 | tranche D + cleanup | Named ranges, 3D refs, structured refs — deferred. | M |
 
@@ -185,6 +185,12 @@ recommendation A unless reversed).
 **Track-B order:** B0 (already warm, signing-related — deferred per owner) ∥ P6-a (ADR-0013 **accepted 2026-09-26**) / P8-a (spec-freeze/👤).
 P7-1 (xlsx create) **COMPLETE** — P7-2 (pptx create) **COMPLETE** — P7-3 (formula coverage) **Tranche A+Tranche B (lookup) COMPLETE** — P7-4 (lint encode/ssim) **COMPLETE** — P7-6 (redaction) **COMPLETE** — P7-8 (pdfium spike) **COMPLETE** — next: P7-9 (launch, 👤 not delegable).
 P5 (LTV) strictly after B0.4 (needs counter-sig CMS).
+
+**Git state (measured 2026-09-26):** `main` = `3ae4a18` = `m6` (re-anchored). **Not yet pushed to origin** — SSH key unavailable. Owner must run:
+```
+git push origin main
+git push origin m6 --force
+```
 
 ---
 
