@@ -49,9 +49,7 @@ pub fn rasterize_with_pdfium(
         return Err(vec![Diagnostic::new(
             "ENG-E-142",
             Severity::Error,
-            format!(
-                "pdfium: page {page} out of range (PDF has {page_count} pages)"
-            ),
+            format!("pdfium: page {page} out of range (PDF has {page_count} pages)"),
         )]);
     }
 
@@ -68,8 +66,7 @@ pub fn rasterize_with_pdfium(
     let target_width = (page_width * dpi as f32 / 72.0) as i32;
     let target_height = (page_height * dpi as f32 / 72.0) as i32;
 
-    let render_config = PdfRenderConfig::new()
-        .set_target_size(target_width, target_height);
+    let render_config = PdfRenderConfig::new().set_target_size(target_width, target_height);
 
     let bitmap = pdf_page.render_with_config(&render_config).map_err(|e| {
         vec![Diagnostic::new(

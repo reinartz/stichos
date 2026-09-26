@@ -22,9 +22,9 @@
 //! }
 //! ```
 
-use gp_core::formula::GpFCode;
-use gp_core::formula::is_supported_function;
 use gp_core::formula::check_refusal;
+use gp_core::formula::is_supported_function;
+use gp_core::formula::GpFCode;
 use gp_core::ir::Spreadsheet;
 
 /// A formula found in a corpus fixture.
@@ -112,10 +112,7 @@ mod tests {
 
     #[test]
     fn test_classify_supported_sum() {
-        assert_eq!(
-            classify_formula("=SUM(A1:B2)"),
-            FormulaCategory::Supported
-        );
+        assert_eq!(classify_formula("=SUM(A1:B2)"), FormulaCategory::Supported);
     }
 
     #[test]
@@ -156,10 +153,7 @@ mod tests {
 
     #[test]
     fn test_classify_parse_error_no_parens() {
-        assert_eq!(
-            classify_formula("=1+2"),
-            FormulaCategory::ParseError
-        );
+        assert_eq!(classify_formula("=1+2"), FormulaCategory::ParseError);
     }
 
     #[test]
@@ -180,14 +174,8 @@ mod tests {
 
     #[test]
     fn test_classify_supported_math_funcs() {
-        assert_eq!(
-            classify_formula("=ABS(A1)"),
-            FormulaCategory::Supported
-        );
-        assert_eq!(
-            classify_formula("=ROUND(A1,2)"),
-            FormulaCategory::Supported
-        );
+        assert_eq!(classify_formula("=ABS(A1)"), FormulaCategory::Supported);
+        assert_eq!(classify_formula("=ROUND(A1,2)"), FormulaCategory::Supported);
         assert_eq!(
             classify_formula("=ROUNDUP(A1,0)"),
             FormulaCategory::Supported
@@ -196,39 +184,18 @@ mod tests {
             classify_formula("=ROUNDDOWN(A1,1)"),
             FormulaCategory::Supported
         );
-        assert_eq!(
-            classify_formula("=MOD(10,3)"),
-            FormulaCategory::Supported
-        );
-        assert_eq!(
-            classify_formula("=INT(3.7)"),
-            FormulaCategory::Supported
-        );
-        assert_eq!(
-            classify_formula("=POWER(2,3)"),
-            FormulaCategory::Supported
-        );
+        assert_eq!(classify_formula("=MOD(10,3)"), FormulaCategory::Supported);
+        assert_eq!(classify_formula("=INT(3.7)"), FormulaCategory::Supported);
+        assert_eq!(classify_formula("=POWER(2,3)"), FormulaCategory::Supported);
     }
 
     #[test]
     fn test_classify_supported_date_funcs() {
-        assert_eq!(
-            classify_formula("=TODAY()"),
-            FormulaCategory::Supported
-        );
+        assert_eq!(classify_formula("=TODAY()"), FormulaCategory::Supported);
         assert_eq!(classify_formula("=NOW()"), FormulaCategory::Supported);
-        assert_eq!(
-            classify_formula("=YEAR(A1)"),
-            FormulaCategory::Supported
-        );
-        assert_eq!(
-            classify_formula("=MONTH(B1)"),
-            FormulaCategory::Supported
-        );
-        assert_eq!(
-            classify_formula("=DAY(C1)"),
-            FormulaCategory::Supported
-        );
+        assert_eq!(classify_formula("=YEAR(A1)"), FormulaCategory::Supported);
+        assert_eq!(classify_formula("=MONTH(B1)"), FormulaCategory::Supported);
+        assert_eq!(classify_formula("=DAY(C1)"), FormulaCategory::Supported);
         assert_eq!(
             classify_formula("=DATEDIF(D1,E1,\"d\")"),
             FormulaCategory::Supported
@@ -257,10 +224,7 @@ mod tests {
             classify_formula("=STDEV(D1:D10)"),
             FormulaCategory::Supported
         );
-        assert_eq!(
-            classify_formula("=VAR(E1:E10)"),
-            FormulaCategory::Supported
-        );
+        assert_eq!(classify_formula("=VAR(E1:E10)"), FormulaCategory::Supported);
         assert_eq!(
             classify_formula("=RANK(F1,G1:G10)"),
             FormulaCategory::Supported
@@ -277,10 +241,7 @@ mod tests {
             classify_formula("=ISNUMBER(B1)"),
             FormulaCategory::Supported
         );
-        assert_eq!(
-            classify_formula("=ISTEXT(C1)"),
-            FormulaCategory::Supported
-        );
+        assert_eq!(classify_formula("=ISTEXT(C1)"), FormulaCategory::Supported);
         assert_eq!(
             classify_formula("=IFNA(D1,\"N/A\")"),
             FormulaCategory::Supported
@@ -304,55 +265,57 @@ mod tests {
         let spreadsheet = Spreadsheet {
             ir_version: "1.0".to_string(),
             ir_version_migration: None,
-            sheets: vec![
-                Sheet {
-                    id: ElementId::content_anchored("sheet", &["sheet:0"], "1.0"),
-                    name: "Sheet1".to_string(),
-                    rows: vec![
-                        SheetRow {
-                            id: ElementId::content_anchored("row", &["row:0"], "1.0"),
-                            cells: vec![
-                                SheetCell {
-                                    id: ElementId::content_anchored("cell", &["cell:A1"], "1.0"),
-                                    row: 0, col: 0,
-                                    value: None,
-                                    formula: Some("=SUM(A1:B2)".to_string()),
-                                    cached_value: None,
-                                    style_name: None,
-                                    number_format: None,
-                                },
-                                SheetCell {
-                                    id: ElementId::content_anchored("cell", &["cell:B1"], "1.0"),
-                                    row: 0, col: 1,
-                                    value: None,
-                                    formula: Some("=VLOOKUP(A1,B1:C10,2,FALSE)".to_string()),
-                                    cached_value: None,
-                                    style_name: None,
-                                    number_format: None,
-                                },
-                                SheetCell {
-                                    id: ElementId::content_anchored("cell", &["cell:C1"], "1.0"),
-                                    row: 0, col: 2,
-                                    value: None,
-                                    formula: Some("=1+2".to_string()),
-                                    cached_value: None,
-                                    style_name: None,
-                                    number_format: None,
-                                },
-                            ],
+            sheets: vec![Sheet {
+                id: ElementId::content_anchored("sheet", &["sheet:0"], "1.0"),
+                name: "Sheet1".to_string(),
+                rows: vec![SheetRow {
+                    id: ElementId::content_anchored("row", &["row:0"], "1.0"),
+                    cells: vec![
+                        SheetCell {
+                            id: ElementId::content_anchored("cell", &["cell:A1"], "1.0"),
+                            row: 0,
+                            col: 0,
+                            value: None,
+                            formula: Some("=SUM(A1:B2)".to_string()),
+                            cached_value: None,
+                            style_name: None,
+                            number_format: None,
+                        },
+                        SheetCell {
+                            id: ElementId::content_anchored("cell", &["cell:B1"], "1.0"),
+                            row: 0,
+                            col: 1,
+                            value: None,
+                            formula: Some("=VLOOKUP(A1,B1:C10,2,FALSE)".to_string()),
+                            cached_value: None,
+                            style_name: None,
+                            number_format: None,
+                        },
+                        SheetCell {
+                            id: ElementId::content_anchored("cell", &["cell:C1"], "1.0"),
+                            row: 0,
+                            col: 2,
+                            value: None,
+                            formula: Some("=1+2".to_string()),
+                            cached_value: None,
+                            style_name: None,
+                            number_format: None,
                         },
                     ],
-                    merged_ranges: vec![],
-                    header_row: None,
-                    footer_row: None,
-                },
-            ],
+                }],
+                merged_ranges: vec![],
+                header_row: None,
+                footer_row: None,
+            }],
         };
 
         let results = inventory_from_spreadsheet("test_fixture", &spreadsheet);
         assert_eq!(results.len(), 3);
         assert_eq!(results[0].category, FormulaCategory::Supported);
-        assert_eq!(results[1].category, FormulaCategory::Refused(GpFCode::UnsupportedFunction));
+        assert_eq!(
+            results[1].category,
+            FormulaCategory::Refused(GpFCode::UnsupportedFunction)
+        );
         assert_eq!(results[2].category, FormulaCategory::ParseError);
     }
 }

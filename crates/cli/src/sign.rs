@@ -5,7 +5,7 @@
 //! Uses the signature module to create a self-signed PKCS#7 signature.
 
 use anyhow::{bail, Context, Result};
-use gp_core::signature::{self, SignAlgorithm, SigningIdentity};
+use gp_core::signature::{self, verify_signature, SignAlgorithm, SigningIdentity};
 
 /// Execute the sign command.
 pub fn cmd_sign(
@@ -13,6 +13,7 @@ pub fn cmd_sign(
     subject: Option<String>,
     algorithm: Option<String>,
     output: Option<std::path::PathBuf>,
+    verify: bool,
 ) -> Result<()> {
     let source = std::fs::read(path).with_context(|| "failed to read input PDF")?;
 
@@ -44,6 +45,25 @@ pub fn cmd_sign(
 
     std::fs::write(&out_path, &result.output)
         .with_context(|| format!("failed to write signed PDF to {:?}", out_path))?;
+
+    // Verify the signature if requested
+    if verify {
+        let vr = verify_signature(&result.output);
+        if !vr.valid {
+            eprintln!("WARNING: Signature verification failed:");
+            for error in &vr.errors {
+                eprintln!("  ERROR: {}", error);
+            }
+            for warning in &vr.warnings {
+                eprintln!("  WARNING: {}", warning);
+            }
+        } else {
+            eprintln!("Signature verification: OK");
+            eprintln!("  Subject: {:?}", vr.subject);
+            eprintln!("  Algorithm: {:?}", vr.algorithm);
+            eprintln!("  Signing time: {:?}", vr.signing_time);
+        }
+    }
 
     // Print summary
     let sig = &result.signature;
@@ -79,6 +99,25 @@ fn parse_algorithm(s: Option<&str>) -> Result<SignAlgorithm> {
         Some("ecdsa") | Some("ecdsa_p384") => Ok(SignAlgorithm::EcdsaP384),
         Some(other) => bail!("unsupported algorithm: {} (use 'rsa' or 'ecdsa')", other),
     }
+}
+
+/// Execute the verify command.
+pub fn cmd_verify(path: &std::path::Path) -> Result<()> {
+    let source = std::fs::read(path).with_context(|| "failed to read PDF")?;
+    let vr = verify_signature(&source);
+
+    println!("{}", serde_json::to_string_pretty(&vr).unwrap());
+
+    if !vr.valid {
+        eprintln!("Signature verification: FAILED");
+        for error in &vr.errors {
+            eprintln!("  ERROR: {}", error);
+        }
+    } else {
+        eprintln!("Signature verification: OK");
+    }
+
+    Ok(())
 }
 
 #[cfg(test)]

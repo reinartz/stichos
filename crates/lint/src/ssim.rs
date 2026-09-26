@@ -221,7 +221,9 @@ mod tests {
 
     /// Generate a deterministic 112x112 raster with brightness variation.
     fn golden_raster_brightness_shift() -> Vec<u8> {
-        (0..112 * 112).map(|i| (128 + (i % 60) - 30).clamp(0, 255) as u8).collect()
+        (0..112 * 112)
+            .map(|i| (128 + (i % 60) - 30).clamp(0, 255) as u8)
+            .collect()
     }
 
     /// Generate a deterministic 112x112 raster with pseudo-random noise.
@@ -481,7 +483,11 @@ mod tests {
         let a = golden_raster_112x112();
         let b = golden_raster_112x112();
         let score = ssim(&a, &b, 112, 112);
-        assert!(score >= 0.999, "identical rasters should score >= 0.999, got {:.4}", score);
+        assert!(
+            score >= 0.999,
+            "identical rasters should score >= 0.999, got {:.4}",
+            score
+        );
     }
 
     /// test_ssim_brightness_shift_expected_range
@@ -492,7 +498,11 @@ mod tests {
         let score = ssim(&a, &b, 112, 112);
         // With 112x112 window and deterministic brightness variation,
         // SSIM scores are lower than naive expectations.
-        assert!(score >= 0.00 && score <= 0.50, "brightness shift got {:.4}, expected <= 0.50", score);
+        assert!(
+            score >= 0.00 && score <= 0.50,
+            "brightness shift got {:.4}, expected <= 0.50",
+            score
+        );
     }
 
     /// test_ssim_noise_expected_range
@@ -502,7 +512,11 @@ mod tests {
         let b = golden_raster_with_noise(42);
         let score = ssim(&a, &b, 112, 112);
         // Pure noise against uniform gray produces very low SSIM.
-        assert!(score >= 0.00 && score <= 0.30, "noise got {:.4}, expected <= 0.30", score);
+        assert!(
+            score >= 0.00 && score <= 0.30,
+            "noise got {:.4}, expected <= 0.30",
+            score
+        );
     }
 
     /// test_ssim_black_vs_white_score_below_01
@@ -511,7 +525,11 @@ mod tests {
         let black = vec![0u8; 112 * 112];
         let white = vec![255u8; 112 * 112];
         let score = ssim(&black, &white, 112, 112);
-        assert!(score < 0.1, "black vs white should score < 0.1, got {:.4}", score);
+        assert!(
+            score < 0.1,
+            "black vs white should score < 0.1, got {:.4}",
+            score
+        );
     }
 
     /// test_ssim_gradient_expected_range
@@ -520,7 +538,11 @@ mod tests {
         let g1: Vec<u8> = (0..112 * 112).map(|i| (i % 256) as u8).collect();
         let g2: Vec<u8> = (0..112 * 112).map(|i| ((i + 5) % 256) as u8).collect();
         let score = ssim(&g1, &g2, 112, 112);
-        assert!(score >= 0.90, "offset gradient should score >= 0.90, got {:.4}", score);
+        assert!(
+            score >= 0.90,
+            "offset gradient should score >= 0.90, got {:.4}",
+            score
+        );
     }
 
     /// test_ssim_threshold_pass
@@ -538,7 +560,10 @@ mod tests {
         let black = vec![0u8; 112 * 112];
         let white = vec![255u8; 112 * 112];
         let result = ssim_with_threshold(&black, &white, 112, 112, 0.9);
-        assert!(result.is_err(), "threshold 0.9 should fail for black vs white");
+        assert!(
+            result.is_err(),
+            "threshold 0.9 should fail for black vs white"
+        );
         let diag = result.unwrap_err();
         assert_eq!(diag.code, "LIN-I-001");
     }

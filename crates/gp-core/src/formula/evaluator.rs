@@ -1106,7 +1106,10 @@ fn eval_ifna(ctx: &dyn FormulaContext, args: &[FormulaNode]) -> Option<EvalResul
 // ===========================================================================
 
 /// Helper: evaluate the first argument as a LookupValue for comparison.
-fn eval_lookup_value(ctx: &dyn FormulaContext, node: &FormulaNode) -> Option<(LookupValue, EvalResult)> {
+fn eval_lookup_value(
+    ctx: &dyn FormulaContext,
+    node: &FormulaNode,
+) -> Option<(LookupValue, EvalResult)> {
     let result = eval_node(ctx, node)?;
     let lv = match &result {
         EvalResult::Number(n) => LookupValue::Number(*n),
@@ -1192,12 +1195,8 @@ fn lookup_values_equal(lv: &LookupValue, cv: &EvalResult) -> bool {
         (LookupValue::Number(a), EvalResult::Number(b)) => *a == *b,
         (LookupValue::Text(a), EvalResult::Text(b)) => a.eq_ignore_ascii_case(b),
         (LookupValue::Bool(a), EvalResult::Bool(b)) => a == b,
-        (LookupValue::Text(a), EvalResult::Number(b)) => {
-            a.trim() == b.to_string().trim()
-        }
-        (LookupValue::Number(a), EvalResult::Text(b)) => {
-            a.to_string().trim() == b.trim()
-        }
+        (LookupValue::Text(a), EvalResult::Number(b)) => a.trim() == b.to_string().trim(),
+        (LookupValue::Number(a), EvalResult::Text(b)) => a.to_string().trim() == b.trim(),
         _ => false,
     }
 }
@@ -1207,7 +1206,13 @@ fn lookup_compare(lv: &LookupValue, result: &EvalResult) -> i32 {
     let a = match lv {
         LookupValue::Number(n) => *n,
         LookupValue::Text(t) => t.trim().parse::<f64>().unwrap_or(0.0),
-        LookupValue::Bool(b) => if *b { 1.0 } else { 0.0 },
+        LookupValue::Bool(b) => {
+            if *b {
+                1.0
+            } else {
+                0.0
+            }
+        }
         LookupValue::Error => 0.0,
     };
     let b = match result {
@@ -1388,9 +1393,7 @@ fn eval_match(ctx: &dyn FormulaContext, args: &[FormulaNode]) -> Option<EvalResu
     let (lookup_val, _eval_result) = eval_lookup_value(ctx, &args[0])?;
     // Extract range values for the 1D search
     let values = match &args[1] {
-        FormulaNode::Range(range) => {
-            ctx.get_range(range).unwrap_or_default()
-        }
+        FormulaNode::Range(range) => ctx.get_range(range).unwrap_or_default(),
         FormulaNode::CellRef(ref_name) => {
             ctx.get_cell(ref_name).map(|c| vec![c]).unwrap_or_default()
         }
@@ -2371,11 +2374,7 @@ mod tests {
         }
 
         /// Build a rectangular grid range from row-major values.
-        fn with_grid(
-            mut self,
-            range: &str,
-            rows: Vec<Vec<f64>>,
-        ) -> Self {
+        fn with_grid(mut self, range: &str, rows: Vec<Vec<f64>>) -> Self {
             let cols = rows.iter().map(|r| r.len()).max().unwrap_or(0);
             let mut values = Vec::new();
             for row in &rows {
@@ -2392,11 +2391,7 @@ mod tests {
         }
 
         /// Build a text grid range from row-major values.
-        fn with_text_grid(
-            mut self,
-            range: &str,
-            rows: Vec<Vec<&str>>,
-        ) -> Self {
+        fn with_text_grid(mut self, range: &str, rows: Vec<Vec<&str>>) -> Self {
             let cols = rows.iter().map(|r| r.len()).max().unwrap_or(0);
             let mut values = Vec::new();
             for row in &rows {
@@ -2455,13 +2450,13 @@ mod tests {
         }
 
         fn get_cell_at(
-                    &self,
-                    _sheet: Option<&str>,
-                    _row: usize,
-                    _col: usize,
-                ) -> Option<CachedCellValue> {
-                    None
-                }
+            &self,
+            _sheet: Option<&str>,
+            _row: usize,
+            _col: usize,
+        ) -> Option<CachedCellValue> {
+            None
+        }
 
         fn analysis_date(&self) -> f64 {
             45672.0
@@ -2476,79 +2471,69 @@ mod tests {
     // VLOOKUP tests
     #[test]
     fn test_vlookup_exact_match() {
-        let ctx = LookupTestContext::default().with_text_grid("A1:B5", vec![
-            vec!["A", "10"],
-            vec!["B", "20"],
-            vec!["C", "30"],
-            vec!["D", "40"],
-            vec!["E", "50"],
-        ]);
-        // VLOOKUP("B", A1:B5, 2, FALSE) = 20
-        let result = evaluate_lookup_formula(
-            r#"VLOOKUP("B", A1:B5, 2, FALSE)"#,
-            &ctx,
+        let ctx = LookupTestContext::default().with_text_grid(
+            "A1:B5",
+            vec![
+                vec!["A", "10"],
+                vec!["B", "20"],
+                vec!["C", "30"],
+                vec!["D", "40"],
+                vec!["E", "50"],
+            ],
         );
+        // VLOOKUP("B", A1:B5, 2, FALSE) = 20
+        let result = evaluate_lookup_formula(r#"VLOOKUP("B", A1:B5, 2, FALSE)"#, &ctx);
         assert_eq!(result, Some(EvalResult::Number(20.0)));
         // VLOOKUP("D", A1:B5, 2, 0) = 40
-        let result = evaluate_lookup_formula(
-            r#"VLOOKUP("D", A1:B5, 2, 0)"#,
-            &ctx,
-        );
+        let result = evaluate_lookup_formula(r#"VLOOKUP("D", A1:B5, 2, 0)"#, &ctx);
         assert_eq!(result, Some(EvalResult::Number(40.0)));
     }
 
     #[test]
     fn test_vlookup_approximate_match() {
-        let ctx = LookupTestContext::default().with_grid("A1:B5", vec![
-            vec![1.0, 10.0],
-            vec![2.0, 20.0],
-            vec![3.0, 30.0],
-            vec![4.0, 40.0],
-            vec![5.0, 50.0],
-        ]);
-        // VLOOKUP(3, A1:B5, 2, FALSE) = 30
-        let result = evaluate_lookup_formula(
-            "VLOOKUP(3, A1:B5, 2, FALSE)",
-            &ctx,
+        let ctx = LookupTestContext::default().with_grid(
+            "A1:B5",
+            vec![
+                vec![1.0, 10.0],
+                vec![2.0, 20.0],
+                vec![3.0, 30.0],
+                vec![4.0, 40.0],
+                vec![5.0, 50.0],
+            ],
         );
+        // VLOOKUP(3, A1:B5, 2, FALSE) = 30
+        let result = evaluate_lookup_formula("VLOOKUP(3, A1:B5, 2, FALSE)", &ctx);
         assert_eq!(result, Some(EvalResult::Number(30.0)));
         // VLOOKUP(2.5, A1:B5, 2, TRUE) = 20 (next smaller = 2 -> 20)
-        let result = evaluate_lookup_formula(
-            "VLOOKUP(2.5, A1:B5, 2, TRUE)",
-            &ctx,
-        );
+        let result = evaluate_lookup_formula("VLOOKUP(2.5, A1:B5, 2, TRUE)", &ctx);
         assert_eq!(result, Some(EvalResult::Number(20.0)));
     }
 
     #[test]
     fn test_vlookup_not_found() {
-        let ctx = LookupTestContext::default().with_text_grid("A1:B3", vec![
-            vec!["A", "10"],
-            vec!["B", "20"],
-            vec!["C", "30"],
-        ]);
-        // VLOOKUP("Z", A1:B3, 2, FALSE) = #N/A
-        let result = evaluate_lookup_formula(
-            r#"VLOOKUP("Z", A1:B3, 2, FALSE)"#,
-            &ctx,
+        let ctx = LookupTestContext::default().with_text_grid(
+            "A1:B3",
+            vec![vec!["A", "10"], vec!["B", "20"], vec!["C", "30"]],
         );
+        // VLOOKUP("Z", A1:B3, 2, FALSE) = #N/A
+        let result = evaluate_lookup_formula(r#"VLOOKUP("Z", A1:B3, 2, FALSE)"#, &ctx);
         assert_eq!(result, Some(EvalResult::Error("#N/A".to_string())));
     }
 
     #[test]
     fn test_vlookup_col_index_error() {
-        let ctx = LookupTestContext::default().with_grid("A1:B5", vec![
-            vec![1.0, 10.0],
-            vec![2.0, 20.0],
-            vec![3.0, 30.0],
-            vec![4.0, 40.0],
-            vec![5.0, 50.0],
-        ]);
-        // VLOOKUP(3, A1:B5, 3, FALSE) = #REF! (col 3 > 2 columns)
-        let result = evaluate_lookup_formula(
-            "VLOOKUP(3, A1:B5, 3, FALSE)",
-            &ctx,
+        let ctx = LookupTestContext::default().with_grid(
+            "A1:B5",
+            vec![
+                vec![1.0, 10.0],
+                vec![2.0, 20.0],
+                vec![3.0, 30.0],
+                vec![4.0, 40.0],
+                vec![5.0, 50.0],
+            ],
         );
+        // VLOOKUP(3, A1:B5, 3, FALSE) = #REF! (col 3 > 2 columns)
+        let result = evaluate_lookup_formula("VLOOKUP(3, A1:B5, 3, FALSE)", &ctx);
         assert_eq!(result, Some(EvalResult::Error("#REF!".to_string())));
     }
 
@@ -2556,68 +2541,60 @@ mod tests {
     fn test_vlookup_with_cell_refs() {
         let ctx = LookupTestContext::default()
             .with_value("B1", 1.5)
-            .with_text_grid("A1:B5", vec![
-                vec!["A", "10"],
-                vec!["B", "20"],
-                vec!["C", "30"],
-                vec!["D", "40"],
-                vec!["E", "50"],
-            ]);
+            .with_text_grid(
+                "A1:B5",
+                vec![
+                    vec!["A", "10"],
+                    vec!["B", "20"],
+                    vec!["C", "30"],
+                    vec!["D", "40"],
+                    vec!["E", "50"],
+                ],
+            );
         // VLOOKUP(B1, A1:B5, 2, FALSE) should search for 1.5 as text "1.5"
         // which won't match, so expect #N/A
-        let result = evaluate_lookup_formula(
-            "VLOOKUP(B1, A1:B5, 2, FALSE)",
-            &ctx,
-        );
+        let result = evaluate_lookup_formula("VLOOKUP(B1, A1:B5, 2, FALSE)", &ctx);
         assert_eq!(result, Some(EvalResult::Error("#N/A".to_string())));
     }
 
     // HLOOKUP tests
     #[test]
     fn test_hlookup_exact_match() {
-        let ctx = LookupTestContext::default().with_grid("A1:E2", vec![
-            vec![1.0, 2.0, 3.0, 4.0, 5.0],
-            vec![10.0, 20.0, 30.0, 40.0, 50.0],
-        ]);
-        // HLOOKUP(3, A1:E2, 2, FALSE) = 30
-        let result = evaluate_lookup_formula(
-            "HLOOKUP(3, A1:E2, 2, FALSE)",
-            &ctx,
+        let ctx = LookupTestContext::default().with_grid(
+            "A1:E2",
+            vec![
+                vec![1.0, 2.0, 3.0, 4.0, 5.0],
+                vec![10.0, 20.0, 30.0, 40.0, 50.0],
+            ],
         );
+        // HLOOKUP(3, A1:E2, 2, FALSE) = 30
+        let result = evaluate_lookup_formula("HLOOKUP(3, A1:E2, 2, FALSE)", &ctx);
         assert_eq!(result, Some(EvalResult::Number(30.0)));
         // HLOOKUP(1, A1:E2, 2, FALSE) = 10
-        let result = evaluate_lookup_formula(
-            "HLOOKUP(1, A1:E2, 2, FALSE)",
-            &ctx,
-        );
+        let result = evaluate_lookup_formula("HLOOKUP(1, A1:E2, 2, FALSE)", &ctx);
         assert_eq!(result, Some(EvalResult::Number(10.0)));
     }
 
     #[test]
     fn test_hlookup_approximate_match() {
-        let ctx = LookupTestContext::default().with_grid("A1:E2", vec![
-            vec![1.0, 2.0, 3.0, 4.0, 5.0],
-            vec![10.0, 20.0, 30.0, 40.0, 50.0],
-        ]);
-        // HLOOKUP(2.5, A1:E2, 2, TRUE) = 20 (next smaller = 2 -> col 2 -> 20)
-        let result = evaluate_lookup_formula(
-            "HLOOKUP(2.5, A1:E2, 2, TRUE)",
-            &ctx,
+        let ctx = LookupTestContext::default().with_grid(
+            "A1:E2",
+            vec![
+                vec![1.0, 2.0, 3.0, 4.0, 5.0],
+                vec![10.0, 20.0, 30.0, 40.0, 50.0],
+            ],
         );
+        // HLOOKUP(2.5, A1:E2, 2, TRUE) = 20 (next smaller = 2 -> col 2 -> 20)
+        let result = evaluate_lookup_formula("HLOOKUP(2.5, A1:E2, 2, TRUE)", &ctx);
         assert_eq!(result, Some(EvalResult::Number(20.0)));
     }
 
     #[test]
     fn test_hlookup_not_found() {
-        let ctx = LookupTestContext::default().with_grid("A1:B2", vec![
-            vec![1.0, 2.0],
-            vec![10.0, 20.0],
-        ]);
+        let ctx =
+            LookupTestContext::default().with_grid("A1:B2", vec![vec![1.0, 2.0], vec![10.0, 20.0]]);
         // HLOOKUP(99, A1:B2, 2, FALSE) = #N/A
-        let result = evaluate_lookup_formula(
-            "HLOOKUP(99, A1:B2, 2, FALSE)",
-            &ctx,
-        );
+        let result = evaluate_lookup_formula("HLOOKUP(99, A1:B2, 2, FALSE)", &ctx);
         assert_eq!(result, Some(EvalResult::Error("#N/A".to_string())));
     }
 
@@ -2636,10 +2613,7 @@ mod tests {
         // Wait, Price is in column C (col 3). Row 2 is data row 1.
         // Actually HLOOKUP searches the first row (headers), finds "Price" at col 3
         // Returns value from row 2 at col 3 = 10.0
-        let result = evaluate_lookup_formula(
-            r#"HLOOKUP("Price", A1:C4, 2, FALSE)"#,
-            &ctx,
-        );
+        let result = evaluate_lookup_formula(r#"HLOOKUP("Price", A1:C4, 2, FALSE)"#, &ctx);
         assert_eq!(result, Some(EvalResult::Number(10.0)));
     }
 
@@ -2649,19 +2623,36 @@ mod tests {
         let ctx = LookupTestContext::default().with_range(
             "A1:A5",
             vec![
-                CachedCellValue { numeric: Some(10.0), text: None, bool: None },
-                CachedCellValue { numeric: Some(20.0), text: None, bool: None },
-                CachedCellValue { numeric: Some(30.0), text: None, bool: None },
-                CachedCellValue { numeric: Some(40.0), text: None, bool: None },
-                CachedCellValue { numeric: Some(50.0), text: None, bool: None },
+                CachedCellValue {
+                    numeric: Some(10.0),
+                    text: None,
+                    bool: None,
+                },
+                CachedCellValue {
+                    numeric: Some(20.0),
+                    text: None,
+                    bool: None,
+                },
+                CachedCellValue {
+                    numeric: Some(30.0),
+                    text: None,
+                    bool: None,
+                },
+                CachedCellValue {
+                    numeric: Some(40.0),
+                    text: None,
+                    bool: None,
+                },
+                CachedCellValue {
+                    numeric: Some(50.0),
+                    text: None,
+                    bool: None,
+                },
             ],
             1,
         );
         // MATCH(30, A1:A5, 0) = 3
-        let result = evaluate_lookup_formula(
-            "MATCH(30, A1:A5, 0)",
-            &ctx,
-        );
+        let result = evaluate_lookup_formula("MATCH(30, A1:A5, 0)", &ctx);
         assert_eq!(result, Some(EvalResult::Number(3.0)));
     }
 
@@ -2670,19 +2661,36 @@ mod tests {
         let ctx = LookupTestContext::default().with_range(
             "A1:A5",
             vec![
-                CachedCellValue { numeric: Some(10.0), text: None, bool: None },
-                CachedCellValue { numeric: Some(20.0), text: None, bool: None },
-                CachedCellValue { numeric: Some(30.0), text: None, bool: None },
-                CachedCellValue { numeric: Some(40.0), text: None, bool: None },
-                CachedCellValue { numeric: Some(50.0), text: None, bool: None },
+                CachedCellValue {
+                    numeric: Some(10.0),
+                    text: None,
+                    bool: None,
+                },
+                CachedCellValue {
+                    numeric: Some(20.0),
+                    text: None,
+                    bool: None,
+                },
+                CachedCellValue {
+                    numeric: Some(30.0),
+                    text: None,
+                    bool: None,
+                },
+                CachedCellValue {
+                    numeric: Some(40.0),
+                    text: None,
+                    bool: None,
+                },
+                CachedCellValue {
+                    numeric: Some(50.0),
+                    text: None,
+                    bool: None,
+                },
             ],
             1,
         );
         // MATCH(25, A1:A5, 1) = 2 (next smaller is 20 at position 2)
-        let result = evaluate_lookup_formula(
-            "MATCH(25, A1:A5, 1)",
-            &ctx,
-        );
+        let result = evaluate_lookup_formula("MATCH(25, A1:A5, 1)", &ctx);
         assert_eq!(result, Some(EvalResult::Number(2.0)));
     }
 
@@ -2691,19 +2699,36 @@ mod tests {
         let ctx = LookupTestContext::default().with_range(
             "A1:A5",
             vec![
-                CachedCellValue { numeric: Some(50.0), text: None, bool: None },
-                CachedCellValue { numeric: Some(40.0), text: None, bool: None },
-                CachedCellValue { numeric: Some(30.0), text: None, bool: None },
-                CachedCellValue { numeric: Some(20.0), text: None, bool: None },
-                CachedCellValue { numeric: Some(10.0), text: None, bool: None },
+                CachedCellValue {
+                    numeric: Some(50.0),
+                    text: None,
+                    bool: None,
+                },
+                CachedCellValue {
+                    numeric: Some(40.0),
+                    text: None,
+                    bool: None,
+                },
+                CachedCellValue {
+                    numeric: Some(30.0),
+                    text: None,
+                    bool: None,
+                },
+                CachedCellValue {
+                    numeric: Some(20.0),
+                    text: None,
+                    bool: None,
+                },
+                CachedCellValue {
+                    numeric: Some(10.0),
+                    text: None,
+                    bool: None,
+                },
             ],
             1,
         );
         // MATCH(35, A1:A5, -1) = 2 (next larger is 40 at position 2)
-        let result = evaluate_lookup_formula(
-            "MATCH(35, A1:A5, -1)",
-            &ctx,
-        );
+        let result = evaluate_lookup_formula("MATCH(35, A1:A5, -1)", &ctx);
         assert_eq!(result, Some(EvalResult::Number(2.0)));
     }
 
@@ -2712,17 +2737,26 @@ mod tests {
         let ctx = LookupTestContext::default().with_range(
             "A1:A3",
             vec![
-                CachedCellValue { numeric: Some(10.0), text: None, bool: None },
-                CachedCellValue { numeric: Some(20.0), text: None, bool: None },
-                CachedCellValue { numeric: Some(30.0), text: None, bool: None },
+                CachedCellValue {
+                    numeric: Some(10.0),
+                    text: None,
+                    bool: None,
+                },
+                CachedCellValue {
+                    numeric: Some(20.0),
+                    text: None,
+                    bool: None,
+                },
+                CachedCellValue {
+                    numeric: Some(30.0),
+                    text: None,
+                    bool: None,
+                },
             ],
             1,
         );
         // MATCH(99, A1:A3, 0) = #N/A
-        let result = evaluate_lookup_formula(
-            "MATCH(99, A1:A3, 0)",
-            &ctx,
-        );
+        let result = evaluate_lookup_formula("MATCH(99, A1:A3, 0)", &ctx);
         assert_eq!(result, Some(EvalResult::Error("#N/A".to_string())));
     }
 
@@ -2731,18 +2765,31 @@ mod tests {
         let ctx = LookupTestContext::default().with_range(
             "A1:A4",
             vec![
-                CachedCellValue { numeric: None, text: Some("Apple".to_string()), bool: None },
-                CachedCellValue { numeric: None, text: Some("Banana".to_string()), bool: None },
-                CachedCellValue { numeric: None, text: Some("Cherry".to_string()), bool: None },
-                CachedCellValue { numeric: None, text: Some("Date".to_string()), bool: None },
+                CachedCellValue {
+                    numeric: None,
+                    text: Some("Apple".to_string()),
+                    bool: None,
+                },
+                CachedCellValue {
+                    numeric: None,
+                    text: Some("Banana".to_string()),
+                    bool: None,
+                },
+                CachedCellValue {
+                    numeric: None,
+                    text: Some("Cherry".to_string()),
+                    bool: None,
+                },
+                CachedCellValue {
+                    numeric: None,
+                    text: Some("Date".to_string()),
+                    bool: None,
+                },
             ],
             1,
         );
         // MATCH("Cherry", A1:A4, 0) = 3
-        let result = evaluate_lookup_formula(
-            r#"MATCH("Cherry", A1:A4, 0)"#,
-            &ctx,
-        );
+        let result = evaluate_lookup_formula(r#"MATCH("Cherry", A1:A4, 0)"#, &ctx);
         assert_eq!(result, Some(EvalResult::Number(3.0)));
     }
 
@@ -2751,56 +2798,70 @@ mod tests {
         let ctx = LookupTestContext::default().with_range(
             "A1:A5",
             vec![
-                CachedCellValue { numeric: Some(10.0), text: None, bool: None },
-                CachedCellValue { numeric: Some(20.0), text: None, bool: None },
-                CachedCellValue { numeric: Some(30.0), text: None, bool: None },
-                CachedCellValue { numeric: Some(40.0), text: None, bool: None },
-                CachedCellValue { numeric: Some(50.0), text: None, bool: None },
+                CachedCellValue {
+                    numeric: Some(10.0),
+                    text: None,
+                    bool: None,
+                },
+                CachedCellValue {
+                    numeric: Some(20.0),
+                    text: None,
+                    bool: None,
+                },
+                CachedCellValue {
+                    numeric: Some(30.0),
+                    text: None,
+                    bool: None,
+                },
+                CachedCellValue {
+                    numeric: Some(40.0),
+                    text: None,
+                    bool: None,
+                },
+                CachedCellValue {
+                    numeric: Some(50.0),
+                    text: None,
+                    bool: None,
+                },
             ],
             1,
         );
         // MATCH(35, A1:A5) without match_type defaults to 1 (next smaller) = 30 at pos 3
-        let result = evaluate_lookup_formula(
-            "MATCH(35, A1:A5)",
-            &ctx,
-        );
+        let result = evaluate_lookup_formula("MATCH(35, A1:A5)", &ctx);
         assert_eq!(result, Some(EvalResult::Number(3.0)));
     }
 
     // INDEX tests
     #[test]
     fn test_index_cell() {
-        let ctx = LookupTestContext::default().with_grid("A1:C3", vec![
-            vec![1.0, 2.0, 3.0],
-            vec![4.0, 5.0, 6.0],
-            vec![7.0, 8.0, 9.0],
-        ]);
-        // INDEX(A1:C3, 2, 3) = 6
-        let result = evaluate_lookup_formula(
-            "INDEX(A1:C3, 2, 3)",
-            &ctx,
+        let ctx = LookupTestContext::default().with_grid(
+            "A1:C3",
+            vec![
+                vec![1.0, 2.0, 3.0],
+                vec![4.0, 5.0, 6.0],
+                vec![7.0, 8.0, 9.0],
+            ],
         );
+        // INDEX(A1:C3, 2, 3) = 6
+        let result = evaluate_lookup_formula("INDEX(A1:C3, 2, 3)", &ctx);
         assert_eq!(result, Some(EvalResult::Number(6.0)));
     }
 
     #[test]
     fn test_index_out_of_bounds() {
-        let ctx = LookupTestContext::default().with_grid("A1:C3", vec![
-            vec![1.0, 2.0, 3.0],
-            vec![4.0, 5.0, 6.0],
-            vec![7.0, 8.0, 9.0],
-        ]);
-        // INDEX(A1:C3, 4, 1) = #REF! (row 4 > 3 rows)
-        let result = evaluate_lookup_formula(
-            "INDEX(A1:C3, 4, 1)",
-            &ctx,
+        let ctx = LookupTestContext::default().with_grid(
+            "A1:C3",
+            vec![
+                vec![1.0, 2.0, 3.0],
+                vec![4.0, 5.0, 6.0],
+                vec![7.0, 8.0, 9.0],
+            ],
         );
+        // INDEX(A1:C3, 4, 1) = #REF! (row 4 > 3 rows)
+        let result = evaluate_lookup_formula("INDEX(A1:C3, 4, 1)", &ctx);
         assert_eq!(result, Some(EvalResult::Error("#REF!".to_string())));
         // INDEX(A1:C3, 1, 4) = #REF! (col 4 > 3 cols)
-        let result = evaluate_lookup_formula(
-            "INDEX(A1:C3, 1, 4)",
-            &ctx,
-        );
+        let result = evaluate_lookup_formula("INDEX(A1:C3, 1, 4)", &ctx);
         assert_eq!(result, Some(EvalResult::Error("#REF!".to_string())));
     }
 
@@ -2809,19 +2870,36 @@ mod tests {
         let ctx = LookupTestContext::default().with_range(
             "A1:A5",
             vec![
-                CachedCellValue { numeric: Some(10.0), text: None, bool: None },
-                CachedCellValue { numeric: Some(20.0), text: None, bool: None },
-                CachedCellValue { numeric: Some(30.0), text: None, bool: None },
-                CachedCellValue { numeric: Some(40.0), text: None, bool: None },
-                CachedCellValue { numeric: Some(50.0), text: None, bool: None },
+                CachedCellValue {
+                    numeric: Some(10.0),
+                    text: None,
+                    bool: None,
+                },
+                CachedCellValue {
+                    numeric: Some(20.0),
+                    text: None,
+                    bool: None,
+                },
+                CachedCellValue {
+                    numeric: Some(30.0),
+                    text: None,
+                    bool: None,
+                },
+                CachedCellValue {
+                    numeric: Some(40.0),
+                    text: None,
+                    bool: None,
+                },
+                CachedCellValue {
+                    numeric: Some(50.0),
+                    text: None,
+                    bool: None,
+                },
             ],
             1,
         );
         // INDEX(A1:A5, 3) = 30 (single column, col defaults to 1)
-        let result = evaluate_lookup_formula(
-            "INDEX(A1:A5, 3)",
-            &ctx,
-        );
+        let result = evaluate_lookup_formula("INDEX(A1:A5, 3)", &ctx);
         assert_eq!(result, Some(EvalResult::Number(30.0)));
     }
 
@@ -2830,38 +2908,44 @@ mod tests {
         let ctx = LookupTestContext::default().with_range(
             "A1:C1",
             vec![
-                CachedCellValue { numeric: Some(10.0), text: None, bool: None },
-                CachedCellValue { numeric: Some(20.0), text: None, bool: None },
-                CachedCellValue { numeric: Some(30.0), text: None, bool: None },
+                CachedCellValue {
+                    numeric: Some(10.0),
+                    text: None,
+                    bool: None,
+                },
+                CachedCellValue {
+                    numeric: Some(20.0),
+                    text: None,
+                    bool: None,
+                },
+                CachedCellValue {
+                    numeric: Some(30.0),
+                    text: None,
+                    bool: None,
+                },
             ],
             3,
         );
         // INDEX(A1:C1, 2) = 20 (single row: row arg = column index)
-        let result = evaluate_lookup_formula(
-            "INDEX(A1:C1, 2)",
-            &ctx,
-        );
+        let result = evaluate_lookup_formula("INDEX(A1:C1, 2)", &ctx);
         assert_eq!(result, Some(EvalResult::Number(20.0)));
     }
 
     #[test]
     fn test_index_edge_values() {
-        let ctx = LookupTestContext::default().with_grid("A1:C3", vec![
-            vec![1.0, 2.0, 3.0],
-            vec![4.0, 5.0, 6.0],
-            vec![7.0, 8.0, 9.0],
-        ]);
-        // INDEX(A1:C3, 1, 1) = 1
-        let result = evaluate_lookup_formula(
-            "INDEX(A1:C3, 1, 1)",
-            &ctx,
+        let ctx = LookupTestContext::default().with_grid(
+            "A1:C3",
+            vec![
+                vec![1.0, 2.0, 3.0],
+                vec![4.0, 5.0, 6.0],
+                vec![7.0, 8.0, 9.0],
+            ],
         );
+        // INDEX(A1:C3, 1, 1) = 1
+        let result = evaluate_lookup_formula("INDEX(A1:C3, 1, 1)", &ctx);
         assert_eq!(result, Some(EvalResult::Number(1.0)));
         // INDEX(A1:C3, 3, 3) = 9
-        let result = evaluate_lookup_formula(
-            "INDEX(A1:C3, 3, 3)",
-            &ctx,
-        );
+        let result = evaluate_lookup_formula("INDEX(A1:C3, 3, 3)", &ctx);
         assert_eq!(result, Some(EvalResult::Number(9.0)));
     }
 
@@ -2870,42 +2954,83 @@ mod tests {
         let ctx = LookupTestContext::default().with_range(
             "A1:C5",
             vec![
-                CachedCellValue { numeric: None, text: Some("Apple".to_string()), bool: None },
-                CachedCellValue { numeric: Some(100.0), text: None, bool: None },
-                CachedCellValue { numeric: Some(5.0), text: None, bool: None },
-                CachedCellValue { numeric: None, text: Some("Banana".to_string()), bool: None },
-                CachedCellValue { numeric: Some(200.0), text: None, bool: None },
-                CachedCellValue { numeric: Some(3.0), text: None, bool: None },
-                CachedCellValue { numeric: None, text: Some("Cherry".to_string()), bool: None },
-                CachedCellValue { numeric: Some(300.0), text: None, bool: None },
-                CachedCellValue { numeric: Some(8.0), text: None, bool: None },
-                CachedCellValue { numeric: None, text: Some("Date".to_string()), bool: None },
-                CachedCellValue { numeric: Some(400.0), text: None, bool: None },
-                CachedCellValue { numeric: Some(2.0), text: None, bool: None },
+                CachedCellValue {
+                    numeric: None,
+                    text: Some("Apple".to_string()),
+                    bool: None,
+                },
+                CachedCellValue {
+                    numeric: Some(100.0),
+                    text: None,
+                    bool: None,
+                },
+                CachedCellValue {
+                    numeric: Some(5.0),
+                    text: None,
+                    bool: None,
+                },
+                CachedCellValue {
+                    numeric: None,
+                    text: Some("Banana".to_string()),
+                    bool: None,
+                },
+                CachedCellValue {
+                    numeric: Some(200.0),
+                    text: None,
+                    bool: None,
+                },
+                CachedCellValue {
+                    numeric: Some(3.0),
+                    text: None,
+                    bool: None,
+                },
+                CachedCellValue {
+                    numeric: None,
+                    text: Some("Cherry".to_string()),
+                    bool: None,
+                },
+                CachedCellValue {
+                    numeric: Some(300.0),
+                    text: None,
+                    bool: None,
+                },
+                CachedCellValue {
+                    numeric: Some(8.0),
+                    text: None,
+                    bool: None,
+                },
+                CachedCellValue {
+                    numeric: None,
+                    text: Some("Date".to_string()),
+                    bool: None,
+                },
+                CachedCellValue {
+                    numeric: Some(400.0),
+                    text: None,
+                    bool: None,
+                },
+                CachedCellValue {
+                    numeric: Some(2.0),
+                    text: None,
+                    bool: None,
+                },
             ],
             3,
         );
         // VLOOKUP("Cherry", A1:C5, 2, FALSE) = 300 (searches column A for "Cherry",
         // finds at row 3, returns col 2 = 300)
-        let result = evaluate_lookup_formula(
-            r#"VLOOKUP("Cherry", A1:C5, 2, FALSE)"#,
-            &ctx,
-        );
+        let result = evaluate_lookup_formula(r#"VLOOKUP("Cherry", A1:C5, 2, FALSE)"#, &ctx);
         assert_eq!(result, Some(EvalResult::Number(300.0)));
     }
 
     #[test]
     fn test_vlookup_zero_col() {
-        let ctx = LookupTestContext::default().with_grid("A1:B3", vec![
-            vec![1.0, 10.0],
-            vec![2.0, 20.0],
-            vec![3.0, 30.0],
-        ]);
-        // VLOOKUP(2, A1:B3, 0, FALSE) = #VALUE! (col 0 is invalid)
-        let result = evaluate_lookup_formula(
-            "VLOOKUP(2, A1:B3, 0, FALSE)",
-            &ctx,
+        let ctx = LookupTestContext::default().with_grid(
+            "A1:B3",
+            vec![vec![1.0, 10.0], vec![2.0, 20.0], vec![3.0, 30.0]],
         );
+        // VLOOKUP(2, A1:B3, 0, FALSE) = #VALUE! (col 0 is invalid)
+        let result = evaluate_lookup_formula("VLOOKUP(2, A1:B3, 0, FALSE)", &ctx);
         assert_eq!(result, Some(EvalResult::Error("#VALUE!".to_string())));
     }
 
@@ -2914,34 +3039,51 @@ mod tests {
         let ctx = LookupTestContext::default().with_range(
             "A1:A5",
             vec![
-                CachedCellValue { numeric: Some(10.0), text: None, bool: None },
-                CachedCellValue { numeric: Some(20.0), text: None, bool: None },
-                CachedCellValue { numeric: Some(30.0), text: None, bool: None },
-                CachedCellValue { numeric: Some(40.0), text: None, bool: None },
-                CachedCellValue { numeric: Some(50.0), text: None, bool: None },
+                CachedCellValue {
+                    numeric: Some(10.0),
+                    text: None,
+                    bool: None,
+                },
+                CachedCellValue {
+                    numeric: Some(20.0),
+                    text: None,
+                    bool: None,
+                },
+                CachedCellValue {
+                    numeric: Some(30.0),
+                    text: None,
+                    bool: None,
+                },
+                CachedCellValue {
+                    numeric: Some(40.0),
+                    text: None,
+                    bool: None,
+                },
+                CachedCellValue {
+                    numeric: Some(50.0),
+                    text: None,
+                    bool: None,
+                },
             ],
             1,
         );
         // MATCH(3, A1:A5, 2) invalid match_type 2 defaults to exact
-        let result = evaluate_lookup_formula(
-            "MATCH(3, A1:A5, 2)",
-            &ctx,
-        );
+        let result = evaluate_lookup_formula("MATCH(3, A1:A5, 2)", &ctx);
         assert_eq!(result, Some(EvalResult::Error("#N/A".to_string())));
     }
 
     #[test]
     fn test_index_text_grid() {
-        let ctx = LookupTestContext::default().with_text_grid("A1:C3", vec![
-            vec!["A", "B", "C"],
-            vec!["D", "E", "F"],
-            vec!["G", "H", "I"],
-        ]);
-        // INDEX(A1:C3, 2, 2) = "E"
-        let result = evaluate_lookup_formula(
-            "INDEX(A1:C3, 2, 2)",
-            &ctx,
+        let ctx = LookupTestContext::default().with_text_grid(
+            "A1:C3",
+            vec![
+                vec!["A", "B", "C"],
+                vec!["D", "E", "F"],
+                vec!["G", "H", "I"],
+            ],
         );
+        // INDEX(A1:C3, 2, 2) = "E"
+        let result = evaluate_lookup_formula("INDEX(A1:C3, 2, 2)", &ctx);
         assert_eq!(result, Some(EvalResult::Text("E".to_string())));
     }
 }

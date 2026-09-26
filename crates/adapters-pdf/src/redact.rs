@@ -71,8 +71,10 @@ pub fn apply_redactions(
                 if let Some(new_data) = redact_stream(data, op) {
                     results.push((*content_objnum, new_data));
                 }
-            } else                 if let Some(PdfObject::Reference { object_number, generation: _ }) =
-                doc.objects.get(content_objnum)
+            } else if let Some(PdfObject::Reference {
+                object_number,
+                generation: _,
+            }) = doc.objects.get(content_objnum)
             {
                 // Single reference to a stream
                 if let Some(PdfObject::Stream { data, .. }) = doc.objects.get(object_number) {
@@ -90,7 +92,9 @@ pub fn apply_redactions(
 /// Find page number -> content stream object number mapping.
 /// Pages are identified by scanning objects with MediaBox + Type/Page.
 /// Returns a map from 1-indexed page numbers to content stream object numbers.
-fn find_page_contents(doc: &crate::parser::PdfDocumentData) -> std::collections::HashMap<usize, u32> {
+fn find_page_contents(
+    doc: &crate::parser::PdfDocumentData,
+) -> std::collections::HashMap<usize, u32> {
     let mut page_contents: Vec<(usize, u32)> = Vec::new();
     let mut page_count = 0;
 
@@ -149,7 +153,10 @@ pub fn redact_stream(stream_data: &[u8], op: &RedactionOp) -> Option<Vec<u8>> {
 
 /// Redact text from a content stream — convenience wrapper that takes a RedactionOp.
 /// This is the public API used by annot_write.rs.
-pub fn redact_stream_data(stream_data: &[u8], op: &RedactionOp) -> Result<Vec<u8>, Vec<gp_core::diagnostics::Diagnostic>> {
+pub fn redact_stream_data(
+    stream_data: &[u8],
+    op: &RedactionOp,
+) -> Result<Vec<u8>, Vec<gp_core::diagnostics::Diagnostic>> {
     match redact_stream(stream_data, op) {
         Some(data) => Ok(data),
         None => Ok(stream_data.to_vec()),
@@ -157,13 +164,7 @@ pub fn redact_stream_data(stream_data: &[u8], op: &RedactionOp) -> Result<Vec<u8
 }
 
 /// Check if a bounding box intersects the redaction rectangle.
-fn intersects_rect(
-    bbox: &[f64; 4],
-    rx1: f64,
-    ry1: f64,
-    rx2: f64,
-    ry2: f64,
-) -> bool {
+fn intersects_rect(bbox: &[f64; 4], rx1: f64, ry1: f64, rx2: f64, ry2: f64) -> bool {
     let bx1 = bbox[0];
     let by_top = bbox[1];
     let bx2 = bbox[2];
@@ -203,7 +204,7 @@ fn find_last_number_before_n_bytes(out: &[u8], skip: usize) -> Option<(&[u8], us
 fn find_last_number_before_n_bytes_impl(out: &[u8], skip: usize) -> Option<(&[u8], usize)> {
     let mut pos = out.len();
     let mut tokens: Vec<&[u8]> = Vec::new();
-    
+
     while pos > 0 {
         pos -= 1;
         if out[pos].is_ascii_whitespace() {
@@ -217,7 +218,8 @@ fn find_last_number_before_n_bytes_impl(out: &[u8], skip: usize) -> Option<(&[u8
             pos += 1; // Move past '/'
             while pos < out.len() {
                 match out[pos] {
-                    b' ' | b'\t' | b'\n' | b'\r' | b'(' | b')' | b'[' | b']' | b'<' | b'>' | b'{' | b'}' | b'/' => break,
+                    b' ' | b'\t' | b'\n' | b'\r' | b'(' | b')' | b'[' | b']' | b'<' | b'>'
+                    | b'{' | b'}' | b'/' => break,
                     b'#' => {
                         // Skip hex escape
                         pos += 2;
@@ -235,17 +237,22 @@ fn find_last_number_before_n_bytes_impl(out: &[u8], skip: usize) -> Option<(&[u8
             }
             continue;
         }
-        
+
         // Extract number token (handle optional sign and decimal point)
         let start = pos;
-        while pos > 0 && (out[pos - 1].is_ascii_digit() || out[pos - 1] == b'.' || out[pos - 1] == b'+' || out[pos - 1] == b'-') {
+        while pos > 0
+            && (out[pos - 1].is_ascii_digit()
+                || out[pos - 1] == b'.'
+                || out[pos - 1] == b'+'
+                || out[pos - 1] == b'-')
+        {
             pos -= 1;
         }
         if pos <= start {
             tokens.push(&out[pos..start + 1]);
         }
     }
-    
+
     if tokens.len() > skip {
         Some((tokens[skip], 0))
     } else {
@@ -310,7 +317,7 @@ fn find_last_string_before_pos(out: &[u8]) -> Option<(usize, usize)> {
 /// Find the position of the last '[' in `out`.
 fn find_last_array_open(out: &[u8]) -> Option<usize> {
     let mut pos = out.len();
-    
+
     // Skip whitespace and ']'
     while pos > 0 {
         pos -= 1;
@@ -344,7 +351,7 @@ fn find_last_array_open(out: &[u8]) -> Option<usize> {
 fn extract_text_from_array(out: &[u8], array_start: usize) -> Vec<String> {
     let mut texts = Vec::new();
     let mut pos = array_start + 1; // Skip '['
-    
+
     while pos < out.len() {
         if out[pos] == b']' {
             break;
@@ -360,7 +367,7 @@ fn extract_text_from_array(out: &[u8], array_start: usize) -> Vec<String> {
             pos += 1;
         }
     }
-    
+
     texts
 }
 
@@ -515,7 +522,8 @@ fn strip_text_intersecting(data: &[u8], rect: &[f64; 4]) -> Option<Vec<u8>> {
             pos += 1;
             while pos < data.len() {
                 match data[pos] {
-                    b' ' | b'(' | b')' | b'<' | b'>' | b'[' | b']' | b'{' | b'}' | b'/' | b'\n' | b'\r' => break,
+                    b' ' | b'(' | b')' | b'<' | b'>' | b'[' | b']' | b'{' | b'}' | b'/' | b'\n'
+                    | b'\r' => break,
                     b'#' => pos += 2,
                     _ => pos += 1,
                 }
@@ -534,12 +542,16 @@ fn strip_text_intersecting(data: &[u8], rect: &[f64; 4]) -> Option<Vec<u8>> {
 
         // Check for text operators
         // BT
-        if b == b'B' && pos + 2 <= data.len() && data[pos + 1] == b'T' && is_operator_end(data, pos + 2) {
+        if b == b'B'
+            && pos + 2 <= data.len()
+            && data[pos + 1] == b'T'
+            && is_operator_end(data, pos + 2)
+        {
             // Check it's not BI, BX, etc.
             if pos == 0 || !data[pos - 1].is_ascii_alphanumeric() {
                 out.extend_from_slice(&data[pos..pos + 2]);
                 pos += 2;
-                
+
                 tm_x = 0.0;
                 tm_y = 0.0;
                 continue;
@@ -547,154 +559,186 @@ fn strip_text_intersecting(data: &[u8], rect: &[f64; 4]) -> Option<Vec<u8>> {
         }
 
         // ET
-        if b == b'E' && pos + 2 <= data.len() && data[pos + 1] == b'T' && is_operator_end(data, pos + 2)
-            && (pos == 0 || !data[pos - 1].is_ascii_alphanumeric()) {
-                out.extend_from_slice(&data[pos..pos + 2]);
-                pos += 2;
-                
-                continue;
-            }
+        if b == b'E'
+            && pos + 2 <= data.len()
+            && data[pos + 1] == b'T'
+            && is_operator_end(data, pos + 2)
+            && (pos == 0 || !data[pos - 1].is_ascii_alphanumeric())
+        {
+            out.extend_from_slice(&data[pos..pos + 2]);
+            pos += 2;
+
+            continue;
+        }
 
         // Tf — font-size Tf
-        if b == b'T' && pos + 2 <= data.len() && data[pos + 1] == b'f' && is_operator_end(data, pos + 2)
-            && (pos == 0 || !data[pos - 1].is_ascii_alphanumeric()) {
-                // Font size is the last number in `out` before this position
-                if let Some((num_bytes, _)) = find_last_number_before_bytes(&out) {
-                    if let Ok(s) = std::str::from_utf8(num_bytes) {
-                        if let Ok(size) = s.parse::<f64>() {
-                            font_size = size;
-                        }
+        if b == b'T'
+            && pos + 2 <= data.len()
+            && data[pos + 1] == b'f'
+            && is_operator_end(data, pos + 2)
+            && (pos == 0 || !data[pos - 1].is_ascii_alphanumeric())
+        {
+            // Font size is the last number in `out` before this position
+            if let Some((num_bytes, _)) = find_last_number_before_bytes(&out) {
+                if let Ok(s) = std::str::from_utf8(num_bytes) {
+                    if let Ok(size) = s.parse::<f64>() {
+                        font_size = size;
                     }
                 }
-                out.extend_from_slice(&data[pos..pos + 2]);
-                pos += 2;
-                continue;
             }
+            out.extend_from_slice(&data[pos..pos + 2]);
+            pos += 2;
+            continue;
+        }
 
         // Td
-        if b == b'T' && pos + 2 <= data.len() && data[pos + 1] == b'd' && is_operator_end(data, pos + 2)
-            && (pos == 0 || !data[pos - 1].is_ascii_alphanumeric()) {
-                if let Some((dy_bytes, _)) = find_last_number_before_bytes(&out) {
-                    if let Ok(s_dy) = std::str::from_utf8(dy_bytes) {
-                        if let Ok(dy) = s_dy.parse::<f64>() {
-                            if let Some((dx_bytes, _)) = find_last_number_before_n_bytes(&out, 1) {
-                                if let Ok(s_dx) = std::str::from_utf8(dx_bytes) {
-                                    if let Ok(dx) = s_dx.parse::<f64>() {
-                                        tm_x += dx;
-                                        tm_y += dy;
-                                    }
+        if b == b'T'
+            && pos + 2 <= data.len()
+            && data[pos + 1] == b'd'
+            && is_operator_end(data, pos + 2)
+            && (pos == 0 || !data[pos - 1].is_ascii_alphanumeric())
+        {
+            if let Some((dy_bytes, _)) = find_last_number_before_bytes(&out) {
+                if let Ok(s_dy) = std::str::from_utf8(dy_bytes) {
+                    if let Ok(dy) = s_dy.parse::<f64>() {
+                        if let Some((dx_bytes, _)) = find_last_number_before_n_bytes(&out, 1) {
+                            if let Ok(s_dx) = std::str::from_utf8(dx_bytes) {
+                                if let Ok(dx) = s_dx.parse::<f64>() {
+                                    tm_x += dx;
+                                    tm_y += dy;
                                 }
                             }
                         }
                     }
                 }
-                out.extend_from_slice(&data[pos..pos + 2]);
-                pos += 2;
-                continue;
             }
+            out.extend_from_slice(&data[pos..pos + 2]);
+            pos += 2;
+            continue;
+        }
 
         // TD
-        if b == b'T' && pos + 2 <= data.len() && data[pos + 1] == b'D' && is_operator_end(data, pos + 2)
-            && (pos == 0 || !data[pos - 1].is_ascii_alphanumeric()) {
-                if let Some((dy_bytes, _)) = find_last_number_before_bytes(&out) {
-                    if let Ok(s_dy) = std::str::from_utf8(dy_bytes) {
-                        if let Ok(dy) = s_dy.parse::<f64>() {
-                            if let Some((dx_bytes, _)) = find_last_number_before_n_bytes(&out, 1) {
-                                if let Ok(s_dx) = std::str::from_utf8(dx_bytes) {
-                                    if let Ok(dx) = s_dx.parse::<f64>() {
-                                        tm_x = dx;
-                                        tm_y -= dy;
-                                    }
+        if b == b'T'
+            && pos + 2 <= data.len()
+            && data[pos + 1] == b'D'
+            && is_operator_end(data, pos + 2)
+            && (pos == 0 || !data[pos - 1].is_ascii_alphanumeric())
+        {
+            if let Some((dy_bytes, _)) = find_last_number_before_bytes(&out) {
+                if let Ok(s_dy) = std::str::from_utf8(dy_bytes) {
+                    if let Ok(dy) = s_dy.parse::<f64>() {
+                        if let Some((dx_bytes, _)) = find_last_number_before_n_bytes(&out, 1) {
+                            if let Ok(s_dx) = std::str::from_utf8(dx_bytes) {
+                                if let Ok(dx) = s_dx.parse::<f64>() {
+                                    tm_x = dx;
+                                    tm_y -= dy;
                                 }
                             }
                         }
                     }
                 }
-                out.extend_from_slice(&data[pos..pos + 2]);
-                pos += 2;
-                continue;
             }
+            out.extend_from_slice(&data[pos..pos + 2]);
+            pos += 2;
+            continue;
+        }
 
         // T*
-        if b == b'T' && pos + 2 <= data.len() && data[pos + 1] == b'*' && is_operator_end(data, pos + 2)
-            && (pos == 0 || !data[pos - 1].is_ascii_alphanumeric()) {
-                out.extend_from_slice(&data[pos..pos + 2]);
-                pos += 2;
-                tm_y -= font_size * 1.2;
-                continue;
-            }
+        if b == b'T'
+            && pos + 2 <= data.len()
+            && data[pos + 1] == b'*'
+            && is_operator_end(data, pos + 2)
+            && (pos == 0 || !data[pos - 1].is_ascii_alphanumeric())
+        {
+            out.extend_from_slice(&data[pos..pos + 2]);
+            pos += 2;
+            tm_y -= font_size * 1.2;
+            continue;
+        }
 
         // Tm
-        if b == b'T' && pos + 2 <= data.len() && data[pos + 1] == b'm' && is_operator_end(data, pos + 2)
-            && (pos == 0 || !data[pos - 1].is_ascii_alphanumeric()) {
-                if let Some((f_bytes, _)) = find_last_number_before_n_bytes(&out, 0) {
-                    if let Ok(s_f) = std::str::from_utf8(f_bytes) {
-                        if let Ok(f) = s_f.parse::<f64>() {
-                            tm_y = f;
-                        }
+        if b == b'T'
+            && pos + 2 <= data.len()
+            && data[pos + 1] == b'm'
+            && is_operator_end(data, pos + 2)
+            && (pos == 0 || !data[pos - 1].is_ascii_alphanumeric())
+        {
+            if let Some((f_bytes, _)) = find_last_number_before_n_bytes(&out, 0) {
+                if let Ok(s_f) = std::str::from_utf8(f_bytes) {
+                    if let Ok(f) = s_f.parse::<f64>() {
+                        tm_y = f;
                     }
                 }
-                if let Some((e_bytes, _)) = find_last_number_before_n_bytes(&out, 1) {
-                    if let Ok(s_e) = std::str::from_utf8(e_bytes) {
-                        if let Ok(e) = s_e.parse::<f64>() {
-                            tm_x = e;
-                        }
-                    }
-                }
-                out.extend_from_slice(&data[pos..pos + 2]);
-                pos += 2;
-                continue;
             }
+            if let Some((e_bytes, _)) = find_last_number_before_n_bytes(&out, 1) {
+                if let Ok(s_e) = std::str::from_utf8(e_bytes) {
+                    if let Ok(e) = s_e.parse::<f64>() {
+                        tm_x = e;
+                    }
+                }
+            }
+            out.extend_from_slice(&data[pos..pos + 2]);
+            pos += 2;
+            continue;
+        }
 
         // Tj
-        if b == b'T' && pos + 2 <= data.len() && data[pos + 1] == b'j' && is_operator_end(data, pos + 2)
-            && (pos == 0 || !data[pos - 1].is_ascii_alphanumeric()) {
-                // Check if previous token is a string
-                if let Some((str_start, str_end)) = find_last_string_before_pos(&out) {
-                    let str_content = &out[str_start + 1..str_end - 1]; // without ( )
-                    let text = unescape_pdf_string(&String::from_utf8_lossy(str_content));
-                    if let Some(bbox) = compute_text_bbox(&text, tm_x, tm_y, font_size) {
-                        if intersects_rect(&bbox, rx1, ry1, rx2, ry2) {
-                            // Remove the string and Tj
-                            out.truncate(str_start);
-                            out.extend_from_slice(b" ");
-                            pos += 2;
-                            continue;
-                        }
-                    }
-                }
-                out.extend_from_slice(&data[pos..pos + 2]);
-                pos += 2;
-                continue;
-            }
-
-        // TJ
-        if b == b'T' && pos + 2 <= data.len() && data[pos + 1] == b'J' && is_operator_end(data, pos + 2)
-            && (pos == 0 || !data[pos - 1].is_ascii_alphanumeric()) {
-                // Find the array [...] before TJ
-                if let Some(arr_start) = find_last_array_open(&out) {
-                    let texts = extract_text_from_array(&out, arr_start);
-                    let mut remove = false;
-                    for text in &texts {
-                        if let Some(bbox) = compute_text_bbox(text, tm_x, tm_y, font_size) {
-                            if intersects_rect(&bbox, rx1, ry1, rx2, ry2) {
-                                remove = true;
-                                break;
-                            }
-                        }
-                    }
-                    if remove {
-                        // Remove the array and TJ
-                        out.truncate(arr_start);
+        if b == b'T'
+            && pos + 2 <= data.len()
+            && data[pos + 1] == b'j'
+            && is_operator_end(data, pos + 2)
+            && (pos == 0 || !data[pos - 1].is_ascii_alphanumeric())
+        {
+            // Check if previous token is a string
+            if let Some((str_start, str_end)) = find_last_string_before_pos(&out) {
+                let str_content = &out[str_start + 1..str_end - 1]; // without ( )
+                let text = unescape_pdf_string(&String::from_utf8_lossy(str_content));
+                if let Some(bbox) = compute_text_bbox(&text, tm_x, tm_y, font_size) {
+                    if intersects_rect(&bbox, rx1, ry1, rx2, ry2) {
+                        // Remove the string and Tj
+                        out.truncate(str_start);
                         out.extend_from_slice(b" ");
                         pos += 2;
                         continue;
                     }
                 }
-                out.extend_from_slice(&data[pos..pos + 2]);
-                pos += 2;
-                continue;
             }
+            out.extend_from_slice(&data[pos..pos + 2]);
+            pos += 2;
+            continue;
+        }
+
+        // TJ
+        if b == b'T'
+            && pos + 2 <= data.len()
+            && data[pos + 1] == b'J'
+            && is_operator_end(data, pos + 2)
+            && (pos == 0 || !data[pos - 1].is_ascii_alphanumeric())
+        {
+            // Find the array [...] before TJ
+            if let Some(arr_start) = find_last_array_open(&out) {
+                let texts = extract_text_from_array(&out, arr_start);
+                let mut remove = false;
+                for text in &texts {
+                    if let Some(bbox) = compute_text_bbox(text, tm_x, tm_y, font_size) {
+                        if intersects_rect(&bbox, rx1, ry1, rx2, ry2) {
+                            remove = true;
+                            break;
+                        }
+                    }
+                }
+                if remove {
+                    // Remove the array and TJ
+                    out.truncate(arr_start);
+                    out.extend_from_slice(b" ");
+                    pos += 2;
+                    continue;
+                }
+            }
+            out.extend_from_slice(&data[pos..pos + 2]);
+            pos += 2;
+            continue;
+        }
 
         // '
         if b == b'\'' {
@@ -744,7 +788,13 @@ fn strip_text_intersecting(data: &[u8], rect: &[f64; 4]) -> Option<Vec<u8>> {
 
         // Any other operator — copy as-is
         let start = pos;
-        while pos < data.len() && !data[pos].is_ascii_whitespace() && !matches!(data[pos], b'(' | b')' | b'[' | b']' | b'<' | b'>' | b'%' | b'/') {
+        while pos < data.len()
+            && !data[pos].is_ascii_whitespace()
+            && !matches!(
+                data[pos],
+                b'(' | b')' | b'[' | b']' | b'<' | b'>' | b'%' | b'/'
+            )
+        {
             pos += 1;
         }
         if pos > start {
@@ -903,7 +953,10 @@ mod tests {
         assert!(result.is_some(), "should have changes");
         let modified = result.unwrap();
         let modified_str = String::from_utf8_lossy(&modified);
-        eprintln!("Modified contains SECRET: {}", modified_str.contains("SECRET"));
+        eprintln!(
+            "Modified contains SECRET: {}",
+            modified_str.contains("SECRET")
+        );
         assert!(!modified_str.contains("SECRET"), "SECRET should be removed");
     }
 
@@ -1096,7 +1149,13 @@ mod tests {
         let result = redact_stream(stream, &op);
         assert!(result.is_some());
         let modified = result.unwrap();
-        assert!(!String::from_utf8_lossy(&modified).contains("REDACT"), "REDACT should be removed");
-        assert!(String::from_utf8_lossy(&modified).contains("VISIBLE"), "VISIBLE should remain");
+        assert!(
+            !String::from_utf8_lossy(&modified).contains("REDACT"),
+            "REDACT should be removed"
+        );
+        assert!(
+            String::from_utf8_lossy(&modified).contains("VISIBLE"),
+            "VISIBLE should remain"
+        );
     }
 }

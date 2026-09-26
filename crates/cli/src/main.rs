@@ -375,6 +375,15 @@ enum Command {
         /// Output path (default: input.signed.pdf).
         #[arg(long, short = 'o')]
         output: Option<std::path::PathBuf>,
+        /// Verify the signature after signing.
+        #[arg(long)]
+        verify: bool,
+    },
+    /// Verify a signature in a PDF document.
+    Verify {
+        /// Path to the signed PDF document.
+        #[arg()]
+        path: std::path::PathBuf,
     },
 }
 
@@ -604,8 +613,12 @@ async fn main() -> Result<()> {
             subject,
             algorithm,
             output,
+            verify,
         } => {
-            sign::cmd_sign(&path, subject, algorithm, output)?;
+            sign::cmd_sign(&path, subject, algorithm, output, verify)?;
+        }
+        Command::Verify { path } => {
+            sign::cmd_verify(&path)?;
         }
     }
 

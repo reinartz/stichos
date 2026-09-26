@@ -515,7 +515,9 @@ fn ops_to_mutations(
                                         // Get /Contents reference
                                         if let Some(contents) = dict.get("Contents") {
                                             let content_num = match contents {
-                                                PdfObject::Reference { object_number, .. } => *object_number,
+                                                PdfObject::Reference { object_number, .. } => {
+                                                    *object_number
+                                                }
                                                 _ => continue,
                                             };
                                             page_order.push((*objnum as usize, content_num));
@@ -538,8 +540,12 @@ fn ops_to_mutations(
 
                     // Apply redaction to matching content streams
                     if let Some(&content_objnum) = page_content_map.get(&redact_op.page) {
-                        if let Some(PdfObject::Stream { data, .. }) = doc_data.objects.get(&content_objnum) {
-                            if let Ok(redacted) = crate::redact::redact_stream_data(data, &redact_op) {
+                        if let Some(PdfObject::Stream { data, .. }) =
+                            doc_data.objects.get(&content_objnum)
+                        {
+                            if let Ok(redacted) =
+                                crate::redact::redact_stream_data(data, &redact_op)
+                            {
                                 if redacted != *data {
                                     let old_obj = (content_objnum, 0);
                                     mutations.push(PdfMutation::Replace {
@@ -550,11 +556,17 @@ fn ops_to_mutations(
                                     mutations.push(PdfMutation::Delete { object_id: old_obj });
                                 }
                             }
-                        } else if let Some(PdfObject::Reference { object_number, generation }) =
-                            doc_data.objects.get(&content_objnum)
+                        } else if let Some(PdfObject::Reference {
+                            object_number,
+                            generation,
+                        }) = doc_data.objects.get(&content_objnum)
                         {
-                            if let Some(PdfObject::Stream { data, .. }) = doc_data.objects.get(object_number) {
-                                if let Ok(redacted) = crate::redact::redact_stream_data(data, &redact_op) {
+                            if let Some(PdfObject::Stream { data, .. }) =
+                                doc_data.objects.get(object_number)
+                            {
+                                if let Ok(redacted) =
+                                    crate::redact::redact_stream_data(data, &redact_op)
+                                {
                                     if redacted != *data {
                                         let old_obj = (*object_number, *generation);
                                         mutations.push(PdfMutation::Replace {
@@ -604,7 +616,10 @@ fn ops_to_mutations(
                 // /IM (ink annotations for redaction appearance)
                 // Default appearance: fill the rect with the color
                 let da = format!("/{} Do", color);
-                dict.insert(b"DA".to_vec(), Object::String(da.into_bytes(), lopdf::StringFormat::Literal));
+                dict.insert(
+                    b"DA".to_vec(),
+                    Object::String(da.into_bytes(), lopdf::StringFormat::Literal),
+                );
 
                 // /OP (opaque — covers underlying content)
                 dict.insert(b"OP".to_vec(), Object::Boolean(true));

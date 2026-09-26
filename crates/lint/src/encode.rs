@@ -486,7 +486,7 @@ mod tests {
     #[test]
     fn test_compute_resize_target_preserves_ratio() {
         let table = &STANDARD_SIZES[2]; // 2000x2000
-                                         // 1000x500 is 2:1 ratio, should fit within 2000x2000 without scaling
+                                        // 1000x500 is 2:1 ratio, should fit within 2000x2000 without scaling
         let (w, h) = compute_resize_target(1000, 500, table);
         assert_eq!(w, 1000);
         assert_eq!(h, 500);
@@ -495,7 +495,7 @@ mod tests {
     #[test]
     fn test_compute_resize_target_clamps() {
         let table = &STANDARD_SIZES[0]; // 768x1024
-                                         // 1500x500 -> should clamp to 768 width, scale height
+                                        // 1500x500 -> should clamp to 768 width, scale height
         let (w, h) = compute_resize_target(1500, 500, table);
         assert!(w <= 768);
         assert!(h <= 1024);
@@ -515,17 +515,23 @@ mod tests {
         let r = pick_resize_target(16, 16);
         let encoded1 = encode_image(&img1, 16, 16, &r, EncodeFormat::Jpeg { quality: 85 });
         let encoded2 = encode_image(&img2, 16, 16, &r, EncodeFormat::Jpeg { quality: 85 });
-        assert_eq!(encoded1.unwrap().data, encoded2.unwrap().data, "encode_image must be deterministic");
+        assert_eq!(
+            encoded1.unwrap().data,
+            encoded2.unwrap().data,
+            "encode_image must be deterministic"
+        );
     }
 
     /// test_encode_baseline_corpus_derived_pixels
     #[test]
     fn test_encode_baseline_corpus_derived_pixels() {
-        let pixels: Vec<u8> = (0..256).map(|i| {
-            let row = i / 16;
-            let col = i % 16;
-            ((row * 16 + col) * 17 % 256) as u8
-        }).collect();
+        let pixels: Vec<u8> = (0..256)
+            .map(|i| {
+                let row = i / 16;
+                let col = i % 16;
+                ((row * 16 + col) * 17 % 256) as u8
+            })
+            .collect();
         let r = pick_resize_target(16, 16);
         let encoded = encode_image(&pixels, 16, 16, &r, EncodeFormat::Jpeg { quality: 85 });
         assert!(encoded.is_ok(), "encoding 16x16 grayscale should succeed");
@@ -533,7 +539,10 @@ mod tests {
         assert!(!enc.data.is_empty());
         assert_eq!(enc.width, 16);
         assert_eq!(enc.height, 16);
-        assert_eq!(enc.visual_tokens, EncodedImage::compute_visual_tokens(16, 16));
+        assert_eq!(
+            enc.visual_tokens,
+            EncodedImage::compute_visual_tokens(16, 16)
+        );
         assert_eq!(enc.byte_cost(), enc.data.len());
     }
 
