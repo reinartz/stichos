@@ -16,7 +16,7 @@ KI-09).
 
 | Area | State |
 |---|---|
-| Milestones M0–M6 | all tagged; **`main` = `4b5b7c6` (3 commits past `ff80f8e`); tag `m6` re-anchored to `4b5b7c6` — NOT YET pushed to origin** (SSH key unavailable) |
+| Milestones M0–M6 | all tagged; **`main` pushed to origin; tag `m6` re-anchored + pushed** (see git state at bottom) |
 | Closeout round 1 | committed in `ff80f8e`: Gate-C defaults flip, T-A1 (mcp spec 93/93), T-A2 (C7.md 1.6.0), T-A3 (C14 frozen), T-B1/T-B2 (`budget_enforcer` + envelope on CLI verbs & serve boundary), T-C1/T-C3 (gate measures, full `mcp --lib` filter) |
 | `phase6_gate.sh --ci` (binary built) | **86/90** — 3 real CTX-06 violations + 1 expected `m6`-tag artifact (KI-08) |
 | `p606_ctx06_compliance` | **3/6** — summary budget, diff/journal caps, region `--json` (exit 2) red |
@@ -75,10 +75,10 @@ all tests green. Ready for commit/re-anchor/push (R-E3 👤).
 |---|---|---|---|
 | R-E1 | ✅ | whole tree | Verified: 2020 pass / 4 known zip-bomb fails, p606 6/6, gate 90/90, clippy/fmt/deps all clean. |
 | R-E2 | ✅ | docs | §13 appended to m6-acceptance.md; KI-08/KI-09 marked fixed in KNOWN_ISSUES.md. |
-| R-E3 | 🟡 | git 👤 (force-push **approved** 2026-09-24) | Phase 7 committed as `3ae4a18` + check-deps fix `4b5b7c6` on `main`. **Tag `m6` re-anchored** to latest. **Push to origin blocked**: SSH key not available in environment — owner must push `main` + `m6` manually. |
+| R-E3 | ✅ | git 👤 | Phase 7 committed as `3ae4a18` + check-deps fix `4b5b7c6` on `main`; docs update `7590c0f`. **Tag `m6` re-anchored** to latest and **pushed to origin**. |
 | R-E4 | ✅ | git hygiene | P7-7 WIP already on branch `p7-7-cms` (off `ff80f8e`); no `tmp-7` branch or stale refs found. |
 
-**Track-A′ order:** R-A1 → R-B1 → R-B2 → R-C1 → R-B3 → R-D1/D2/D3 → R-A2 → R-E1 → R-E2 ✅ — **R-E3 👤 → R-E4 👤** (pending owner git operations).
+**Track-A′ order:** R-A1 → R-B1 → R-B2 → R-C1 → R-B3 → R-D1/D2/D3 → R-A2 → R-E1 → R-E2 → R-E3 → R-E4 ✅ — **ALL COMPLETE**.
 
 ---
 
@@ -186,11 +186,7 @@ recommendation A unless reversed).
 P7-1 (xlsx create) **COMPLETE** — P7-2 (pptx create) **COMPLETE** — P7-3 (formula coverage) **Tranche A+Tranche B (lookup) COMPLETE** — P7-4 (lint encode/ssim) **COMPLETE** — P7-6 (redaction) **COMPLETE** — P7-8 (pdfium spike) **COMPLETE** — next: P7-9 (launch, 👤 not delegable).
 P5 (LTV) strictly after B0.4 (needs counter-sig CMS).
 
-**Git state (measured 2026-09-26):** `main` = `3ae4a18` = `m6` (re-anchored). **Not yet pushed to origin** — SSH key unavailable. Owner must run:
-```
-git push origin main
-git push origin m6 --force
-```
+**Git state (measured 2026-09-26):** `main` pushed to origin; tag `m6` re-anchored + pushed.
 
 ---
 
