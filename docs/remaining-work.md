@@ -112,7 +112,7 @@ recommendation A unless reversed).
 
 | Sub | Scope | Deliverable / acceptance | Size |
 |---|---|---|---|
-| P5-a | 👤 ADR-0012 | Owner accepts/rejects; if accepted, record the D-row in `project_concept.md` §16. | — |
+| P5-a | ✅ ADR-0012 | Owner accepted as proposed (Option B: pure-Rust stack). D2/D25 intact, no reversal needed. OQ-C12: Option A (manual DER + x509-cert builder). | — |
 | P5-b | TSA client (RFC 3161) | Pure-Rust timestamp request + response parse (reqwest? check existing HTTP deps — keep D8 zero-hard-deps: feature-gated), embed as unsigned attr / counter-signature on the B0.4 CMS layer. Honest-absent without network (`--no-tsa` stays). | L → split: request/parse | verify with openssl ts -verify on recorded token; offline unit test w/ recorded response fixture |
 | P5-c | OCSP/CRL embedding (`/LTV` dict) | Fetch + embed per ADR-0012 §(LTV); GP-S-012 honesty row updated. | L → split: ocsp / crl / dict | S |
 | P5-d | trusted-cert option | User-provided PKCS#12 chain instead of self-signed (GP-S-011 relax), chain validation. | M | — |
@@ -182,7 +182,7 @@ recommendation A unless reversed).
 |---|---|---|---|
 | P9-a | 👤 D18/D26 flip | Owner checklist: registry publishes, visibility, v* tags. Not delegable. | — |
 
-**Track-B order:** B0 (already warm, signing-related — deferred per owner) ∥ P6-a (ADR-0013 **accepted 2026-09-26**) / P8-a (spec-freeze/👤).
+**Track-B order:** B0 (already warm, signing-related — deferred per owner) ∥ P6-a (ADR-0013 **accepted 2026-09-26**) / P8-a (spec-freeze/👤) / P5-a (ADR-0012 **accepted 2026-09-26**, OQ-C12 **Option A**).
 P7-1 (xlsx create) **COMPLETE** — P7-2 (pptx create) **COMPLETE** — P7-3 (formula coverage) **Tranche A+Tranche B (lookup) COMPLETE** — P7-4 (lint encode/ssim) **COMPLETE** — P7-6 (redaction) **COMPLETE** — P7-8 (pdfium spike) **COMPLETE** — next: P7-9 (launch, 👤 not delegable).
 P5 (LTV) strictly after B0.4 (needs counter-sig CMS).
 
