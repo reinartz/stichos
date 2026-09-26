@@ -2,7 +2,8 @@
 # check-deps.sh — verify the dependency DAG against project policy.
 #
 # Checks:
-#   1. No banned crates (pdfium*, mupdf*, lokit*, *-libreoffice*, *-officekit*)
+#   1. No banned crates (mupdf*, lokit*, *-libreoffice*, *-officekit)
+#      (pdfium* / pdfium-render allowed since G5 adoption — dynamic linking only)
 #   2. No -sys crates
 #   3. No wildcard (*) version specs in Cargo.toml files
 #   4. Cross-crate edge enforcement (workspace deps vs project_plan.md §3.2 allow-list)
@@ -52,9 +53,8 @@ echo ""
 
 # 2. Check for banned crates
 echo "--- Ban check: banned crates ---"
+# pdfium* / pdfium-render bans removed 2026-09-26 by G5 adoption (dynamic linking only).
 BANNED_PATTERNS=(
-    "pdfium*"
-    "pdfium-render"
     "mupdf"
     "mupdf*"
     "lokit*"
