@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Status | **proposed** (2026-09-24, contributor) |
+| Status | **accepted** (2026-09-26, owner) |
 | Gate | G-SIG-LTV (timestamps + LTV embedded in signed PDF; OCSP/CRL verification; trusted CA certs) |
 | Decide by | Phase 7 intake — before any P7-5 implementation |
 | Decision owner | **project owner** |
@@ -267,10 +267,26 @@ fallback (B-B if TSA/OCSP unreachable).
 4. **Wave 4 (trusted certs)**: CA-signed certificate support. Replace self-signed with
    user-provided PKCS#12. Requires `rcgen` CA chain + OCSP issuer cert embedding.
 
-## Decision (owner, <date>)
+## Decision (owner, 2026-09-26)
 
-<!-- Owner-only section: the decision as taken, and its follow-through — D-log entry (§16),
-     deny.toml state, tasks unblocked, status flip in the header table and docs/adr/README.md. -->
+**Decision: Accept ADR-0012 as proposed — adopt Option B (pure-Rust stack).**
+
+- **Stack**: `x509-parser` 0.15 + `reqwest` (rustls-tls) + `time` 0.3 + `rcgen` 0.13 + `pem` 3.0 + `url` 2.
+- **New dependency surface**: ~25-30 transitive crates, all MIT/Apache-2.0 (on allow-list). No `-sys`, no C deps. D2 and D25 maintained.
+- **Binary impact**: ~3-5 MB additional; ~15-25s build time on cold cache.
+- **Honest-absent**: TSA unreachable → B-B fallback (`GP-S-020`); OCSP/CRL unreachable → B-BT fallback (`GP-S-021`).
+- **LTV timing**: Sign time (embedded in PDF, per ETSI EN 319 102-5). Default to attempting LTV; `--no-ltv` to skip.
+- **OQ-1**: `rustls-tls` (recommended)
+- **OQ-2**: Optional (honest-absent)
+- **OQ-3**: Sign time
+- **OQ-4**: Separate — P7-7 first (CMS foundation), then P7-5 on top
+- **OQ-5**: Default-to-LTV with honest-absent fallback
+- **OQ-6**: Continue extending manual builder for P7-5
+- **D-row**: No reversal needed. D2 intact (pure-Rust, no `-sys`). D25 intact (RustCrypto ecosystem, no ring/openssl/-sys).
+- **deny.toml**: No bans to add; all candidate crates MIT/Apache-2.0 (already allowed).
+- **Implementation order**: Wave 1 (B-BT: RFC 3161 timestamps) → Wave 2 (B-LT: OCSP/CRL) → Wave 3 (B-LTA: archival) → Wave 4 (trusted certs).
+- **New diagnostic codes**: `GP-S-020` (TSA unreachable — B-B), `GP-S-021` (OCSP/CRL unreachable — LTV), `GP-S-022` (cert revoked — refused), `GP-S-023` (cert expired — warning).
+- **Tasks unblocked**: P7-5 (PAdES-T/LTV), P5-a (ADR acceptance gate).
 
 ---
 

@@ -369,6 +369,8 @@ ADR-0010 (accepted) locked in the RustCrypto family and banned `-sys` crates. Th
 | A. Keep manual DER + x509-cert builder | Zero new deps; proven path | No |
 | B. Use `cms` crate (ring dep) | Proper CMS support; ring for signature verification | **Yes** — D25 ban on ring |
 
+**Owner decision (2026-09-26): Option A** — Keep manual DER + `x509-cert` builder. Zero new deps; proven path. D25 intact.
+
 **Recommendation**: Option A. The manual builder is already functional for the basic structure; adding signed attributes is a focused change that does not require ring. If the owner insists on Option B, the `deny.toml` ban on `ring` must be lifted for the `cms` crate specifically, and D25 must be amended.
 
 ### 6.2 TSA / LTV scope boundary with P7-5
@@ -464,15 +466,15 @@ If P7-5 were implemented on the current (broken) CMS layer, it would:
 
 ## 10. Open Questions
 
-| ID | Question | Recommended Answer |
-|----|----------|-------------------|
-| OQ-1 | Use `pkcs7` crate or manual DER? | Manual DER + `x509-cert` builder (no new deps) |
-| OQ-2 | Adopt `cms` crate (ring dep)? | **No** — requires D25 reconsideration; manual path sufficient |
-| OQ-3 | P7-7 before or after P7-5? | P7-7 first (CMS foundation before T/LTV extensions) |
-| OQ-4 | Signed attributes mandatory for B-B? | **Yes** — ETSI EN 319 102-1 requires them for B-B |
-| OQ-5 | Include `/OtherCert` for LTV prep? | Yes — embed signing cert in `/OtherCert` for forward compatibility |
-| OQ-6 | Verification path in Rust or CLI? | Both: Rust verification for internal checks, openssl for CI integration tests |
-| OQ-7 | Handle existing signatures (detected in C13)? | Refuse to re-sign already-signed documents (GP-S-016 already handles this) |
+| ID | Question | Recommended Answer | Owner Decision (2026-09-26) |
+|----|----------|-------------------|---------------------------|
+| OQ-C12 | Use `cms` crate (ring dep) or manual DER? | Manual DER + `x509-cert` builder (no new deps) | **Option A** — manual DER + x509-cert builder |
+| OQ-1 | Use `pkcs7` crate or manual DER? | Manual DER + `x509-cert` builder (no new deps) | Handled by OQ-C12 |
+| OQ-2 | P7-7 before or after P7-5? | P7-7 first (CMS foundation before T/LTV extensions) | Separate — P7-7 first (ADR-0012 OQ-4) |
+| OQ-3 | Signed attributes mandatory for B-B? | **Yes** — ETSI EN 319 102-1 requires them for B-B | Accepted |
+| OQ-4 | Include `/OtherCert` for LTV prep? | Yes — embed signing cert in `/OtherCert` for forward compatibility | Accepted |
+| OQ-5 | Verification path in Rust or CLI? | Both: Rust verification for internal checks, openssl for CI integration tests | Accepted |
+| OQ-6 | Handle existing signatures (detected in C13)? | Refuse to re-sign already-signed documents (GP-S-016 already handles this) | Accepted |
 
 ---
 
