@@ -25,7 +25,7 @@ KI-09).
 | fmt / clippy (lib, `-D warnings`) / `check-deps.sh` | all green (also for the uncommitted P7-7 WIP) |
 | Gate "binary not built (skipped)" paths | **fixed** — R-D1 builds binary before gate runs (KI-09 resolved) |
 | Contract docs | C7 1.6.0 frozen; C14 frozen; C15 frozen; C12/C13 frozen |
-| P7-7 WIP (committed `7d56af5`) | real manual-DER PKCS#7/CMS builder (`signature.rs` ~2550 lines, 19 sig tests green); B0.1–B0.7 complete: signedAttrs + signerInfo v3, exact byte-range, `verify_signature()` path, `stichos verify` CLI verb, openssl CI tests, fuzz fixtures; `sign` JSON wire: `signature_value`+`signature_length`; B0.6: dead `pkcs7` dep removed; B0.7: C13/CHANGELOG/ADR-0010 updated |
+| P7-7 WIP (committed `7d56af5` + `fe266cd`) | real manual-DER PKCS#7/CMS builder (`signature.rs` ~2550 lines, 19 sig tests green); **B0.1–B0.8 ALL COMPLETE**: signedAttrs + signerInfo v3, exact byte-range, `verify_signature()` path, `stichos verify` CLI verb, openssl CI tests, fuzz fixtures; `sign` JSON wire: `signature_value`+`signature_length`; B0.6: dead `pkcs7` dep removed; B0.7: C13/CHANGELOG/ADR-0010 updated; B0.8: OQ-C12 Option A confirmed, P7-7→P7-5 sequencing confirmed |
 | Phase-7 intake docs (untracked) | `docs/track-b-p7-1/2/3/4/7/8/9-*.md` specs; `ADR-0012` (PAdES-T/LTV) + `ADR-0013` (redaction) **proposed** — owner decisions pending |
 | Dependabot | 0 open branches on origin; local `tmp-7` branch + stale remote-tracking refs to clean |
 | Owner decisions (2026-09-24) | ① P7-7 WIP → move to feature branch `p7-7-cms` (keep `main` at gate-green `m6`); ② `m6` re-anchor + `git push --force-with-lease` **approved** after Track A′ green; ③ order: **Track A′ first**, then Track B |
@@ -87,11 +87,11 @@ all tests green. Ready for commit/re-anchor/push (R-E3 👤).
 Owner gates: OQ-C12 + P7-5/P7-7 sequencing (`docs/track-b-p7-7-cms-signing.md` §6), ADR-0012 and
 ADR-0013 accept/reject, D2/D25 crypto-boundary confirmations, launch (D26). 👤 = owner.
 
-### B0 — P7-7 real CMS signing ✅ **B0.1–B0.7 COMPLETE** (B0.8 owner pending)
+### B0 — P7-7 real CMS signing ✅ **ALL COMPLETE** (B0.1–B0.8)
 
 The working tree WIP (committed 2026-09-26) replaces the `m6` stub with a real manual-DER PKCS#7/CMS builder
 (`signature.rs` ~2550 lines; 19 tests green; RSA + ECDSA paths; self-signed X.509). All B0 subtasks
-except the owner gate (B0.8) are complete.
+including the owner gate (B0.8) are complete.
 
 | Sub | Status | Scope | Deliverable / acceptance | Size |
 |---|---|---|---|---|
@@ -102,9 +102,9 @@ except the owner gate (B0.8) are complete.
 | B0.5 | ✅ | tests + openssl integration | `openssl cms`/`asn1parse` CI tests (feature-gated `openssl-ci`); ECDSA `ETSI.CAdES.detached` SubFilter mapping; tamper-detection fuzz fixtures in `adapters-ooxfuzz`. | M |
 | B0.6 | ✅ | `gp-core/Cargo.toml` | Dead `pkcs7 = "0.4"` dependency already absent; zero new crate families vs D25/ADR-0010 confirmed. `cargo deny check` has pre-existing `rsa` Marvin advisory (RUSTSEC-2025-0009), not introduced by B0. | S |
 | B0.7 | ✅ | docs + C13 | Updated `C13-signature-integrity.md` (verification section + honesty rows + GP-S-017); CHANGELOG entries; ADR-0010 Phase-7 update note. | S |
-| B0.8 | ⏳ 👤 owner | OQ-C12 confirm (manual builder — recommendation A) + sequencing confirm (P7-7 before P7-5, spec §6.2/§7.3). Blocks P7-5 if owner reverses. | — |
+| B0.8 | ✅ | 👤 owner | **2026-09-26:** OQ-C12 confirmed — Option A (manual DER + x509-cert builder, zero new deps). D25 intact. Sequencing confirmed — P7-7 before P7-5 (PAdES-T/LTV needs counter-sig CMS). No reversal. | — |
 
-**Order:** B0.1 ✅ → B0.2 ✅ → B0.3 ✅ → B0.4 ✅ → B0.5 ✅ → B0.6 ✅ → B0.7 ✅; B0.8 owner gate pending.
+**Order:** B0.1 ✅ → B0.2 ✅ → B0.3 ✅ → B0.4 ✅ → B0.5 ✅ → B0.6 ✅ → B0.7 ✅ → B0.8 ✅ — **ALL COMPLETE**.
 
 ### P7-5 — PAdES-T/LTV *(ADR-0012 proposed — ADR acceptance first)*
 
@@ -180,7 +180,7 @@ except the owner gate (B0.8) are complete.
 |---|---|---|---|
 | P9-a | 👤 D18/D26 flip | Owner checklist: registry publishes, visibility, v* tags. Not delegable. | — |
 
-**Track-B order:** B0 (B0.1–B0.7 **COMPLETE**, B0.8 owner gate pending) ∥ P6-a (ADR-0013 **accepted 2026-09-26**) / P8-a (spec-freeze/👤) / P5-a (ADR-0012 **accepted 2026-09-26**, OQ-C12 **Option A**).
+**Track-B order:** B0 (**B0.1–B0.8 ALL COMPLETE** ✅) ∥ P6-a (ADR-0013 **accepted 2026-09-26**) / P8-a (spec-freeze/👤) / P5-a (ADR-0012 **accepted 2026-09-26**, OQ-C12 **Option A confirmed**).
 P7-1 (xlsx create) **COMPLETE** — P7-2 (pptx create) **COMPLETE** — P7-3 (formula coverage) **Tranche A+Tranche B (lookup) COMPLETE** — P7-4 (lint encode/ssim) **COMPLETE** — P7-6 (redaction) **COMPLETE** — P7-8 (pdfium spike) **COMPLETE** — next: P7-9 (launch, 👤 not delegable).
 P5 (LTV) strictly after B0 (needs counter-sig CMS).
 

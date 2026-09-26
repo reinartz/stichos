@@ -7,7 +7,8 @@
 SignedData (owner OQ-C12, Option A — no `pkcs7` crate). Signed attributes
 (content-type, message-digest, signing-time, signingCertificateV2) present.
 `verify_signature()` provides independent verification. `pkcs7` crate dependency
-removed (unused, deprecated).
+removed (unused, deprecated). **B0.8 confirmed (2026-09-26):** Option A locked;
+P7-7 before P7-5 sequencing confirmed; D25 intact.
 
 ## 1. Context
 
