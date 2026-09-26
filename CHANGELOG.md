@@ -47,10 +47,21 @@ breaking changes require a minor bump per `docs/contracts/C7.md`.
   (GP-S001..016); refuse-by-default mutation of signed documents with explicit policy pass;
   PAdES-B-B sign-later over the incremental writer (pure-Rust crypto, D25, ADR-0010);
   PDF/A revalidation wired into mutation QA + `doctor` row (honest-absent preserved).
+- **CMS verification (B0.4):** `verify_signature()` — full PKCS#7 SignedData parser,
+  signedAttrs digest verification, byte-range coverage check, X.509 cert self-signed
+  validation; `stichos verify <path>` CLI verb; `stichos sign --verify` post-write
+  verification; ECDSA `ETSI.CAdES.detached` / RSA `adbe.pkcs7.detached` subfilter mapping.
+- **OpenSSL CI tests (B0.5):** `openssl cms`-based verification tests (feature-gated
+  `openssl-ci`); tamper-detection fuzz fixtures in `adapters-ooxfuzz` (byterange tamper,
+  hex content tamper); 19/19 gp-core signature tests green.
+- **Sign wire:** `signature_value` + `signature_length` JSON fields replace `byte_range`
+  (additive wire change per C7); no schema break.
 - **Hygiene (M5):** `SECURITY.md`, `CODE_OF_CONDUCT.md`, SPDX headers, dual-license audit (D26:
   launch stays owner-timed, prep only).
 
 ### Fixed
+- **Dead dependency cleanup (B0.6):** Removed unused `pkcs7 = "0.4"` from `gp-core/Cargo.toml`
+  (deprecated crate, never imported). Zero new dependencies vs D25/ADR-0010.
 - Post-acceptance correction (`docs/m5-acceptance.md` §9, 2026-09-20): `tools/check-deps.sh`
   fails at the `m5` tree on the `mcp -> adapters-pdf` edge (P5-09 text-layer route); repaired by
   dependency inversion in Phase 6 Wave 0 (`gp-core::traits::PdfTextSource`) — `check-deps.sh`

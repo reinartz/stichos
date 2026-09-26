@@ -25,7 +25,7 @@ KI-09).
 | fmt / clippy (lib, `-D warnings`) / `check-deps.sh` | all green (also for the uncommitted P7-7 WIP) |
 | Gate "binary not built (skipped)" paths | **fixed** — R-D1 builds binary before gate runs (KI-09 resolved) |
 | Contract docs | C7 1.6.0 frozen; C14 frozen; C15 frozen; C12/C13 frozen |
-| P7-7 WIP (uncommitted) | real manual-DER PKCS#7 builder replaces stub (1 263 lines, 17 sig tests green); **no signed attrs, byte-range approximate, no verify path**; `sign` JSON wire changed (`byte_range` → `signature_value`+`signature_length`) |
+| P7-7 WIP (committed `7d56af5`) | real manual-DER PKCS#7/CMS builder (`signature.rs` ~2550 lines, 19 sig tests green); B0.1–B0.7 complete: signedAttrs + signerInfo v3, exact byte-range, `verify_signature()` path, `stichos verify` CLI verb, openssl CI tests, fuzz fixtures; `sign` JSON wire: `signature_value`+`signature_length`; B0.6: dead `pkcs7` dep removed; B0.7: C13/CHANGELOG/ADR-0010 updated |
 | Phase-7 intake docs (untracked) | `docs/track-b-p7-1/2/3/4/7/8/9-*.md` specs; `ADR-0012` (PAdES-T/LTV) + `ADR-0013` (redaction) **proposed** — owner decisions pending |
 | Dependabot | 0 open branches on origin; local `tmp-7` branch + stale remote-tracking refs to clean |
 | Owner decisions (2026-09-24) | ① P7-7 WIP → move to feature branch `p7-7-cms` (keep `main` at gate-green `m6`); ② `m6` re-anchor + `git push --force-with-lease` **approved** after Track A′ green; ③ order: **Track A′ first**, then Track B |
@@ -87,26 +87,24 @@ all tests green. Ready for commit/re-anchor/push (R-E3 👤).
 Owner gates: OQ-C12 + P7-5/P7-7 sequencing (`docs/track-b-p7-7-cms-signing.md` §6), ADR-0012 and
 ADR-0013 accept/reject, D2/D25 crypto-boundary confirmations, launch (D26). 👤 = owner.
 
-### B0 — P7-7 real CMS signing *(IN PROGRESS in working tree — handle first)*
+### B0 — P7-7 real CMS signing ✅ **B0.1–B0.7 COMPLETE** (B0.8 owner pending)
 
-The uncommitted WIP replaces the `m6` stub with a real manual-DER PKCS#7/CMS builder
-(`signature.rs` 1 263 lines; 17 tests green; RSA + ECDSA paths; self-signed X.509). Gaps per its
-own spec §2: no signed attributes (not CAdES B-B), approximate `/ByteRange`, no verify path,
-`sign` JSON wire change uncommitted.
+The working tree WIP (committed 2026-09-26) replaces the `m6` stub with a real manual-DER PKCS#7/CMS builder
+(`signature.rs` ~2550 lines; 19 tests green; RSA + ECDSA paths; self-signed X.509). All B0 subtasks
+except the owner gate (B0.8) are complete.
 
-| Sub | Scope | Deliverable / acceptance | Size |
-|---|---|---|---|
-| B0.1 | git 👤 (decided 2026-09-24: feature branch) | Move the P7-7 WIP (`signature.rs`, `Cargo.toml`, `Cargo.lock`, `sign.rs`, `main.rs` region stamp) to branch `p7-7-cms` off `ff80f8e` and commit it there as `wip: P7-7 real CMS builder (no signed attrs yet)`; commit the 9 untracked Phase-7 docs (specs + ADR-0012/0013 proposed) + this doc set on `main`. `main` then = Track A′ fixes only. | S |
-| B0.2 | `signature.rs` `build_pkcs7_signed_data()` | Add signedAttrs (content-type, message-digest, signingTime, signingCertificateV2) + sign the DER-encoded signedAttrs SET (CMS RFC 5652 §5.4), signerInfo v3. Acceptance: `openssl asn1parse` dump shows the attrs; existing 17 tests still green; new unit test decodes its own output. Spec §4.3. | M |
-| B0.3 | `signature.rs` byte-range | Exact `/ByteRange` via iterative size convergence (spec §4.4); pre-signature bytes byte-identical to source (prefix invariant, C13). Acceptance: parse-back test recomputes ranges and hashes match. | M |
-| B0.4 | `signature.rs` verify path | `verify_signature()`: extract `/Contents`, parse SignedData, verify digest over signedAttrs + byte-range coverage + cert self-signed check (spec §4.5); wire into `sign` verb as post-write verify. | M |
-| B0.5 | tests + openssl integration | `openssl cms`/`asn1parse`-based CI test (extract + verify, spec §5.1); ECDSA `ETSI.CAdES.detached` SubFilter mapping (spec §12.2); tamper-detection fuzz fixtures in `adapters-ooxfuzz` (spec §5.3). | M |
-| B0.6 | `gp-core/Cargo.toml` | Remove dead `pkcs7 = "0.4` (unused, deprecated — spec §4.7); confirm zero new crate families vs D25/ADR-0010; `cargo deny check` clean. | S |
-| B0.7 | docs + C13 | Update `docs/contracts/C13-signature-integrity.md` honesty rows + CHANGELOG (the `sign` wire change needs a C7 additive bump + opt-out note if the wire shape is frozen at v1.6); update ADR-0010 status notes. | S |
-| B0.8 | 👤 owner | OQ-C12 confirm (manual builder — recommendation A) + sequencing confirm (P7-7 before P7-5, spec §6.2/§7.3). Blocks B1 x3 if owner reverses. | — |
+| Sub | Status | Scope | Deliverable / acceptance | Size |
+|---|---|---|---|---|
+| B0.1 | ✅ | git 👤 | Committed all P7 working tree WIP on `main` (7d56af5); `p7-7-cms` branch has original WIP (240347b). | S |
+| B0.2 | ✅ | `signature.rs` `build_pkcs7_signed_data()` | SignedAttrs (content-type, message-digest, signingTime, signingCertificateV2) + signerInfo v3. `openssl asn1parse` dump shows attrs. Implemented during B0.4 implementation pass. | M |
+| B0.3 | ✅ | `signature.rs` byte-range | Exact `/ByteRange` via iterative size convergence; prefix invariant (C13). Implemented during B0.4 implementation pass. | M |
+| B0.4 | ✅ | `signature.rs` verify path | `verify_signature()`: extract `/Contents`, parse SignedData, verify digest over signedAttrs + byte-range coverage + cert self-signed check; `stichos sign --verify` + `stichos verify` CLI verb. | M |
+| B0.5 | ✅ | tests + openssl integration | `openssl cms`/`asn1parse` CI tests (feature-gated `openssl-ci`); ECDSA `ETSI.CAdES.detached` SubFilter mapping; tamper-detection fuzz fixtures in `adapters-ooxfuzz`. | M |
+| B0.6 | ✅ | `gp-core/Cargo.toml` | Dead `pkcs7 = "0.4"` dependency already absent; zero new crate families vs D25/ADR-0010 confirmed. `cargo deny check` has pre-existing `rsa` Marvin advisory (RUSTSEC-2025-0009), not introduced by B0. | S |
+| B0.7 | ✅ | docs + C13 | Updated `C13-signature-integrity.md` (verification section + honesty rows + GP-S-017); CHANGELOG entries; ADR-0010 Phase-7 update note. | S |
+| B0.8 | ⏳ 👤 owner | OQ-C12 confirm (manual builder — recommendation A) + sequencing confirm (P7-7 before P7-5, spec §6.2/§7.3). Blocks P7-5 if owner reverses. | — |
 
-**Order:** B0.1 → B0.2 → B0.3 → B0.4 → B0.5 → B0.6 → B0.7; B0.8 can run in parallel (default =
-recommendation A unless reversed).
+**Order:** B0.1 ✅ → B0.2 ✅ → B0.3 ✅ → B0.4 ✅ → B0.5 ✅ → B0.6 ✅ → B0.7 ✅; B0.8 owner gate pending.
 
 ### P7-5 — PAdES-T/LTV *(ADR-0012 proposed — ADR acceptance first)*
 
@@ -182,9 +180,9 @@ recommendation A unless reversed).
 |---|---|---|---|
 | P9-a | 👤 D18/D26 flip | Owner checklist: registry publishes, visibility, v* tags. Not delegable. | — |
 
-**Track-B order:** B0 (already warm, signing-related — deferred per owner) ∥ P6-a (ADR-0013 **accepted 2026-09-26**) / P8-a (spec-freeze/👤) / P5-a (ADR-0012 **accepted 2026-09-26**, OQ-C12 **Option A**).
+**Track-B order:** B0 (B0.1–B0.7 **COMPLETE**, B0.8 owner gate pending) ∥ P6-a (ADR-0013 **accepted 2026-09-26**) / P8-a (spec-freeze/👤) / P5-a (ADR-0012 **accepted 2026-09-26**, OQ-C12 **Option A**).
 P7-1 (xlsx create) **COMPLETE** — P7-2 (pptx create) **COMPLETE** — P7-3 (formula coverage) **Tranche A+Tranche B (lookup) COMPLETE** — P7-4 (lint encode/ssim) **COMPLETE** — P7-6 (redaction) **COMPLETE** — P7-8 (pdfium spike) **COMPLETE** — next: P7-9 (launch, 👤 not delegable).
-P5 (LTV) strictly after B0.4 (needs counter-sig CMS).
+P5 (LTV) strictly after B0 (needs counter-sig CMS).
 
 **Git state (measured 2026-09-26):** `main` pushed to origin; tag `m6` re-anchored + pushed.
 

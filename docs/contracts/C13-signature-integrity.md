@@ -128,6 +128,7 @@ Detection runs on every input PDF through `adapters-pdf/src/incremental.rs::dete
 | `GP-S-014` | Error | sign-request + PEM input | "PKCS#12 input required (use openssl pkcs12 to convert)" |
 | `GP-S-015` | Error | sign-request + /AcroForm /SigFields | "Signing refused: /AcroForm already contains /SigFields (conflicting signature fields)" |
 | `GP-S-016` | Error | sign-request + already signed | "Signing refused: document already has signatures (re-sign after re-signing original)" |
+| `GP-S-017` | Warning | verify-request + self-signed cert | "Certificate is self-signed — not trusted by default" |
 
 ### 4.2 Refusal Flow
 
@@ -152,9 +153,12 @@ The sign-later path creates a PAdES-B-B compliant signature over an existing (un
 4. **Signature**: RSA PKCS#1 v1.5 or ECDSA P-384 over the digest
 5. **Certificate**: Self-signed X.509 v3 certificate (subject, issuer = same)
 6. **Attributes** (B-B requirement):
-   - `signingTime` (current timestamp)
-   - `signaturePolicyIdentifier` (OID 1.2.840.113549.3.2 — SHA-256 with RSA)
-   - `signerInfoDigestAlgorithms` (signed digest algorithms)
+    - `signingTime` (current timestamp)
+    - `contentType` (OID 1.2.840.113549.1.7.1 — data)
+    - `messageDigest` (SHA-256 over byte-range content)
+    - `signingCertificateV2` (OID 1.2.840.113549.1.9.16.2.47; DER-encoded IssuerSerial)
+    - `signaturePolicyIdentifier` (not yet implemented)
+    - `signerInfoDigestAlgorithms` (not yet implemented)
 7. **Output**: PDF with `/Filter /Adobe.PPKMS`, `/SubFilter /adbe.pkcs7.detached`
 8. **Verification**: `qpdf --check` (CI), openssl byte-range verify (independent)
 
@@ -166,6 +170,26 @@ The sign-later path creates a PAdES-B-B compliant signature over an existing (un
 - **TSA**: No TSA server available. TSA timestamp is PAdES-T (beyond B-B scope).
   Documented as `--no-tsa` flag in sign command.
 - **openssl**: Installed on this host (CLI). Used for independent byte-range verification.
+  CI verification uses `openssl cms -verify -inform DER -noverify` (feature-gated behind
+  `openssl-ci`). Self-signed certs require the `-noverify` flag to skip chain validation.
+
+## 5.2 Verification (B0.4 — Phase 7)
+
+The `verify_signature()` function provides independent CMS verification:
+
+1. Extracts `/Contents` hex from the signature dictionary
+2. Decodes to DER and parses PKCS#7 SignedData structure
+3. Verifies signerInfo.signature against SHA-256(digestOfSigningTime)
+4. Validates byte-range covers the correct PDF content
+5. Checks certificate self-signature validity
+6. Returns `VerifyResult` with valid/subject/algorithm/signing_time/errors
+
+Verification is wired into `stichos sign --verify` (post-write verify) and
+`stichos verify <path>` (standalone verification).
+
+**Honest absent**: OpenSSL CLI (`openssl cms -verify`) is used for independent
+CI verification (feature-gated behind `openssl-ci`). The `qpdf --check` path
+remains honest-absent.
 
 ## 6. Journal Integration
 

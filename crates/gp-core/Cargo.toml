@@ -38,5 +38,8 @@ lopdf = "0.45"
 # C13 crypto: num-bigint-dig (rsa re-exports this)
 num-bigint-dig = "0.8"
 
+[features]
+openssl-ci = []
+
 [dev-dependencies]
 proptest = "1"

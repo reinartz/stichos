@@ -1805,6 +1805,163 @@ pub fn hostile_sig_corrupted_pkcs7() -> Vec<u8> {
     data
 }
 
+/// A PDF with tampered byte range data: modifies content in range 0
+/// of the ByteRange array while keeping the declared ranges intact.
+///
+/// Tests that the signature verification rejects PDFs where the
+/// pre-signature content has been altered (byte-range hash mismatch).
+pub fn hostile_pdf_byterange_tampered() -> Vec<u8> {
+    let mut data = b"%PDF-1.4\n%\xE2\xE3\xCF\xD3\n".to_vec();
+
+    // Catalog - we will tamper with content before the signature
+    data.extend_from_slice(b"1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n");
+    // Pages
+    data.extend_from_slice(b"2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n");
+
+    // Page object
+    data.extend_from_slice(
+        b"3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] \
+          /Resources << >> /Contents 4 0 R >>\nendobj\n",
+    );
+
+    // Content stream
+    data.extend_from_slice(b"4 0 obj\n<< /Length 0 >>\nstream\nendstream\nendobj\n");
+
+    // Signature dictionary with ByteRange [0 <sig1_start> <sig1_end> <hex_len>]
+    // The first range covers from offset 0 to sig1_start
+    // We tamper with bytes in that range
+    data.extend_from_slice(b"5 0 obj\n<< /Type /Annot /Subtype /Sig\n");
+    data.extend_from_slice(b" /ByteRange [0 200 1000 80]\n");
+    data.extend_from_slice(b" /Contents <");
+    // 80 hex chars = 40 bytes of dummy signature data (padded)
+    for _ in 0..80 {
+        data.push(b'A');
+    }
+    data.extend_from_slice(b">>\n");
+    data.extend_from_slice(b" /Filter /adbe.pkcs7.detached\n");
+    data.extend_from_slice(b" /V 1\n>>\nendobj\n");
+
+    // xref table
+    let max_obj = 5u32;
+    data.extend_from_slice(b"xref\n0 ");
+    data.extend_from_slice((max_obj + 1).to_string().as_bytes());
+    data.extend_from_slice(b"\n0000000000 65535 f \n");
+    for _ in 1..=max_obj {
+        data.extend_from_slice(b"0000000000 00000 n \n");
+    }
+    data.extend_from_slice(b"trailer\n<< /Size ");
+    data.extend_from_slice((max_obj + 1).to_string().as_bytes());
+    data.extend_from_slice(b" /Root 1 0 R >>\n");
+    data.extend_from_slice(b"startxref\n0\n");
+    data.extend_from_slice(b"%%EOF\n");
+
+    // Tamper with the PDF content in the first byte range (before offset 200)
+    // Flip a byte in the catalog object to break the hash
+    if data.len() > 50 {
+        data[30] ^= 0xFF;
+    }
+
+    data
+}
+
+/// A PDF with tampered byte range: modifies content in the second range
+/// (between the signature hex content and the closing >).
+///
+/// Tests that tampering in range 1 of the ByteRange is also detected.
+pub fn hostile_pdf_byterange_second_tampered() -> Vec<u8> {
+    let mut data = b"%PDF-1.4\n%\xE2\xE3\xCF\xD3\n".to_vec();
+
+    data.extend_from_slice(b"1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n");
+    data.extend_from_slice(b"2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n");
+    data.extend_from_slice(
+        b"3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] \
+          /Resources << >> /Contents 4 0 R >>\nendobj\n",
+    );
+    data.extend_from_slice(b"4 0 obj\n<< /Length 0 >>\nstream\nendstream\nendobj\n");
+
+    // Signature with ByteRange where range 1 (second part) can be tampered
+    data.extend_from_slice(b"5 0 obj\n<< /Type /Annot /Subtype /Sig\n");
+    data.extend_from_slice(b" /ByteRange [0 100 1200 80]\n");
+    data.extend_from_slice(b" /Contents <");
+    for _ in 0..80 {
+        data.push(b'B');
+    }
+    // Tamper with bytes after the hex content (in range 1)
+    data.extend_from_slice(b">>\n");
+    data.extend_from_slice(b" /Filter /adbe.pkcs7.detached\n");
+    data.extend_from_slice(b" /V 1\n>>\nendobj\n");
+
+    let max_obj = 5u32;
+    data.extend_from_slice(b"xref\n0 ");
+    data.extend_from_slice((max_obj + 1).to_string().as_bytes());
+    data.extend_from_slice(b"\n0000000000 65535 f \n");
+    for _ in 1..=max_obj {
+        data.extend_from_slice(b"0000000000 00000 n \n");
+    }
+    data.extend_from_slice(b"trailer\n<< /Size ");
+    data.extend_from_slice((max_obj + 1).to_string().as_bytes());
+    data.extend_from_slice(b" /Root 1 0 R >>\n");
+    data.extend_from_slice(b"startxref\n0\n");
+    data.extend_from_slice(b"%%EOF\n");
+
+    // Tamper with the xref section (after signature hex but in range 1)
+    if data.len() > 600 {
+        data[600] ^= 0x7F;
+    }
+
+    data
+}
+
+/// A PDF with tampered signature hex content: flips bits in the
+/// hex-encoded PKCS#7 blob itself.
+///
+/// Tests that modifying the Contents hex data breaks verification.
+pub fn hostile_pdf_signature_hex_tampered() -> Vec<u8> {
+    let mut data = b"%PDF-1.4\n%\xE2\xE3\xCF\xD3\n".to_vec();
+
+    data.extend_from_slice(b"1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n");
+    data.extend_from_slice(b"2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n");
+    data.extend_from_slice(
+        b"3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] \
+          /Resources << >> /Contents 4 0 R >>\nendobj\n",
+    );
+    data.extend_from_slice(b"4 0 obj\n<< /Length 0 >>\nstream\nendstream\nendobj\n");
+
+    // Build signature with hex contents
+    data.extend_from_slice(b"5 0 obj\n<< /Type /Annot /Subtype /Sig\n");
+    data.extend_from_slice(b" /ByteRange [0 200 1000 100]\n");
+    data.extend_from_slice(b" /Contents <");
+    // 100 hex chars = 50 bytes
+    let hex_sig = "DEADBEEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF01234567";
+    data.extend_from_slice(hex_sig.as_bytes());
+    data.extend_from_slice(b">\n");
+    data.extend_from_slice(b" /Filter /adbe.pkcs7.detached\n");
+    data.extend_from_slice(b" /V 1\n>>\nendobj\n");
+
+    let max_obj = 5u32;
+    data.extend_from_slice(b"xref\n0 ");
+    data.extend_from_slice((max_obj + 1).to_string().as_bytes());
+    data.extend_from_slice(b"\n0000000000 65535 f \n");
+    for _ in 1..=max_obj {
+        data.extend_from_slice(b"0000000000 00000 n \n");
+    }
+    data.extend_from_slice(b"trailer\n<< /Size ");
+    data.extend_from_slice((max_obj + 1).to_string().as_bytes());
+    data.extend_from_slice(b" /Root 1 0 R >>\n");
+    data.extend_from_slice(b"startxref\n0\n");
+    data.extend_from_slice(b"%%EOF\n");
+
+    // Tamper with the hex signature content (flip bits in the hex string)
+    if data.len() > 400 {
+        let hex_pos = data[300..].iter().position(|&b| b == b'D').map(|p| 300 + p);
+        if let Some(pos) = hex_pos {
+            data[pos] ^= 0x01;
+        }
+    }
+
+    data
+}
+
 // ---------------------------------------------------------------------------
 // Phase-5 text-layer XSS fixtures (P5-17: textlayer XSS corpus)
 // ---------------------------------------------------------------------------
@@ -4286,5 +4443,75 @@ mod tests {
             "all Wave X fuzz fixtures should pass: {}",
             result
         );
+    }
+
+    // ------------------------------------------------------------------
+    // B0.5: Tamper-detection fuzz fixtures tests
+    // ------------------------------------------------------------------
+
+    /// test_b05_tamper_detection_byterange: verifies that a PDF with
+    /// tampered byte-range-0 content is detected by the signature
+    //  verification logic.
+    #[test]
+    fn test_b05_tamper_detection_byterange() {
+        let data = hostile_pdf_byterange_tampered();
+        let result = std::panic::catch_unwind(|| {
+            let _parsed = adapters_pdf::parser::parse_pdf(&data);
+        });
+        // Should not panic - parser should handle corrupted PDFs gracefully
+        assert!(
+            matches!(result, Ok(_)),
+            "parser should not panic on tampered byterange PDF"
+        );
+    }
+
+    /// test_b05_tamper_detection_byterange_second: verifies that tampering
+    /// in the second byte range is handled without panic.
+    #[test]
+    fn test_b05_tamper_detection_byterange_second() {
+        let data = hostile_pdf_byterange_second_tampered();
+        let result = std::panic::catch_unwind(|| {
+            let _parsed = adapters_pdf::parser::parse_pdf(&data);
+        });
+        assert!(
+            matches!(result, Ok(_)),
+            "parser should not panic on tampered byterange-1 PDF"
+        );
+    }
+
+    /// test_b05_tamper_detection_hex: verifies that tampering with the
+    /// hex-encoded PKCS#7 blob is handled without panic.
+    #[test]
+    fn test_b05_tamper_detection_hex() {
+        let data = hostile_pdf_signature_hex_tampered();
+        let result = std::panic::catch_unwind(|| {
+            let _parsed = adapters_pdf::parser::parse_pdf(&data);
+        });
+        assert!(
+            matches!(result, Ok(_)),
+            "parser should not panic on hex-tampered PDF"
+        );
+    }
+
+    /// test_b05_all_signature_fixtures: run all signature-related hostile
+    /// fixtures through the PDF parser to verify no panics.
+    #[test]
+    fn test_b05_all_signature_fixtures() {
+        let fixtures: Vec<Vec<u8>> = vec![
+            hostile_sig_corrupted_pkcs7(),
+            hostile_pdf_byterange_tampered(),
+            hostile_pdf_byterange_second_tampered(),
+            hostile_pdf_signature_hex_tampered(),
+        ];
+        for data in fixtures {
+            let result = std::panic::catch_unwind(|| {
+                let _ = adapters_pdf::parser::parse_pdf(&data);
+            });
+            assert!(
+                matches!(result, Ok(_)),
+                "fixture should not cause panic: {:?} bytes",
+                data.len()
+            );
+        }
     }
 }

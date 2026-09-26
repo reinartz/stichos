@@ -3,6 +3,12 @@
 **Status**: proposed (2026-09-18, contributor) -> **accepted** (2026-09-18, owner)
 **Decisions**: D25 (pure-Rust crypto for PAdES-B-B)
 
+**Phase 7 update (2026-09-26):** Implementation uses manual DER assembly for PKCS#7
+SignedData (owner OQ-C12, Option A — no `pkcs7` crate). Signed attributes
+(content-type, message-digest, signing-time, signingCertificateV2) present.
+`verify_signature()` provides independent verification. `pkcs7` crate dependency
+removed (unused, deprecated).
+
 ## 1. Context
 
 Phase 5 (M5) introduces the trust wave (Wave T) with signature integrity detection and
@@ -34,7 +40,6 @@ Use only pure-Rust crates from the RustCrypto project:
 | `pkcs8` | 0.10 | MIT/Apache-2.0 | PKCS#8 key encoding |
 | `x509-cert` | 0.2 | MIT/Apache-2.0 | X.509 certificate handling |
 | `signature` | 2 | MIT/Apache-2.0 | Signature trait |
-| `pkcs7` | 0.6 | MIT/Apache-2.0 | PKCS#7/CMS envelope building |
 | `der` | 0.7 | MIT/Apache-2.0 | DER encoding |
 | `const-oid` | 0.9 | MIT/Apache-2.0 | ASN.1 OID constants |
 | `zeroize` | 1 | Apache-2.0 | Secure secret zeroization |
@@ -117,7 +122,7 @@ for qpdf verification but not for signing which is a core capability).
 - Signing path: self-signed PKCS#12 (generated in-memory) or provided PKCS#12
 - Digest algorithm: SHA-256 only (no SHA-1, no SHA-512 — B-B minimum)
 - Signature types: RSA PKCS#1 v1.5 and ECDSA P-384
-- PKCS#7 envelope built with `pkcs7` crate (DER-encoded SignedData)
+- PKCS#7 envelope built with manual DER assembly (no `pkcs7` crate — deprecated/unused)
 - X.509 certificate generated with `x509-cert` builder
 - Honest-absent TSA: `--no-tsa` flag documented; TSA is post-B-B (PAdES-T)
 
