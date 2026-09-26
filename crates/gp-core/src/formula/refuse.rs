@@ -105,7 +105,7 @@ pub fn gp_f_code_str(code: GpFCode) -> &'static str {
     }
 }
 
-/// Return the list of supported function names (v1.0.0).
+/// Return the list of supported function names (v1.0.0 + P7-3 Tranche A).
 pub fn supported_functions() -> &'static [&'static str] {
     &[
         "SUM",
@@ -120,6 +120,51 @@ pub fn supported_functions() -> &'static [&'static str] {
         "IF",
         "CONCATENATE",
         "IFERROR",
+        "CONCAT",
+        // Date/Time (A4)
+        "TODAY",
+        "NOW",
+        "YEAR",
+        "MONTH",
+        "DAY",
+        "DATEDIF",
+        "EOMONTH",
+        // Statistical (A5)
+        "COUNTA",
+        "COUNTBLANK",
+        "STDEV",
+        "STDEV_S",
+        "STDEVP",
+        "STDEV_P",
+        "VAR",
+        "VAR_S",
+        "VARP",
+        "VAR_P",
+        "RANK",
+        "RANK_EQ",
+        // Error handling / type checking (A6)
+        "ISERROR",
+        "ISNUMBER",
+        "ISTEXT",
+        "IFNA",
+        // Math functions (P7-3 Tranche A)
+        "ABS",
+        "ROUND",
+        "ROUNDUP",
+        "ROUNDDOWN",
+        "MOD",
+        "INT",
+        "POWER",
+        // Text functions (P7-3 Tranche A)
+        "LEN",
+        "TRIM",
+        "UPPER",
+        "LOWER",
+        "REPT",
+        "SUBSTITUTE",
+        "LEFT",
+        "RIGHT",
+        "MID",
     ]
 }
 

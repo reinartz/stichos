@@ -94,6 +94,9 @@ pub struct SystemInfo {
     pub pandoc_version: Option<String>,
     /// Typst version (if installed).
     pub typst_version: Option<String>,
+    /// Whether pdfium is available for rasterization.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub pdfium_available: Option<bool>,
 }
 
 // ======================================================================
@@ -235,6 +238,11 @@ fn fc_match(font: &str) -> Option<String> {
 /// Returns a [`SystemInfo`] with OS, architecture, and versions of
 /// known tools (LibreOffice, poppler, Ghostscript, chromium, pandoc, typst) if installed.
 pub fn system_info() -> SystemInfo {
+    #[cfg(feature = "pdfium")]
+    let pdfium_available = Some(super::raster::pdfium_available());
+    #[cfg(not(feature = "pdfium"))]
+    let pdfium_available = None;
+
     SystemInfo {
         os: std::env::consts::OS.to_string(),
         arch: std::env::consts::ARCH.to_string(),
@@ -244,6 +252,7 @@ pub fn system_info() -> SystemInfo {
         chromium_version: chromium_version(),
         pandoc_version: pandoc_version(),
         typst_version: typst_version(),
+        pdfium_available,
     }
 }
 
@@ -518,6 +527,11 @@ pub fn doctor_report(result: &DoctorResult) -> String {
         output.push_str(&format!("Typst: {}\n", typst));
     } else {
         output.push_str("Typst: not installed\n");
+    }
+
+    if let Some(ref pdfium) = result.system_info.pdfium_available {
+        let status = if *pdfium { "available" } else { "unavailable" };
+        output.push_str(&format!("Pdfium: {}\n", status));
     }
 
     output.push_str("\n--- Engines ---\n");

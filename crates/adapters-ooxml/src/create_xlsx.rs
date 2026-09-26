@@ -158,8 +158,8 @@ fn build_parts(spreadsheet: &Spreadsheet, _diags: &mut Vec<Diagnostic>) -> Vec<(
     let mut parts: Vec<(String, Vec<u8>)> = Vec::new();
 
     // Collect shared strings and styles
-    let (shared_strings, _string_index_map) = collect_shared_strings(spreadsheet);
-    let _style_name_to_index = collect_style_indices(spreadsheet);
+    let (shared_strings, string_index_map) = collect_shared_strings(spreadsheet);
+    let style_name_to_index = collect_style_indices(spreadsheet);
 
     let num_sheets = spreadsheet.sheets.len();
     let num_shared_strings = shared_strings.len();
@@ -188,12 +188,15 @@ fn build_parts(spreadsheet: &Spreadsheet, _diags: &mut Vec<Diagnostic>) -> Vec<(
             build_shared_strings_xml(&[]),
         ));
     }
-    parts.push(("xl/styles.xml".to_string(), build_styles_xml()));
+    parts.push((
+        "xl/styles.xml".to_string(),
+        build_styles_xml(&style_name_to_index, spreadsheet),
+    ));
 
     for (sheet_idx, sheet) in spreadsheet.sheets.iter().enumerate() {
         parts.push((
             format!("xl/worksheets/sheet{}.xml", sheet_idx + 1),
-            build_worksheet_xml(sheet, &shared_strings, _diags),
+            build_worksheet_xml(sheet, &shared_strings, &string_index_map, _diags),
         ));
     }
 
@@ -322,16 +325,158 @@ fn build_shared_strings_xml(strings: &[String]) -> Vec<u8> {
 // xl/styles.xml
 // ===========================================================================
 
-fn build_styles_xml() -> Vec<u8> {
-    let xml = r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+fn build_styles_xml(
+    style_name_to_index: &BTreeMap<String, usize>,
+    spreadsheet: &Spreadsheet,
+) -> Vec<u8> {
+    // Collect number format strings from cells (deduplicated, in insertion order)
+    let mut seen_fmts: Vec<String> = Vec::new();
+    let mut num_fmt_to_id: BTreeMap<String, usize> = BTreeMap::new();
+    let mut next_id: usize = 164;
+
+    for sheet in &spreadsheet.sheets {
+        for row in &sheet.rows {
+            for cell in &row.cells {
+                if let Some(ref fmt) = cell.number_format {
+                    if !num_fmt_to_id.contains_key(fmt) {
+                        num_fmt_to_id.insert(fmt.clone(), next_id);
+                        seen_fmts.push(fmt.clone());
+                        next_id += 1;
+                    }
+                }
+            }
+        }
+    }
+
+    let num_num_fmts = seen_fmts.len();
+
+    // Determine which styles are used
+    let has_bold = style_name_to_index
+        .keys()
+        .any(|k| k.contains("bold") && k != "__default__");
+    let has_italic = style_name_to_index
+        .keys()
+        .any(|k| k.contains("italic") && k != "__default__");
+    let fonts_count = 1 + if has_bold { 1 } else { 0 } + if has_italic { 1 } else { 0 };
+
+    // Build numFmts section
+    let mut num_fmts_section = String::new();
+    if num_num_fmts > 0 {
+        num_fmts_section.push_str(&format!("<numFmts count=\"{num_num_fmts}\">"));
+        for fmt in &seen_fmts {
+            let id = num_fmt_to_id.get(fmt).unwrap();
+            num_fmts_section.push_str(&format!(
+                "<numFmt numFmtId=\"{id}\" formatCode=\"{}\"/>",
+                escape_xml(fmt)
+            ));
+        }
+        num_fmts_section.push_str("</numFmts>");
+    }
+
+    // Build font sub-elements
+    let bold_font = if has_bold {
+        "<font><b/><sz val=\"11\"/><name val=\"Calibri\"/></font>"
+    } else {
+        ""
+    };
+    let italic_font = if has_italic {
+        "<font><i/><sz val=\"11\"/><name val=\"Calibri\"/></font>"
+    } else {
+        ""
+    };
+
+    // Determine if any cell uses a number format
+    let has_num_format_cells = spreadsheet.sheets.iter().any(|sheet| {
+        sheet.rows.iter().any(|row| {
+            row.cells
+                .iter()
+                .any(|cell| cell.number_format.as_ref().is_some())
+        })
+    });
+
+    // Build cellXfs entries - start with default (index 0)
+    let mut cell_xfs_parts: Vec<String> = vec![
+        "<xf numFmtId=\"0\" fontId=\"0\" fillId=\"0\" borderId=\"0\" xfId=\"0\"/>".to_string(),
+    ];
+
+    // Collect unique font requirements from style names
+    let mut needs_bold = false;
+    let mut needs_italic = false;
+    for name in style_name_to_index.keys() {
+        if name == "__default__" {
+            continue;
+        }
+        if name.contains("bold") {
+            needs_bold = true;
+        }
+        if name.contains("italic") {
+            needs_italic = true;
+        }
+    }
+
+    // For each unique style name (excluding default), create a cellXF
+    for style_name in style_name_to_index.keys() {
+        if *style_name == "__default__" {
+            continue;
+        }
+        let font_id = if style_name.contains("bold") && style_name.contains("italic") {
+            if needs_italic && needs_bold {
+                fonts_count - 1
+            } else {
+                1
+            }
+        } else if style_name.contains("bold") {
+            if needs_bold {
+                1
+            } else {
+                0
+            }
+        } else if style_name.contains("italic") {
+            if needs_italic {
+                if needs_bold {
+                    2
+                } else {
+                    1
+                }
+            } else {
+                0
+            }
+        } else {
+            0
+        };
+
+        let num_fmt_id = if has_num_format_cells && num_num_fmts > 0 {
+            let first_fmt_id = *num_fmt_to_id.values().next().unwrap();
+            first_fmt_id
+        } else {
+            0
+        };
+
+        cell_xfs_parts.push(format!(
+            "<xf numFmtId=\"{num_fmt_id}\" fontId=\"{font_id}\" fillId=\"0\" borderId=\"0\" xfId=\"0\"/>"
+        ));
+    }
+
+    let cell_xfs = cell_xfs_parts.join("\n");
+
+    let xml = format!(
+        r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
-<fonts count="1"><font><sz val="11"/><name val="Calibri"/></font></fonts>
+<fonts count="{fonts_count}"><font><sz val="11"/><name val="Calibri"/></font>{bold_font}{italic_font}</fonts>
 <fills count="1"><fill><patternFill patternType="none"/></fill></fills>
 <borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders>
-<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>
-<cellXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/></cellXfs>
-</styleSheet>"#;
-    xml.as_bytes().to_vec()
+<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>{num_fmts}<cellXfs count="{cell_xfs_count}">{cell_xfs}
+</cellXfs>
+</styleSheet>"#,
+        fonts_count = fonts_count,
+        bold_font = bold_font,
+        italic_font = italic_font,
+        num_fmts = num_fmts_section,
+        cell_xfs_count = cell_xfs_parts.len(),
+        cell_xfs = cell_xfs,
+    );
+
+    xml.into_bytes()
 }
 
 // ===========================================================================
@@ -341,6 +486,7 @@ fn build_styles_xml() -> Vec<u8> {
 fn build_worksheet_xml(
     sheet: &Sheet,
     shared_strings: &[String],
+    string_index_map: &BTreeMap<String, usize>,
     _diags: &mut Vec<Diagnostic>,
 ) -> Vec<u8> {
     let mut xml = String::from(
@@ -354,7 +500,7 @@ fn build_worksheet_xml(
 
         for cell in &row.cells {
             let ref_str = cell_ref(cell.row, cell.col);
-            xml.push_str(&build_cell_xml(cell, shared_strings));
+            xml.push_str(&build_cell_xml(cell, shared_strings, string_index_map));
             let _ = ref_str;
         }
 
@@ -379,7 +525,11 @@ fn build_worksheet_xml(
 }
 
 /// Build XML for a single cell.
-fn build_cell_xml(cell: &SheetCell, shared_strings: &[String]) -> String {
+fn build_cell_xml(
+    cell: &SheetCell,
+    _shared_strings: &[String],
+    string_index_map: &BTreeMap<String, usize>,
+) -> String {
     let ref_str = cell_ref(cell.row, cell.col);
 
     match (&cell.formula, &cell.value, &cell.cached_value) {
@@ -425,13 +575,10 @@ fn build_cell_xml(cell: &SheetCell, shared_strings: &[String]) -> String {
         (_, Some(_), _) => {
             let mut xml = format!("<c r=\"{}\" t=\"s\">", ref_str);
 
-            // Find the index in shared strings
-            let search_val = cell.value.as_deref().unwrap_or("");
-            if let Some(idx) = shared_strings.iter().position(|s| s == search_val) {
-                xml.push_str(&format!("<v>{}</v>", idx));
-            } else {
-                xml.push_str("<v>0</v>");
-            }
+            // Look up the index from the pre-computed map
+            let search_key = cell.id.to_string();
+            let str_idx = string_index_map.get(&search_key).copied().unwrap_or(0);
+            xml.push_str(&format!("<v>{str_idx}</v>"));
 
             xml.push_str("</c>");
             xml
@@ -537,6 +684,7 @@ mod tests {
                                 formula: None,
                                 cached_value: None,
                                 style_name: None,
+                                number_format: None,
                             },
                             SheetCell {
                                 id: make_id("cell", &["cell:B1"], "B1"),
@@ -546,6 +694,7 @@ mod tests {
                                 formula: None,
                                 cached_value: None,
                                 style_name: None,
+                                number_format: None,
                             },
                         ],
                     },
@@ -560,6 +709,7 @@ mod tests {
                                 formula: None,
                                 cached_value: None,
                                 style_name: None,
+                                number_format: None,
                             },
                             SheetCell {
                                 id: make_id("cell", &["cell:B2"], "B2"),
@@ -569,6 +719,7 @@ mod tests {
                                 formula: None,
                                 cached_value: Some("42".to_string()),
                                 style_name: None,
+                                number_format: None,
                             },
                         ],
                     },
@@ -583,6 +734,7 @@ mod tests {
                                 formula: None,
                                 cached_value: None,
                                 style_name: None,
+                                number_format: None,
                             },
                             SheetCell {
                                 id: make_id("cell", &["cell:B3"], "B3"),
@@ -592,6 +744,7 @@ mod tests {
                                 formula: None,
                                 cached_value: Some("100".to_string()),
                                 style_name: None,
+                                number_format: None,
                             },
                         ],
                     },
@@ -622,6 +775,7 @@ mod tests {
                             formula: None,
                             cached_value: None,
                             style_name: None,
+                            number_format: None,
                         }],
                     }],
                     merged_ranges: vec![],
@@ -641,6 +795,7 @@ mod tests {
                             formula: None,
                             cached_value: None,
                             style_name: None,
+                            number_format: None,
                         }],
                     }],
                     merged_ranges: vec![],
@@ -670,6 +825,7 @@ mod tests {
                                 formula: None,
                                 cached_value: None,
                                 style_name: None,
+                                number_format: None,
                             },
                             SheetCell {
                                 id: make_id("cell", &["cell:B1"], "B1"),
@@ -679,6 +835,7 @@ mod tests {
                                 formula: None,
                                 cached_value: None,
                                 style_name: None,
+                                number_format: None,
                             },
                         ],
                     },
@@ -692,6 +849,7 @@ mod tests {
                             formula: Some("=SUM(A1:B1)".to_string()),
                             cached_value: Some("30".to_string()),
                             style_name: None,
+                            number_format: None,
                         }],
                     },
                 ],
@@ -719,6 +877,7 @@ mod tests {
                         formula: None,
                         cached_value: None,
                         style_name: None,
+                        number_format: None,
                     }],
                 }],
                 merged_ranges: vec![
@@ -761,6 +920,7 @@ mod tests {
                             formula: None,
                             cached_value: None,
                             style_name: Some("bold".to_string()),
+                            number_format: None,
                         },
                         SheetCell {
                             id: make_id("cell", &["cell:B1"], "B1"),
@@ -770,6 +930,7 @@ mod tests {
                             formula: None,
                             cached_value: None,
                             style_name: Some("currency".to_string()),
+                            number_format: None,
                         },
                     ],
                 }],
@@ -1065,5 +1226,132 @@ mod tests {
         assert_eq!(merged_range_ref(0, 0, 0, 1), "A1:B1");
         assert_eq!(merged_range_ref(1, 0, 2, 1), "A2:B3");
         assert_eq!(merged_range_ref(0, 0, 4, 4), "A1:E5");
+    }
+
+    fn read_zip_entry_str_v2(
+        archive: &mut zip::ZipArchive<Cursor<&Vec<u8>>>,
+        name: &str,
+    ) -> String {
+        let mut buf = Vec::new();
+        archive
+            .by_name(name)
+            .unwrap_or_else(|_| panic!("Entry '{}' should exist", name))
+            .read_to_end(&mut buf)
+            .unwrap_or_else(|_| panic!("Should read entry '{}'", name));
+        String::from_utf8(buf).expect("Entry should be valid UTF-8")
+    }
+
+    /// test_xlsx_roundtrip_identity
+    #[test]
+    fn test_xlsx_roundtrip_identity() {
+        let spreadsheet = make_spreadsheet_with_data();
+        let bytes = create_minimal_xlsx(&spreadsheet).expect("create");
+        let pkg = crate::opc::parse_opc(&bytes).expect("opc parse");
+        let read_result = crate::xlsx::read_xlsx(&pkg).expect("read");
+        let spreadsheet_back: Spreadsheet =
+            serde_json::from_slice(&read_result.ir).expect("deserialize");
+        assert_eq!(spreadsheet.sheets.len(), spreadsheet_back.sheets.len());
+        assert_eq!(spreadsheet.sheets[0].name, spreadsheet_back.sheets[0].name);
+        let orig_cells: usize = spreadsheet.sheets[0]
+            .rows
+            .iter()
+            .map(|r| r.cells.len())
+            .sum();
+        let back_cells: usize = spreadsheet_back.sheets[0]
+            .rows
+            .iter()
+            .map(|r| r.cells.len())
+            .sum();
+        assert_eq!(orig_cells, back_cells, "cell count should match");
+    }
+
+    /// test_xlsx_with_styles_dynamic
+    #[test]
+    fn test_xlsx_with_styles_dynamic() {
+        let spreadsheet = make_spreadsheet_with_styles();
+        let result = create_minimal_xlsx(&spreadsheet);
+        assert!(result.is_ok(), "Should create xlsx with styles");
+        let bytes = result.unwrap();
+        let cursor = Cursor::new(&bytes);
+        let mut archive = zip::ZipArchive::new(cursor).expect("Should be valid ZIP");
+        let styles_xml = read_zip_entry_str(&mut archive, "xl/styles.xml");
+        assert!(styles_xml.contains("<cellXfs"), "Should contain cellXfs");
+        assert!(styles_xml.contains("<xf"), "Should have xf entries");
+    }
+
+    /// test_xlsx_with_number_formats
+    #[test]
+    fn test_xlsx_with_number_formats() {
+        let mut spreadsheet = make_spreadsheet_with_data();
+        if let Some(row) = spreadsheet.sheets[0].rows.get_mut(1) {
+            if let Some(cell) = row.cells.get_mut(1) {
+                cell.number_format = Some("#,##0.00".to_string());
+            }
+        }
+        let result = create_minimal_xlsx(&spreadsheet);
+        assert!(result.is_ok(), "Should create xlsx with number formats");
+        let bytes = result.unwrap();
+        let cursor = Cursor::new(&bytes);
+        let mut archive = zip::ZipArchive::new(cursor).expect("Should be valid ZIP");
+        let styles_xml = read_zip_entry_str_v2(&mut archive, "xl/styles.xml");
+        assert!(
+            styles_xml.contains("numFmts"),
+            "Should have numFmts section"
+        );
+        assert!(
+            styles_xml.contains("#,##0.00"),
+            "Should contain custom number format"
+        );
+    }
+
+    /// test_xlsx_create_from_empty
+    #[test]
+    fn test_xlsx_create_from_empty() {
+        let spreadsheet = make_empty_spreadsheet();
+        let result = create_minimal_xlsx(&spreadsheet);
+        assert!(result.is_ok(), "Should create xlsx from empty spreadsheet");
+        let bytes = result.unwrap();
+        assert!(
+            bytes.len() > 2 && &bytes[0..2] == b"PK",
+            "Should be valid PK (ZIP) file"
+        );
+    }
+
+    /// test_xlsx_multi_sheet
+    #[test]
+    fn test_xlsx_multi_sheet() {
+        let spreadsheet = make_spreadsheet_with_shared_strings();
+        let result = create_minimal_xlsx(&spreadsheet);
+        assert!(result.is_ok(), "Should create xlsx with multiple sheets");
+        let bytes = result.unwrap();
+        let cursor = Cursor::new(&bytes);
+        let mut archive = zip::ZipArchive::new(cursor).expect("Should be valid ZIP");
+        // Sheet XML uses shared string indices
+        let sheet1_xml = read_zip_entry_str_v2(&mut archive, "xl/worksheets/sheet1.xml");
+        assert!(
+            sheet1_xml.contains("<v>0</v>"),
+            "Sheet1 should reference shared string index 0"
+        );
+        let sheet2_xml = read_zip_entry_str_v2(&mut archive, "xl/worksheets/sheet2.xml");
+        assert!(
+            sheet2_xml.contains("<v>0</v>"),
+            "Sheet2 should reference shared string index 0"
+        );
+        // Shared strings table contains the actual string
+        let strings_xml = read_zip_entry_str_v2(&mut archive, "xl/sharedStrings.xml");
+        assert!(
+            strings_xml.contains("SharedString"),
+            "sharedStrings.xml should contain SharedString"
+        );
+        // Sheet names are in workbook.xml
+        let workbook_xml = read_zip_entry_str_v2(&mut archive, "xl/workbook.xml");
+        assert!(
+            workbook_xml.contains("Sheet1"),
+            "Workbook should reference Sheet1"
+        );
+        assert!(
+            workbook_xml.contains("Sheet2"),
+            "Workbook should reference Sheet2"
+        );
     }
 }

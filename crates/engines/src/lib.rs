@@ -17,6 +17,8 @@ pub mod open_handler;
 pub mod pandoc;
 pub mod probe;
 pub mod raster;
+#[cfg(feature = "pdfium")]
+pub mod raster_pdfium;
 pub mod typst;
 
 /// Engine identifiers.

@@ -18,6 +18,8 @@ ms-office = []
 # Enable Unix-specific pipe handling (poll, dup) for LibreOffice subprocess
 # stdout/stderr capture. On Windows, a simpler try_clone-based approach is used.
 unix = ["dep:libc"]
+# Optional pdfium-based rasterization (dynamic link only).
+pdfium = ["dep:pdfium-render", "dep:image"]
 
 [dependencies]
 gp-core = { path = "../gp-core", version = "0.1.0" }
@@ -34,3 +36,5 @@ hex = { workspace = true }
   libc = { workspace = true, optional = true }
  tempfile = { workspace = true }
  thiserror = { workspace = true }
+ pdfium-render = { version = "0.9", optional = true, features = ["pdfium_latest", "image_latest", "thread_safe"] }
+ image = { version = "0.25", optional = true }

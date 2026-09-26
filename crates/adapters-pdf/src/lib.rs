@@ -25,5 +25,6 @@ pub mod outline;
 pub mod parser;
 pub mod patch_executor;
 pub mod qpdf;
+pub mod redact;
 pub mod text;
 pub mod text_source;

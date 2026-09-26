@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Status | **proposed** (2026-09-24, contributor) — flip to **accepted**/**rejected** by the **project owner** only |
+| Status | **accepted** (2026-09-26, owner) — adopted Option C (Hybrid) |
 | Gate | none (Phase-7 backlog — `docs/remaining-work.md` P7-6) |
 | Decide by | Phase-7 kickoff |
 | Decision owner | **project owner** |
@@ -308,3 +308,13 @@ interaction model (refuse + force) is already established in C13 and C12.
 ## Decision (owner, <date>)
 
 <!-- Owner-only: the decision as taken, D-log entry, deny.toml state, tasks unblocked. -->
+
+**Decision: Accept ADR-0013 — adopt Option C (Hybrid).**
+
+- **Approach**: Content-stream surgery + `/Redaction` annotation overlay. Mark redacted objects as `free` in the xref table (xref-free model, §1.1 approach 2). Document that original bytes survive in the file prefix and secure erasure is required for classified documents.
+- **Recompression**: Use `flate2` (deflate-only) for content stream recompression. BSD/MIT, no `-sys`, D2-safe. The only new dependency.
+- **Signature interaction**: Refuse redaction on signed PDFs by default (C13, `GP-S-001`), with `--force` proceeding with `GP-S-002` diagnostic. Same model as annotation write-back.
+- **D-row**: No D-row reversal needed. D2 maintained (pure-Rust, no `-sys` crates, no C deps). D8 maintained (no new hard dependencies for core functionality). D19 unchanged (pdfium deferred to G5).
+- **deny.toml**: Add `flate2` to the license allow-list if not already present. No bans to remove.
+- **Tasks unblocked**: P7-6 (redaction implementation — content stream surgery, IR type, annotation write-back), P6-a (ADR acceptance gate for redaction).
+- **Diagnostics**: New codes `PDF-E-007` (redaction refused — signed), `PDF-W-006/007` (partial redaction), `PDF-E-008` (redaction refused — encrypted) — as specified in §4.

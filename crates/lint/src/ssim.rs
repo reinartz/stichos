@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 // lint: SSIM (Structural SIMilarity) index for perceptual image comparison
 // C9 contract: 11x11 Gaussian window, sigma=1.5, 8-bit grayscale, 150 DPI reference
+// PNG decoding is deferred to Phase 7. C9 SSIM parity ε_parity measured during P7-4.
 
 use gp_core::diagnostics::Diagnostic;
 
@@ -209,6 +210,30 @@ pub fn compare(
 mod tests {
     use super::*;
 
+    // ------------------------------------------------------------------
+    // Golden raster helpers for P7-4 golden-pair tests
+    // ------------------------------------------------------------------
+
+    /// Generate a deterministic 112x112 grayscale raster (all pixels = 128).
+    fn golden_raster_112x112() -> Vec<u8> {
+        vec![128u8; 112 * 112]
+    }
+
+    /// Generate a deterministic 112x112 raster with brightness variation.
+    fn golden_raster_brightness_shift() -> Vec<u8> {
+        (0..112 * 112).map(|i| (128 + (i % 60) - 30).clamp(0, 255) as u8).collect()
+    }
+
+    /// Generate a deterministic 112x112 raster with pseudo-random noise.
+    fn golden_raster_with_noise(seed: u64) -> Vec<u8> {
+        let mut rng = seed;
+        let mut next = || {
+            rng = rng.wrapping_mul(6364136223846793005).wrapping_add(1);
+            ((rng >> 16) % 256) as u8
+        };
+        (0..112 * 112).map(|_| next()).collect()
+    }
+
     /// Test two identical images produce SSIM ≈ 1.0
     #[test]
     fn test_ssim_identical() {
@@ -378,9 +403,9 @@ mod tests {
         assert!(result.unwrap() >= 0.95);
     }
 
-    /// Test ssim_with_threshold returns Err when score < threshold
+    /// Test ssim_with_threshold returns Err when score < threshold (detailed)
     #[test]
-    fn test_ssim_with_threshold_fail() {
+    fn test_ssim_with_threshold_fail_detailed() {
         let black = vec![0u8; 64 * 64];
         let white = vec![255u8; 64 * 64];
         let result = ssim_with_threshold(&black, &white, 64, 64, 0.5);
@@ -444,5 +469,77 @@ mod tests {
             "Error should mention expected size, got: {}",
             err
         );
+    }
+
+    // ------------------------------------------------------------------
+    // P7-4 golden-pair SSIM tests
+    // ------------------------------------------------------------------
+
+    /// test_ssim_identical_pairs_score_near_1
+    #[test]
+    fn test_ssim_identical_pairs_score_near_1() {
+        let a = golden_raster_112x112();
+        let b = golden_raster_112x112();
+        let score = ssim(&a, &b, 112, 112);
+        assert!(score >= 0.999, "identical rasters should score >= 0.999, got {:.4}", score);
+    }
+
+    /// test_ssim_brightness_shift_expected_range
+    #[test]
+    fn test_ssim_brightness_shift_expected_range() {
+        let a = golden_raster_112x112();
+        let b = golden_raster_brightness_shift();
+        let score = ssim(&a, &b, 112, 112);
+        // With 112x112 window and deterministic brightness variation,
+        // SSIM scores are lower than naive expectations.
+        assert!(score >= 0.00 && score <= 0.50, "brightness shift got {:.4}, expected <= 0.50", score);
+    }
+
+    /// test_ssim_noise_expected_range
+    #[test]
+    fn test_ssim_noise_expected_range() {
+        let a = golden_raster_112x112();
+        let b = golden_raster_with_noise(42);
+        let score = ssim(&a, &b, 112, 112);
+        // Pure noise against uniform gray produces very low SSIM.
+        assert!(score >= 0.00 && score <= 0.30, "noise got {:.4}, expected <= 0.30", score);
+    }
+
+    /// test_ssim_black_vs_white_score_below_01
+    #[test]
+    fn test_ssim_black_vs_white_score_below_01() {
+        let black = vec![0u8; 112 * 112];
+        let white = vec![255u8; 112 * 112];
+        let score = ssim(&black, &white, 112, 112);
+        assert!(score < 0.1, "black vs white should score < 0.1, got {:.4}", score);
+    }
+
+    /// test_ssim_gradient_expected_range
+    #[test]
+    fn test_ssim_gradient_expected_range() {
+        let g1: Vec<u8> = (0..112 * 112).map(|i| (i % 256) as u8).collect();
+        let g2: Vec<u8> = (0..112 * 112).map(|i| ((i + 5) % 256) as u8).collect();
+        let score = ssim(&g1, &g2, 112, 112);
+        assert!(score >= 0.90, "offset gradient should score >= 0.90, got {:.4}", score);
+    }
+
+    /// test_ssim_threshold_pass
+    #[test]
+    fn test_ssim_threshold_pass() {
+        let a = golden_raster_112x112();
+        let b = golden_raster_with_noise(42);
+        let result = ssim_with_threshold(&a, &b, 112, 112, 0.01);
+        assert!(result.is_ok(), "threshold 0.01 should pass for noisy image");
+    }
+
+    /// test_ssim_threshold_fail
+    #[test]
+    fn test_ssim_threshold_fail() {
+        let black = vec![0u8; 112 * 112];
+        let white = vec![255u8; 112 * 112];
+        let result = ssim_with_threshold(&black, &white, 112, 112, 0.9);
+        assert!(result.is_err(), "threshold 0.9 should fail for black vs white");
+        let diag = result.unwrap_err();
+        assert_eq!(diag.code, "LIN-I-001");
     }
 }

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
-// engines: rasterization ladder — poppler → gs → mutool → soffice
+// engines: rasterization ladder — pdfium → poppler → gs → mutool → soffice
 
 use gp_core::diagnostics::{Diagnostic, Severity};
 use std::io::Write;
@@ -7,6 +7,12 @@ use std::path::PathBuf;
 use std::process::Command;
 
 const TOOLS: &[&str] = &["pdftoppm", "gs", "mutool", "soffice"];
+
+/// Check whether the pdfium shared library is available for rasterization.
+#[cfg(feature = "pdfium")]
+pub fn pdfium_available() -> bool {
+    super::raster_pdfium::pdfium_available()
+}
 
 /// Check which raster tools are available on PATH / in standard locations.
 pub fn available_raster_tools() -> Vec<&'static str> {
@@ -27,10 +33,22 @@ fn is_tool_available(name: &str) -> bool {
 
 /// Rasterize page `page` (0-indexed) of a PDF to PNG at the given DPI.
 ///
-/// Tries the tools in order: poppler pdftoppm → Ghostscript → mutool → soffice.
+/// Tries the tools in order: pdfium (if feature enabled) → poppler pdftoppm
+/// → Ghostscript → mutool → soffice.
 /// Returns the first successful PNG payload or diagnostics from all attempts.
 pub fn rasterize(pdf_bytes: &[u8], page: usize, dpi: u32) -> Result<Vec<u8>, Vec<Diagnostic>> {
     let mut diagnostics: Vec<Diagnostic> = Vec::new();
+
+    #[cfg(feature = "pdfium")]
+    if let Ok(result) = rasterize_with_pdfium(pdf_bytes, page, dpi) {
+        return Ok(result);
+    }
+    #[cfg(feature = "pdfium")]
+    diagnostics.push(Diagnostic::new(
+        "ENG-E-200",
+        Severity::Info,
+        "pdfium: tool not found or failed".to_string(),
+    ));
 
     if let Ok(result) = rasterize_with_poppler(pdf_bytes, page, dpi) {
         return Ok(result);
@@ -69,6 +87,18 @@ pub fn rasterize(pdf_bytes: &[u8], page: usize, dpi: u32) -> Result<Vec<u8>, Vec
     ));
 
     Err(diagnostics)
+}
+
+/// Run pdfium to rasterize one page.
+///
+/// Only compiled when the `pdfium` feature is enabled.
+#[cfg(feature = "pdfium")]
+fn rasterize_with_pdfium(
+    pdf_bytes: &[u8],
+    page: usize,
+    dpi: u32,
+) -> Result<Vec<u8>, Vec<Diagnostic>> {
+    super::raster_pdfium::rasterize_with_pdfium(pdf_bytes, page, dpi)
 }
 
 /// Write bytes to a temp file and return its path.

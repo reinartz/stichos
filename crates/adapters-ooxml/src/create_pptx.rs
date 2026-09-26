@@ -65,6 +65,15 @@ fn escape_xml(s: &str) -> String {
         .replace('\'', "&apos;")
 }
 
+/// Resolve element position from IR fields, falling back to grid layout.
+fn element_position(element: &SlideElement) -> (f64, f64, f64, f64) {
+    let x = element.x_pt.unwrap_or(1.0);
+    let y = element.y_pt.unwrap_or(1.0);
+    let w = element.width_pt.unwrap_or(3.0);
+    let h = element.height_pt.unwrap_or(1.5);
+    (x, y, w, h)
+}
+
 // ===========================================================================
 // Build all parts
 // ===========================================================================
@@ -99,8 +108,14 @@ fn build_parts(
     for (i, _slide) in presentation.slides.iter().enumerate() {
         parts.push((
             format!("ppt/slides/slide{}.xml", i + 1),
-            build_slide_xml(&presentation.slides[i], i),
+            build_slide_xml(&presentation.slides[i]),
         ));
+    }
+
+    // Media parts (placeholder — actual image data in SlideElement.data will be wired later)
+    let media_parts = build_media_parts(presentation);
+    for (uri, data, _mime) in media_parts {
+        parts.push((uri, data));
     }
 
     // Layout parts
@@ -136,6 +151,11 @@ fn build_parts(
     parts
 }
 
+/// Build media part entries for the package.
+fn build_media_parts(_presentation: &Presentation) -> Vec<(String, Vec<u8>, String)> {
+    Vec::new()
+}
+
 // ===========================================================================
 // [Content_Types].xml
 // ===========================================================================
@@ -146,6 +166,9 @@ fn build_content_types(num_slides: usize, num_layouts: usize, num_masters: usize
          <Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\">\
          <Default Extension=\"rels\" ContentType=\"application/vnd.openxmlformats-package.relationships+xml\"/>\
          <Default Extension=\"xml\" ContentType=\"application/xml\"/>\
+         <Default Extension=\"png\" ContentType=\"image/png\"/>\
+         <Default Extension=\"jpeg\" ContentType=\"image/jpeg\"/>\
+         <Default Extension=\"gif\" ContentType=\"image/gif\"/>\
          <Override PartName=\"/docProps/core.xml\" ContentType=\"application/vnd.openxmlformats-package.core-properties+xml\"/>\
          <Override PartName=\"/docProps/app.xml\" ContentType=\"application/vnd.openxmlformats-package.application-properties+xml\"/>\
          <Override PartName=\"/ppt/presentation.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml\"/>\
@@ -349,7 +372,7 @@ fn build_presentation_rels(presentation: &Presentation) -> Vec<u8> {
 // ppt/slides/slideN.xml
 // ===========================================================================
 
-fn build_slide_xml(slide: &Slide, _slide_num: usize) -> Vec<u8> {
+fn build_slide_xml(slide: &Slide) -> Vec<u8> {
     let mut xml = format!(
         "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n\
          <p:sld xmlns:p=\"{}\" xmlns:r=\"{}\" xmlns:a=\"{}\" xmlns:p14=\"http://schemas.microsoft.com/office/powerpoint/2010/main\" xmlns:p16c1=\"http://schemas.microsoft.com/office/powerpoint/2016/17/main\" xmlns:p16e=\"http://schemas.microsoft.com/office/powerpoint/2018/external\">\n\
@@ -386,187 +409,162 @@ fn build_slide_xml(slide: &Slide, _slide_num: usize) -> Vec<u8> {
 }
 
 /// Build XML for a single slide element based on its kind.
-fn build_slide_element_xml(elem: &SlideElement, idx: usize) -> String {
-    let elem_type = elem.kind.as_str();
-    let x = (idx as i64 * 200) % 4000 + 500;
-    let y = (idx as i64 * 150) % 3000 + 500;
-    let w = 2000 + (idx as i64 * 300) % 2000;
-    let h = 500 + (idx as i64 * 200) % 1500;
-    let name = format!("Element {}", idx + 1);
-
-    match elem_type {
-        "text" => build_text_element(elem, idx, x, y, w, h, &name),
-        "shape" => build_shape_element(elem, idx, x, y, w, h, &name),
-        "image" => build_image_element(elem, idx, x, y, w, h, &name),
-        "table" => build_table_element(elem, idx, x, y, w, h, &name),
-        "drawing" | "graphic" => build_image_element(elem, idx, x, y, w, h, &name),
-        _ => build_shape_element(elem, idx, x, y, w, h, &name),
+fn build_slide_element_xml(elem: &SlideElement, _idx: usize) -> String {
+    match &elem.kind {
+        SlideElementKind::Text => build_text_element(elem),
+        SlideElementKind::Shape => build_shape_element(elem),
+        SlideElementKind::Image => build_image_element(elem),
+        SlideElementKind::Table => build_table_element(elem),
+        SlideElementKind::Drawing | SlideElementKind::Graphic => build_image_element(elem),
+        _ => build_shape_element(elem),
     }
 }
 
-/// Build a text element (text box).
-fn build_text_element(
-    _elem: &SlideElement,
-    idx: usize,
-    x: i64,
-    y: i64,
-    w: i64,
-    h: i64,
-    name: &str,
-) -> String {
-    let rel_id = format!("rId{}", idx + 1);
-    format!(
-        "\n<a:graphicFrame>\n\
-         <a:xfrm><a:off x=\"{}\" y=\"{}\"/><a:ext cx=\"{}\" cy=\"{}\"/></a:xfrm>\n\
-         <p:pic>\n\
-         <p:nvPicPr>\n\
-         <p:cNvPr id=\"{}\" name=\"{}\"/>\n\
-         <p:cNvPicPr/>\n\
-         </p:nvPicPr>\n\
-         <p:blipFill>\n\
-         <a:blip r:embed=\"{}\"/>\n\
-         <a:stretch><a:fillToRect/></a:stretch>\n\
-         </p:blipFill>\n\
-         <p:spPr>\n\
-         <a:xfrm><a:off x=\"0\" y=\"0\"/><a:ext cx=\"{}\" cy=\"{}\"/></a:xfrm>\n\
-         <a:prstGeom prst=\"rect\"><a:avLst/></a:prstGeom>\n\
-         </p:spPr>\n\
-         </p:pic>\n\
-         </a:graphicFrame>",
-        x,
-        y,
-        w,
-        h,
-        idx + 2,
-        escape_xml(name),
-        rel_id,
-        w,
-        h
-    )
-}
+/// Build a text element (text box) with proper <p:txBody>.
+fn build_text_element(element: &SlideElement) -> String {
+    let (x, y, w, h) = element_position(element);
+    let x_emu = (x * 914400.0) as i64;
+    let y_emu = (y * 914400.0) as i64;
+    let w_emu = (w * 914400.0) as i64;
+    let h_emu = (h * 914400.0) as i64;
 
-/// Build a shape element (filled shape).
-fn build_shape_element(
-    _elem: &SlideElement,
-    idx: usize,
-    x: i64,
-    y: i64,
-    w: i64,
-    h: i64,
-    name: &str,
-) -> String {
-    let elem_id = idx + 10;
+    let text_content = escape_xml(element.text.as_deref().unwrap_or("Text content"));
+    let font_name = element.font_name.as_deref().unwrap_or("Calibri");
+    let font_size = element.font_size_pt.unwrap_or(18.0);
+    let half_pts = (font_size * 2.0) as i32;
+
+    let mut rpr = String::new();
+    rpr.push_str(&format!(
+        "<a:rFonts ascii=\"{}\" hAnsi=\"{}\"/>",
+        escape_xml(font_name),
+        escape_xml(font_name)
+    ));
+    rpr.push_str(&format!("<a:sz val=\"{}\"/>", half_pts));
+    if element.bold == Some(true) {
+        rpr.push_str("<a:b val=\"1\"/>");
+    }
+    if element.italic == Some(true) {
+        rpr.push_str("<a:i val=\"1\"/>");
+    }
+
+    let align = match element.alignment.as_deref() {
+        Some("center") => "ctr",
+        Some("right") => "r",
+        _ => "l",
+    };
+
     format!(
-        "\n<p:sp>\n\
-         <p:nvSpPr>\n\
-         <p:cNvPr id=\"{}\" name=\"{}\"/>\n\
-         <p:cNvSpPr/>\n\
-         <p:nvPr/>\n\
-         </p:nvSpPr>\n\
-         <p:spPr>\n\
-         <a:xfrm><a:off x=\"{}\" y=\"{}\"/><a:ext cx=\"{}\" cy=\"{}\"/></a:xfrm>\n\
-         <a:prstGeom prst=\"rect\"><a:avLst/></a:prstGeom>\n\
-         <a:solidFill><a:srgbClr val=\"4472C4\"/></a:solidFill>\n\
-         <a:ln w=\"12700\" cnsdAst=\"1\" a:fillEnabled=\"1\"/>\n\
-         </p:spPr>\n\
-         <p:txBody>\n\
-         <a:bodyPr wrpSp=\"false\" fitText=\"hor\" anchor=\"ctr\" span=\"0\" marR=\"11430\" marT=\"45720\" marB=\"45720\" marL=\"91440\" indent=\"0\" dense=\"0\"/>\n\
-         <a:lstStyle/>\n\
-         <a:p>\n\
-         <a:pPr lvl=\"0\" indent=\"0\" marL=\"0\" marS=\"0\" spcBef=\"0\" spcBefPts=\"0\" spcAft=\"0\" spcAftPts=\"0\" algn=\"ctr\" defTabSz=\"91440\" rtl=\"0\">\n\
-         <a:defRPr sz=\"1800\"/>\n\
-         </a:pPr>\n\
-         <a:r>\n\
-         <a:rPr lang=\"en-US\" smtClean=\"0\" dirty=\"0\"/>\n\
-         <a:t>{}</a:t>\n\
-         </a:r>\n\
-         </a:p>\n\
-         </p:txBody>\n\
+        "<p:sp>\
+         <p:nvSpPr><cNvPr id=\"{}\" name=\"text\"/></p:nvSpPr>\
+         <p:spPr><a:xfrm><a:off x=\"{}\" y=\"{}\"/><a:ext cx=\"{}\" cy=\"{}\"/></a:xfrm></p:spPr>\
+         <p:style><a:lnRef idx=\"0\" sz=\"{}\"/><a:effectLst/></p:style>\
+         <p:txBody><a:bodyPr anchor=\"ctr\"/><a:regionalPr/><a:p><a:pPr lvl=\"0\" align=\"{}\"/><a:r><a:rPr>{}</a:rPr><a:t>{}</a:t></a:r></a:p></p:txBody>\
          </p:sp>",
-        elem_id, escape_xml(name),
-        x, y, w, h,
-        escape_xml(name)
+        element.id.as_str(),
+        x_emu, y_emu, w_emu, h_emu,
+        half_pts,
+        align,
+        rpr,
+        text_content
     )
 }
 
-/// Build an image element (graphic frame).
-fn build_image_element(
-    _elem: &SlideElement,
-    idx: usize,
-    x: i64,
-    y: i64,
-    w: i64,
-    h: i64,
-    name: &str,
-) -> String {
-    let rel_id = format!("rId{}", idx + 1);
-    let pic_id = idx + 2;
+/// Build a shape element with configurable preset geometry.
+fn build_shape_element(element: &SlideElement) -> String {
+    let (x, y, w, h) = element_position(element);
+    let x_emu = (x * 914400.0) as i64;
+    let y_emu = (y * 914400.0) as i64;
+    let w_emu = (w * 914400.0) as i64;
+    let h_emu = (h * 914400.0) as i64;
+
+    let preset = element.preset.as_deref().unwrap_or("rect");
+    let fill_color = element.fill_color.as_deref().unwrap_or("#4472C4");
+    let line_color = element.line_color.as_deref().unwrap_or("#333333");
+    let text_content = escape_xml(element.text.as_deref().unwrap_or("Shape"));
+
     format!(
-        "\n<a:graphicFrame>\n\
-         <a:xfrm><a:off x=\"{}\" y=\"{}\"/><a:ext cx=\"{}\" cy=\"{}\"/></a:xfrm>\n\
-         <p:pic>\n\
-         <p:nvPicPr>\n\
-         <p:cNvPr id=\"{}\" name=\"{}\"/>\n\
-         <p:cNvPicPr/>\n\
-         </p:nvPicPr>\n\
-         <p:blipFill>\n\
-         <a:blip r:embed=\"{}\"/>\n\
-         <a:stretch><a:fillToRect/></a:stretch>\n\
-         </p:blipFill>\n\
-         <p:spPr>\n\
-         <a:xfrm><a:off x=\"0\" y=\"0\"/><a:ext cx=\"{}\" cy=\"{}\"/></a:xfrm>\n\
-         <a:prstGeom prst=\"rect\"><a:avLst/></a:prstGeom>\n\
-         </p:spPr>\n\
-         </p:pic>\n\
-         </a:graphicFrame>",
-        x,
-        y,
-        w,
-        h,
-        pic_id,
-        escape_xml(name),
+        "<p:sp>\
+         <p:nvSpPr><cNvPr id=\"{}\" name=\"shape\"/></p:nvSpPr>\
+         <p:spPr><a:xfrm><a:off x=\"{}\" y=\"{}\"/><a:ext cx=\"{}\" cy=\"{}\"/></a:xfrm><a:prstGeom prst=\"{}\"><a:avLst/></a:prstGeom><a:solidFill><a:srgbClr val=\"{}\"/></a:solidFill><a:ln w=\"38100\"><a:solidFill><a:srgbClr val=\"{}\"/></a:solidFill></a:ln></p:spPr>\
+         <p:style><a:lnRef idx=\"0\" sz=\"12000\"/><a:effectLst/></p:style>\
+         <p:txBody><a:bodyPr anchor=\"ctr\"/><a:regionalPr/><a:p><a:pPr lvl=\"0\" align=\"ctr\"/><a:r><a:rPr lang=\"en-US\"/><a:t>{}</a:t></a:r></a:p></p:txBody>\
+         </p:sp>",
+        element.id.as_str(),
+        x_emu, y_emu, w_emu, h_emu,
+        preset, fill_color, line_color, text_content
+    )
+}
+
+/// Build an image element with a proper <p:pic>.
+fn build_image_element(element: &SlideElement) -> String {
+    let (x, y, w, h) = element_position(element);
+    let x_emu = (x * 914400.0) as i64;
+    let y_emu = (y * 914400.0) as i64;
+    let w_emu = (w * 914400.0) as i64;
+    let h_emu = (h * 914400.0) as i64;
+
+    let ext = match element.mime_type.as_deref() {
+        Some(m) if m.contains("png") => "png",
+        Some(m) if m.contains("jpg") || m.contains("jpeg") => "jpeg",
+        Some(m) if m.contains("gif") => "gif",
+        _ => "png",
+    };
+    let _ext = ext;
+    let rel_id = format!("rId{}", 100 + element.id.as_str().len() % 100);
+
+    format!(
+        "<p:pic>\
+         <p:nvPicPr><cNvPr id=\"{}\" name=\"picture\"/><cNvPicPr/></p:nvPicPr>\
+         <p:picPr><a:extLst/></p:picPr>\
+         <p:blipFill><a:blip r:embed=\"{}\"/></p:blipFill>\
+         <p:spPr><a:xfrm><a:off x=\"{}\" y=\"{}\"/><a:ext cx=\"{}\" cy=\"{}\"/></a:xfrm><a:prstGeom prst=\"rect\"><a:avLst/></a:prstGeom></p:spPr>\
+         </p:pic>",
+        element.id.as_str(),
         rel_id,
-        w,
-        h
+        x_emu, y_emu, w_emu, h_emu
     )
 }
 
-/// Build a table element.
-fn build_table_element(
-    _elem: &SlideElement,
-    _idx: usize,
-    x: i64,
-    y: i64,
-    _w: i64,
-    h: i64,
-    _name: &str,
-) -> String {
+/// Build a table element with actual table XML.
+fn build_table_element(element: &SlideElement) -> String {
+    let (x, y, w, h) = element_position(element);
+    let _x_emu = (x * 914400.0) as i64;
+    let _y_emu = (y * 914400.0) as i64;
+    let w_emu = (w * 914400.0) as i64;
+    let h_emu = (h * 914400.0) as i64;
+
+    let rows = 3; // Default for now; actual row count from IR in future
+    let cols = 2;
+    let col_w = w_emu / cols;
+
+    let mut rows_xml = String::new();
+    for r in 0..rows {
+        let mut cells_xml = String::new();
+        for c in 0..cols {
+            let cell_text = format!("Row {} Col {}", r + 1, c + 1);
+            cells_xml.push_str(&format!(
+                "<p:tc><p:tcPr><a:anchor>twoLst</a:anchor></p:tcPr><p:txBody><a:bodyPr anchor=\"ctr\"/><a:p><a:pPr lvl=\"0\"/><a:r><a:rPr lang=\"en-US\"/><a:t>{}</a:t></a:r></a:p></p:txBody></p:tc>",
+                escape_xml(&cell_text)
+            ));
+        }
+        rows_xml.push_str(&format!(
+            "<p:tr h=\"{}\">{}</p:tr>\n",
+            h_emu / rows,
+            cells_xml
+        ));
+    }
+
+    let mut grid_xml = String::new();
+    for _ in 0..cols {
+        grid_xml.push_str(&format!("<p:gridCol w=\"{}\"/>", col_w));
+    }
+
     format!(
-        "\n<a:graphicFrame>\n\
-         <a:xfrm><a:off x=\"{}\" y=\"{}\"/><a:ext cx=\"457200\" cy=\"{}\"/></a:xfrm>\n\
-         <p:tbl>\n\
-         <p:tblPr band=\"1\">\n\
-         <a:ln w=\"91440\" cap=\"flat\" cmpd=\"sng\" algn=\"ctr\">\n\
-         <a:solidFill><a:schemeClr val=\"tx2\"/></a:solidFill>\n\
-         </a:ln>\n\
-         </p:tblPr>\n\
-         <a:graphicFrame>\n\
-         <a:xfrm><a:off x=\"0\" y=\"0\"/><a:ext cx=\"457200\" cy=\"{}\"/></a:xfrm>\n\
-         <a:chFill>\n\
-         <a:solidFill><a:srgbClr val=\"FFFFFF\"/></a:solidFill>\n\
-         </a:chFill>\n\
-         <a:spPr>\n\
-         <a:xfrm><a:off x=\"0\" y=\"0\"/><a:ext cx=\"0\" cy=\"0\"/></a:xfrm>\n\
-         </a:spPr>\n\
-         </a:graphicFrame>\n\
-         <p:rowRef id=\"0\"/>\n\
-         <p:rowRef id=\"1\"/>\n\
-         <p:rowRef id=\"2\"/>\n\
-         <p:colRef id=\"0\"/>\n\
-         <p:colRef id=\"1\"/>\n\
-         </p:tbl>\n\
-         </a:graphicFrame>",
-        x, y, h, h,
+        "<p:tbl>\
+         <p:tblPr><a:gridSpacing style=\"mocha\" l=\"21600\" rtl=\"false\"/></p:tblPr>\
+         <p:tblGrid>{}</p:tblGrid>\
+         {}</p:tbl>",
+        grid_xml, rows_xml
     )
 }
 
@@ -579,6 +577,8 @@ fn build_default_layout() -> Vec<u8> {
     build_layout_xml(&Layout {
         id: ElementId::derive("layout", &["layout:0"], &layout_name),
         name: layout_name,
+        layout_type: None,
+        placeholders: vec![],
     })
 }
 
@@ -619,6 +619,7 @@ fn build_default_master() -> Vec<u8> {
     build_master_xml(&Master {
         id: ElementId::derive("master", &["master:0"], &master_name),
         name: master_name,
+        background_color: None,
     })
 }
 
@@ -798,11 +799,41 @@ mod tests {
                     elements: vec![
                         SlideElement {
                             id: make_id("elem", &["elem:0"], "title"),
-                            kind: "text".to_string(),
+                            kind: SlideElementKind::Text,
+                            text: Some("Title Text".to_string()),
+                            bold: Some(true),
+                            italic: None,
+                            font_name: Some("Calibri".to_string()),
+                            font_size_pt: Some(36.0),
+                            alignment: Some("left".to_string()),
+                            x_pt: Some(1.0),
+                            y_pt: Some(0.5),
+                            width_pt: Some(8.0),
+                            height_pt: Some(1.5),
+                            data: None,
+                            mime_type: None,
+                            preset: None,
+                            fill_color: None,
+                            line_color: None,
                         },
                         SlideElement {
                             id: make_id("elem", &["elem:1"], "body"),
-                            kind: "shape".to_string(),
+                            kind: SlideElementKind::Shape,
+                            text: Some("Shape Content".to_string()),
+                            bold: None,
+                            italic: None,
+                            font_name: None,
+                            font_size_pt: None,
+                            alignment: None,
+                            x_pt: Some(1.0),
+                            y_pt: Some(2.5),
+                            width_pt: Some(5.0),
+                            height_pt: Some(2.0),
+                            data: None,
+                            mime_type: None,
+                            preset: Some("rect".to_string()),
+                            fill_color: Some("#4472C4".to_string()),
+                            line_color: Some("#333333".to_string()),
                         },
                     ],
                 },
@@ -810,7 +841,22 @@ mod tests {
                     id: make_id("slide", &["slide:1"], "Slide 2"),
                     elements: vec![SlideElement {
                         id: make_id("elem", &["elem:2"], "image"),
-                        kind: "image".to_string(),
+                        kind: SlideElementKind::Image,
+                        text: None,
+                        bold: None,
+                        italic: None,
+                        font_name: None,
+                        font_size_pt: None,
+                        alignment: None,
+                        x_pt: Some(2.0),
+                        y_pt: Some(1.0),
+                        width_pt: Some(4.0),
+                        height_pt: Some(3.0),
+                        data: None,
+                        mime_type: Some("image/png".to_string()),
+                        preset: None,
+                        fill_color: None,
+                        line_color: None,
                     }],
                 },
             ],
@@ -828,11 +874,41 @@ mod tests {
                 elements: vec![
                     SlideElement {
                         id: make_id("elem", &["elem:0"], "Title"),
-                        kind: "text".to_string(),
+                        kind: SlideElementKind::Text,
+                        text: Some("Main Title".to_string()),
+                        bold: Some(true),
+                        italic: None,
+                        font_name: Some("Calibri".to_string()),
+                        font_size_pt: Some(44.0),
+                        alignment: Some("center".to_string()),
+                        x_pt: Some(2.0),
+                        y_pt: Some(0.5),
+                        width_pt: Some(7.0),
+                        height_pt: Some(1.5),
+                        data: None,
+                        mime_type: None,
+                        preset: None,
+                        fill_color: None,
+                        line_color: None,
                     },
                     SlideElement {
                         id: make_id("elem", &["elem:1"], "Content"),
-                        kind: "text".to_string(),
+                        kind: SlideElementKind::Text,
+                        text: Some("Body content here".to_string()),
+                        bold: None,
+                        italic: Some(true),
+                        font_name: Some("Calibri".to_string()),
+                        font_size_pt: Some(18.0),
+                        alignment: Some("left".to_string()),
+                        x_pt: Some(1.0),
+                        y_pt: Some(2.5),
+                        width_pt: Some(8.0),
+                        height_pt: Some(3.0),
+                        data: None,
+                        mime_type: None,
+                        preset: None,
+                        fill_color: None,
+                        line_color: None,
                     },
                 ],
             }],
@@ -849,22 +925,42 @@ mod tests {
                 id: make_id("slide", &["slide:0"], "Slide 1"),
                 elements: vec![SlideElement {
                     id: make_id("elem", &["elem:0"], "test"),
-                    kind: "text".to_string(),
+                    kind: SlideElementKind::Text,
+                    text: Some("Test content".to_string()),
+                    bold: None,
+                    italic: None,
+                    font_name: None,
+                    font_size_pt: None,
+                    alignment: None,
+                    x_pt: None,
+                    y_pt: None,
+                    width_pt: None,
+                    height_pt: None,
+                    data: None,
+                    mime_type: None,
+                    preset: None,
+                    fill_color: None,
+                    line_color: None,
                 }],
             }],
             layouts: vec![
                 Layout {
                     id: make_id("layout", &["layout:0"], "Title Slide"),
                     name: "Title Slide".to_string(),
+                    layout_type: None,
+                    placeholders: vec![],
                 },
                 Layout {
                     id: make_id("layout", &["layout:1"], "Content"),
                     name: "Content".to_string(),
+                    layout_type: None,
+                    placeholders: vec![],
                 },
             ],
             masters: vec![Master {
                 id: make_id("master", &["master:0"], "Office Theme"),
                 name: "Office Theme".to_string(),
+                background_color: None,
             }],
         }
     }
@@ -957,10 +1053,14 @@ mod tests {
             slide_xml.contains("<p:spTree"),
             "Should have spTree (shape tree)"
         );
-        // Text elements create graphicFrame
+        // Text elements now use <p:sp> with <p:txBody>
         assert!(
-            slide_xml.contains("<a:graphicFrame"),
-            "Should have graphicFrame for text elements"
+            slide_xml.contains("<p:txBody"),
+            "Should have txBody for text elements"
+        );
+        assert!(
+            slide_xml.contains("<a:rFonts"),
+            "Should have rFonts for text elements"
         );
     }
 
@@ -1054,11 +1154,41 @@ mod tests {
                 elements: vec![
                     SlideElement {
                         id: make_id("elem", &["elem:0"], "rect"),
-                        kind: "shape".to_string(),
+                        kind: SlideElementKind::Shape,
+                        text: Some("Rectangle".to_string()),
+                        bold: None,
+                        italic: None,
+                        font_name: None,
+                        font_size_pt: None,
+                        alignment: None,
+                        x_pt: Some(1.0),
+                        y_pt: Some(1.0),
+                        width_pt: Some(4.0),
+                        height_pt: Some(2.0),
+                        data: None,
+                        mime_type: None,
+                        preset: Some("rect".to_string()),
+                        fill_color: Some("#4472C4".to_string()),
+                        line_color: Some("#333333".to_string()),
                     },
                     SlideElement {
                         id: make_id("elem", &["elem:1"], "circle"),
-                        kind: "shape".to_string(),
+                        kind: SlideElementKind::Shape,
+                        text: Some("Ellipse".to_string()),
+                        bold: None,
+                        italic: None,
+                        font_name: None,
+                        font_size_pt: None,
+                        alignment: None,
+                        x_pt: Some(6.0),
+                        y_pt: Some(1.0),
+                        width_pt: Some(3.0),
+                        height_pt: Some(2.0),
+                        data: None,
+                        mime_type: None,
+                        preset: Some("ellipse".to_string()),
+                        fill_color: Some("#E25840".to_string()),
+                        line_color: Some("#666666".to_string()),
                     },
                 ],
             }],
@@ -1077,6 +1207,14 @@ mod tests {
             "Should have non-visual shape properties"
         );
         assert!(slide_xml.contains("<p:txBody>"), "Should have text body");
+        assert!(
+            slide_xml.contains("<a:prstGeom prst=\"rect\""),
+            "Should have rect geometry"
+        );
+        assert!(
+            slide_xml.contains("<a:prstGeom prst=\"ellipse\""),
+            "Should have ellipse geometry"
+        );
     }
 
     /// test_pptx_with_images
@@ -1090,11 +1228,41 @@ mod tests {
                 elements: vec![
                     SlideElement {
                         id: make_id("elem", &["elem:0"], "logo"),
-                        kind: "image".to_string(),
+                        kind: SlideElementKind::Image,
+                        text: None,
+                        bold: None,
+                        italic: None,
+                        font_name: None,
+                        font_size_pt: None,
+                        alignment: None,
+                        x_pt: Some(1.0),
+                        y_pt: Some(1.0),
+                        width_pt: Some(3.0),
+                        height_pt: Some(2.0),
+                        data: None,
+                        mime_type: Some("image/png".to_string()),
+                        preset: None,
+                        fill_color: None,
+                        line_color: None,
                     },
                     SlideElement {
                         id: make_id("elem", &["elem:1"], "photo"),
-                        kind: "drawing".to_string(),
+                        kind: SlideElementKind::Drawing,
+                        text: None,
+                        bold: None,
+                        italic: None,
+                        font_name: None,
+                        font_size_pt: None,
+                        alignment: None,
+                        x_pt: Some(5.0),
+                        y_pt: Some(1.0),
+                        width_pt: Some(4.0),
+                        height_pt: Some(3.0),
+                        data: None,
+                        mime_type: Some("image/jpeg".to_string()),
+                        preset: None,
+                        fill_color: None,
+                        line_color: None,
                     },
                 ],
             }],
@@ -1127,7 +1295,22 @@ mod tests {
                 id: make_id("slide", &["slide:0"], "Tables"),
                 elements: vec![SlideElement {
                     id: make_id("elem", &["elem:0"], "data"),
-                    kind: "table".to_string(),
+                    kind: SlideElementKind::Table,
+                    text: None,
+                    bold: None,
+                    italic: None,
+                    font_name: None,
+                    font_size_pt: None,
+                    alignment: None,
+                    x_pt: Some(1.0),
+                    y_pt: Some(1.0),
+                    width_pt: Some(6.0),
+                    height_pt: Some(3.0),
+                    data: None,
+                    mime_type: None,
+                    preset: None,
+                    fill_color: None,
+                    line_color: None,
                 }],
             }],
             layouts: vec![],
@@ -1181,5 +1364,299 @@ mod tests {
         );
         assert!(theme_xml.contains("clrScheme"), "Should have color scheme");
         assert!(theme_xml.contains("fontScheme"), "Should have font scheme");
+    }
+
+    /// test_pptx_text_element_with_content
+    #[test]
+    fn test_pptx_text_element_with_content() {
+        let presentation = make_presentation_with_text_content();
+        let result = create_minimal_pptx(&presentation);
+        assert!(result.is_ok(), "Should create pptx with text content");
+        let bytes = result.unwrap();
+        let cursor = Cursor::new(&bytes);
+        let mut archive = zip::ZipArchive::new(cursor).expect("Should be valid ZIP");
+        let slide_xml = read_zip_entry_str(&mut archive, "ppt/slides/slide1.xml");
+        assert!(
+            slide_xml.contains("Title text"),
+            "Should contain title text content"
+        );
+        assert!(
+            slide_xml.contains("<a:t>"),
+            "Should contain <a:t> text element"
+        );
+        assert!(
+            !slide_xml.contains("text-0"),
+            "Should not contain placeholder name"
+        );
+    }
+
+    /// test_pptx_image_element_with_data
+    #[test]
+    fn test_pptx_image_element_with_data() {
+        let presentation = make_presentation_with_images();
+        let result = create_minimal_pptx(&presentation);
+        assert!(result.is_ok(), "Should create pptx with images");
+        let bytes = result.unwrap();
+        let cursor = Cursor::new(&bytes);
+        let mut archive = zip::ZipArchive::new(cursor).expect("Should be valid ZIP");
+        let slide_xml = read_zip_entry_str(&mut archive, "ppt/slides/slide1.xml");
+        assert!(
+            slide_xml.contains("<p:pic>"),
+            "Should contain <p:pic> element"
+        );
+        assert!(slide_xml.contains("<a:blip"), "Should contain blip element");
+        assert!(
+            slide_xml.contains("r:embed"),
+            "Should contain r:embed relationship"
+        );
+    }
+
+    /// test_pptx_table_with_cells
+    #[test]
+    fn test_pptx_table_with_cells() {
+        let presentation = make_presentation_with_table();
+        let result = create_minimal_pptx(&presentation);
+        assert!(result.is_ok(), "Should create pptx with table");
+        let bytes = result.unwrap();
+        let cursor = Cursor::new(&bytes);
+        let mut archive = zip::ZipArchive::new(cursor).expect("Should be valid ZIP");
+        let slide_xml = read_zip_entry_str(&mut archive, "ppt/slides/slide1.xml");
+        assert!(
+            slide_xml.contains("<p:tbl>"),
+            "Should contain <p:tbl> element"
+        );
+        assert!(
+            slide_xml.contains("<p:tr h="),
+            "Should contain <p:tr> row element"
+        );
+        assert!(
+            slide_xml.contains("<p:tc>"),
+            "Should contain <p:tc> cell element"
+        );
+        assert!(
+            !slide_xml.contains("rowRef"),
+            "Should not contain placeholder rowRef"
+        );
+    }
+
+    /// test_pptx_shape_with_preset
+    #[test]
+    fn test_pptx_shape_with_preset() {
+        let presentation = make_presentation_with_shapes();
+        let result = create_minimal_pptx(&presentation);
+        assert!(result.is_ok(), "Should create pptx with shapes");
+        let bytes = result.unwrap();
+        let cursor = Cursor::new(&bytes);
+        let mut archive = zip::ZipArchive::new(cursor).expect("Should be valid ZIP");
+        let slide_xml = read_zip_entry_str(&mut archive, "ppt/slides/slide1.xml");
+        assert!(
+            slide_xml.contains("<a:prstGeom"),
+            "Should contain <a:prstGeom>"
+        );
+        assert!(
+            slide_xml.contains("<a:solidFill"),
+            "Should contain <a:solidFill>"
+        );
+    }
+
+    /// test_pptx_with_positions
+    #[test]
+    fn test_pptx_with_positions() {
+        let presentation = make_presentation_with_text_content();
+        let result = create_minimal_pptx(&presentation);
+        assert!(
+            result.is_ok(),
+            "Should create pptx with positioned elements"
+        );
+        let bytes = result.unwrap();
+        let cursor = Cursor::new(&bytes);
+        let mut archive = zip::ZipArchive::new(cursor).expect("Should be valid ZIP");
+        let slide_xml = read_zip_entry_str(&mut archive, "ppt/slides/slide1.xml");
+        assert!(
+            slide_xml.contains("<a:off"),
+            "Should contain <a:off> element"
+        );
+    }
+
+    fn make_presentation_with_text_content() -> Presentation {
+        Presentation {
+            ir_version: IR_VERSION.to_string(),
+            ir_version_migration: None,
+            slides: vec![Slide {
+                id: make_id("slide", &["slide:0"], "slide0"),
+                elements: vec![SlideElement {
+                    id: make_id("elem", &["elem:0"], "title"),
+                    kind: SlideElementKind::Text,
+                    text: Some("Title text".to_string()),
+                    bold: Some(true),
+                    italic: None,
+                    font_name: Some("Calibri".to_string()),
+                    font_size_pt: Some(24.0),
+                    alignment: None,
+                    x_pt: Some(0.5),
+                    y_pt: Some(0.5),
+                    width_pt: Some(8.0),
+                    height_pt: Some(1.0),
+                    data: None,
+                    mime_type: None,
+                    preset: None,
+                    fill_color: None,
+                    line_color: None,
+                }],
+            }],
+            layouts: vec![Layout {
+                id: make_id("layout", &["layout:0"], "default"),
+                name: "Default".to_string(),
+                layout_type: Some("blank".to_string()),
+                placeholders: vec![],
+            }],
+            masters: vec![Master {
+                id: make_id("master", &["master:0"], "default"),
+                name: "Default".to_string(),
+                background_color: None,
+            }],
+        }
+    }
+
+    fn make_presentation_with_images() -> Presentation {
+        let img_data = vec![0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A];
+        Presentation {
+            ir_version: IR_VERSION.to_string(),
+            ir_version_migration: None,
+            slides: vec![Slide {
+                id: make_id("slide", &["slide:0"], "slide0"),
+                elements: vec![SlideElement {
+                    id: make_id("elem", &["elem:0"], "image0"),
+                    kind: SlideElementKind::Image,
+                    text: None,
+                    bold: None,
+                    italic: None,
+                    font_name: None,
+                    font_size_pt: None,
+                    alignment: None,
+                    x_pt: Some(1.0),
+                    y_pt: Some(1.0),
+                    width_pt: Some(4.0),
+                    height_pt: Some(3.0),
+                    data: Some(img_data),
+                    mime_type: Some("image/png".to_string()),
+                    preset: None,
+                    fill_color: None,
+                    line_color: None,
+                }],
+            }],
+            layouts: vec![Layout {
+                id: make_id("layout", &["layout:0"], "default"),
+                name: "Default".to_string(),
+                layout_type: Some("blank".to_string()),
+                placeholders: vec![],
+            }],
+            masters: vec![Master {
+                id: make_id("master", &["master:0"], "default"),
+                name: "Default".to_string(),
+                background_color: None,
+            }],
+        }
+    }
+
+    fn make_presentation_with_table() -> Presentation {
+        Presentation {
+            ir_version: IR_VERSION.to_string(),
+            ir_version_migration: None,
+            slides: vec![Slide {
+                id: make_id("slide", &["slide:0"], "slide0"),
+                elements: vec![SlideElement {
+                    id: make_id("elem", &["elem:0"], "table0"),
+                    kind: SlideElementKind::Table,
+                    text: None,
+                    bold: None,
+                    italic: None,
+                    font_name: None,
+                    font_size_pt: None,
+                    alignment: None,
+                    x_pt: Some(0.5),
+                    y_pt: Some(1.0),
+                    width_pt: Some(9.0),
+                    height_pt: Some(4.0),
+                    data: None,
+                    mime_type: None,
+                    preset: None,
+                    fill_color: None,
+                    line_color: None,
+                }],
+            }],
+            layouts: vec![Layout {
+                id: make_id("layout", &["layout:0"], "default"),
+                name: "Default".to_string(),
+                layout_type: Some("blank".to_string()),
+                placeholders: vec![],
+            }],
+            masters: vec![Master {
+                id: make_id("master", &["master:0"], "default"),
+                name: "Default".to_string(),
+                background_color: None,
+            }],
+        }
+    }
+
+    fn make_presentation_with_shapes() -> Presentation {
+        Presentation {
+            ir_version: IR_VERSION.to_string(),
+            ir_version_migration: None,
+            slides: vec![Slide {
+                id: make_id("slide", &["slide:0"], "slide0"),
+                elements: vec![
+                    SlideElement {
+                        id: make_id("elem", &["elem:0"], "rect0"),
+                        kind: SlideElementKind::Shape,
+                        text: Some("Button".to_string()),
+                        bold: None,
+                        italic: None,
+                        font_name: None,
+                        font_size_pt: None,
+                        alignment: None,
+                        x_pt: Some(1.0),
+                        y_pt: Some(2.0),
+                        width_pt: Some(2.0),
+                        height_pt: Some(0.8),
+                        data: None,
+                        mime_type: None,
+                        preset: Some("rect".to_string()),
+                        fill_color: Some("#4472C4".to_string()),
+                        line_color: Some("#333333".to_string()),
+                    },
+                    SlideElement {
+                        id: make_id("elem", &["elem:1"], "ellipse0"),
+                        kind: SlideElementKind::Shape,
+                        text: None,
+                        bold: None,
+                        italic: None,
+                        font_name: None,
+                        font_size_pt: None,
+                        alignment: None,
+                        x_pt: Some(4.0),
+                        y_pt: Some(2.0),
+                        width_pt: Some(2.0),
+                        height_pt: Some(1.5),
+                        data: None,
+                        mime_type: None,
+                        preset: Some("ellipse".to_string()),
+                        fill_color: Some("#E25840".to_string()),
+                        line_color: None,
+                    },
+                ],
+            }],
+            layouts: vec![Layout {
+                id: make_id("layout", &["layout:0"], "default"),
+                name: "Default".to_string(),
+                layout_type: Some("blank".to_string()),
+                placeholders: vec![],
+            }],
+            masters: vec![Master {
+                id: make_id("master", &["master:0"], "default"),
+                name: "Default".to_string(),
+                background_color: None,
+            }],
+        }
     }
 }

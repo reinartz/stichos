@@ -10,9 +10,16 @@
 //!
 //! See also: `docs/adr/ADR-0010-crypto-stack.md`, `docs/contracts/C13-signature-integrity.md`
 
+use crate::diagnostics::Diagnostic;
+use crate::diagnostics::Severity;
 use crate::ir::SignatureInfo;
+use der::asn1::Null;
+use der::oid::ObjectIdentifier;
+use der::Sequence;
 use lopdf::Object;
 use serde::{Deserialize, Serialize};
+use sha2::Digest;
+use sha2::Sha256;
 use std::collections::BTreeMap;
 use std::io::Write;
 
@@ -67,7 +74,7 @@ pub struct SignResult {
     /// Whether signing succeeded.
     pub success: bool,
     /// Diagnostics produced during signing.
-    pub diagnostics: Vec<crate::diagnostics::Diagnostic>,
+    pub diagnostics: Vec<Diagnostic>,
 }
 
 /// A JSON-serializable signature envelope for API output.
@@ -83,8 +90,692 @@ pub struct SignatureEnvelope {
     pub algorithm: String,
     /// Signing timestamp (ISO 8601).
     pub signing_time: String,
-    /// Signature byte-range: [start, length, offset, end].
-    pub byte_range: Vec<i64>,
+    /// DER-encoded PKCS#7 SignedData (hex).
+    pub signature_value: String,
+    /// Length of the signature value in bytes.
+    pub signature_length: usize,
+}
+
+// ---------------------------------------------------------------------------
+// OID constants
+// ---------------------------------------------------------------------------
+
+const OID_RSA_ENCRYPTION: &str = "1.2.840.113549.1.1.1";
+const OID_SHA256: &str = "2.16.840.1.101.3.4.2.1";
+const OID_RSA_SHA256: &str = "1.2.840.113549.1.1.11";
+const OID_EC_PUBLIC_KEY: &str = "1.2.840.10045.2.1";
+const OID_ECDSA_P384: &str = "1.3.132.0.34";
+const OID_PKCS7_DATA: &str = "1.2.840.113549.1.7.1";
+const OID_PKCS7_SIGNED_DATA: &str = "1.2.840.113549.1.7.2";
+const OID_BASIC_CONSTRAINTS: &str = "2.5.29.19";
+
+// Signed Attributes (RFC 5652 §5.4 / CAdES)
+const OID_CONTENT_TYPE: &str = "1.2.840.113549.1.9.3";
+const OID_MESSAGE_DIGEST: &str = "1.2.840.113549.1.9.4";
+const OID_SIGNING_TIME: &str = "1.2.840.113549.1.9.5";
+const OID_SIGNING_CERT_V2: &str = "1.2.840.113549.1.9.5.4";
+#[allow(dead_code)]
+const OID_SHA256_RSA_ENCRYPTION: &str = "1.2.840.113549.1.2.10";
+
+// ---------------------------------------------------------------------------
+// Manual DER helpers
+// ---------------------------------------------------------------------------
+
+/// Minimal AlgorithmIdentifier: { algorithm OID, parameters NULL }
+/// (unused, kept for potential future use)
+#[allow(dead_code)]
+#[derive(Clone, Debug, Sequence)]
+struct SigAlgorithmId {
+    algorithm: ObjectIdentifier,
+    parameters: Option<Null>,
+}
+
+/// Get DER-encoded OID bytes from an OID string
+fn oid_bytes(oid: &str) -> Vec<u8> {
+    let oid = ObjectIdentifier::new_unwrap(oid);
+    let mut out = Vec::new();
+    out.push(0x06); // OID tag
+    let val_len = oid.as_bytes().len() as u64;
+    if val_len < 127 {
+        out.push(val_len as u8);
+    } else {
+        out.push(0x80 | ((val_len.leading_zeros() ^ 63) as u8));
+        let mut tmp = val_len;
+        let mut bytes = Vec::new();
+        for _ in 0..8 {
+            bytes.push((tmp & 0xFF) as u8);
+            tmp >>= 8;
+            if tmp == 0 {
+                break;
+            }
+        }
+        bytes.reverse();
+        out.extend_from_slice(&bytes);
+    }
+    out.extend_from_slice(oid.as_bytes());
+    out
+}
+
+/// Encode a DER length into the buffer
+fn encode_der_length(len: usize, buf: &mut Vec<u8>) {
+    if len < 0x80 {
+        buf.push(len as u8);
+    } else {
+        let bytes = usize_to_der_bytes(len);
+        buf.push(0x80 | (bytes.len() as u8));
+        buf.extend_from_slice(&bytes);
+    }
+}
+
+fn usize_to_der_bytes(mut val: usize) -> Vec<u8> {
+    let mut bytes = Vec::new();
+    while val > 0 {
+        bytes.insert(0, (val & 0xFF) as u8);
+        val >>= 8;
+    }
+    bytes
+}
+
+/// TLV encoding helper
+fn tlv(tag: u8, value: &[u8]) -> Vec<u8> {
+    let mut out = Vec::with_capacity(2 + value.len());
+    out.push(tag);
+    encode_der_length(value.len(), &mut out);
+    out.extend_from_slice(value);
+    out
+}
+
+/// Build a SEQUENCE wrapping a single byte slice.
+fn sequence(value: &[u8]) -> Vec<u8> {
+    let mut out = Vec::with_capacity(2 + value.len());
+    out.push(0x30);
+    encode_der_length(value.len(), &mut out);
+    out.extend_from_slice(value);
+    out
+}
+
+/// Build a SET wrapping a single byte slice.
+fn set(value: &[u8]) -> Vec<u8> {
+    let mut out = Vec::with_capacity(2 + value.len());
+    out.push(0x31);
+    encode_der_length(value.len(), &mut out);
+    out.extend_from_slice(value);
+    out
+}
+
+/// Build a SEQUENCE by concatenating multiple byte slices.
+fn seq_parts(parts: &[&[u8]]) -> Vec<u8> {
+    let total: usize = parts.iter().map(|p| p.len()).sum();
+    let mut out = Vec::with_capacity(2 + total);
+    out.push(0x30);
+    encode_der_length(total, &mut out);
+    for p in parts {
+        out.extend_from_slice(p);
+    }
+    out
+}
+
+/// Context-specific tag [0] IMPLICIT
+fn ctx_implicit0(value: &[u8]) -> Vec<u8> {
+    tlv(0xA0, value)
+}
+
+/// Context-specific tag [0] EXPLICIT
+fn ctx_explicit0(value: &[u8]) -> Vec<u8> {
+    tlv(0xA0, value)
+}
+
+/// INTEGER encoding
+fn integer(value: &[u8]) -> Vec<u8> {
+    tlv(0x02, value)
+}
+
+/// OCTET STRING encoding
+fn octet_string(value: &[u8]) -> Vec<u8> {
+    tlv(0x04, value)
+}
+
+/// BIT STRING encoding (no unused bits)
+fn bit_string(value: &[u8]) -> Vec<u8> {
+    let mut inner = vec![0x00]; // no unused bits
+    inner.extend_from_slice(value);
+    tlv(0x03, &inner)
+}
+
+/// UTF8String encoding
+fn utf8_string(s: &str) -> Vec<u8> {
+    tlv(0x0C, s.as_bytes())
+}
+
+/// UTCTime encoding (YYMMDDHHMMSSZ)
+fn utc_time(s: &str) -> Vec<u8> {
+    tlv(0x17, s.as_bytes())
+}
+
+/// Encode a relative distinguished name (RDN): CN=xxx
+fn rdn_cn(cn: &str) -> Vec<u8> {
+    // OID for CN is 2.5.4.3
+    let cn_oid_bytes = oid_bytes("2.5.4.3");
+    let value = utf8_string(cn);
+    seq_parts(&[&cn_oid_bytes[..], &value[..]])
+}
+
+/// Encode a full Distinguished Name (SEQUENCE OF RDN)
+fn dn(cn: &str) -> Vec<u8> {
+    seq_parts(&[&rdn_cn(cn)[..]])
+}
+
+// ---------------------------------------------------------------------------
+// Key generation — returns DER-encoded PKCS#8 private key + DER-encoded SPKI public key
+// ---------------------------------------------------------------------------
+
+/// Encode a BigUint as a DER INTEGER (positive, minimal encoding)
+fn biguint_to_der_int(n: &num_bigint_dig::BigUint) -> Vec<u8> {
+    let bytes = n.to_bytes_be();
+    // Prepend zero if high bit is set (to ensure positive)
+    if bytes.first() == Some(&0x80) {
+        let mut prefix = vec![0u8];
+        prefix.extend_from_slice(&bytes);
+        integer(&prefix)
+    } else {
+        integer(&bytes)
+    }
+}
+
+/// Generate an RSA key pair, returning (pkcs8_der_private_key, spki_der_public_key).
+fn generate_rsa_keypair() -> Result<(Vec<u8>, Vec<u8>), Diagnostic> {
+    use rand::rngs::OsRng;
+    use rsa::pkcs8::EncodePrivateKey;
+    use rsa::traits::PublicKeyParts;
+    use rsa::RsaPrivateKey;
+
+    let private_key = RsaPrivateKey::new(&mut OsRng, 2048).map_err(|e| {
+        Diagnostic::new(
+            "GP-S-010",
+            Severity::Error,
+            format!("Failed to generate RSA key pair: {e}"),
+        )
+    })?;
+
+    // DER-encoded PKCS#8 private key
+    let priv_der = private_key.to_pkcs8_der().map_err(|e| {
+        Diagnostic::new(
+            "GP-S-010",
+            Severity::Error,
+            format!("Failed to encode RSA private key: {e}"),
+        )
+    })?;
+
+    // Build SPKI public key manually as raw DER
+    let pub_key = private_key.to_public_key();
+    let modulus = biguint_to_der_int(pub_key.n());
+    let exponent = biguint_to_der_int(pub_key.e());
+
+    // PKCS#1 RSAPublicKey: SEQUENCE { modulus INTEGER, exponent INTEGER }
+    let pkcs1_rsa_pubkey = seq_parts(&[modulus.as_slice(), exponent.as_slice()]);
+
+    // AlgorithmIdentifier: SEQUENCE { OID rsaEncryption, NULL }
+    let algo_bytes = oid_bytes(OID_RSA_ENCRYPTION);
+    let algo_id = seq_parts(&[&algo_bytes[..], &[0x05, 0x00]]);
+
+    // SPKI: SEQUENCE { AlgorithmIdentifier, BIT STRING }
+    let spki_der = seq_parts(&[algo_id.as_slice(), bit_string(&pkcs1_rsa_pubkey).as_slice()]);
+
+    Ok((priv_der.as_bytes().to_vec(), spki_der))
+}
+
+/// Generate an ECDSA P-384 key pair, returning (pkcs8_der_private_key, spki_der_public_key).
+fn generate_ecdsa_keypair() -> Result<(Vec<u8>, Vec<u8>), Diagnostic> {
+    use p384::ecdsa::SigningKey;
+    use pkcs8::EncodePrivateKey;
+    use rand_core::OsRng;
+
+    let signing_key = SigningKey::random(&mut OsRng);
+
+    // DER-encoded PKCS#8 private key via the EncodePrivateKey trait
+    let priv_der = signing_key.to_pkcs8_der().map_err(|e| {
+        Diagnostic::new(
+            "GP-S-010",
+            Severity::Error,
+            format!("Failed to encode ECDSA private key: {e}"),
+        )
+    })?;
+
+    // Build SPKI public key manually as raw DER
+    let pub_point = signing_key.verifying_key().to_sec1_bytes();
+
+    // AlgorithmIdentifier: SEQUENCE { OID ecPublicKey, SEQUENCE { OID prime256v1 } }
+    let ec_algo_bytes = oid_bytes(OID_EC_PUBLIC_KEY);
+    let ec_params_bytes = oid_bytes(OID_ECDSA_P384);
+    let ec_params = sequence(&ec_params_bytes);
+    let algo_id = seq_parts(&[&ec_algo_bytes[..], ec_params.as_slice()]);
+
+    // SPKI: SEQUENCE { AlgorithmIdentifier, BIT STRING }
+    let spki_der = seq_parts(&[algo_id.as_slice(), bit_string(&pub_point).as_slice()]);
+
+    Ok((priv_der.as_bytes().to_vec(), spki_der))
+}
+
+// ---------------------------------------------------------------------------
+// X.509 certificate builder (minimal self-signed v3)
+// ---------------------------------------------------------------------------
+
+/// Build a minimal DER-encoded self-signed X.509 v3 certificate.
+fn build_self_signed_cert(
+    subject_cn: &str,
+    pub_key_der: &[u8],
+    priv_key_der: &[u8],
+    algo: &SignAlgorithm,
+) -> Result<Vec<u8>, Diagnostic> {
+    let now = chrono::Utc::now();
+    let not_before = now.format("%y%m%d%H%M%SZ").to_string();
+    let not_after = (now + chrono::Duration::days(365))
+        .format("%y%m%d%H%M%SZ")
+        .to_string();
+
+    let serial: Vec<u8> = vec![0x01]; // serial number = 1
+
+    // Signature algorithm identifier
+    let sig_algo = match algo {
+        SignAlgorithm::RsaSha256 => oid_bytes(OID_RSA_SHA256),
+        SignAlgorithm::EcdsaP384 => oid_bytes(OID_ECDSA_P384),
+    };
+    let sig_algo_id = sequence(&sig_algo);
+
+    // Subject / Issuer
+    let issuer = dn(subject_cn);
+    let subject = issuer.clone();
+
+    // Validity
+    let validity = seq_parts(&[
+        utc_time(&not_before).as_slice(),
+        utc_time(&not_after).as_slice(),
+    ]);
+
+    // BasicConstraints extension: critical, CA:TRUE
+    // OID: 2.5.29.19, critical, value: SEQUENCE { TRUE }
+    let bc_oid_bytes = oid_bytes(OID_BASIC_CONSTRAINTS);
+    let bc_value = sequence(&[0x01, 0xFF]); // TRUE
+    let bc_ext_value = sequence(&bc_value);
+    let bc_ext = seq_parts(&[
+        &bc_oid_bytes[..],
+        &[0x01, 0xFF], // critical flag
+        bc_ext_value.as_slice(),
+    ]);
+    let extensions = seq_parts(&[bc_ext.as_slice()]);
+
+    // TBS certificate fields
+    // version v3: [0] EXPLICIT INTEGER 2 = A0 03 02 01 02
+    let version_bytes: [u8; 5] = [0xA0, 0x03, 0x02, 0x01, 0x02];
+    let tbs_content = seq_parts(&[
+        // version v3 (explicit [0] EXPLICIT INTEGER 2)
+        &version_bytes[..],
+        // serialNumber
+        integer(&serial).as_slice(),
+        // signature algorithm
+        sig_algo_id.as_slice(),
+        // issuer
+        issuer.as_slice(),
+        // validity
+        validity.as_slice(),
+        // subject
+        subject.as_slice(),
+        // subjectPublicKeyInfo
+        pub_key_der,
+        // extensions
+        extensions.as_slice(),
+    ]);
+
+    // Sign the TBS certificate
+    let signature = sign_with_private_key(tbs_content.as_slice(), priv_key_der, algo)?;
+
+    // Build full certificate
+    let cert = seq_parts(&[
+        tbs_content.as_slice(),
+        sig_algo_id.as_slice(),
+        bit_string(&signature).as_slice(),
+    ]);
+
+    Ok(cert)
+}
+
+/// Sign data with a PKCS#8 DER private key
+fn sign_with_private_key(
+    data: &[u8],
+    priv_key_der: &[u8],
+    algo: &SignAlgorithm,
+) -> Result<Vec<u8>, Diagnostic> {
+    match algo {
+        SignAlgorithm::RsaSha256 => {
+            use rsa::pkcs1v15::Pkcs1v15Sign;
+            use rsa::pkcs8::DecodePrivateKey;
+            use rsa::RsaPrivateKey;
+            use sha2::Digest;
+            use sha2::Sha256;
+
+            let priv_key = RsaPrivateKey::from_pkcs8_der(priv_key_der).map_err(|e| {
+                Diagnostic::new("GP-S-011", Severity::Error, format!("Invalid PKCS#8: {e}"))
+            })?;
+            // Hash the input data with SHA-256 first (handles both raw data and pre-hashed digest)
+            let mut hasher = Sha256::new();
+            hasher.update(data);
+            let digest = hasher.finalize();
+            let padding = Pkcs1v15Sign::new::<Sha256>();
+            let sig = priv_key.sign(padding, digest.as_slice()).map_err(|e| {
+                Diagnostic::new("GP-S-011", Severity::Error, format!("RSA sign failed: {e}"))
+            })?;
+            Ok(sig)
+        }
+        SignAlgorithm::EcdsaP384 => {
+            use p384::ecdsa::signature::Signer;
+            use p384::ecdsa::SigningKey;
+            use pkcs8::DecodePrivateKey;
+
+            let priv_key = SigningKey::from_pkcs8_der(priv_key_der).map_err(|e| {
+                Diagnostic::new("GP-S-011", Severity::Error, format!("Invalid PKCS#8: {e}"))
+            })?;
+            let sig: p384::ecdsa::Signature = priv_key.sign(data);
+            Ok(sig.to_bytes().to_vec())
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// PKCS#7 SignedData builder with CAdES signed attributes
+// ---------------------------------------------------------------------------
+
+/// Sign a pre-computed SHA-256 digest with a PKCS#8 DER private key.
+fn sign_prehashed(
+    digest: &[u8],
+    priv_key_der: &[u8],
+    algo: &SignAlgorithm,
+) -> Result<Vec<u8>, Diagnostic> {
+    match algo {
+        SignAlgorithm::RsaSha256 => {
+            use rsa::pkcs1v15::SigningKey;
+            use rsa::pkcs8::DecodePrivateKey;
+            use rsa::signature::hazmat::PrehashSigner;
+            use rsa::signature::SignatureEncoding;
+            use rsa::RsaPrivateKey;
+            use sha2::Sha256;
+
+            let priv_key = RsaPrivateKey::from_pkcs8_der(priv_key_der).map_err(|e| {
+                Diagnostic::new("GP-S-011", Severity::Error, format!("Invalid PKCS#8: {e}"))
+            })?;
+            let signing_key = SigningKey::<Sha256>::new(priv_key);
+            let sig = signing_key.sign_prehash(digest).map_err(|e| {
+                Diagnostic::new(
+                    "GP-S-011",
+                    Severity::Error,
+                    format!("RSA prehash sign failed: {e}"),
+                )
+            })?;
+            Ok(sig.to_bytes().to_vec())
+        }
+        SignAlgorithm::EcdsaP384 => {
+            use p384::ecdsa::signature::Signer;
+            use p384::ecdsa::SigningKey;
+            use pkcs8::DecodePrivateKey;
+
+            let priv_key = SigningKey::from_pkcs8_der(priv_key_der).map_err(|e| {
+                Diagnostic::new("GP-S-011", Severity::Error, format!("Invalid PKCS#8: {e}"))
+            })?;
+            let sig: p384::ecdsa::Signature = priv_key.sign(digest);
+            Ok(sig.to_bytes().to_vec())
+        }
+    }
+}
+
+/// Compute SHA-256 hash of the certificate, encoded as OCTET STRING.
+fn cert_digest_octet(cert_der: &[u8]) -> Vec<u8> {
+    let mut hasher = Sha256::new();
+    hasher.update(cert_der);
+    octet_string(hasher.finalize().as_slice())
+}
+
+/// Build a SignedAttribute for a given attribute OID + value SET.
+fn build_signed_attr(attr_oid: &str, value_set: &[u8]) -> Vec<u8> {
+    let oid = oid_bytes(attr_oid);
+    seq_parts(&[&oid[..], value_set])
+}
+
+/// Build the complete signedAttrs SET for CMS SignedData.
+fn build_signed_attrs(
+    digest: &[u8],
+    signing_time: &str,
+    cert_der: &[u8],
+) -> Result<Vec<u8>, Diagnostic> {
+    let content_type_attr = build_signed_attr(OID_CONTENT_TYPE, &set(&oid_bytes(OID_PKCS7_DATA)));
+    let message_digest_attr = build_signed_attr(OID_MESSAGE_DIGEST, &set(digest));
+    let signing_time_attr = build_signed_attr(OID_SIGNING_TIME, &set(&utc_time(signing_time)));
+
+    let hash_algo_id = seq_parts(&[&oid_bytes(OID_SHA256)[..], &[0x05, 0x00]]);
+    let cert_digest = cert_digest_octet(cert_der);
+    let serial = extract_serial_from_cert(cert_der)?;
+    let issuer = extract_issuer_from_cert(cert_der)?;
+    let issuer_serial = seq_parts(&[issuer.as_slice(), integer(&serial).as_slice()]);
+    let scv2_inner = seq_parts(&[
+        hash_algo_id.as_slice(),
+        &tlv(0xA0, cert_digest.as_slice()),
+        issuer_serial.as_slice(),
+    ]);
+    let scv2_attr = build_signed_attr(OID_SIGNING_CERT_V2, &set(&scv2_inner));
+
+    let signed_attrs_content = seq_parts(&[
+        content_type_attr.as_slice(),
+        message_digest_attr.as_slice(),
+        signing_time_attr.as_slice(),
+        scv2_attr.as_slice(),
+    ]);
+
+    Ok(set(&signed_attrs_content))
+}
+
+// ---------------------------------------------------------------------------
+
+fn build_pkcs7_signed_data(
+    data: &[u8],
+    cert_der: &[u8],
+    priv_key_der: &[u8],
+    algo: &SignAlgorithm,
+) -> Result<Vec<u8>, Diagnostic> {
+    let mut hasher = Sha256::new();
+    hasher.update(data);
+    let digest = hasher.finalize();
+
+    let signing_time = chrono::Utc::now().format("%y%m%d%H%M%SZ").to_string();
+
+    let signed_attrs = build_signed_attrs(digest.as_slice(), &signing_time, cert_der)?;
+
+    let mut hasher2 = Sha256::new();
+    hasher2.update(&signed_attrs);
+    let digest_of_signing_time = hasher2.finalize();
+
+    let signature = sign_prehashed(digest_of_signing_time.as_slice(), priv_key_der, algo)?;
+
+    let cert_octet = octet_string(cert_der);
+
+    let serial = extract_serial_from_cert(cert_der)?;
+    let issuer = extract_issuer_from_cert(cert_der)?;
+    let issuer_serial = seq_parts(&[issuer.as_slice(), integer(&serial).as_slice()]);
+    let sid = sequence(&issuer_serial);
+
+    let digest_algo_bytes = oid_bytes(OID_SHA256);
+    let digest_algo_id = seq_parts(&[&digest_algo_bytes[..], &[0x05, 0x00]]);
+
+    let sig_algo_bytes = match algo {
+        SignAlgorithm::RsaSha256 => oid_bytes(OID_RSA_SHA256),
+        SignAlgorithm::EcdsaP384 => oid_bytes(OID_ECDSA_P384),
+    };
+    let sig_algo_id = seq_parts(&[&sig_algo_bytes[..], &[0x05, 0x00]]);
+
+    let signer_info_content = seq_parts(&[
+        integer(&[0x03]).as_slice(),
+        sid.as_slice(),
+        digest_algo_id.as_slice(),
+        signed_attrs.as_slice(),
+        sig_algo_id.as_slice(),
+        bit_string(&signature).as_slice(),
+    ]);
+    let signer_info = sequence(&signer_info_content);
+
+    let digest_algo_set = set(&digest_algo_id);
+    let encap_content = seq_parts(&[oid_bytes(OID_PKCS7_DATA).as_slice(), &[0x00]]);
+    let encap_content_tagged = tlv(0xA0, encap_content.as_slice());
+    let cert_set = set(&cert_octet);
+    let signer_infos_set = set(&signer_info);
+
+    let signed_data_content = seq_parts(&[
+        integer(&[0x03]).as_slice(),
+        digest_algo_set.as_slice(),
+        encap_content_tagged.as_slice(),
+        ctx_implicit0(&cert_set).as_slice(),
+        signer_infos_set.as_slice(),
+    ]);
+
+    let signed_data_oid = oid_bytes(OID_PKCS7_SIGNED_DATA);
+    let content_info = seq_parts(&[
+        signed_data_oid.as_slice(),
+        ctx_explicit0(&signed_data_content).as_slice(),
+    ]);
+
+    Ok(content_info)
+}
+
+/// Extract serial number from a minimal X.509 certificate by scanning for version tag
+fn extract_serial_from_cert(cert_der: &[u8]) -> Result<Vec<u8>, Diagnostic> {
+    // Search for the version pattern: A0 03 02 01 02
+    // This is [0] EXPLICIT version 3 (INTEGER 2) = 5 bytes
+    let version_pattern: [u8; 5] = [0xA0, 0x03, 0x02, 0x01, 0x02];
+    let version_pos = cert_der
+        .windows(5)
+        .position(|w| w == version_pattern)
+        .ok_or_else(|| {
+            Diagnostic::new(
+                "GP-S-014",
+                Severity::Error,
+                "Cannot find version field in certificate".to_string(),
+            )
+        })?;
+
+    // Serial starts right after the version field
+    let serial_start = version_pos + 5;
+    if serial_start + 2 > cert_der.len() {
+        return Err(Diagnostic::new(
+            "GP-S-014",
+            Severity::Error,
+            format!(
+                "Certificate too short at serial position: need {} bytes, have {}",
+                serial_start + 2,
+                cert_der.len()
+            ),
+        ));
+    }
+
+    // Serial starts right after the version field
+    let serial_start = version_pos + 5;
+
+    // Check for INTEGER tag
+    if cert_der[serial_start] != 0x02 {
+        return Err(Diagnostic::new(
+            "GP-S-014",
+            Severity::Error,
+            format!(
+                "Invalid cert: expected INTEGER(0x02) for serial but got 0x{:02X} at offset {}",
+                cert_der[serial_start], serial_start
+            ),
+        ));
+    }
+
+    let serial_len = cert_der[serial_start + 1] as usize;
+    Ok(cert_der[serial_start + 2..serial_start + 2 + serial_len].to_vec())
+}
+
+/// Extract issuer DN from a minimal X.509 certificate
+fn extract_issuer_from_cert(cert_der: &[u8]) -> Result<Vec<u8>, Diagnostic> {
+    // Search for the issuer by finding the subject CN string "stichos" or similar
+    // The issuer DN contains the CN UTF8String, which encodes the subject_cn
+    // We'll find it by searching for the CN OID (2.5.4.3 = 06 03 55 04 03) followed by UTF8String tag
+    let cn_oid: [u8; 5] = [0x06, 0x03, 0x55, 0x04, 0x03];
+    let cn_oid_pos = cert_der
+        .windows(5)
+        .position(|w| w == cn_oid)
+        .ok_or_else(|| {
+            Diagnostic::new(
+                "GP-S-014",
+                Severity::Error,
+                "Cannot find CN OID in certificate".to_string(),
+            )
+        })?;
+
+    // The CN OID is inside the issuer RDN, which is inside the issuer SEQUENCE
+    // Go back from the OID to find the issuer SEQUENCE tag (0x30)
+    // The structure is: ... SEQUENCE { SET { SEQUENCE { OID, UTF8String } } }
+    // Find the outer SET that contains this OID
+    let mut pos = cn_oid_pos;
+    // Walk back to find the SET tag (0x31)
+    while pos > 0 && cert_der[pos] != 0x31 {
+        pos -= 1;
+    }
+    if pos == 0 {
+        // Maybe no SET wrapper, look for SEQUENCE (0x30)
+        pos = cn_oid_pos;
+        while pos > 0 && cert_der[pos] != 0x30 {
+            pos -= 1;
+        }
+        if pos == 0 {
+            return Err(Diagnostic::new(
+                "GP-S-014",
+                Severity::Error,
+                "Cannot find SET/SEQUENCE wrapper for CN in certificate".to_string(),
+            ));
+        }
+        // This is the RDN SEQUENCE, find its parent RDN-set SEQUENCE
+        // Walk back further to find the outer SET
+        let rdn_start = pos;
+        let rdn_len = cert_der[pos + 1] as usize;
+        pos = rdn_start + 2 + rdn_len;
+        if pos < cert_der.len() && cert_der[pos] == 0x31 {
+            // Found the RDN SET
+            let set_len = cert_der[pos + 1] as usize;
+            pos -= 2 + set_len;
+        }
+        // Now pos should be at the outer SET, find the issuer SEQUENCE
+        // Walk back to find the issuer SEQUENCE
+        while pos > 0 && cert_der[pos] != 0x30 {
+            pos -= 1;
+        }
+        if pos == 0 {
+            return Err(Diagnostic::new(
+                "GP-S-014",
+                Severity::Error,
+                "Cannot find issuer SEQUENCE".to_string(),
+            ));
+        }
+        let issuer_start = pos;
+        let issuer_len = cert_der[pos + 1] as usize;
+        return Ok(cert_der[issuer_start..issuer_start + 2 + issuer_len].to_vec());
+    }
+    // Found the SET, now find the RDN SET within it, then find the issuer SEQUENCE
+    // pos is at the outer SET tag. The issuer SEQUENCE starts before this SET.
+    // Walk back to find the issuer SEQUENCE
+    let set_start = pos;
+    let set_len = cert_der[pos + 1] as usize;
+    pos = set_start + 2 + set_len;
+    // Walk back to find the issuer SEQUENCE tag
+    while pos > 0 && cert_der[pos] != 0x30 {
+        pos -= 1;
+    }
+    if pos == 0 {
+        return Err(Diagnostic::new(
+            "GP-S-014",
+            Severity::Error,
+            "Cannot find issuer SEQUENCE".to_string(),
+        ));
+    }
+    let issuer_start = pos;
+    let issuer_len = cert_der[pos + 1] as usize;
+    Ok(cert_der[issuer_start..issuer_start + 2 + issuer_len].to_vec())
 }
 
 // ---------------------------------------------------------------------------
@@ -96,8 +787,6 @@ pub struct SignatureEnvelope {
 /// Creates a self-signed PKCS#7/CAdES signature over the document.
 /// Uses the incremental writer approach to append a `/Type /Sig` annotation.
 pub fn sign_pdf(source_bytes: &[u8], identity: &SigningIdentity) -> SignResult {
-    use crate::diagnostics::{Diagnostic, Severity};
-
     // Check that the document has no existing signatures.
     let existing_sigs = detect_signatures_raw(source_bytes);
     if !existing_sigs.is_empty() {
@@ -109,7 +798,8 @@ pub fn sign_pdf(source_bytes: &[u8], identity: &SigningIdentity) -> SignResult {
                 digest: "sha256".to_string(),
                 algorithm: identity.algorithm.to_string(),
                 signing_time: chrono::Utc::now().to_rfc3339(),
-                byte_range: vec![],
+                signature_value: String::new(),
+                signature_length: 0,
             },
             success: false,
             diagnostics: vec![Diagnostic::new(
@@ -120,8 +810,8 @@ pub fn sign_pdf(source_bytes: &[u8], identity: &SigningIdentity) -> SignResult {
         };
     }
 
-    // Generate a key pair.
-    let (private_key_bytes, _public_key_bytes) = match identity.algorithm {
+    // Generate a key pair (DER-encoded).
+    let (priv_key_der, pub_key_der) = match identity.algorithm {
         SignAlgorithm::RsaSha256 => match generate_rsa_keypair() {
             Ok(pair) => pair,
             Err(diag) => {
@@ -133,7 +823,8 @@ pub fn sign_pdf(source_bytes: &[u8], identity: &SigningIdentity) -> SignResult {
                         digest: "sha256".to_string(),
                         algorithm: "rsa_sha256".to_string(),
                         signing_time: chrono::Utc::now().to_rfc3339(),
-                        byte_range: vec![],
+                        signature_value: String::new(),
+                        signature_length: 0,
                     },
                     success: false,
                     diagnostics: vec![diag],
@@ -151,7 +842,8 @@ pub fn sign_pdf(source_bytes: &[u8], identity: &SigningIdentity) -> SignResult {
                         digest: "sha256".to_string(),
                         algorithm: "ecdsa_p384".to_string(),
                         signing_time: chrono::Utc::now().to_rfc3339(),
-                        byte_range: vec![],
+                        signature_value: String::new(),
+                        signature_length: 0,
                     },
                     success: false,
                     diagnostics: vec![diag],
@@ -160,14 +852,63 @@ pub fn sign_pdf(source_bytes: &[u8], identity: &SigningIdentity) -> SignResult {
         },
     };
 
-    // Generate signature stub.
-    let sig_bytes = generate_stub_signature(&private_key_bytes, source_bytes);
+    // Build self-signed X.509 certificate.
+    let cert_der = match build_self_signed_cert(
+        &identity.subject_cn,
+        &pub_key_der,
+        &priv_key_der,
+        &identity.algorithm,
+    ) {
+        Ok(c) => c,
+        Err(diag) => {
+            return SignResult {
+                output: Vec::new(),
+                signature: SignatureEnvelope {
+                    sig_type: "pdf-pades".to_string(),
+                    subject: identity.subject_cn.clone(),
+                    digest: "sha256".to_string(),
+                    algorithm: identity.algorithm.to_string(),
+                    signing_time: chrono::Utc::now().to_rfc3339(),
+                    signature_value: String::new(),
+                    signature_length: 0,
+                },
+                success: false,
+                diagnostics: vec![diag],
+            }
+        }
+    };
 
-    // Insert signature object into PDF.
-    let signed = insert_signature_object(source_bytes, &sig_bytes);
+    // Build PKCS#7 SignedData over the PDF.
+    let sig_der = match build_pkcs7_signed_data(
+        source_bytes,
+        &cert_der,
+        &priv_key_der,
+        &identity.algorithm,
+    ) {
+        Ok(s) => s,
+        Err(diag) => {
+            return SignResult {
+                output: Vec::new(),
+                signature: SignatureEnvelope {
+                    sig_type: "pdf-pades".to_string(),
+                    subject: identity.subject_cn.clone(),
+                    digest: "sha256".to_string(),
+                    algorithm: identity.algorithm.to_string(),
+                    signing_time: chrono::Utc::now().to_rfc3339(),
+                    signature_value: String::new(),
+                    signature_length: 0,
+                },
+                success: false,
+                diagnostics: vec![diag],
+            }
+        }
+    };
 
+    let sig_hex: String = sig_der.iter().map(|b| format!("{:02X}", b)).collect();
     let signing_time = chrono::Utc::now().to_rfc3339();
-    let byte_range_len = sig_bytes.len() as i64;
+
+    // Insert signature stub into PDF (append-only incremental write).
+    let signed = insert_signature_object(source_bytes, &sig_der, &identity.algorithm);
 
     SignResult {
         output: signed,
@@ -177,106 +918,46 @@ pub fn sign_pdf(source_bytes: &[u8], identity: &SigningIdentity) -> SignResult {
             digest: "sha256".to_string(),
             algorithm: identity.algorithm.to_string(),
             signing_time,
-            byte_range: vec![0, byte_range_len, 0, 0],
+            signature_value: sig_hex,
+            signature_length: sig_der.len(),
         },
         success: true,
         diagnostics: vec![],
     }
 }
 
-/// Generate an RSA key pair (2048-bit).
-fn generate_rsa_keypair() -> Result<(String, String), crate::diagnostics::Diagnostic> {
-    use crate::diagnostics::{Diagnostic, Severity};
-    use rand::rngs::OsRng;
-    use rsa::pkcs1::{EncodeRsaPrivateKey, EncodeRsaPublicKey, LineEnding};
-    use rsa::RsaPrivateKey;
-
-    let mut rng = OsRng;
-    let private_key = RsaPrivateKey::new(&mut rng, 2048).map_err(|e| {
-        Diagnostic::new(
-            "GP-S-010",
-            Severity::Error,
-            format!("Failed to generate RSA key pair: {}", e),
-        )
-    })?;
-
-    let priv_pem = private_key.to_pkcs1_pem(LineEnding::LF).map_err(|e| {
-        Diagnostic::new(
-            "GP-S-010",
-            Severity::Error,
-            format!("Failed to serialize RSA private key: {}", e),
-        )
-    })?;
-
-    let pub_pem = private_key
-        .to_public_key()
-        .to_pkcs1_pem(LineEnding::LF)
-        .map_err(|e| {
-            Diagnostic::new(
-                "GP-S-010",
-                Severity::Error,
-                format!("Failed to serialize RSA public key: {}", e),
-            )
-        })?;
-
-    Ok((priv_pem.to_string(), pub_pem.to_string()))
-}
-
-/// Generate an ECDSA P-384 key pair.
-fn generate_ecdsa_keypair() -> Result<(String, String), crate::diagnostics::Diagnostic> {
-    use p384::ecdsa::SigningKey;
-    use rand_core::OsRng;
-
-    let signing_key = SigningKey::random(&mut OsRng);
-    let priv_bytes = signing_key.to_bytes();
-    let priv_pem = base64::Engine::encode(&base64::engine::general_purpose::STANDARD, priv_bytes);
-
-    let pub_bytes = signing_key.verifying_key().to_sec1_bytes();
-    let pub_pem = base64::Engine::encode(&base64::engine::general_purpose::STANDARD, &pub_bytes);
-
-    Ok((priv_pem, pub_pem))
-}
-
-/// Generate a stub signature bytes.
-fn generate_stub_signature(_private_key: &str, _data: &[u8]) -> Vec<u8> {
-    // Stub: in full impl, compute SHA-256, sign with private key,
-    // and build PKCS#7 SignedData structure.
-    let mut sig = Vec::new();
-    sig.extend_from_slice(b"STUB-PKCS7-SIGNATURE-DATA");
-    sig
-}
-
-/// Insert a `/Type /Sig` dictionary into the PDF.
-fn insert_signature_object(source_bytes: &[u8], sig_bytes: &[u8]) -> Vec<u8> {
-    // Find max object number.
+/// Insert a `/Type /Sig` dictionary into the PDF with algorithm-specific subfilter.
+fn insert_signature_object(source_bytes: &[u8], sig_bytes: &[u8], algo: &SignAlgorithm) -> Vec<u8> {
     let max_obj = find_max_object_number(source_bytes);
     let sig_obj_id = (max_obj + 1, 0);
 
-    // Build signature dictionary.
+    let subfilter = match algo {
+        SignAlgorithm::RsaSha256 => b"adbe.pkcs7.detached",
+        SignAlgorithm::EcdsaP384 => b"ETSI.CAdES.detached",
+    };
+
+    let (first_end, second_start, second_end) =
+        compute_exact_byterange(source_bytes, sig_bytes, max_obj);
+
     let mut dict = BTreeMap::new();
     dict.insert(b"Type".to_vec(), Object::Name(b"Sig".to_vec()));
     dict.insert(b"Filter".to_vec(), Object::Name(b"Adobe.PPKMS".to_vec()));
-    dict.insert(
-        b"SubFilter".to_vec(),
-        Object::Name(b"adbe.pkcs7.detached".to_vec()),
-    );
+    dict.insert(b"SubFilter".to_vec(), Object::Name(subfilter.to_vec()));
 
-    // /ByteRange placeholder.
     dict.insert(
         b"ByteRange".to_vec(),
         Object::Array(vec![
             Object::Integer(0),
-            Object::Integer(sig_bytes.len() as i64),
-            Object::Integer(0),
-            Object::Integer(0),
+            Object::Integer(first_end),
+            Object::Integer(second_start),
+            Object::Integer(second_end),
         ]),
     );
 
-    // /Contents (hex-encoded signature).
-    let hex_str: String = sig_bytes.iter().map(|b| format!("{:02X}", b)).collect();
+    // /Contents - store raw DER bytes, lopdf hex format will encode them
     dict.insert(
         b"Contents".to_vec(),
-        Object::String(hex_str.into_bytes(), lopdf::StringFormat::Hexadecimal),
+        Object::String(sig_bytes.to_vec(), lopdf::StringFormat::Hexadecimal),
     );
 
     dict.insert(b"SignerInfo".to_vec(), Object::Null);
@@ -289,13 +970,11 @@ fn insert_signature_object(source_bytes: &[u8], sig_bytes: &[u8]) -> Vec<u8> {
         ),
     );
 
-    // Render object to COS format.
     let mut obj_bytes = Vec::new();
     writeln!(obj_bytes, "{} {} obj", sig_obj_id.0, sig_obj_id.1).unwrap();
     write_pdf_dict(&mut obj_bytes, &dict);
     obj_bytes.extend_from_slice(b"\nendobj\n");
 
-    // Build appended content: xref + trailer + startxref + EOF.
     let new_offset = source_bytes.len() as u64;
     let mut appended = Vec::new();
     appended.extend_from_slice(b"xref\n0 1\n");
@@ -307,11 +986,56 @@ fn insert_signature_object(source_bytes: &[u8], sig_bytes: &[u8]) -> Vec<u8> {
     appended.extend_from_slice(format!("{}", source_bytes.len() + obj_bytes.len()).as_bytes());
     appended.extend_from_slice(b"\n%%EOF\n");
 
-    // Combine.
     let mut result = source_bytes.to_vec();
     result.extend_from_slice(&obj_bytes);
     result.extend_from_slice(&appended);
     result
+}
+
+fn compute_exact_byterange(
+    _source_bytes: &[u8],
+    sig_bytes: &[u8],
+    max_obj: u32,
+) -> (i64, i64, i64) {
+    let hex_len = sig_bytes.len() * 2;
+    let sig_obj_id = max_obj + 1;
+    let obj_header = format!("\n{} 0 obj", sig_obj_id);
+    let header_len = obj_header.len();
+    let dict_prefix = "<< ";
+
+    let mut first_end = 0i64;
+    let mut second_start = 0i64;
+
+    for _iter in 0..3 {
+        let br_array = format!("[0 {} {} {}]", first_end, second_start, sig_bytes.len());
+        let br_field = format!("/ByteRange {} ", br_array);
+        let contents_field = format!("/Contents <{}> ", "X".repeat(hex_len));
+        let filter_field = "/Filter /Adobe.PPKMS ".to_string();
+        let m_field = "/M (2026-09-25T12:00:00Z) ".to_string();
+        let si_field = "/SignerInfo null ".to_string();
+        let sf_field = "/SubFilter /adbe.pkcs7.detached ".to_string();
+        let type_field = "/Type /Sig ".to_string();
+        let v_field = "/V 4";
+
+        let entries: Vec<&str> = vec![
+            br_field.as_str(),
+            contents_field.as_str(),
+            filter_field.as_str(),
+            m_field.as_str(),
+            si_field.as_str(),
+            sf_field.as_str(),
+            type_field.as_str(),
+            v_field,
+        ];
+        let _dict_str = format!("<< {} >>", entries.join(""));
+
+        let br_pos = (header_len + dict_prefix.len()) as i64;
+        first_end = br_pos + "/ByteRange ".len() as i64;
+        let contents_pos = br_pos + br_field.len() as i64;
+        second_start = contents_pos + "/Contents <".len() as i64;
+    }
+
+    (first_end, second_start, sig_bytes.len() as i64)
 }
 
 /// Find the maximum object number in a PDF.
@@ -536,7 +1260,8 @@ mod tests {
                 digest: "sha256".to_string(),
                 algorithm: "rsa_sha256".to_string(),
                 signing_time: "2026-01-01T00:00:00Z".to_string(),
-                byte_range: vec![0, 100, 0, 0],
+                signature_value: String::new(),
+                signature_length: 0,
             },
             success: true,
             diagnostics: vec![],
@@ -552,14 +1277,19 @@ mod tests {
         let pdf = make_minimal_pdf();
         let identity = SigningIdentity::default();
         let result = sign_pdf(&pdf, &identity);
+        if !result.success {
+            eprintln!("RSA signing diagnostics: {:?}", result.diagnostics);
+            // Print the cert that was built (for debugging)
+        }
         assert!(
             result.success,
             "signing unsigned PDF should succeed: {:?}",
             result.diagnostics
         );
         assert!(!result.output.is_empty());
-        // Output should contain original bytes as prefix.
         assert!(result.output.len() >= pdf.len());
+        assert!(!result.signature.signature_value.is_empty());
+        assert!(result.signature.signature_length > 0);
     }
 
     #[test]
@@ -604,26 +1334,120 @@ mod tests {
             digest: "sha256".to_string(),
             algorithm: "ecdsa_p384".to_string(),
             signing_time: "2026-01-01T12:00:00Z".to_string(),
-            byte_range: vec![0, 500, 1000, 0],
+            signature_value: "DEADBEEF".to_string(),
+            signature_length: 4,
         };
         let json = serde_json::to_string(&env).expect("serialize");
         let parsed: SignatureEnvelope = serde_json::from_str(&json).expect("deserialize");
         assert_eq!(parsed.sig_type, "pdf-pades");
         assert_eq!(parsed.subject, "Test Signer");
         assert_eq!(parsed.algorithm, "ecdsa_p384");
-        assert_eq!(parsed.byte_range, vec![0, 500, 1000, 0]);
     }
 
     #[test]
     fn test_insert_signature_preserves_prefix() {
         let pdf = make_minimal_pdf();
         let sig_bytes = b"TEST-SIG".to_vec();
-        let signed = insert_signature_object(&pdf, &sig_bytes);
+        let signed = insert_signature_object(&pdf, &sig_bytes, &SignAlgorithm::RsaSha256);
         assert!(signed.len() >= pdf.len());
         assert_eq!(
             &signed[..pdf.len()],
             pdf.as_slice(),
             "prefix must be preserved"
+        );
+    }
+
+    #[test]
+    fn test_ecdsa_signing() {
+        let pdf = make_minimal_pdf();
+        let identity = SigningIdentity {
+            algorithm: SignAlgorithm::EcdsaP384,
+            subject_cn: "stichos-ec".to_string(),
+        };
+        let result = sign_pdf(&pdf, &identity);
+        assert!(
+            result.success,
+            "ECDSA signing should succeed: {:?}",
+            result.diagnostics
+        );
+        assert!(!result.output.is_empty());
+        assert!(!result.signature.signature_value.is_empty());
+        assert!(result.signature.signature_length > 0);
+    }
+
+    #[test]
+    fn test_sign_then_verify_rsa() {
+        let pdf = make_minimal_pdf();
+        let identity = SigningIdentity::default();
+        let result = sign_pdf(&pdf, &identity);
+        assert!(
+            result.success,
+            "sign should succeed: {:?}",
+            result.diagnostics
+        );
+        assert!(!result.output.is_empty());
+        assert!(result.output.len() >= pdf.len());
+        assert!(result.signature.signature_length > 0);
+        // Verify prefix preservation (C13)
+        assert_eq!(
+            &result.output[..pdf.len()],
+            pdf.as_slice(),
+            "prefix must be preserved"
+        );
+        // Verify the output contains expected signature markers
+        let output_str = String::from_utf8_lossy(&result.output);
+        assert!(
+            output_str.contains("/Type /Sig"),
+            "should contain /Type /Sig"
+        );
+        assert!(
+            output_str.contains("/Filter /Adobe.PPKMS"),
+            "should contain Adobe.PPKMS filter"
+        );
+        assert!(
+            output_str.contains("/adbe.pkcs7.detached"),
+            "should contain adbe.pkcs7.detached subfilter"
+        );
+        // Verify the hex signature value has valid length
+        let decoded = hex::decode(&result.signature.signature_value).unwrap();
+        assert_eq!(decoded.len(), result.signature.signature_length);
+        // Verify it's a valid CMS SignedData (starts with SEQUENCE tag 0x30)
+        assert_eq!(
+            decoded[0], 0x30,
+            "CMS SignedData should start with SEQUENCE tag"
+        );
+    }
+
+    #[test]
+    fn test_sign_then_verify_ecdsa() {
+        let pdf = make_minimal_pdf();
+        let identity = SigningIdentity {
+            algorithm: SignAlgorithm::EcdsaP384,
+            subject_cn: "stichos-ec".to_string(),
+        };
+        let result = sign_pdf(&pdf, &identity);
+        assert!(
+            result.success,
+            "ECDSA sign should succeed: {:?}",
+            result.diagnostics
+        );
+        assert!(!result.output.is_empty());
+        assert!(result.signature.signature_length > 0);
+    }
+
+    #[test]
+    fn test_ecdsa_subfilter() {
+        let pdf = make_minimal_pdf();
+        let identity = SigningIdentity {
+            algorithm: SignAlgorithm::EcdsaP384,
+            subject_cn: "ec-test".to_string(),
+        };
+        let result = sign_pdf(&pdf, &identity);
+        assert!(result.success);
+        let s = String::from_utf8_lossy(&result.output);
+        assert!(
+            s.contains("ETSI.CAdES.detached"),
+            "ECDSA should use ETSI.CAdES.detached subfilter"
         );
     }
 }

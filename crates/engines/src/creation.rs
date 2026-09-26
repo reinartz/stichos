@@ -71,6 +71,8 @@ fn create_document_engine(
         (CreateSource::Typst { .. }, CreateTarget::Pdf) => {
             create_via_typst(source, reference_doc, store)
         }
+        (CreateSource::Spreadsheet { .. }, CreateTarget::Xlsx) => create_via_xlsx(source, store),
+        (CreateSource::Presentation { .. }, CreateTarget::Pptx) => create_via_pptx(source, store),
         _ => Err(vec![Diagnostic::new(
             "ENG-E-001",
             Severity::Error,
@@ -263,6 +265,144 @@ fn create_via_chromium(
     })
 }
 
+/// Create an xlsx workbook from Spreadsheet IR bytes.
+///
+/// The spreadsheet IR is deserialized from JSON and passed to the
+/// adapters-ooxml xlsx creation writer.
+fn create_via_xlsx(
+    source: &CreateSource,
+    store: &mut ContentStore,
+) -> Result<CreationResult, Vec<Diagnostic>> {
+    let CreateSource::Spreadsheet { content } = source else {
+        return Err(vec![Diagnostic::new(
+            "ENG-E-002",
+            Severity::Error,
+            "create_via_xlsx requires CreateSource::Spreadsheet".to_string(),
+        )]);
+    };
+
+    // Deserialize JSON to Spreadsheet IR
+    let spreadsheet: gp_core::ir::Spreadsheet = serde_json::from_slice(content).map_err(|e| {
+        vec![Diagnostic::new(
+            "ENG-E-003",
+            Severity::Error,
+            format!("invalid spreadsheet IR JSON: {e}"),
+        )]
+    })?;
+
+    // Create xlsx from IR
+    let bytes =
+        adapters_ooxml::create_xlsx::create_minimal_xlsx(&spreadsheet).map_err(|diags| {
+            let mut result = vec![Diagnostic::new(
+                "ENG-E-004",
+                Severity::Error,
+                "xlsx creation failed".to_string(),
+            )];
+            result.extend(diags);
+            result
+        })?;
+
+    // Store in content-addressed store
+    let blob_key = store
+        .store(
+            &bytes,
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+        .unwrap_or_else(|_| gp_core::store::ContentStore::key(&bytes));
+
+    let rendered_by = RendererInfo {
+        engine_id: "ooxml-xlsx".into(),
+        version: Some("1.0.0".to_string()),
+        fontset_hash: None,
+    };
+
+    let document_id = format!("doc-{}", &blob_key[..12.min(blob_key.len())]);
+
+    let response = CreationResponse {
+        document_id,
+        bytes,
+        format: "xlsx".to_string(),
+        rendered_by,
+        source: source.clone(),
+    };
+
+    Ok(CreationResult {
+        response,
+        diagnostics: vec![],
+    })
+}
+
+// ===========================================================================
+// P3-24: PPTX creation from Presentation IR
+// ===========================================================================
+
+/// Create a pptx presentation from Presentation IR bytes.
+///
+/// The presentation IR is deserialized from JSON and passed to the
+/// adapters-ooxml pptx creation writer.
+fn create_via_pptx(
+    source: &CreateSource,
+    store: &mut ContentStore,
+) -> Result<CreationResult, Vec<Diagnostic>> {
+    let CreateSource::Presentation { content } = source else {
+        return Err(vec![Diagnostic::new(
+            "ENG-E-002",
+            Severity::Error,
+            "create_via_pptx requires CreateSource::Presentation".to_string(),
+        )]);
+    };
+
+    // Deserialize JSON to Presentation IR
+    let presentation: gp_core::ir::Presentation = serde_json::from_slice(content).map_err(|e| {
+        vec![Diagnostic::new(
+            "ENG-E-005",
+            Severity::Error,
+            format!("invalid presentation IR JSON: {e}"),
+        )]
+    })?;
+
+    // Create pptx from IR
+    let bytes =
+        adapters_ooxml::create_pptx::create_minimal_pptx(&presentation).map_err(|diags| {
+            let mut result = vec![Diagnostic::new(
+                "ENG-E-006",
+                Severity::Error,
+                "pptx creation failed".to_string(),
+            )];
+            result.extend(diags);
+            result
+        })?;
+
+    // Store in content-addressed store
+    let blob_key = store
+        .store(
+            &bytes,
+            "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        )
+        .unwrap_or_else(|_| gp_core::store::ContentStore::key(&bytes));
+
+    let rendered_by = RendererInfo {
+        engine_id: "ooxml-pptx".into(),
+        version: Some("1.0.0".into()),
+        fontset_hash: None,
+    };
+
+    let document_id = format!("doc-{}", &blob_key[..12.min(blob_key.len())]);
+
+    let response = CreationResponse {
+        document_id,
+        bytes,
+        format: "pptx".to_string(),
+        rendered_by,
+        source: source.clone(),
+    };
+
+    Ok(CreationResult {
+        response,
+        diagnostics: vec![],
+    })
+}
+
 // ===========================================================================
 // P3-22: Create-as-revisions
 // ===========================================================================
@@ -313,10 +453,10 @@ pub fn create_as_revisions(
 // ===========================================================================
 
 /// Valid source types and their corresponding CreateSource variants.
-const VALID_SOURCE_TYPES: &[&str] = &["markdown", "html", "typ"];
+const VALID_SOURCE_TYPES: &[&str] = &["markdown", "html", "typ", "spreadsheet", "presentation"];
 
 /// Valid target formats and their corresponding CreateTarget variants.
-const VALID_TARGET_FORMATS: &[&str] = &["docx", "odt", "pdf"];
+const VALID_TARGET_FORMATS: &[&str] = &["docx", "odt", "pdf", "xlsx", "pptx"];
 
 /// Supported combinations: (source_type, target_format).
 const VALID_COMBINATIONS: &[(&str, &str)] = &[
@@ -327,6 +467,8 @@ const VALID_COMBINATIONS: &[(&str, &str)] = &[
     ("html", "odt"),
     ("html", "pdf"),
     ("typ", "pdf"),
+    ("spreadsheet", "xlsx"),
+    ("presentation", "pptx"),
 ];
 
 /// Validate source_type and target_format, returning diagnostics for bad input.
@@ -362,7 +504,7 @@ fn validate_args(source_type: &str, target_format: &str) -> Result<(), Vec<Diagn
             "CLI-E-001",
             Severity::Error,
             format!(
-                "unsupported combination: {} → {}; valid: markdown/html→docx|odt|pdf, typ→pdf",
+                "unsupported combination: {} → {}; valid: markdown/html→docx|odt|pdf, typ→pdf, spreadsheet→xlsx, presentation→pptx",
                 source_type, target_format
             ),
         ));
@@ -386,6 +528,12 @@ fn parse_source(source_type: &str, content: &[u8]) -> CreateSource {
         "typ" => CreateSource::Typst {
             content: content.to_vec(),
         },
+        "spreadsheet" => CreateSource::Spreadsheet {
+            content: content.to_vec(),
+        },
+        "presentation" => CreateSource::Presentation {
+            content: content.to_vec(),
+        },
         _ => CreateSource::Markdown {
             content: content.to_vec(),
         },
@@ -398,6 +546,8 @@ fn parse_target(target_format: &str) -> CreateTarget {
         "docx" => CreateTarget::Docx,
         "odt" => CreateTarget::Odt,
         "pdf" => CreateTarget::Pdf,
+        "xlsx" => CreateTarget::Xlsx,
+        "pptx" => CreateTarget::Pptx,
         _ => CreateTarget::Pdf,
     }
 }
@@ -1109,7 +1259,7 @@ mod tests {
 
     #[test]
     fn test_validate_args_invalid_target_format() {
-        let diags = validate_args("markdown", "xlsx").unwrap_err();
+        let diags = validate_args("markdown", "rtf").unwrap_err();
         assert_eq!(diags[0].code, "CLI-E-001");
         assert!(diags[0].message.contains("invalid format"));
     }
@@ -1119,6 +1269,11 @@ mod tests {
         let diags = validate_args("typ", "docx").unwrap_err();
         assert_eq!(diags[0].code, "CLI-E-001");
         assert!(diags[0].message.contains("unsupported combination"));
+    }
+
+    #[test]
+    fn test_validate_args_spreadsheet_xlsx() {
+        assert!(validate_args("spreadsheet", "xlsx").is_ok());
     }
 
     #[test]
@@ -1149,6 +1304,15 @@ mod tests {
     }
 
     #[test]
+    fn test_parse_source_spreadsheet() {
+        let source = parse_source("spreadsheet", b"{}");
+        match source {
+            CreateSource::Spreadsheet { content } => assert_eq!(content, b"{}"),
+            _ => panic!("expected Spreadsheet"),
+        }
+    }
+
+    #[test]
     fn test_parse_target_docx() {
         assert!(matches!(parse_target("docx"), CreateTarget::Docx));
     }
@@ -1164,9 +1328,14 @@ mod tests {
     }
 
     #[test]
+    fn test_parse_target_xlsx() {
+        assert!(matches!(parse_target("xlsx"), CreateTarget::Xlsx));
+    }
+
+    #[test]
     fn test_create_document_unified_rejects_bad_args() {
         let diags = create_document(
-            b"# Hello", "markdown", "xlsx", None, false, None, "agent", false,
+            b"# Hello", "markdown", "rtf", None, false, None, "agent", false,
         )
         .unwrap_err();
         assert_eq!(diags[0].code, "CLI-E-001");
@@ -1196,5 +1365,101 @@ mod tests {
         .unwrap_err();
         assert_eq!(diags[0].code, "OOX-E-030");
         assert!(diags[0].message.contains("Failed to read target docx"));
+    }
+
+    #[test]
+    fn test_create_spreadsheet_ir_to_xlsx() {
+        let (mut store, root) = temp_store();
+        let spreadsheet_json = serde_json::json!({
+            "ir_version": "1.0.0",
+            "sheets": [{
+                "id": "sheet-test",
+                "name": "Test",
+                "rows": [{
+                    "id": "row-0",
+                    "cells": [{
+                        "id": "cell-A1",
+                        "row": 0,
+                        "col": 0,
+                        "value": "Hello",
+                        "formula": null,
+                        "cached_value": null,
+                        "style_name": null,
+                        "number_format": null
+                    }]
+                }]
+            }]
+        });
+        let source = CreateSource::Spreadsheet {
+            content: serde_json::to_vec(&spreadsheet_json).unwrap(),
+        };
+        let target = CreateTarget::Xlsx;
+        let result = create_document_engine(&source, &target, None, &mut store);
+        assert!(
+            result.is_ok(),
+            "spreadsheet->xlsx should succeed: {:?}",
+            result
+        );
+        let creation = result.unwrap();
+        let response = creation.response;
+        assert!(!response.bytes.is_empty(), "Should produce bytes");
+        assert!(
+            response.bytes.len() > 2 && &response.bytes[0..2] == b"PK",
+            "Should be a PK (ZIP) file"
+        );
+        assert_eq!(response.format, "xlsx");
+        assert_eq!(response.rendered_by.engine_id, "ooxml-xlsx");
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn test_create_presentation_ir_to_pptx() {
+        let (mut store, root) = temp_store();
+        let presentation_json = serde_json::json!({
+            "ir_version": "1.0.0",
+            "slides": [{
+                "id": "slide-test",
+                "elements": [{
+                    "id": "elem-test",
+                    "kind": "text",
+                    "text": "Hello from pptx",
+                    "bold": null, "italic": null,
+                    "font_name": null, "font_size_pt": null,
+                    "alignment": null,
+                    "x_pt": 1.0, "y_pt": 1.0,
+                    "width_pt": 8.0, "height_pt": 1.0,
+                    "data": null, "mime_type": null,
+                    "preset": null, "fill_color": null, "line_color": null
+                }]
+            }],
+            "layouts": [{
+                "id": "layout-test", "name": "Default",
+                "layout_type": "blank", "placeholders": []
+            }],
+            "masters": [{
+                "id": "master-test", "name": "Default",
+                "background_color": null
+            }]
+        });
+        let source = CreateSource::Presentation {
+            content: serde_json::to_vec(&presentation_json).unwrap(),
+        };
+        let target = CreateTarget::Pptx;
+        let result = create_document_engine(&source, &target, None, &mut store);
+        assert!(
+            result.is_ok(),
+            "presentation->pptx should succeed: {:?}",
+            result
+        );
+        let creation = result.unwrap();
+        let response = creation.response;
+        assert!(!response.bytes.is_empty(), "Should produce bytes");
+        assert!(
+            response.bytes.len() > 2 && &response.bytes[0..2] == b"PK",
+            "Should be a PK (ZIP) file"
+        );
+        assert_eq!(response.format, "pptx");
+        assert_eq!(response.rendered_by.engine_id, "ooxml-pptx");
+        let _ = std::fs::remove_dir_all(&root);
     }
 }

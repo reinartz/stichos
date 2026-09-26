@@ -626,6 +626,7 @@ fn parse_cell(
         formula,
         cached_value,
         style_name,
+        number_format: None,
     })
 }
 

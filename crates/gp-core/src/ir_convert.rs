@@ -202,9 +202,10 @@ fn build_presentation_node(presentation: &Presentation) -> TaggedNode {
 fn build_slide_node(slide: &Slide, slide_idx: usize) -> TaggedNode {
     let mut children = Vec::new();
     for el in &slide.elements {
+        let kind = el.kind_str();
         let shape_node = TaggedNode {
-            id: ElementId::derive("shape", &[&format!("shape:{}", el.kind)], el),
-            tag: format!("shape:{}", el.kind),
+            id: ElementId::derive("shape", &[&format!("shape:{}", kind)], el),
+            tag: format!("shape:{}", kind),
             alt_text: None,
             bbox: None,
             children: vec![],
@@ -257,6 +258,7 @@ mod tests {
             formula: None,
             cached_value: None,
             style_name: None,
+            number_format: None,
         };
         let cell_b = SheetCell {
             id: ElementId::content_anchored("cell", &["b"], "v2"),
@@ -266,6 +268,7 @@ mod tests {
             formula: None,
             cached_value: None,
             style_name: None,
+            number_format: None,
         };
         let cell_c = SheetCell {
             id: ElementId::content_anchored("cell", &["c"], "v3"),
@@ -275,6 +278,7 @@ mod tests {
             formula: Some("=A1+B1".to_string()),
             cached_value: None,
             style_name: None,
+            number_format: None,
         };
         let row = SheetRow {
             id: ElementId::content_anchored("row", &["r0"], ""),
@@ -336,6 +340,7 @@ mod tests {
             formula: Some("=1".to_string()),
             cached_value: Some("cached".to_string()),
             style_name: None,
+            number_format: None,
         };
         assert_eq!(cell_display_value(&cell1), Some("val".to_string()));
 
@@ -348,6 +353,7 @@ mod tests {
             formula: Some("=2".to_string()),
             cached_value: Some("cached".to_string()),
             style_name: None,
+            number_format: None,
         };
         assert_eq!(cell_display_value(&cell2), Some("cached".to_string()));
 
@@ -360,6 +366,7 @@ mod tests {
             formula: Some("=3".to_string()),
             cached_value: None,
             style_name: None,
+            number_format: None,
         };
         assert_eq!(cell_display_value(&cell3), Some("=3".to_string()));
 
@@ -372,6 +379,7 @@ mod tests {
             formula: None,
             cached_value: None,
             style_name: None,
+            number_format: None,
         };
         assert_eq!(cell_display_value(&cell4), None);
     }
@@ -381,11 +389,41 @@ mod tests {
     fn test_presentation_with_slide_shapes() {
         let el1 = SlideElement {
             id: ElementId::content_anchored("shape", &["shape:text"], ""),
-            kind: "text".to_string(),
+            kind: SlideElementKind::Text,
+            text: None,
+            bold: None,
+            italic: None,
+            font_name: None,
+            font_size_pt: None,
+            alignment: None,
+            x_pt: None,
+            y_pt: None,
+            width_pt: None,
+            height_pt: None,
+            data: None,
+            mime_type: None,
+            preset: None,
+            fill_color: None,
+            line_color: None,
         };
         let el2 = SlideElement {
             id: ElementId::content_anchored("shape", &["shape:image"], ""),
-            kind: "image".to_string(),
+            kind: SlideElementKind::Image,
+            text: None,
+            bold: None,
+            italic: None,
+            font_name: None,
+            font_size_pt: None,
+            alignment: None,
+            x_pt: None,
+            y_pt: None,
+            width_pt: None,
+            height_pt: None,
+            data: None,
+            mime_type: None,
+            preset: None,
+            fill_color: None,
+            line_color: None,
         };
         let slide = Slide {
             id: ElementId::content_anchored("slide", &["slide:0"], ""),
@@ -442,10 +480,13 @@ mod tests {
         let layout = Layout {
             id: ElementId::content_anchored("layout", &["l0"], ""),
             name: "Title Slide".to_string(),
+            layout_type: None,
+            placeholders: vec![],
         };
         let master = Master {
             id: ElementId::content_anchored("master", &["m0"], ""),
             name: "Office Theme".to_string(),
+            background_color: None,
         };
         let pres = Presentation {
             ir_version: IR_VERSION.to_string(),
@@ -469,16 +510,34 @@ mod tests {
         let layout = Layout {
             id: ElementId::content_anchored("layout", &["l0"], ""),
             name: "Title".to_string(),
+            layout_type: None,
+            placeholders: vec![],
         };
         let master = Master {
             id: ElementId::content_anchored("master", &["m0"], ""),
             name: "Default".to_string(),
+            background_color: None,
         };
         let slide = Slide {
             id: ElementId::content_anchored("slide", &["s0"], ""),
             elements: vec![SlideElement {
                 id: ElementId::content_anchored("shape", &["s0"], ""),
-                kind: "title".to_string(),
+                kind: SlideElementKind::Other("title".to_string()),
+                text: None,
+                bold: None,
+                italic: None,
+                font_name: None,
+                font_size_pt: None,
+                alignment: None,
+                x_pt: None,
+                y_pt: None,
+                width_pt: None,
+                height_pt: None,
+                data: None,
+                mime_type: None,
+                preset: None,
+                fill_color: None,
+                line_color: None,
             }],
         };
         let pres = Presentation {
@@ -509,6 +568,7 @@ mod tests {
             formula: None,
             cached_value: None,
             style_name: None,
+            number_format: None,
         };
         let row = SheetRow {
             id: ElementId::content_anchored("row", &["r0"], ""),
@@ -542,11 +602,41 @@ mod tests {
             elements: vec![
                 SlideElement {
                     id: ElementId::content_anchored("shape", &["t"], ""),
-                    kind: "text".to_string(),
+                    kind: SlideElementKind::Text,
+                    text: None,
+                    bold: None,
+                    italic: None,
+                    font_name: None,
+                    font_size_pt: None,
+                    alignment: None,
+                    x_pt: None,
+                    y_pt: None,
+                    width_pt: None,
+                    height_pt: None,
+                    data: None,
+                    mime_type: None,
+                    preset: None,
+                    fill_color: None,
+                    line_color: None,
                 },
                 SlideElement {
                     id: ElementId::content_anchored("shape", &["i"], ""),
-                    kind: "image".to_string(),
+                    kind: SlideElementKind::Image,
+                    text: None,
+                    bold: None,
+                    italic: None,
+                    font_name: None,
+                    font_size_pt: None,
+                    alignment: None,
+                    x_pt: None,
+                    y_pt: None,
+                    width_pt: None,
+                    height_pt: None,
+                    data: None,
+                    mime_type: None,
+                    preset: None,
+                    fill_color: None,
+                    line_color: None,
                 },
             ],
         };
@@ -590,6 +680,7 @@ mod tests {
                     formula: None,
                     cached_value: None,
                     style_name: None,
+                    number_format: None,
                 }],
             }],
             merged_ranges: vec![],
@@ -625,11 +716,41 @@ mod tests {
             elements: vec![
                 SlideElement {
                     id: ElementId::content_anchored("shape", &["t1"], ""),
-                    kind: "title".to_string(),
+                    kind: SlideElementKind::Other("title".to_string()),
+                    text: None,
+                    bold: None,
+                    italic: None,
+                    font_name: None,
+                    font_size_pt: None,
+                    alignment: None,
+                    x_pt: None,
+                    y_pt: None,
+                    width_pt: None,
+                    height_pt: None,
+                    data: None,
+                    mime_type: None,
+                    preset: None,
+                    fill_color: None,
+                    line_color: None,
                 },
                 SlideElement {
                     id: ElementId::content_anchored("shape", &["t2"], ""),
-                    kind: "body".to_string(),
+                    kind: SlideElementKind::Other("body".to_string()),
+                    text: None,
+                    bold: None,
+                    italic: None,
+                    font_name: None,
+                    font_size_pt: None,
+                    alignment: None,
+                    x_pt: None,
+                    y_pt: None,
+                    width_pt: None,
+                    height_pt: None,
+                    data: None,
+                    mime_type: None,
+                    preset: None,
+                    fill_color: None,
+                    line_color: None,
                 },
             ],
         };
@@ -637,7 +758,22 @@ mod tests {
             id: ElementId::content_anchored("slide", &["s1"], ""),
             elements: vec![SlideElement {
                 id: ElementId::content_anchored("shape", &["img1"], ""),
-                kind: "image".to_string(),
+                kind: SlideElementKind::Image,
+                text: None,
+                bold: None,
+                italic: None,
+                font_name: None,
+                font_size_pt: None,
+                alignment: None,
+                x_pt: None,
+                y_pt: None,
+                width_pt: None,
+                height_pt: None,
+                data: None,
+                mime_type: None,
+                preset: None,
+                fill_color: None,
+                line_color: None,
             }],
         };
         let pres = Presentation {

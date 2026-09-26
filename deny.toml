@@ -51,11 +51,9 @@ license-files = [{ path = "LICENSE", hash = 0x01c0e8b7 }]
 multiple-versions = "warn"
 wildcards = "deny"
 highlight = "all"
-# SEC-02 / plan §3.3 "Banned pending gate": NO C-linked renderer may enter the
-# tree until the PDF-01/OQ1 ADR lands.
+# SEC-02 / plan §3.3 "Banned pending gate": mupdf and other C-renderers still banned.
+# pdfium* bans removed 2026-09-26 by G5 adoption (dynamic linking only, D2 intact).
 deny = [
-    { crate = "pdfium-render", reason = "C-renderer banned pending PDF-01/OQ1 ADR (plan §3.3, D2/D8)" },
-    { crate = "pdfium*", reason = "any pdfium binding/-sys crate is a C-link + cross-compile hazard; gate is PDF-01/OQ1" },
     { crate = "mupdf", reason = "C-renderer + AGPL upstream; banned pending PDF-01/OQ1 ADR (plan §3.3)" },
     { crate = "mupdf*", reason = "any MuPDF binding/-sys crate; gate is PDF-01/OQ1" },
     { crate = "lokit-dl", reason = "LOKit must be a spawned subprocess (D8), never linked; blocks D2 cross-compile" },

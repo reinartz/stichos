@@ -229,6 +229,8 @@ enum Command {
     /// - markdown/html → docx/odt: pandoc
     /// - html → pdf: chromium
     /// - typ → pdf: typst
+    /// - spreadsheet → xlsx: native ooxml
+    /// - presentation → pptx: native ooxml
     /// - target=existing-docx: create-as-revisions
     Create {
         /// Source content (inline markdown/html/typ)
@@ -239,11 +241,11 @@ enum Command {
         #[arg(long)]
         source: Option<String>,
 
-        /// Target format: docx, odt, pdf
+        /// Target format: docx, odt, pdf, xlsx, pptx
         #[arg(long)]
         format: Option<String>,
 
-        /// Source type: markdown, html, typ
+        /// Source type: markdown, html, typ, spreadsheet, presentation
         #[arg(long)]
         source_type: Option<String>,
 
@@ -868,18 +870,19 @@ async fn cmd_create(
     };
 
     // Validate: format required
-    let target_format = format.context("must provide --format (docx, odt, or pdf)")?;
+    let target_format = format.context("must provide --format (docx, odt, pdf, xlsx, or pptx)")?;
 
     // Validate: source_type required
-    let source_type_str =
-        source_type.context("must provide --source-type (markdown, html, or typ)")?;
+    let source_type_str = source_type.context(
+        "must provide --source-type (markdown, html, typ, spreadsheet, or presentation)",
+    )?;
 
     // Validate format
     match target_format {
-        "docx" | "odt" | "pdf" => {}
+        "docx" | "odt" | "pdf" | "xlsx" | "pptx" => {}
         _ => {
             bail!(
-                "invalid format '{}': must be one of: docx, odt, pdf",
+                "invalid format '{}': must be one of: docx, odt, pdf, xlsx, pptx",
                 target_format
             );
         }
@@ -887,10 +890,10 @@ async fn cmd_create(
 
     // Validate source_type
     match source_type_str {
-        "markdown" | "html" | "typ" => {}
+        "markdown" | "html" | "typ" | "spreadsheet" | "presentation" => {}
         _ => {
             bail!(
-                "invalid source_type '{}': must be one of: markdown, html, typ",
+                "invalid source_type '{}': must be one of: markdown, html, typ, spreadsheet, presentation",
                 source_type_str
             );
         }
@@ -1981,7 +1984,6 @@ async fn cmd_serve(transport: &str, port: u16) -> Result<()> {
                             "algorithm": sig.algorithm,
                             "digest": sig.digest,
                             "signing_time": sig.signing_time,
-                            "byte_range": sig.byte_range,
 
                         },
                         "diagnostics": result.diagnostics,

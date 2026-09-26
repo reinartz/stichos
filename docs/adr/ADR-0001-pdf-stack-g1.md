@@ -95,6 +95,21 @@ Owner flips Status to accepted/rejected (this file), PDF-01 deliverable complete
 core. Nothing here edits `project_concept.md` — no D is reversed by a G1 outcome; only a G5 reversal
 would force a §16 entry (plan §9 closing note).
 
+## 7. G5 closure — pdfium adopted (dynamic linking only, 2026-09-26)
+
+G5 was triggered by: *"pdfium bundling — only if G1 shows pure-Rust extraction insufficient for
+LIN-01"*.
+
+**Decision: Adopt pdfium-render with dynamic linking only, behind a `pdfium` feature flag.**
+
+- **Binding mode**: `Pdfium::bind_to_system_library()` — probes binary directory → system PATH → fails gracefully. No static bundling, no C in the compiled Rust binary.
+- **D2 compliance**: Maintained. The Rust binary contains zero C code. `libpdfium.so` is a runtime shared library (analogous to `libpoppler.so` on systems with poppler installed).
+- **D8 compliance**: Maintained. Feature is off by default (`pdfium` not in `default =`). Probed at runtime via `pdfium_available()`. Honest-absent fallback to poppler/gs/mutool/soffice.
+- **deny.toml**: `pdfium-render` and `pdfium*` bans removed. `mupdf*` bans remain (AGPL upstream).
+- **Implementation**: `crates/engines/src/raster_pdfium.rs` with `rasterize_with_pdfium()` and `pdfium_available()`. Integrated as the first rung in the raster ladder when enabled.
+- **D-row**: No reversal needed. Dynamic linking does not reverse D2 ("C stays out of the binary") — the binary is pure Rust, the C library is a soft runtime dependency.
+- **Transitive deps**: `pdfium-render` 0.9 → `image` 0.25 (MIT/Apache-2.0, on allow-list). No `-sys` crates.
+
 ## Sources (researched 2026-09-05 unless marked measured = local repo/host)
 
 - lopdf `Cargo.toml` (master 0.44.0; tag v0.34.0): `license = "MIT"` — raw.githubusercontent.com/J-F-Liu/lopdf

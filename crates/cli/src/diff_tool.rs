@@ -627,7 +627,7 @@ fn diff_documents_presentation(a: &Presentation, b: &Presentation) -> IrDiff {
                         (Some(a_el), Some(b_el)) if a_el.kind != b_el.kind => {
                             ops.push(diff::DiffOp::Modified {
                                 id: el_id,
-                                kind: format!("kind:{}→{}", a_el.kind, b_el.kind),
+                                kind: format!("kind:{}→{}", a_el.kind_str(), b_el.kind_str()),
                             });
                         }
                         _ => {}

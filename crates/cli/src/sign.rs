@@ -63,7 +63,8 @@ pub fn cmd_sign(
             "algorithm": sig.algorithm,
             "digest": sig.digest,
             "signing_time": sig.signing_time,
-            "byte_range": sig.byte_range,
+            "signature_value": sig.signature_value,
+            "signature_length": sig.signature_length,
         },
         "diagnostics": result.diagnostics,
     });

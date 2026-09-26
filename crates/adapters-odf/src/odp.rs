@@ -175,9 +175,30 @@ fn parse_element(node: &XmlNode, _diags: &mut Vec<Diagnostic>) -> Option<SlideEl
     } else {
         return None;
     };
+    let kind = match kind {
+        "image" => SlideElementKind::Image,
+        "rect" | "circle" => SlideElementKind::Shape,
+        "text-box" => SlideElementKind::Text,
+        other => SlideElementKind::Other(other.to_string()),
+    };
     Some(SlideElement {
         id: ElementId::from_content_hash(local, &[], ""),
-        kind: kind.to_string(),
+        kind,
+        text: None,
+        bold: None,
+        italic: None,
+        font_name: None,
+        font_size_pt: None,
+        alignment: None,
+        x_pt: None,
+        y_pt: None,
+        width_pt: None,
+        height_pt: None,
+        data: None,
+        mime_type: None,
+        preset: None,
+        fill_color: None,
+        line_color: None,
     })
 }
 
@@ -284,7 +305,7 @@ mod tests {
         let p = parse_odf(&d).expect("parse");
         let r = read_odp(&p).expect("ir");
         let pres: Presentation = serde_json::from_slice(&r.ir).expect("decode");
-        assert_eq!(pres.slides[0].elements[0].kind, "image");
+        assert_eq!(pres.slides[0].elements[0].kind_str(), "image");
     }
 
     #[test]

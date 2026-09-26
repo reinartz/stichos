@@ -38,6 +38,8 @@ use crate::incremental::{
     detect_signatures, BTreeVec, IncrementalError, IncrementalWriter, PdfMutation, PdfMutationSet,
     PdfObjNum, WriteResult,
 };
+use crate::parser::PdfObject;
+use crate::redact::RedactionOp;
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -47,7 +49,9 @@ use crate::incremental::{
 ///
 /// Operations are applied in order. State-change ops (Resolve/Reject/Reopen)
 /// target existing annotations by their `id`. The `Add` op creates a new
-/// annotation on the specified page.
+/// annotation on the specified page. The `Redact` op performs content stream
+/// surgery to remove text within a bounding rectangle and adds a /Redaction
+/// annotation overlay.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "op", rename_all = "snake_case")]
 pub enum AnnotOp {
@@ -72,6 +76,15 @@ pub enum AnnotOp {
         /// Verbatim text anchor for text selection.
         quote: Option<String>,
     },
+    /// Redact text within a rectangle on a page (P7-6 — PDF redaction).
+    Redact {
+        /// 1-indexed page number.
+        page: usize,
+        /// Bounding box `[x1, y1, x2, y2]` in PDF points.
+        rect: [f64; 4],
+        /// Fill colour for the redaction overlay (default "Black").
+        fill: Option<String>,
+    },
 }
 
 impl AnnotOp {
@@ -83,6 +96,7 @@ impl AnnotOp {
             AnnotOp::Reject { id } => id,
             AnnotOp::Reopen { id } => id,
             AnnotOp::Add { .. } => "<new>",
+            AnnotOp::Redact { .. } => "<redact>",
         }
     }
 
@@ -93,6 +107,7 @@ impl AnnotOp {
             AnnotOp::Reject { .. } => Some(AnnotationState::Rejected),
             AnnotOp::Reopen { .. } => Some(AnnotationState::Applied),
             AnnotOp::Add { .. } => None,
+            AnnotOp::Redact { .. } => None,
         }
     }
 }
@@ -476,6 +491,133 @@ fn ops_to_mutations(
                     data: None,
                 });
             }
+            AnnotOp::Redact { page, rect, fill } => {
+                // Layer 2: content stream surgery using the internal parser
+                let redact_op = RedactionOp {
+                    page: *page,
+                    rect: *rect,
+                    fill: fill.clone(),
+                };
+
+                // Use the internal parser to get raw stream data
+                if let Ok(doc_data) = crate::parser::parse_pdf_data(_source_bytes) {
+                    // Find content streams for the target page
+                    // Build page_num -> content_objnum map
+                    let mut page_content_map: std::collections::HashMap<usize, u32> =
+                        std::collections::HashMap::new();
+                    let mut page_order: Vec<(usize, u32)> = Vec::new();
+
+                    for (objnum, obj) in &doc_data.objects {
+                        if let Some(dict) = obj.as_stream_dict().or_else(|| obj.as_dict()) {
+                            if dict.contains_key("MediaBox") {
+                                if let Some(PdfObject::Name(name)) = dict.get("Type") {
+                                    if name == "Page" {
+                                        // Get /Contents reference
+                                        if let Some(contents) = dict.get("Contents") {
+                                            let content_num = match contents {
+                                                PdfObject::Reference { object_number, .. } => *object_number,
+                                                _ => continue,
+                                            };
+                                            page_order.push((*objnum as usize, content_num));
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Sort by object number to get consistent page numbering
+                    page_order.sort_by_key(|(pn, _)| *pn);
+
+                    // Map page numbers from doc.pages to content stream numbers
+                    for (idx, page) in doc_data.pages.iter().enumerate() {
+                        if idx < page_order.len() {
+                            page_content_map.insert(page.number, page_order[idx].1);
+                        }
+                    }
+
+                    // Apply redaction to matching content streams
+                    if let Some(&content_objnum) = page_content_map.get(&redact_op.page) {
+                        if let Some(PdfObject::Stream { data, .. }) = doc_data.objects.get(&content_objnum) {
+                            if let Ok(redacted) = crate::redact::redact_stream_data(data, &redact_op) {
+                                if redacted != *data {
+                                    let old_obj = (content_objnum, 0);
+                                    mutations.push(PdfMutation::Replace {
+                                        object_id: old_obj,
+                                        dict: BTreeMap::new(),
+                                        data: Some(redacted),
+                                    });
+                                    mutations.push(PdfMutation::Delete { object_id: old_obj });
+                                }
+                            }
+                        } else if let Some(PdfObject::Reference { object_number, generation }) =
+                            doc_data.objects.get(&content_objnum)
+                        {
+                            if let Some(PdfObject::Stream { data, .. }) = doc_data.objects.get(object_number) {
+                                if let Ok(redacted) = crate::redact::redact_stream_data(data, &redact_op) {
+                                    if redacted != *data {
+                                        let old_obj = (*object_number, *generation);
+                                        mutations.push(PdfMutation::Replace {
+                                            object_id: old_obj,
+                                            dict: BTreeMap::new(),
+                                            data: Some(redacted),
+                                        });
+                                        mutations.push(PdfMutation::Delete { object_id: old_obj });
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Layer 1: add /Redaction annotation
+
+                // Layer 1: add /Redaction annotation
+                let annot_obj_id = next_obj_num;
+                next_obj_num.0 += 1;
+
+                let mut dict = BTreeMap::new();
+                dict.insert(b"Subtype".to_vec(), Object::Name(b"Redaction".to_vec()));
+                dict.insert(
+                    b"Rect".to_vec(),
+                    Object::Array(vec![
+                        Object::Real(rect[0] as f32),
+                        Object::Real(rect[1] as f32),
+                        Object::Real(rect[2] as f32),
+                        Object::Real(rect[3] as f32),
+                    ]),
+                );
+                dict.insert(b"P".to_vec(), Object::Reference(((*page) as u32 + 1, 0)));
+
+                // /Contents
+                dict.insert(
+                    b"Contents".to_vec(),
+                    Object::String(b"Redacted".to_vec(), lopdf::StringFormat::Literal),
+                );
+
+                // /Color (fill colour)
+                let color = fill.as_deref().unwrap_or("Black");
+                // Parse color — support "Black" -> [0, 0, 0], "#RRGGBB", etc.
+                let color_array = parse_color_to_array(color);
+                dict.insert(b"Color".to_vec(), Object::Array(color_array));
+
+                // /IM (ink annotations for redaction appearance)
+                // Default appearance: fill the rect with the color
+                let da = format!("/{} Do", color);
+                dict.insert(b"DA".to_vec(), Object::String(da.into_bytes(), lopdf::StringFormat::Literal));
+
+                // /OP (opaque — covers underlying content)
+                dict.insert(b"OP".to_vec(), Object::Boolean(true));
+
+                // /OPm (opacity)
+                dict.insert(b"OP".to_vec(), Object::Boolean(true));
+
+                mutations.push(PdfMutation::Add {
+                    object_id: annot_obj_id,
+                    dict,
+                    data: None,
+                });
+            }
         }
     }
 
@@ -500,6 +642,7 @@ fn find_annotation_object_id(
         AnnotOp::Reject { id } => id.as_str(),
         AnnotOp::Reopen { id } => id.as_str(),
         AnnotOp::Add { .. } => return None,
+        AnnotOp::Redact { .. } => return None,
     };
 
     let target_annot = annotations.iter().find(|a| a.id.as_str() == target_id)?;
@@ -643,6 +786,57 @@ fn kind_to_subtype(kind: &AnnotationKind) -> &'static str {
     }
 }
 
+/// Parse a color specification into a PDF color array for /Redaction /Color.
+///
+/// Supports:
+/// - "Black" -> [0, 0, 0]
+/// - "White" -> [1, 1, 1]
+/// - "#RRGGBB" -> [R/255, G/255, B/255]
+/// - "#RGB" -> expanded to [R/255, G/255, B/255]
+/// - Single number 0.0..1.0 -> [n, n, n] (grayscale)
+fn parse_color_to_array(color: &str) -> Vec<Object> {
+    let color = color.trim();
+    if color.eq_ignore_ascii_case("black") {
+        return vec![Object::Real(0.0), Object::Real(0.0), Object::Real(0.0)];
+    }
+    if color.eq_ignore_ascii_case("white") {
+        return vec![Object::Real(1.0), Object::Real(1.0), Object::Real(1.0)];
+    }
+    // Parse hex color
+    if let Some(hex) = color.strip_prefix('#') {
+        let hex = if hex.len() == 3 {
+            // Expand #RGB to #RRGGBB
+            let mut expanded = String::with_capacity(6);
+            for c in hex.chars() {
+                expanded.push(c);
+                expanded.push(c);
+            }
+            expanded
+        } else {
+            hex.to_string()
+        };
+        if hex.len() == 6 {
+            if let (Ok(r), Ok(g), Ok(b)) = (
+                u8::from_str_radix(&hex[0..2], 16),
+                u8::from_str_radix(&hex[2..4], 16),
+                u8::from_str_radix(&hex[4..6], 16),
+            ) {
+                return vec![
+                    Object::Real(r as f32 / 255.0),
+                    Object::Real(g as f32 / 255.0),
+                    Object::Real(b as f32 / 255.0),
+                ];
+            }
+        }
+    }
+    // Try parsing as grayscale (0.0..1.0)
+    if let Ok(n) = color.parse::<f32>() {
+        return vec![Object::Real(n), Object::Real(n), Object::Real(n)];
+    }
+    // Default to black
+    vec![Object::Real(0.0), Object::Real(0.0), Object::Real(0.0)]
+}
+
 // ---------------------------------------------------------------------------
 // IR diff computation
 // ---------------------------------------------------------------------------
@@ -667,6 +861,9 @@ fn compute_annot_ir_diff(_existing_annotations: &[PdfAnnotation], ops: &[AnnotOp
             }
             AnnotOp::Add { .. } => {
                 // New annotation — tracked as an insertion.
+            }
+            AnnotOp::Redact { .. } => {
+                // Redaction — tracked as a content removal.
             }
         }
     }
@@ -699,6 +896,21 @@ fn compute_annot_ir_diff(_existing_annotations: &[PdfAnnotation], ops: &[AnnotOp
             anchor_kind: "PdfAnnotation".to_string(),
             operations: vec![DiffOp::Insert {
                 text: format!("{} new annotation(s) added", add_count),
+            }],
+        });
+    }
+
+    // Hunks for redaction operations.
+    let redact_count = ops
+        .iter()
+        .filter(|o| matches!(o, AnnotOp::Redact { .. }))
+        .count();
+    if redact_count > 0 {
+        hunks.push(DiffHunk {
+            anchor: ElementId::from_str("redactions"),
+            anchor_kind: "Redaction".to_string(),
+            operations: vec![DiffOp::Insert {
+                text: format!("{} redaction(s) applied", redact_count),
             }],
         });
     }

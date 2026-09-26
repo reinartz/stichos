@@ -10,7 +10,7 @@
 use gp_core::formula::check_refusal;
 use gp_core::ir::{
     ElementId, IRDocument, MergedRange, Presentation, Section, Sheet, SheetCell, SheetRow, Slide,
-    SlideElement, Spreadsheet, TaggedNode, Visit, IR_VERSION,
+    SlideElement, SlideElementKind, Spreadsheet, TaggedNode, Visit, IR_VERSION,
 };
 use gp_core::patch::{apply_op, PatchOp};
 
@@ -60,6 +60,7 @@ pub fn sheet_inspect_100k_rows() -> Spreadsheet {
                 formula: None,
                 cached_value: None,
                 style_name: None,
+                number_format: None,
             }],
         })
         .collect();
@@ -88,6 +89,7 @@ pub fn sheet_inspect_1m_char_cell() -> Spreadsheet {
         formula: None,
         cached_value: None,
         style_name: None,
+        number_format: None,
     };
     let row = SheetRow {
         id: ElementId::content_anchored("row", &["r0"], ""),
@@ -118,6 +120,7 @@ pub fn sheet_inspect_malformed_cell_refs() -> Spreadsheet {
         formula: Some("A1:B1048576:extra".to_string()), // malformed extra segment
         cached_value: None,
         style_name: None,
+        number_format: None,
     };
     let cell_b = SheetCell {
         id: ElementId::content_anchored("cell", &["c1"], "b"),
@@ -127,6 +130,7 @@ pub fn sheet_inspect_malformed_cell_refs() -> Spreadsheet {
         formula: Some("of:=SUM(A1)".to_string()), // ODF-style of:= pattern
         cached_value: None,
         style_name: None,
+        number_format: None,
     };
     let row = SheetRow {
         id: ElementId::content_anchored("row", &["r0"], ""),
@@ -157,6 +161,7 @@ pub fn sheet_inspect_huge_merged_ranges() -> Spreadsheet {
         formula: None,
         cached_value: None,
         style_name: None,
+        number_format: None,
     };
     let row = SheetRow {
         id: ElementId::content_anchored("row", &["r0"], ""),
@@ -195,6 +200,7 @@ pub fn sheet_inspect_c15_deep_nesting_formula() -> Spreadsheet {
         formula: Some(deep_formula),
         cached_value: None,
         style_name: None,
+        number_format: None,
     };
     let row = SheetRow {
         id: ElementId::content_anchored("row", &["r0"], ""),
@@ -250,7 +256,22 @@ pub fn presentation_inspect_10k_shapes() -> Presentation {
     let elements: Vec<SlideElement> = (0..10_000)
         .map(|i| SlideElement {
             id: ElementId::content_anchored("shape", &[&format!("shape:{}", i)], ""),
-            kind: format!("shape{}", i % 100),
+            kind: SlideElementKind::Other(format!("shape{}", i % 100)),
+            text: None,
+            bold: None,
+            italic: None,
+            font_name: None,
+            font_size_pt: None,
+            alignment: None,
+            x_pt: None,
+            y_pt: None,
+            width_pt: None,
+            height_pt: None,
+            data: None,
+            mime_type: None,
+            preset: None,
+            fill_color: None,
+            line_color: None,
         })
         .collect();
     let slide = Slide {
@@ -280,7 +301,22 @@ pub fn presentation_inspect_shape_chain_500() -> Presentation {
     for i in (0..500).rev() {
         let shape = SlideElement {
             id: ElementId::content_anchored("shape", &[&format!("shape:{}", i)], ""),
-            kind: format!("shape{}", i),
+            kind: SlideElementKind::Other(format!("shape{}", i)),
+            text: None,
+            bold: None,
+            italic: None,
+            font_name: None,
+            font_size_pt: None,
+            alignment: None,
+            x_pt: None,
+            y_pt: None,
+            width_pt: None,
+            height_pt: None,
+            data: None,
+            mime_type: None,
+            preset: None,
+            fill_color: None,
+            line_color: None,
         };
         if i == 499 {
             // Leaf shape
@@ -296,12 +332,27 @@ pub fn presentation_inspect_shape_chain_500() -> Presentation {
         .map(|i| SlideElement {
             id: ElementId::content_anchored("shape", &[&format!("shape:{}", i)], ""),
             kind: if i % 3 == 0 {
-                "text".to_string()
+                SlideElementKind::Text
             } else if i % 3 == 1 {
-                "image".to_string()
+                SlideElementKind::Image
             } else {
-                "group".to_string()
+                SlideElementKind::Other("group".to_string())
             },
+            text: None,
+            bold: None,
+            italic: None,
+            font_name: None,
+            font_size_pt: None,
+            alignment: None,
+            x_pt: None,
+            y_pt: None,
+            width_pt: None,
+            height_pt: None,
+            data: None,
+            mime_type: None,
+            preset: None,
+            fill_color: None,
+            line_color: None,
         })
         .collect();
 
@@ -319,7 +370,22 @@ pub fn presentation_inspect_empty_text_shapes() -> Presentation {
     let elements: Vec<SlideElement> = (0..100)
         .map(|i| SlideElement {
             id: ElementId::content_anchored("shape", &[&format!("shape:{}", i)], ""),
-            kind: "text".to_string(),
+            kind: SlideElementKind::Text,
+            text: None,
+            bold: None,
+            italic: None,
+            font_name: None,
+            font_size_pt: None,
+            alignment: None,
+            x_pt: None,
+            y_pt: None,
+            width_pt: None,
+            height_pt: None,
+            data: None,
+            mime_type: None,
+            preset: None,
+            fill_color: None,
+            line_color: None,
         })
         .collect();
     let slide = Slide {
@@ -341,12 +407,15 @@ pub fn presentation_inspect_many_layouts_masters() -> Presentation {
         .map(|i| gp_core::ir::Layout {
             id: ElementId::content_anchored("layout", &[&format!("layout:{}", i)], ""),
             name: format!("Layout{}", i),
+            layout_type: None,
+            placeholders: vec![],
         })
         .collect();
     let masters: Vec<_> = (0..50)
         .map(|i| gp_core::ir::Master {
             id: ElementId::content_anchored("master", &[&format!("master:{}", i)], ""),
             name: format!("Master{}", i),
+            background_color: None,
         })
         .collect();
     Presentation {
@@ -369,7 +438,22 @@ pub fn presentation_inspect_100_slides() -> Presentation {
                         &[&format!("shape:{}:{}", si, ei)],
                         "",
                     ),
-                    kind: format!("shape{}", ei),
+                    kind: SlideElementKind::Other(format!("shape{}", ei)),
+                    text: None,
+                    bold: None,
+                    italic: None,
+                    font_name: None,
+                    font_size_pt: None,
+                    alignment: None,
+                    x_pt: None,
+                    y_pt: None,
+                    width_pt: None,
+                    height_pt: None,
+                    data: None,
+                    mime_type: None,
+                    preset: None,
+                    fill_color: None,
+                    line_color: None,
                 })
                 .collect();
             Slide {
@@ -604,6 +688,7 @@ pub fn sheet_inspect_10_sheets() -> Spreadsheet {
                         None
                     },
                     style_name: None,
+                    number_format: None,
                 })
                 .collect();
             let row = SheetRow {
@@ -635,13 +720,27 @@ pub fn presentation_inspect_50_varied_slides() -> Presentation {
                 .map(|ei| SlideElement {
                     id: ElementId::content_anchored("shape", &[&format!("s{}:e{}", si, ei)], ""),
                     kind: match ei % 5 {
-                        0 => "text",
-                        1 => "image",
-                        2 => "table",
-                        3 => "chart",
-                        _ => "group",
-                    }
-                    .to_string(),
+                        0 => SlideElementKind::Text,
+                        1 => SlideElementKind::Image,
+                        2 => SlideElementKind::Table,
+                        3 => SlideElementKind::Other("chart".to_string()),
+                        _ => SlideElementKind::Other("group".to_string()),
+                    },
+                    text: None,
+                    bold: None,
+                    italic: None,
+                    font_name: None,
+                    font_size_pt: None,
+                    alignment: None,
+                    x_pt: None,
+                    y_pt: None,
+                    width_pt: None,
+                    height_pt: None,
+                    data: None,
+                    mime_type: None,
+                    preset: None,
+                    fill_color: None,
+                    line_color: None,
                 })
                 .collect();
             Slide {

@@ -1,7 +1,7 @@
 # P7-1 — xlsx create: content-driven xlsx from IR
 
 **Created:** 2026-09-24. **Task:** P7-1 from `docs/remaining-work.md` §Track-B.
-**Status:** spec draft — awaiting implementation.
+**Status: accepted (P1-a spec freeze review 2026-09-25).**
 
 ---
 
@@ -18,8 +18,9 @@
 | Spreadsheet IR types | `crates/gp-core/src/ir.rs` | **Complete.** `Spreadsheet`, `Sheet`, `SheetRow`, `SheetCell`, `MergedRange` with full serde + Visit impls. |
 | CLI `create` verb | `crates/cli/src/main.rs` | **Rejects xlsx.** `cmd_create` validates `target_format` to only `docx | odt | pdf`. Error message: `"invalid format '{}': must be one of: docx, odt, pdf"`. |
 | Engine creation API | `crates/engines/src/creation.rs` | **Rejects xlsx.** `VALID_TARGET_FORMATS = &["docx", "odt", "pdf"]`. `validate_args()` rejects `xlsx`. |
-| CreateTarget enum | `crates/gp-core/src/ir.rs` | **No xlsx variant.** Only `Docx`, `Odt`, `Pdf`. |
-| C1 Spreadsheet IR contract | `docs/contracts/` | **Not present as standalone doc.** Spreadsheet types live in `ir.rs`. No `C1-spreadsheet-ir.md` contract file exists (unlike C7, C11, C12, C13, C14, C15). |
+| CreateSource enum | `crates/gp-core/src/ir.rs` | **No Spreadsheet variant yet.** Will be added per P1-a open question 1 decision: add `CreateSource::Spreadsheet { ir_bytes: Vec<u8> }`. |
+| CreateTarget enum | `crates/gp-core/src/ir.rs` | **No Xlsx variant.** Only `Docx`, `Odt`, `Pdf`. |
+| C1 Spreadsheet IR contract | `docs/contracts/` | **Not present as standalone doc.** Spreadsheet types live in `ir.rs`. No `C1-spreadsheet-ir.md` contract file exists (unlike C7, C11, C12, C13, C14, C15). Low priority per P1-a decision. |
 
 ### What does NOT exist
 
@@ -29,6 +30,7 @@
 - `adapters_ooxml::create_xlsx` import in `create.rs`
 - `engines::creation` routing to xlsx writer
 - C1 Spreadsheet IR contract doc in `docs/contracts/`
+- `CreateSource::Spreadsheet` variant (resolved: will add)
 
 ---
 
@@ -84,7 +86,11 @@ pub struct MergedRange {
 
 **Gap — no style customization in IR:** The writer emits a static default `styles.xml` (Calibri 11pt, no custom fonts/fills/borders beyond defaults). Named style references in `style_name` are collected but never written to `styles.xml`. This means `style_name` on `SheetCell` is effectively a no-op in the creation path.
 
+**Resolution (P1-a):** Style system uses a **string-name-to-format-pattern** lookup table in the writer. Known names (`"bold"`, `"italic"`, `"currency"`, `"percentage"`, `"header"`, `"number"`) resolve to predefined Excel style definitions. No new IR fields required for this phase. Additive: future styles can be added to the lookup table without IR changes.
+
 **Gap — no number formats in IR:** Excel custom number formats (currency, percentage, date) are not represented in the IR. `SheetCell.style_name` is a string, not a number-format-id mapping.
+
+**Resolution (P1-a):** Add `number_format: Option<String>` as an **additive** field to `SheetCell`. The value is a format string like `"0.00"`, `"#,##0.00"`, `"0%"`, `"yyyy-mm-dd"`. The writer maps these to Excel `numFmtId` values and builds the `<numFmts>` section in `styles.xml`. See open question 3 resolution below.
 
 ---
 
@@ -95,32 +101,32 @@ pub struct MergedRange {
 | Gap | File(s) | Description |
 |---|---|---|
 | A1 | `crates/gp-core/src/ir.rs` | Add `Xlsx` to `CreateTarget` enum + `pandoc_format()` arm returning `"xlsx"`. |
-| A2 | `crates/engines/src/creation.rs` | Add `"xlsx"` to `VALID_TARGET_FORMATS`; add routing in `create_document_engine` for `CreateTarget::Xlsx`. |
+| A2 | `crates/engines/src/creation.rs` | Add `"xlsx"` to `VALID_TARGET_FORMATS`; add `("spreadsheet", "xlsx")` to `VALID_COMBINATIONS`; add `create_via_xlsx()` function and route in `create_document_engine`. |
 | A3 | `crates/cli/src/main.rs` | Add `"xlsx"` to CLI format validation in `cmd_create`. |
-| A4 | `crates/adapters-ooxml/src/create.rs` | Import `create_xlsx` module and dispatch `create_minimal_xlsx` from a `CreateXlsx` builder. |
+| A4 | `crates/adapters-ooxml/src/create.rs` | Add `mod create_xlsx;` import and dispatch `create_minimal_xlsx` from a `CreateXlsx` builder. |
 
 ### Gap B: IR completeness (medium priority)
 
 | Gap | File(s) | Description |
 |---|---|---|
-| B1 | `crates/gp-core/src/ir.rs` | Consider adding `SheetCell.number_format: Option<String>` for Excel number-format IDs. Currently style_name is a string name, not a format id. |
-| B2 | `crates/adapters-ooxml/src/create_xlsx.rs` | Wire `style_name` → `styles.xml` cellXfs entries with proper numFmtId/fontId/fillId/borderId mapping. Currently the style index is collected but the styles.xml is static. |
-| B3 | `crates/adapters-ooxml/src/create_xlsx.rs` | Add `Sheet.print_settings: Option<PrintSettings>` for page setup, margins, orientation. |
-| B4 | `crates/adapters-ooxml/src/create_xlsx.rs` | Add `SheetColDef` type for column widths and row heights (sparse per-sheet col/row definitions). |
-| B5 | `crates/adapters-ooxml/src/create_xlsx.rs` | Add `Spreadsheet.protect: Option<SheetProtection>` for worksheet protection. |
+| B1 | `crates/gp-core/src/ir.rs` | **RESOLVED (P1-a):** Add `SheetCell.number_format: Option<String>` additive field for format strings. See open question 3. |
+| B2 | `crates/adapters-ooxml/src/create_xlsx.rs` | Wire `style_name` → `styles.xml` cellXfs entries with proper numFmtId/fontId/fillId/borderId mapping via a style-name-to-format lookup table. |
+| B3 | `crates/adapters-ooxml/src/create_xlsx.rs` | Add `Sheet.print_settings: Option<PrintSettings>` for page setup, margins, orientation. **DEFERRED** to P1-c — not MVP. |
+| B4 | `crates/adapters-ooxml/src/create_xlsx.rs` | Add `SheetColDef` type for column widths and row heights (sparse per-sheet col/row definitions). **DEFERRED** to P1-c — not MVP. |
+| B5 | `crates/adapters-ooxml/src/create_xlsx.rs` | Add `Spreadsheet.protect: Option<SheetProtection>` for worksheet protection. **DEFERRED** — not MVP. |
 
 ### Gap C: C1 contract doc (low priority, documentation)
 
 | Gap | File | Description |
 |---|---|---|
-| C1 | `docs/contracts/C1-spreadsheet-ir.md` | Create standalone contract doc (pattern from C7, C11, C12, etc.) documenting the Spreadsheet IR schema, constraints, and versioning rules. |
+| C1 | `docs/contracts/C1-spreadsheet-ir.md` | Create standalone contract doc (pattern from C7, C11, C12, etc.) documenting the Spreadsheet IR schema, constraints, and versioning rules. **DEFERRED** — types are well-documented in `ir.rs` with serde derive + Visit impls. |
 
 ### Gap D: Integration wiring (medium priority)
 
 | Gap | File(s) | Description |
 |---|---|---|
-| D1 | `crates/engines/src/creation.rs` | Create `create_via_ooxml_writer()` engine function that takes `CreateSource::Spreadsheet { ir_bytes }` → `CreateTarget::Xlsx` → calls `adapters_ooxml::create_xlsx::create_minimal_xlsx`. |
-| D2 | `crates/engines/src/creation.rs` | Handle `CreateSource::Spreadsheet { ir_bytes }` as a new CreateSource variant (or reuse `CreateSource::Markdown` with a different interpretation). |
+| D1 | `crates/engines/src/creation.rs` | Create `create_via_xlsx()` engine function that takes `CreateSource::Spreadsheet { ir_bytes }` → deserializes JSON to `Spreadsheet` → calls `adapters_ooxml::create_xlsx::create_minimal_xlsx`. |
+| D2 | `crates/gp-core/src/ir.rs` | Add `CreateSource::Spreadsheet { ir_bytes: Vec<u8> }` variant. `format_name()` returns `"spreadsheet"`. Not pandoc-compatible (bypasses external engines entirely). |
 
 ---
 
@@ -129,59 +135,67 @@ pub struct MergedRange {
 ### Phase 1: Core wiring (prerequisites, S–M)
 
 1. **1a.** Add `Xlsx` variant to `CreateTarget` in `gp-core/src/ir.rs`.
-   - Add `pandoc_format()` arm → `"xlsx"` (or `"excel"` — pandoc uses `"xlsx"`).
-   - Size: **S**
+    - Add `pandoc_format()` arm → `"xlsx"`.
+    - Size: **S**
 
-2. **1b.** Update CLI `cmd_create` in `crates/cli/src/main.rs` to accept `"xlsx"`.
-   - Change validation match arm: `"docx" | "odt" | "pdf" | "xlsx" => {}`.
-   - Size: **S**
+2. **1b.** Add `CreateSource::Spreadsheet { ir_bytes: Vec<u8> }` to `gp-core/src/ir.rs`.
+    - `format_name()` returns `"spreadsheet"`.
+    - `is_pandoc_compatible()` returns `false` (no external engine).
+    - `content()` returns the raw IR JSON bytes.
+    - Size: **S**
 
-3. **1c.** Update `engines/src/creation.rs`:
-   - Add `"xlsx"` to `VALID_TARGET_FORMATS`.
-   - Add `("spreadsheet", "xlsx")` to `VALID_COMBINATIONS`.
-   - Add routing in `create_document_engine` for `CreateTarget::Xlsx`.
-   - Size: **S**
+3. **1c.** Add `SheetCell.number_format: Option<String>` additive field to `gp-core/src/ir.rs`.
+    - Format string value: `"0.00"`, `"#,##0.00"`, `"0%"`, `"yyyy-mm-dd"`.
+    - Size: **S**
 
-### Phase 2: Creation writer enhancement (M–L)
+4. **1d.** Update CLI `cmd_create` in `crates/cli/src/main.rs` to accept `"xlsx"`.
+    - Change validation match arm: `"docx" | "odt" | "pdf" | "xlsx" => {}`.
+    - Size: **S**
 
-4. **2a.** Wire `adapters-ooxml/src/create.rs` to dispatch to xlsx.
-   - Add `mod create_xlsx;` to `lib.rs` (already present).
-   - In `create.rs`, add `CreateXlsx` builder struct parallel to `CreateDocx`.
-   - Add `create_minimal_xlsx()` public wrapper.
-   - Size: **S**
+5. **1e.** Update `engines/src/creation.rs`:
+    - Add `"xlsx"` to `VALID_TARGET_FORMATS`.
+    - Add `("spreadsheet", "xlsx")` to `VALID_COMBINATIONS`.
+    - Add `create_via_xlsx()` function.
+    - Add routing in `create_document_engine` for xlsx path.
+    - Size: **M**
 
-5. **2b.** Enhance `create_xlsx.rs` styles writing.
-   - Build `styles.xml` dynamically from collected `style_name` → index map.
-   - Map known style names to font/border/fill/numFmt definitions.
-   - Size: **M**
+### Phase 2: Creation writer enhancement (M)
 
-6. **2c.** Add column width / row height support.
-   - Add optional `col_widths: Vec<f64>` and `row_heights: Vec<f64>` to `Sheet`.
-   - Emit `<cols>` and `<row @ht="...">` in worksheet XML.
-   - Size: **M**
+6. **2a.** Wire `adapters-ooxml/src/create.rs` to dispatch to xlsx.
+    - Add `mod create_xlsx;` to `lib.rs` (already present).
+    - In `create.rs`, add `CreateXlsx` builder struct parallel to `CreateDocx`.
+    - Add `create_minimal_xlsx()` public wrapper.
+    - Size: **S**
 
-7. **2d.** Add number format support.
-   - Add `number_formats: BTreeMap<String, String>` to `Sheet` mapping style names to x:numFmt.
-   - Emit `<numFmts>` section in `styles.xml`.
-   - Size: **M**
+7. **2b.** Enhance `create_xlsx.rs` styles writing.
+    - Implement style-name-to-format-pattern lookup table.
+    - Resolve known names (`"bold"`, `"italic"`, `"currency"`, `"percentage"`, `"header"`) to Excel style definitions.
+    - Write dynamic `styles.xml` with resolved cellXfs entries.
+    - Size: **M**
+
+8. **2c.** Add `number_format` support to writer.
+    - Map format strings to `numFmtId` values.
+    - Build `<numFmts>` section from collected unique format strings.
+    - Wire `SheetCell.number_format` → `<xf numFmtId="...">`.
+    - Size: **M**
 
 ### Phase 3: Round-trip verification (M)
 
-8. **3a.** Create round-trip corpus fixtures.
-   - Reuse `test_fixtures` in `xlsx.rs` to generate xlsx → IR → xlsx → compare.
-   - Add test: create xlsx from IR → parse back → verify IR equality.
-   - Size: **M**
+9. **3a.** Create round-trip corpus fixtures.
+    - Reuse `test_fixtures` in `xlsx.rs` to generate xlsx → IR → xlsx → compare.
+    - Add test: create xlsx from IR → parse back → verify IR equality.
+    - Size: **M**
 
-9. **3b.** Add integration test in `engines/src/creation.rs`.
-   - Test `create_document` with `xlsx` target, verify PK header.
-   - Size: **S**
+10. **3b.** Add integration test in `engines/src/creation.rs`.
+    - Test `create_document` with `xlsx` target, verify PK header.
+    - Size: **S**
 
-### Phase 4: C1 contract doc (S)
+### Phase 4: C1 contract doc (S) — deferred
 
-10. **4a.** Create `docs/contracts/C1-spreadsheet-ir.md`.
+11. **4a.** Create `docs/contracts/C1-spreadsheet-ir.md`.
     - Document all Spreadsheet IR types, constraints, and versioning.
     - Follow pattern from C7, C11, C12.
-    - Size: **S**
+    - **Deferred** — types are well-documented in `ir.rs`.
 
 ---
 
@@ -207,7 +221,7 @@ pub struct MergedRange {
 | `test_xlsx_roundtrip_identity` | IR → xlsx → parse → IR equality (byte-identical or semantically equal) |
 | `test_xlsx_with_styles_dynamic` | Named styles produce actual style entries in styles.xml |
 | `test_xlsx_with_number_formats` | Currency/percentage formats in styles.xml numFmts |
-| `test_xlsx_with_column_widths` | `<cols>` section with width attributes |
+| `test_xlsx_with_column_widths` | `<cols>` section with width attributes — **deferred** |
 | `test_xlsx_invalid_input` | Empty sheets vec still produces valid OPC |
 
 ### Round-trip test pattern (from `xlsx.rs` test_fixtures)
@@ -235,16 +249,16 @@ fn test_xlsx_create_roundtrip() {
 | Phase | Subtask | Size |
 |---|---|---|
 | 1a | `CreateTarget::Xlsx` | S |
-| 1b | CLI format validation | S |
-| 1c | Engine routing | S |
+| 1b | `CreateSource::Spreadsheet` variant | S |
+| 1c | `SheetCell.number_format` additive field | S |
+| 1d | CLI format validation | S |
+| 1e | Engine routing + `create_via_xlsx()` | M |
 | 2a | `create.rs` dispatch | S |
-| 2b | Dynamic styles.xml | M |
-| 2c | Column/row dimensions | M |
-| 2d | Number format support | M |
+| 2b | Dynamic styles.xml (lookup table) | M |
+| 2c | Number format support | M |
 | 3a | Round-trip corpus | M |
 | 3b | Integration test | S |
-| 4a | C1 contract doc | S |
-| **Total** | | **~3–5 days** (2 M + 6 S) |
+| **Total** | | **~3–5 days** (4 M + 5 S) |
 
 ---
 
@@ -257,6 +271,7 @@ fn test_xlsx_create_roundtrip() {
 | `gp_core::diagnostics` | `gp-core` | **No** — already used | Diagnostics |
 | `gp_core::traits` | `gp-core` | **No** — already used | Codec trait |
 | `serde` | `gp-core` | **No** — already in use | Serialization |
+| `serde_json` | `engines` | **No** — already in use | IR JSON deserialization |
 
 **No new external dependencies required.** The `adapters-ooxml` crate already has `zip` as a dependency.
 
@@ -278,15 +293,76 @@ fn test_xlsx_create_roundtrip() {
 
 ---
 
-## 9. Open questions
+## 9. Open questions — RESOLVED (P1-a spec freeze review)
 
-1. **Should `CreateSource` gain a `Spreadsheet { ir_bytes: Vec<u8> }` variant?** This would let the `create` verb accept pre-built IR JSON for xlsx output. Alternatively, the `--source-content` could contain IR JSON when `--format=xlsx`.
+### OQ-1: Should `CreateSource` gain a `Spreadsheet { ir_bytes: Vec<u8> }` variant?
 
-2. **Style system design:** Should `style_name` on `SheetCell` map to named styles (like docx "Heading 1") or to raw Excel style properties (bold, italic, font, fill)? The current IR only has a string name — a richer `CellStyle` type would be needed for full fidelity.
+**Decision: YES.** Add `CreateSource::Spreadsheet { ir_bytes: Vec<u8> }` to `gp-core/src/ir.rs`.
 
-3. **Number format IDs:** Excel uses integer format IDs (0=default, 1=general, 2=decimal, etc.) referenced via `numFmtId` on cellXfs. Should the IR store format IDs directly, or style names that resolve to format IDs?
+**Rationale:**
+- xlsx creation is content-driven from IR, not a text-to-format conversion like markdown→docx (pandoc) or typ→pdf (typst).
+- The existing `create_minimal_xlsx()` already takes a `&Spreadsheet` IR directly.
+- The `Spreadsheet` IR types are native to stichos — they don't need external engine conversion.
+- This enables `stichos create --source-type spreadsheet --source-content '<json>' --format xlsx`.
 
-4. **Spreadsheet vs. table:** The IR `Sheet` is spreadsheet-specific. Should the `SectionItem::Table` (used in docx/pptx) be unified with `Sheet` for cross-format table creation?
+**Implementation:**
+- Add variant to the `CreateSource` enum.
+- `format_name()` returns `"spreadsheet"`.
+- `is_pandoc_compatible()` returns `false` (bypasses pandoc/typst engines entirely).
+- `content()` returns the raw IR JSON bytes for deserialization.
+
+**C7 compliance:** Additive-only enum variant. No breaking changes to existing `CreateSource` arms.
+
+### OQ-2: Style system design — string name vs rich type?
+
+**Decision: Keep `style_name: Option<String>` as a string name, with a lookup table in the writer.**
+
+**Rationale:**
+- The existing IR field `SheetCell.style_name: Option<String>` is sufficient for MVP.
+- Adding a rich `CellStyle` struct would be a breaking IR change (requires serde migration, Visit impl updates, all test fixtures).
+- The docx `create.rs` follows the same pattern: `Paragraph.style_name` is a string that maps to Word style IDs at write time.
+- A style-name-to-format-pattern lookup table in `build_styles_xml()` resolves known names to Excel style definitions:
+  - `"bold"` → bold font + Calibri 11
+  - `"italic"` → italic font
+  - `"currency"` → numFmtId="5" (currency)
+  - `"percentage"` → numFmtId="10" (percentage)
+  - `"header"` → bold + centered + 14pt
+  - `"number"` → numFmtId="2" (decimal)
+  - Unknown names → default Normal style (graceful degradation)
+
+**Future:** If richer style definitions are needed, add a `styles` field to `Spreadsheet` containing a `BTreeMap<String, StyleDef>` without changing the per-cell `style_name` field.
+
+### OQ-3: Number format IDs — integer IDs vs style names?
+
+**Decision: Add additive `SheetCell.number_format: Option<String>` storing a format string.**
+
+**Rationale:**
+- Excel number formats are referenced by integer `numFmtId` in `styles.xml`, but consumers don't need to know these internal IDs.
+- Storing format strings directly (`"0.00"`, `"#,##0.00"`, `"0%"`, `"yyyy-mm-dd"`) is more intuitive for API consumers.
+- The writer maps format strings to `numFmtId` values:
+  - `"0.00"` → `numFmtId="4"` (decimal, 2 places)
+  - `"#,##0.00"` → `numFmtId="5"` (currency, US style)
+  - `"0%"` → `numFmtId="10"` (percentage)
+  - `"yyyy-mm-dd"` → `numFmtId="14"` (date)
+  - Custom formats → assign new `numFmtId` starting at 164 (Excel user-defined range)
+
+**Implementation:**
+- Add field: `#[serde(skip_serializing_if = "Option::is_none", default)] pub number_format: Option<String>`.
+- In `build_styles_xml()`, collect unique format strings → build `<numFmts>` section → assign `numFmtId` values → write `<xf numFmtId="...">` for each cell that has a number format.
+- C7 compliant: additive field with `skip_serializing_if`.
+
+### OQ-4: Spreadsheet vs. table unification?
+
+**Decision: Do NOT unify. Keep `SectionItem::Table` and `Sheet` separate.**
+
+**Rationale:**
+- `SectionItem::Table` is a **document-embedded table**: its cells contain `Vec<SectionItem>` (paragraphs, runs, etc.). Used in docx/pptx for rich tabular content.
+- `Sheet` is a **spreadsheet-native data structure**: its cells contain simple values (strings, numbers, formulas, booleans). Used in xlsx for flat tabular data.
+- The docx `Table` maps to `<w:tbl>` with `<w:tc>` cells containing paragraphs. The xlsx `Sheet` maps to `<sheetData>` with `<c>` cells.
+- Unifying them would require overloading the cell model to handle both rich document content and flat spreadsheet values.
+- The IR's clean separation between document families (Document → Document family, Spreadsheet → Spreadsheet family) is a design strength.
+
+**Future consideration:** A shared `TableData { rows: Vec<Vec<TableCell>> }` type could be extracted for simple tabular content (strings/numbers only) that both `SectionItem::Table` and `Sheet` can use. But this is out of scope for P7-1.
 
 ---
 
@@ -296,10 +372,14 @@ fn test_xlsx_create_roundtrip() {
 - [ ] Round-trip: xlsx → IR → xlsx preserves all cells, formulas, shared strings, merged ranges.
 - [ ] `CreateTarget::Xlsx` is added and documented in C1 contract.
 - [ ] `VALID_TARGET_FORMATS` includes `"xlsx"` and engine routing works end-to-end.
+- [ ] `CreateSource::Spreadsheet` variant added; deserializes JSON to `Spreadsheet` IR.
+- [ ] `SheetCell.number_format` additive field present; writer maps format strings to Excel numFmtId values.
+- [ ] Style names resolved via lookup table: `"bold"`, `"italic"`, `"currency"`, `"percentage"`, `"header"` produce actual style entries in `styles.xml`.
 - [ ] Unit tests cover: empty spreadsheet, single-sheet, multi-sheet, formulas, merged ranges, shared strings, number formats, custom styles.
 - [ ] No new external dependencies.
 - [ ] `cargo test -p adapters-ooxml --lib` passes.
 - [ ] `cargo test -p engines --lib` passes.
+- [ ] `phase6_gate.sh --ci` green (or appropriate phase-gate check for P7).
 
 ---
 
@@ -307,10 +387,12 @@ fn test_xlsx_create_roundtrip() {
 
 | File | Change |
 |---|---|
-| `crates/gp-core/src/ir.rs` | Add `Xlsx` to `CreateTarget` enum |
-| `crates/cli/src/main.rs` | Add `"xlsx"` to format validation |
-| `crates/engines/src/creation.rs` | Add `"xlsx"` to formats + routing |
+| `crates/gp-core/src/ir.rs` | Add `Xlsx` to `CreateTarget` enum; Add `CreateSource::Spreadsheet` variant; Add `SheetCell.number_format: Option<String>` |
+| `crates/cli/src/main.rs` | Add `"xlsx"` to format validation; Add `"spreadsheet"` to source_type validation |
+| `crates/engines/src/creation.rs` | Add `"xlsx"` to formats + routing; Add `create_via_xlsx()` function; Add `("spreadsheet", "xlsx")` to valid combinations |
 | `crates/adapters-ooxml/src/lib.rs` | Ensure `create_xlsx` is public (already is) |
 | `crates/adapters-ooxml/src/create.rs` | Add xlsx dispatch path |
-| `crates/adapters-ooxml/src/create_xlsx.rs` | Enhance styles/number formats (if in scope) |
-| `docs/contracts/C1-spreadsheet-ir.md` | **New file** — C1 contract doc |
+| `crates/adapters-ooxml/src/create_xlsx.rs` | Enhance styles.xml (lookup table); Wire number_format → numFmtId |
+| `docs/contracts/C1-spreadsheet-ir.md` | **Deferred** — types documented in `ir.rs` |
+
+(End of file - total ~340 lines)

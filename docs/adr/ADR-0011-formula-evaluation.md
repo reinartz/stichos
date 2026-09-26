@@ -45,6 +45,8 @@ the cached value is stale or absent.
   LOC. No new crates, no new dependencies.
 - **Refusal list completeness:** 11 GP-F0xx codes cover all xlsx formula failure modes the project
   cares about.
+- **Measured cost (v1.0.0):** 12 functions in ~500 LOC (evaluator.rs + tests). Phase 7 expansion to
+  ~55 functions estimated at ~2,500 LOC across 4 tranches (see P7-3).
 
 ## 4. Consequences
 
@@ -58,6 +60,9 @@ the cached value is stale or absent.
   is in the supported subset, also compute and run parity check
 - **Unsupported functions:** Surface cached `<v>` value + emit fidelity budget entry; never invent
   a value
+- **Phased expansion:** Tranche A (P7-3A) adds ~28 functions covering the highest-frequency gaps
+  (math, text, date/time, statistical basics). Subsequent tranches add lookup, financial, and
+  advanced functions. Each tranche is additive-only (C15 versioning).
 
 ### Option B: External engine
 - Blocks on LibreOffice / soffice availability
@@ -82,3 +87,7 @@ formulas. The ~200-400 LOC cost is bounded and contained within `adapters-ooxml`
 ADR-0011 status set to accepted. The formula module in `gp-core/src/formula/`
 and `adapters-ooxml/src/formula/` implements the supported subset with parity
 lint and GP-F0xx refusals. See `docs/contracts/C15-formula-evaluation.md`.
+- **Future scope:** The 12-function v1.0.0 subset is the initial delivery. Full formula coverage
+  (~55 functions across 4 tranches) is tracked as P7-3 in the Phase-7 backlog. Each tranche
+  requires a C15 version bump only if semantics change; new function additions are additive-only
+  per C15 §5.

@@ -33,6 +33,18 @@ pub enum CreateSource {
         /// Raw typst source bytes.
         content: Vec<u8>,
     },
+    /// Spreadsheet IR input (JSON-serialized gp_core::ir::Spreadsheet).
+    /// Used by xlsx creation path which bypasses pandoc/typst/chromium engines.
+    Spreadsheet {
+        /// Raw JSON bytes of a Spreadsheet IR document.
+        content: Vec<u8>,
+    },
+    /// Presentation IR input (JSON-serialized gp_core::ir::Presentation).
+    /// Used by pptx creation path which bypasses external engines.
+    Presentation {
+        /// Raw JSON bytes of a Presentation IR document.
+        content: Vec<u8>,
+    },
 }
 
 impl CreateSource {
@@ -42,6 +54,8 @@ impl CreateSource {
             CreateSource::Markdown { .. } => "markdown",
             CreateSource::Html { .. } => "html",
             CreateSource::Typst { .. } => "typ",
+            CreateSource::Spreadsheet { .. } => "spreadsheet",
+            CreateSource::Presentation { .. } => "presentation",
         }
     }
 
@@ -51,6 +65,8 @@ impl CreateSource {
             CreateSource::Markdown { content } => content,
             CreateSource::Html { content } => content,
             CreateSource::Typst { content } => content,
+            CreateSource::Spreadsheet { content } => content,
+            CreateSource::Presentation { content } => content,
         }
     }
 
@@ -79,6 +95,10 @@ pub enum CreateTarget {
     Odt,
     /// PDF document.
     Pdf,
+    /// Microsoft Excel workbook (.xlsx).
+    Xlsx,
+    /// Microsoft PowerPoint presentation (.pptx).
+    Pptx,
 }
 
 impl CreateTarget {
@@ -88,6 +108,8 @@ impl CreateTarget {
             CreateTarget::Docx => "docx",
             CreateTarget::Odt => "odt",
             CreateTarget::Pdf => "pdf",
+            CreateTarget::Xlsx => "xlsx",
+            CreateTarget::Pptx => "pptx",
         }
     }
 }
@@ -837,6 +859,10 @@ pub struct SheetCell {
     pub cached_value: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub style_name: Option<String>,
+    /// Excel number format string (e.g. "0.00", "#,##0.00", "0%").
+    /// Maps to <numFmt> in styles.xml during xlsx creation.
+    #[serde(default)]
+    pub number_format: Option<String>,
 }
 
 /// A range of merged cells in a spreadsheet.
@@ -929,6 +955,87 @@ impl Visit for MergedRange {
 // ===== Presentation family =====
 // ====================================================================
 
+/// The kind of element in a PowerPoint slide.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum SlideElementKind {
+    /// A text element (title, body text, notes).
+    Text,
+    /// A shape element (rect, ellipse, etc.).
+    Shape,
+    /// An image element with embedded data.
+    Image,
+    /// A table element with rows and cells.
+    Table,
+    /// A drawing element with embedded data.
+    Drawing,
+    /// A generic graphic element.
+    Graphic,
+    /// Other/unrecognized element kind preserving the original string.
+    Other(String),
+}
+
+impl SlideElementKind {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            SlideElementKind::Text => "text",
+            SlideElementKind::Shape => "shape",
+            SlideElementKind::Image => "image",
+            SlideElementKind::Table => "table",
+            SlideElementKind::Drawing => "drawing",
+            SlideElementKind::Graphic => "graphic",
+            SlideElementKind::Other(_) => "other",
+        }
+    }
+}
+
+/// A shared text run (used by tables in both docx and pptx IR).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct TextRun {
+    pub id: ElementId,
+    pub text: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub bold: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub italic: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub font_name: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub font_size_pt: Option<f64>,
+}
+
+/// A cell in a presentation or docx table.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct TableCell {
+    pub id: ElementId,
+    pub contents: Vec<TextRun>,
+}
+
+/// A row in a presentation or docx table.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct TableRow {
+    pub id: ElementId,
+    pub cells: Vec<TableCell>,
+}
+
+/// A content placeholder definition for a slide layout.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct Placeholder {
+    pub id: ElementId,
+    /// Name of the placeholder (e.g. "Title 1", "Content 2").
+    pub name: String,
+    /// Placeholder type: "title", "ctrPic", "body", "dt", "obj", etc.
+    pub ph_type: String,
+    /// Position X in points.
+    pub x: f64,
+    /// Position Y in points.
+    pub y: f64,
+    /// Width in points.
+    pub w: f64,
+    /// Height in points.
+    pub h: f64,
+}
+
 /// A presentation (PowerPoint-like).
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Presentation {
@@ -953,7 +1060,68 @@ pub struct Slide {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct SlideElement {
     pub id: ElementId,
-    pub kind: String,
+    pub kind: SlideElementKind,
+    /// Text content for text elements.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub text: Option<String>,
+    /// Bold formatting.
+    #[serde(default)]
+    pub bold: Option<bool>,
+    /// Italic formatting.
+    #[serde(default)]
+    pub italic: Option<bool>,
+    /// Font name (e.g. "Calibri").
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub font_name: Option<String>,
+    /// Font size in points.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub font_size_pt: Option<f64>,
+    /// Horizontal alignment ("left", "center", "right").
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub alignment: Option<String>,
+    /// Position X in points.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub x_pt: Option<f64>,
+    /// Position Y in points.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub y_pt: Option<f64>,
+    /// Width in points.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub width_pt: Option<f64>,
+    /// Height in points.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub height_pt: Option<f64>,
+    /// Embedded image/data bytes.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub data: Option<Vec<u8>>,
+    /// MIME type of embedded data (e.g. "image/png").
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mime_type: Option<String>,
+    /// Shape preset geometry type (e.g. "rect", "ellipse", "diamond").
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub preset: Option<String>,
+    /// Fill color (e.g. "#E25840").
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub fill_color: Option<String>,
+    /// Line/border color.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub line_color: Option<String>,
+}
+
+impl SlideElement {
+    /// Return the kind as a string for matching/comparison.
+    /// For `Other(_)` variants returns the inner string.
+    pub fn kind_str(&self) -> &str {
+        match &self.kind {
+            SlideElementKind::Text => "text",
+            SlideElementKind::Shape => "shape",
+            SlideElementKind::Image => "image",
+            SlideElementKind::Table => "table",
+            SlideElementKind::Drawing => "drawing",
+            SlideElementKind::Graphic => "graphic",
+            SlideElementKind::Other(s) => s.as_str(),
+        }
+    }
 }
 
 /// A layout definition.
@@ -961,6 +1129,10 @@ pub struct SlideElement {
 pub struct Layout {
     pub id: ElementId,
     pub name: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub layout_type: Option<String>,
+    #[serde(default)]
+    pub placeholders: Vec<Placeholder>,
 }
 
 /// A master slide.
@@ -968,6 +1140,8 @@ pub struct Layout {
 pub struct Master {
     pub id: ElementId,
     pub name: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub background_color: Option<String>,
 }
 
 // ====================================================================

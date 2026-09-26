@@ -181,15 +181,16 @@ pub fn census_presentation(pres: &Presentation) -> FeatureCounts {
     };
     for slide in &pres.slides {
         for elem in &slide.elements {
-            if elem.kind == "text" {
+            let k = elem.kind_str();
+            if k == "text" {
                 counts.slide_text_elements += 1;
-            } else if elem.kind.starts_with("placeholder") {
+            } else if k.starts_with("placeholder") {
                 counts.slide_placeholders += 1;
-            } else if elem.kind == "table" {
+            } else if k == "table" {
                 counts.slide_tables += 1;
-            } else if elem.kind == "drawing" {
+            } else if k == "drawing" {
                 counts.slide_drawings += 1;
-            } else if elem.kind == "image" {
+            } else if k == "image" {
                 counts.slide_images += 1;
             }
         }
@@ -839,6 +840,7 @@ mod tests {
             formula: None,
             cached_value: Some("42".into()),
             style_name: None,
+            number_format: None,
         };
         let cell2 = SheetCell {
             id: ElementId::content_anchored("cell", &["B1"], "B1"),
@@ -848,6 +850,7 @@ mod tests {
             formula: Some("=SUM(A1)".into()),
             cached_value: Some("42".into()),
             style_name: None,
+            number_format: None,
         };
         let sheet = Sheet {
             id: ElementId::content_anchored("sheet", &["Sheet1"], "Sheet1"),
@@ -892,6 +895,7 @@ mod tests {
                 formula: None,
                 cached_value: None,
                 style_name: None,
+                number_format: None,
             }
         };
         let sheet1 = Sheet {
@@ -919,6 +923,7 @@ mod tests {
                         formula: Some("=A1".into()),
                         cached_value: None,
                         style_name: None,
+                        number_format: None,
                     }],
                 },
                 SheetRow {
@@ -931,6 +936,7 @@ mod tests {
                         formula: None,
                         cached_value: None,
                         style_name: None,
+                        number_format: None,
                     }],
                 },
             ],
@@ -955,24 +961,85 @@ mod tests {
     /// test_census_presentation_counts — verify slide/element counts.
     #[test]
     fn test_census_presentation_counts() {
+        use gp_core::ir::SlideElementKind;
         let slide = Slide {
             id: ElementId::content_anchored("slide", &["slide:0"], "slide1.xml"),
             elements: vec![
                 SlideElement {
                     id: ElementId::content_anchored("e", &["text:0"], "Hello"),
-                    kind: "text".into(),
+                    kind: SlideElementKind::Text,
+                    text: None,
+                    bold: None,
+                    italic: None,
+                    font_name: None,
+                    font_size_pt: None,
+                    alignment: None,
+                    x_pt: None,
+                    y_pt: None,
+                    width_pt: None,
+                    height_pt: None,
+                    data: None,
+                    mime_type: None,
+                    preset: None,
+                    fill_color: None,
+                    line_color: None,
                 },
                 SlideElement {
                     id: ElementId::content_anchored("e", &["text:1"], "World"),
-                    kind: "text".into(),
+                    kind: SlideElementKind::Text,
+                    text: None,
+                    bold: None,
+                    italic: None,
+                    font_name: None,
+                    font_size_pt: None,
+                    alignment: None,
+                    x_pt: None,
+                    y_pt: None,
+                    width_pt: None,
+                    height_pt: None,
+                    data: None,
+                    mime_type: None,
+                    preset: None,
+                    fill_color: None,
+                    line_color: None,
                 },
                 SlideElement {
                     id: ElementId::content_anchored("e", &["ph:0"], "Title"),
-                    kind: "placeholder:title".into(),
+                    kind: SlideElementKind::Other("placeholder:title".to_string()),
+                    text: None,
+                    bold: None,
+                    italic: None,
+                    font_name: None,
+                    font_size_pt: None,
+                    alignment: None,
+                    x_pt: None,
+                    y_pt: None,
+                    width_pt: None,
+                    height_pt: None,
+                    data: None,
+                    mime_type: None,
+                    preset: None,
+                    fill_color: None,
+                    line_color: None,
                 },
                 SlideElement {
                     id: ElementId::content_anchored("e", &["draw:0"], "chart"),
-                    kind: "drawing".into(),
+                    kind: SlideElementKind::Drawing,
+                    text: None,
+                    bold: None,
+                    italic: None,
+                    font_name: None,
+                    font_size_pt: None,
+                    alignment: None,
+                    x_pt: None,
+                    y_pt: None,
+                    width_pt: None,
+                    height_pt: None,
+                    data: None,
+                    mime_type: None,
+                    preset: None,
+                    fill_color: None,
+                    line_color: None,
                 },
             ],
         };
@@ -983,10 +1050,13 @@ mod tests {
             layouts: vec![Layout {
                 id: ElementId::content_anchored("layout", &["layout:0"], "TS"),
                 name: "Title Slide".into(),
+                layout_type: None,
+                placeholders: vec![],
             }],
             masters: vec![Master {
                 id: ElementId::content_anchored("master", &["master:0"], "OT"),
                 name: "Office Theme".into(),
+                background_color: None,
             }],
         };
         let counts = census_presentation(&pres);
@@ -1001,6 +1071,7 @@ mod tests {
     /// test_census_presentation_multi_slide.
     #[test]
     fn test_census_presentation_multi_slide() {
+        use gp_core::ir::SlideElementKind;
         let pres = Presentation {
             ir_version: IR_VERSION.to_string(),
             ir_version_migration: None,
@@ -1009,7 +1080,22 @@ mod tests {
                     id: ElementId::content_anchored("slide", &["s0"], "slide1.xml"),
                     elements: vec![SlideElement {
                         id: ElementId::content_anchored("e", &["t:0"], "Hello"),
-                        kind: "text".into(),
+                        kind: SlideElementKind::Text,
+                        text: None,
+                        bold: None,
+                        italic: None,
+                        font_name: None,
+                        font_size_pt: None,
+                        alignment: None,
+                        x_pt: None,
+                        y_pt: None,
+                        width_pt: None,
+                        height_pt: None,
+                        data: None,
+                        mime_type: None,
+                        preset: None,
+                        fill_color: None,
+                        line_color: None,
                     }],
                 },
                 Slide {
@@ -1017,11 +1103,41 @@ mod tests {
                     elements: vec![
                         SlideElement {
                             id: ElementId::content_anchored("e", &["t:0"], "World"),
-                            kind: "text".into(),
+                            kind: SlideElementKind::Text,
+                            text: None,
+                            bold: None,
+                            italic: None,
+                            font_name: None,
+                            font_size_pt: None,
+                            alignment: None,
+                            x_pt: None,
+                            y_pt: None,
+                            width_pt: None,
+                            height_pt: None,
+                            data: None,
+                            mime_type: None,
+                            preset: None,
+                            fill_color: None,
+                            line_color: None,
                         },
                         SlideElement {
                             id: ElementId::content_anchored("e", &["tb:0"], "tbl"),
-                            kind: "table".into(),
+                            kind: SlideElementKind::Table,
+                            text: None,
+                            bold: None,
+                            italic: None,
+                            font_name: None,
+                            font_size_pt: None,
+                            alignment: None,
+                            x_pt: None,
+                            y_pt: None,
+                            width_pt: None,
+                            height_pt: None,
+                            data: None,
+                            mime_type: None,
+                            preset: None,
+                            fill_color: None,
+                            line_color: None,
                         },
                     ],
                 },
@@ -1197,6 +1313,7 @@ mod tests {
                         formula: Some("=1+1".into()),
                         cached_value: None,
                         style_name: None,
+                        number_format: None,
                     }],
                 }],
                 merged_ranges: vec![],
@@ -1218,7 +1335,22 @@ mod tests {
                 id: ElementId::content_anchored("slide", &["s0"], "slide1.xml"),
                 elements: vec![SlideElement {
                     id: ElementId::content_anchored("e", &["t:0"], "Title"),
-                    kind: "text".into(),
+                    kind: gp_core::ir::SlideElementKind::Text,
+                    text: None,
+                    bold: None,
+                    italic: None,
+                    font_name: None,
+                    font_size_pt: None,
+                    alignment: None,
+                    x_pt: None,
+                    y_pt: None,
+                    width_pt: None,
+                    height_pt: None,
+                    data: None,
+                    mime_type: None,
+                    preset: None,
+                    fill_color: None,
+                    line_color: None,
                 }],
             }],
             layouts: vec![],

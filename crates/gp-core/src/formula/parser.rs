@@ -34,6 +34,10 @@ pub enum FormulaNode {
     },
     /// Boolean true/false.
     Bool(bool),
+    /// Exponentiation: base ^ exp (right-associative).
+    Pow(Box<FormulaNode>, Box<FormulaNode>),
+    /// Percent postfix: expr % => expr * 0.01.
+    Percent(Box<FormulaNode>),
 }
 
 /// Binary operators supported in v1.0.0.
@@ -61,6 +65,7 @@ pub enum BinOp {
     Ge,
     /// Text concatenation
     Concat,
+    // Note: Exponentiation (^) is stored as Pow variant on FormulaNode, not BinOp.
 }
 
 /// Parse error for formula parsing.
@@ -104,6 +109,9 @@ enum Token {
     Le,
     Ge,
     Concat,
+    Caret,
+    Percent,
+    Dollar,
     Eof,
 }
 
@@ -244,6 +252,18 @@ impl Tokenizer {
                 Some('=') => {
                     self.next_char();
                     tokens.push(Token::Eq);
+                }
+                Some('^') => {
+                    self.next_char();
+                    tokens.push(Token::Caret);
+                }
+                Some('%') => {
+                    self.next_char();
+                    tokens.push(Token::Percent);
+                }
+                Some('$') => {
+                    self.next_char();
+                    tokens.push(Token::Dollar);
                 }
                 Some(c) if c.is_ascii_digit() || c == '.' => {
                     let start = self.pos;
@@ -442,7 +462,7 @@ impl Parser {
 
     /// Multiplication and division.
     fn parse_mul_div(&mut self) -> Result<FormulaNode, ParseError> {
-        let mut left = self.parse_unary()?;
+        let mut left = self.parse_pow()?;
         loop {
             let op = match self.peek() {
                 Token::Star => {
@@ -455,7 +475,7 @@ impl Parser {
                 }
                 _ => break,
             };
-            let right = self.parse_unary()?;
+            let right = self.parse_pow()?;
             left = FormulaNode::BinaryOp {
                 op,
                 left: Box::new(left),
@@ -463,6 +483,30 @@ impl Parser {
             };
         }
         Ok(left)
+    }
+
+    /// Exponentiation (^) — right-associative, higher precedence than mul/div.
+    fn parse_pow(&mut self) -> Result<FormulaNode, ParseError> {
+        let base = self.parse_percent()?;
+        if let Token::Caret = self.peek() {
+            self.next();
+            let exp = self.parse_pow(); // right-associative: recurse into self
+            let exp = exp?;
+            Ok(FormulaNode::Pow(Box::new(base), Box::new(exp)))
+        } else {
+            Ok(base)
+        }
+    }
+
+    /// Percent postfix operator.
+    fn parse_percent(&mut self) -> Result<FormulaNode, ParseError> {
+        let expr = self.parse_unary()?;
+        if let Token::Percent = self.peek() {
+            self.next();
+            Ok(FormulaNode::Percent(Box::new(expr)))
+        } else {
+            Ok(expr)
+        }
     }
 
     /// Unary minus.
@@ -507,6 +551,7 @@ impl Parser {
                 Ok(FormulaNode::Bool(b))
             }
             Token::Ident(_) => self.parse_ident_or_range(),
+            Token::Dollar => self.parse_ident_or_range(),
             Token::LParen => {
                 self.next();
                 let expr = self.parse_expr()?;
@@ -524,6 +569,13 @@ impl Parser {
 
     /// Parse identifiers: cell references, ranges, or function calls.
     fn parse_ident_or_range(&mut self) -> Result<FormulaNode, ParseError> {
+        let mut ref_str = String::new();
+
+        // Consume leading $ (absolute column reference)
+        if let Token::Dollar = self.peek() {
+            self.next();
+        }
+
         let first = match self.next() {
             Token::Ident(s) => s,
             other => {
@@ -532,8 +584,27 @@ impl Parser {
                 });
             }
         };
+        ref_str.push_str(&first);
 
-        let first_upper = first.to_uppercase();
+        // Check for $ before row number (absolute row reference)
+        // Handles A$1 where tokens are Ident("A"), Dollar, Number("1")
+        // Also handles $A$1 where tokens are Dollar, Ident("A"), Dollar, Number("1")
+        if let Token::Dollar = self.peek() {
+            self.next();
+            if let Token::Number(ref n) = self.peek() {
+                ref_str.push('$');
+                ref_str.push_str(n);
+                self.next();
+            } else if let Token::Ident(ref ident) = self.peek() {
+                ref_str.push('$');
+                ref_str.push_str(ident);
+                self.next();
+            }
+        }
+
+        // Store plain cell reference (strip $ markers for lookup)
+        let ref_name: String = ref_str.chars().filter(|c| *c != '$').collect();
+        let ref_upper = ref_name.to_uppercase();
 
         // Check for range: A1:B5
         if self.peek() == &Token::Colon {
@@ -546,14 +617,14 @@ impl Parser {
                     });
                 }
             };
-            return Ok(FormulaNode::Range(format!("{}:{}", first, end)));
+            return Ok(FormulaNode::Range(format!("{}:{}", ref_name, end)));
         }
 
         // Check for function call: FUNC(...)
         if self.peek() == &Token::LParen {
             self.next();
             let mut args = Vec::new();
-            if !self.peek().is_eof() {
+            if !self.peek().is_eof() && !matches!(self.peek(), Token::RParen) {
                 args.push(self.parse_expr()?);
                 while self.peek() == &Token::Comma {
                     self.next();
@@ -562,13 +633,13 @@ impl Parser {
             }
             self.expect(Token::RParen)?;
             return Ok(FormulaNode::Call {
-                name: first_upper,
+                name: ref_upper,
                 args,
             });
         }
 
-        // Cell reference or named range — store as CellRef
-        Ok(FormulaNode::CellRef(first))
+        // Cell reference
+        Ok(FormulaNode::CellRef(ref_name))
     }
 }
 

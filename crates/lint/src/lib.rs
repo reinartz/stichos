@@ -11,6 +11,7 @@ pub mod cropper;
 pub mod diff;
 pub mod encode;
 pub mod font;
+pub mod formula_parity;
 pub mod linter;
 pub mod page_delta;
 pub mod perf;

@@ -291,7 +291,12 @@ fn parse_single_layout(
         ElementId::derive("layout", &["layout", &part.uri], &name)
     };
 
-    Ok(Layout { id, name })
+    Ok(Layout {
+        id,
+        name,
+        layout_type: None,
+        placeholders: vec![],
+    })
 }
 
 /// Walk slide layout element tree to extract placeholder names.
@@ -386,7 +391,11 @@ fn parse_single_master(
 
     let id = ElementId::derive("master", &["master", &part.uri], &name);
 
-    Ok(Master { id, name })
+    Ok(Master {
+        id,
+        name,
+        background_color: None,
+    })
 }
 
 /// Walk slide master element tree for additional master info.
@@ -712,7 +721,26 @@ fn parse_sp_element(
 
     Some(SlideElement {
         id,
-        kind: element_kind,
+        kind: SlideElementKind::Other(element_kind),
+        text: if !text_content.is_empty() {
+            Some(text_content)
+        } else {
+            None
+        },
+        bold: None,
+        italic: None,
+        font_name: None,
+        font_size_pt: None,
+        alignment: None,
+        x_pt: None,
+        y_pt: None,
+        width_pt: None,
+        height_pt: None,
+        data: None,
+        mime_type: None,
+        preset: None,
+        fill_color: None,
+        line_color: None,
     })
 }
 
@@ -761,7 +789,22 @@ fn parse_graphic_frame(_children: &[XmlNode]) -> Option<SlideElement> {
     let id = ElementId::derive("slidegraph", &["graphic_frame", "graphic"], &content);
     Some(SlideElement {
         id,
-        kind: "drawing".to_string(),
+        kind: SlideElementKind::Drawing,
+        text: None,
+        bold: None,
+        italic: None,
+        font_name: None,
+        font_size_pt: None,
+        alignment: None,
+        x_pt: None,
+        y_pt: None,
+        width_pt: None,
+        height_pt: None,
+        data: None,
+        mime_type: None,
+        preset: None,
+        fill_color: None,
+        line_color: None,
     })
 }
 
@@ -809,7 +852,22 @@ fn parse_table_element(children: &[XmlNode]) -> Option<SlideElement> {
 
     Some(SlideElement {
         id,
-        kind: "table".to_string(),
+        kind: SlideElementKind::Table,
+        text: None,
+        bold: None,
+        italic: None,
+        font_name: None,
+        font_size_pt: None,
+        alignment: None,
+        x_pt: None,
+        y_pt: None,
+        width_pt: None,
+        height_pt: None,
+        data: None,
+        mime_type: None,
+        preset: None,
+        fill_color: None,
+        line_color: None,
     })
 }
 
@@ -1418,7 +1476,11 @@ pub(crate) mod tests {
         let slide = &pres.slides[0];
         assert!(!slide.elements.is_empty(), "Should have elements");
 
-        let text_count = slide.elements.iter().filter(|e| e.kind == "text").count();
+        let text_count = slide
+            .elements
+            .iter()
+            .filter(|e| e.kind_str() == "text")
+            .count();
         assert_eq!(text_count, 2, "Should have 2 text elements");
     }
 
@@ -1448,9 +1510,9 @@ pub(crate) mod tests {
         // The element should be identified as a placeholder
         let placeholder = &slide.elements[0];
         assert!(
-            placeholder.kind.contains("placeholder"),
+            placeholder.kind_str().contains("placeholder"),
             "Should be a placeholder, got: {}",
-            placeholder.kind
+            placeholder.kind_str()
         );
     }
 
@@ -1516,7 +1578,7 @@ pub(crate) mod tests {
         let drawing = slide
             .elements
             .iter()
-            .filter(|e| e.kind == "drawing")
+            .filter(|e| e.kind_str() == "drawing")
             .count();
         assert_eq!(drawing, 1, "Should have 1 drawing element");
     }
@@ -1545,7 +1607,11 @@ pub(crate) mod tests {
         assert!(!slide.elements.is_empty());
 
         // The table should be identified as a table element
-        let table = slide.elements.iter().filter(|e| e.kind == "table").count();
+        let table = slide
+            .elements
+            .iter()
+            .filter(|e| e.kind_str() == "table")
+            .count();
         assert_eq!(table, 1, "Should have 1 table element");
     }
 

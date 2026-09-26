@@ -22,6 +22,9 @@
 use gp_core::diagnostics::{Diagnostic, Severity};
 use gp_core::ir::*;
 
+use super::create_pptx;
+use super::create_xlsx;
+
 use std::io::{Cursor, Write};
 
 // ===========================================================================
@@ -304,6 +307,60 @@ impl<'a> CreateDocx<'a> {
 /// Create a minimal docx from an IR document.
 pub fn create_minimal_docx(doc: &Document) -> Result<Vec<u8>, Vec<Diagnostic>> {
     CreateDocx::new(doc).build()
+}
+
+// ===========================================================================
+// XLSX creation
+// ===========================================================================
+
+/// An xlsx creator that takes an IR `Spreadsheet` and produces OPC bytes.
+pub struct CreateXlsx<'a> {
+    /// The IR spreadsheet to serialize.
+    pub spreadsheet: &'a Spreadsheet,
+}
+
+impl<'a> CreateXlsx<'a> {
+    /// Create a new `CreateXlsx` from an IR spreadsheet.
+    pub fn new(spreadsheet: &'a Spreadsheet) -> Self {
+        Self { spreadsheet }
+    }
+
+    /// Build the OPC package bytes.
+    pub fn build(self) -> Result<Vec<u8>, Vec<Diagnostic>> {
+        create_xlsx::create_minimal_xlsx(self.spreadsheet)
+    }
+}
+
+/// Create a minimal xlsx from an IR spreadsheet.
+pub fn create_minimal_xlsx(spreadsheet: &Spreadsheet) -> Result<Vec<u8>, Vec<Diagnostic>> {
+    CreateXlsx::new(spreadsheet).build()
+}
+
+// ===========================================================================
+// PPTX creation
+// ===========================================================================
+
+/// A pptx creator that takes an IR `Presentation` and produces OPC bytes.
+pub struct CreatePptx<'a> {
+    /// The IR presentation to serialize.
+    pub presentation: &'a Presentation,
+}
+
+impl<'a> CreatePptx<'a> {
+    /// Create a new `CreatePptx` from an IR presentation.
+    pub fn new(presentation: &'a Presentation) -> Self {
+        Self { presentation }
+    }
+
+    /// Build the OPC package bytes.
+    pub fn build(self) -> Result<Vec<u8>, Vec<Diagnostic>> {
+        create_pptx::create_minimal_pptx(self.presentation)
+    }
+}
+
+/// Create a minimal pptx from an IR presentation.
+pub fn create_minimal_pptx(presentation: &Presentation) -> Result<Vec<u8>, Vec<Diagnostic>> {
+    CreatePptx::new(presentation).build()
 }
 
 // ===========================================================================
