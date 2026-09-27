@@ -26,4 +26,21 @@ pub mod signature;
 pub mod store;
 pub mod tempfiles;
 pub mod testkit;
+pub mod timestamp_client;
 pub mod traits;
+
+#[cfg(feature = "pades-ltv")]
+#[allow(dead_code)]
+pub mod cert_chain;
+#[cfg(feature = "pades-ltv")]
+#[allow(dead_code)]
+pub mod crl_client;
+#[cfg(feature = "pades-ltv")]
+#[allow(dead_code)]
+pub mod ltv;
+#[cfg(feature = "pades-ltv")]
+#[allow(dead_code)]
+pub mod ocsp_client;
+#[cfg(feature = "pades-ltv")]
+#[allow(dead_code)]
+pub mod pkcs12;

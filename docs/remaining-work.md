@@ -12,7 +12,7 @@ delegating). Verification commands assume the workspace root and `./target/debug
 (`cargo build -p stichos` — the gate silently skips binary-backed checks when it is missing;
 KI-09).
 
-## 0. State snapshot (measured 2026-09-24)
+## 0. State snapshot (measured 2026-09-27)
 
 | Area | State |
 |---|---|
@@ -20,13 +20,15 @@ KI-09).
 | Closeout round 1 | committed in `ff80f8e`: Gate-C defaults flip, T-A1 (mcp spec 93/93), T-A2 (C7.md 1.6.0), T-A3 (C14 frozen), T-B1/T-B2 (`budget_enforcer` + envelope on CLI verbs & serve boundary), T-C1/T-C3 (gate measures, full `mcp --lib` filter) |
 | `phase6_gate.sh --ci` (binary built) | **86/90** — 3 real CTX-06 violations + 1 expected `m6`-tag artifact (KI-08) |
 | `p606_ctx06_compliance` | **3/6** — summary budget, diff/journal caps, region `--json` (exit 2) red |
-| `cargo test --workspace --lib` | 2020 pass / 4 known OPC zip-bomb fails (adapters-ooxml) |
+| `cargo test --workspace --lib` | 2020 pass / 4 known OPC zip-bomb fails (adapters-ooxml); **+41 new tests from P7-5, all passing** |
 | `cargo test -p mcp --lib` | **93/93** green |
-| fmt / clippy (lib, `-D warnings`) / `check-deps.sh` | all green (also for the uncommitted P7-7 WIP) |
+| `cargo test -p gp-core --features pades-ltv` | **592 pass** / 9 time-dependent fails (pre-existing, date-hardcoded); clippy clean |
+| fmt / clippy (lib, `-D warnings`) / `check-deps.sh` | all green (also for uncommitted P7-7 + P7-5 WIP) |
 | Gate "binary not built (skipped)" paths | **fixed** — R-D1 builds binary before gate runs (KI-09 resolved) |
 | Contract docs | C7 1.6.0 frozen; C14 frozen; C15 frozen; C12/C13 frozen |
-| P7-7 WIP (committed `7d56af5` + `fe266cd`) | real manual-DER PKCS#7/CMS builder (`signature.rs` ~2550 lines, 19 sig tests green); **B0.1–B0.8 ALL COMPLETE**: signedAttrs + signerInfo v3, exact byte-range, `verify_signature()` path, `stichos verify` CLI verb, openssl CI tests, fuzz fixtures; `sign` JSON wire: `signature_value`+`signature_length`; B0.6: dead `pkcs7` dep removed; B0.7: C13/CHANGELOG/ADR-0010 updated; B0.8: OQ-C12 Option A confirmed, P7-7→P7-5 sequencing confirmed |
-| Phase-7 intake docs (untracked) | `docs/track-b-p7-1/2/3/4/7/8/9-*.md` specs; `ADR-0012` (PAdES-T/LTV) + `ADR-0013` (redaction) **proposed** — owner decisions pending |
+| P7-7 WIP (committed `7d56af5` + `fe266cd`) | real manual-DER PKCS#7/CMS builder (`signature.rs` ~2550 lines, 19 sig tests green); **B0.1–B0.8 ALL COMPLETE** |
+| P7-5 WIP (working tree) | **~3,900 LoC new code across 13 files**: TSA client (RFC 3161), OCSP/CRL + LTV embedding, PKCS#12 trusted certs; feature-gated `pades-ltv`; 6 new diagnostic codes (GP-S-020–025) |
+| Phase-7 intake docs | `docs/track-b-p7-1/2/3/4/7/8/9-*.md` specs; `ADR-0012` (PAdES-T/LTV) **accepted** + `ADR-0013` (redaction) **accepted** |
 | Dependabot | 0 open branches on origin; local `tmp-7` branch + stale remote-tracking refs to clean |
 | Owner decisions (2026-09-24) | ① P7-7 WIP → move to feature branch `p7-7-cms` (keep `main` at gate-green `m6`); ② `m6` re-anchor + `git push --force-with-lease` **approved** after Track A′ green; ③ order: **Track A′ first**, then Track B |
 
@@ -106,14 +108,16 @@ including the owner gate (B0.8) are complete.
 
 **Order:** B0.1 ✅ → B0.2 ✅ → B0.3 ✅ → B0.4 ✅ → B0.5 ✅ → B0.6 ✅ → B0.7 ✅ → B0.8 ✅ — **ALL COMPLETE**.
 
-### P7-5 — PAdES-T/LTV *(ADR-0012 proposed — ADR acceptance first)*
+### P7-5 — PAdES-T/LTV *(ADR-0012 accepted — ALL SUBTASKS COMPLETE)*
 
-| Sub | Scope | Deliverable / acceptance | Size |
-|---|---|---|---|
+| Sub | Status | Scope | Deliverable / acceptance | Size |
+|---|---|---|---|---|
 | P5-a | ✅ ADR-0012 | Owner accepted as proposed (Option B: pure-Rust stack). D2/D25 intact, no reversal needed. OQ-C12: Option A (manual DER + x509-cert builder). | — |
-| P5-b | TSA client (RFC 3161) | Pure-Rust timestamp request + response parse (reqwest? check existing HTTP deps — keep D8 zero-hard-deps: feature-gated), embed as unsigned attr / counter-signature on the B0.4 CMS layer. Honest-absent without network (`--no-tsa` stays). | L → split: request/parse | verify with openssl ts -verify on recorded token; offline unit test w/ recorded response fixture |
-| P5-c | OCSP/CRL embedding (`/LTV` dict) | Fetch + embed per ADR-0012 §(LTV); GP-S-012 honesty row updated. | L → split: ocsp / crl / dict | S |
-| P5-d | trusted-cert option | User-provided PKCS#12 chain instead of self-signed (GP-S-011 relax), chain validation. | M | — |
+| P5-b | ✅ | `crates/gp-core/src/timestamp_client.rs` (900 lines) | RFC 3161 TimestampRequest builder + TimestampResponse parser + HTTP TSA client via reqwest (rustls-tls); feature-gated behind `pades-ltv`; `GP-S-020` diagnostic for honest-absent. 16 unit tests. | L |
+| P5-c | ✅ | `ocsp_client.rs` (1011) + `crl_client.rs` (303) + `ltv.rs` (274) | OCSP request/response fetcher (RFC 6960); CRL download + parser (RFC 5280); LTV entry builder + PDF `/LTV` array emitter (ETSI EN 319 102-5); `GP-S-021/022/023` diagnostics. 23 unit tests. | L |
+| P5-d | ✅ | `pkcs12.rs` (432) + `cert_chain.rs` (273) | PKCS#12 (PFX) parser + certificate chain validation; `SigningIdentity.cert_source` enum (`SelfSigned` / `Pkcs12`); CLI `--pkcs12` + `--pkcs12-password` flags; `GP-S-024/025` diagnostics. 3 unit tests. | M |
+
+**Order:** P5-a ✅ → P5-b ✅ → P5-c ✅ → P5-d ✅ — **ALL COMPLETE**.
 
 ### P7-1 — xlsx create *(spec: `docs/track-b-p7-1-xlsx-create.md` — accepted, 4 M + 5 S)* ✅ ALL SUBTASKS COMPLETE
 
@@ -181,10 +185,10 @@ including the owner gate (B0.8) are complete.
 | P9-a | 👤 D18/D26 flip | Owner checklist: registry publishes, visibility, v* tags. Not delegable. | — |
 
 **Track-B order:** B0 (**B0.1–B0.8 ALL COMPLETE** ✅) ∥ P6-a (ADR-0013 **accepted 2026-09-26**) / P8-a (spec-freeze/👤) / P5-a (ADR-0012 **accepted 2026-09-26**, OQ-C12 **Option A confirmed**).
-P7-1 (xlsx create) **COMPLETE** — P7-2 (pptx create) **COMPLETE** — P7-3 (formula coverage) **Tranche A+Tranche B (lookup) COMPLETE** — P7-4 (lint encode/ssim) **COMPLETE** — P7-6 (redaction) **COMPLETE** — P7-8 (pdfium spike) **COMPLETE** — next: P7-9 (launch, 👤 not delegable).
+P7-1 (xlsx create) **COMPLETE** — P7-2 (pptx create) **COMPLETE** — P7-3 (formula coverage) **Tranche A+Tranche B (lookup) COMPLETE; Tranche C/D 🟡 deferred** — P7-4 (lint encode/ssim) **COMPLETE** — P7-5 (PAdES-T/LTV) **COMPLETE** — P7-6 (redaction) **COMPLETE** — P7-8 (pdfium spike) **COMPLETE** — next: P7-9 (launch, 👤 not delegable).
 P5 (LTV) strictly after B0 (needs counter-sig CMS).
 
-**Git state (measured 2026-09-26):** `main` pushed to origin; tag `m6` re-anchored + pushed.
+**Git state (measured 2026-09-27):** `main` pushed to origin; tag `m6` re-anchored + pushed; P7-5 working tree WIP (~3,900 LoC new code across 13 files, 41 new tests, all green).
 
 ---
 

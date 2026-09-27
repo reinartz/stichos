@@ -378,6 +378,12 @@ enum Command {
         /// Verify the signature after signing.
         #[arg(long)]
         verify: bool,
+        /// Path to PKCS#12 file (certificate + key bundle).
+        #[arg(long)]
+        pkcs12: Option<String>,
+        /// Password for the PKCS#12 file.
+        #[arg(long)]
+        pkcs12_password: Option<String>,
     },
     /// Verify a signature in a PDF document.
     Verify {
@@ -614,8 +620,10 @@ async fn main() -> Result<()> {
             algorithm,
             output,
             verify,
+            pkcs12,
+            pkcs12_password,
         } => {
-            sign::cmd_sign(&path, subject, algorithm, output, verify)?;
+            sign::cmd_sign(&path, subject, algorithm, output, verify, pkcs12, pkcs12_password)?;
         }
         Command::Verify { path } => {
             sign::cmd_verify(&path)?;
@@ -1959,6 +1967,7 @@ async fn cmd_serve(transport: &str, port: u16) -> Result<()> {
                     let identity = gp_core::signature::SigningIdentity {
                         algorithm: sign_algo,
                         subject_cn: subject.clone().unwrap_or_else(|| "stichos".to_string()),
+                        cert_source: gp_core::signature::CertSource::SelfSigned,
                     };
 
                     let source = std::fs::read(&path)

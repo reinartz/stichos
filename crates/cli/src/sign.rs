@@ -3,9 +3,10 @@
 //!
 //! Signs an unsigned PDF document using PAdES-B-B sign-later.
 //! Uses the signature module to create a self-signed PKCS#7 signature.
+//! Supports user-provided PKCS#12 certificate chains via --pkcs12 flag.
 
 use anyhow::{bail, Context, Result};
-use gp_core::signature::{self, verify_signature, SignAlgorithm, SigningIdentity};
+use gp_core::signature::{self, verify_signature, CertSource, SignAlgorithm, SigningIdentity};
 
 /// Execute the sign command.
 pub fn cmd_sign(
@@ -14,12 +15,27 @@ pub fn cmd_sign(
     algorithm: Option<String>,
     output: Option<std::path::PathBuf>,
     verify: bool,
+    pkcs12_path: Option<String>,
+    pkcs12_password: Option<String>,
 ) -> Result<()> {
     let source = std::fs::read(path).with_context(|| "failed to read input PDF")?;
 
-    let identity = SigningIdentity {
-        algorithm: parse_algorithm(algorithm.as_deref())?,
-        subject_cn: subject.unwrap_or_else(|| "stichos".to_string()),
+    let identity = if let Some(p12_path) = pkcs12_path {
+        let password = pkcs12_password.unwrap_or_default();
+        SigningIdentity {
+            algorithm: parse_algorithm(algorithm.as_deref())?,
+            subject_cn: subject.unwrap_or_default(),
+            cert_source: CertSource::Pkcs12 {
+                path: p12_path,
+                password,
+            },
+        }
+    } else {
+        SigningIdentity {
+            algorithm: parse_algorithm(algorithm.as_deref())?,
+            subject_cn: subject.unwrap_or_else(|| "stichos".to_string()),
+            cert_source: CertSource::SelfSigned,
+        }
     };
 
     let result = signature::sign_pdf(&source, &identity);

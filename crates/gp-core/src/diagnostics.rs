@@ -1045,6 +1045,66 @@ impl DiagnosticRegistry {
                 description: "Signing refused: document already has signatures",
             },
         );
+        entries.insert(
+            "GP-S-020",
+            CodeEntry {
+                code: "GP-S-020",
+                severity: Severity::Warning,
+                category: "security",
+                description:
+                    "Timestamp server unreachable — signed without TSA (PAdES-B-B)",
+            },
+        );
+        entries.insert(
+            "GP-S-021",
+            CodeEntry {
+                code: "GP-S-021",
+                severity: Severity::Warning,
+                category: "security",
+                description:
+                    "OCSP/CRL unavailable — signed without LTV data",
+            },
+        );
+        entries.insert(
+            "GP-S-022",
+            CodeEntry {
+                code: "GP-S-022",
+                severity: Severity::Error,
+                category: "security",
+                description:
+                    "Signing certificate is revoked per OCSP — signing refused",
+            },
+        );
+        entries.insert(
+            "GP-S-023",
+            CodeEntry {
+                code: "GP-S-023",
+                severity: Severity::Warning,
+                category: "security",
+                description:
+                    "Signing certificate expired per CRL — signed with warning",
+            },
+        );
+        entries.insert(
+            "GP-S-024",
+            CodeEntry {
+                code: "GP-S-024",
+                severity: Severity::Error,
+                category: "security",
+                description:
+                    "Invalid PKCS#12 file — signing refused",
+            },
+        );
+        entries.insert(
+            "GP-S-025",
+            CodeEntry {
+                code: "GP-S-025",
+                severity: Severity::Error,
+                category: "security",
+                description:
+                    "Certificate chain validation failed — signing refused",
+            },
+        );
 
         // ODX (adapters-ooxml) codes — content type / structural errors
         entries.insert(

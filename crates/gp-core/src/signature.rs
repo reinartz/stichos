@@ -46,6 +46,15 @@ impl std::fmt::Display for SignAlgorithm {
     }
 }
 
+/// Certificate source for signing.
+#[derive(Debug, Clone)]
+pub enum CertSource {
+    /// Self-generated key pair and self-signed certificate.
+    SelfSigned,
+    /// User-provided PKCS#12 bundle (path and password).
+    Pkcs12 { path: String, password: String },
+}
+
 /// A PKCS#12 identity for signing.
 #[derive(Debug, Clone)]
 pub struct SigningIdentity {
@@ -53,6 +62,8 @@ pub struct SigningIdentity {
     pub algorithm: SignAlgorithm,
     /// Optional: subject CN for the generated certificate.
     pub subject_cn: String,
+    /// Certificate source: self-generated or user-provided PKCS#12.
+    pub cert_source: CertSource,
 }
 
 impl Default for SigningIdentity {
@@ -60,6 +71,7 @@ impl Default for SigningIdentity {
         Self {
             algorithm: SignAlgorithm::RsaSha256,
             subject_cn: "stichos".to_string(),
+            cert_source: CertSource::SelfSigned,
         }
     }
 }
@@ -805,6 +817,9 @@ fn extract_issuer_from_cert(cert_der: &[u8]) -> Result<Vec<u8>, Diagnostic> {
 ///
 /// Creates a self-signed PKCS#7/CAdES signature over the document.
 /// Uses the incremental writer approach to append a `/Type /Sig` annotation.
+///
+/// If `identity.cert_source` is `CertSource::Pkcs12`, the PKCS#12 bundle
+/// is loaded and used instead of generating a new key pair.
 pub fn sign_pdf(source_bytes: &[u8], identity: &SigningIdentity) -> SignResult {
     // Check that the document has no existing signatures.
     let existing_sigs = detect_signatures_raw(source_bytes);
@@ -829,7 +844,136 @@ pub fn sign_pdf(source_bytes: &[u8], identity: &SigningIdentity) -> SignResult {
         };
     }
 
-    // Generate a key pair (DER-encoded).
+    // Load signing materials
+    #[cfg(feature = "pades-ltv")]
+    let (priv_key_der, _pub_key_der, chain_certs) = match &identity.cert_source {
+        CertSource::Pkcs12 { path, password } => {
+            let file_bytes = match std::fs::read(path) {
+                Ok(b) => b,
+                Err(e) => {
+                    return SignResult {
+                        output: Vec::new(),
+                        signature: SignatureEnvelope {
+                            sig_type: "pdf-pades".to_string(),
+                            subject: identity.subject_cn.clone(),
+                            digest: "sha256".to_string(),
+                            algorithm: identity.algorithm.to_string(),
+                            signing_time: chrono::Utc::now().to_rfc3339(),
+                            signature_value: String::new(),
+                            signature_length: 0,
+                        },
+                        success: false,
+                        diagnostics: vec![Diagnostic::new(
+                            "GP-S-024",
+                            Severity::Error,
+                            format!("Invalid PKCS#12 file — could not read: {e}"),
+                        )],
+                    };
+                }
+            };
+
+            let bundle_result = crate::pkcs12::parse_pkcs12(&file_bytes, password.as_bytes());
+
+            let bundle = match bundle_result {
+                Ok(b) => b,
+                Err(d) => {
+                    return SignResult {
+                        output: Vec::new(),
+                        signature: SignatureEnvelope {
+                            sig_type: "pdf-pades".to_string(),
+                            subject: identity.subject_cn.clone(),
+                            digest: "sha256".to_string(),
+                            algorithm: identity.algorithm.to_string(),
+                            signing_time: chrono::Utc::now().to_rfc3339(),
+                            signature_value: String::new(),
+                            signature_length: 0,
+                        },
+                        success: false,
+                        diagnostics: vec![d],
+                    };
+                }
+            };
+
+            // Validate the certificate chain
+            let validation = crate::cert_chain::validate_chain(
+                &bundle.signing_cert,
+                &bundle.chain,
+                None,
+            );
+
+            if !validation.valid {
+                return SignResult {
+                    output: Vec::new(),
+                    signature: SignatureEnvelope {
+                        sig_type: "pdf-pades".to_string(),
+                        subject: identity.subject_cn.clone(),
+                        digest: "sha256".to_string(),
+                        algorithm: identity.algorithm.to_string(),
+                        signing_time: chrono::Utc::now().to_rfc3339(),
+                        signature_value: String::new(),
+                        signature_length: 0,
+                    },
+                    success: false,
+                    diagnostics: validation.diagnostics,
+                };
+            }
+
+            (bundle.private_key, Vec::<u8>::new(), bundle.chain)
+        }
+        _ => (Vec::<u8>::new(), Vec::<u8>::new(), Vec::<Vec<u8>>::new()),
+    };
+
+    // Generate key pair (DER-encoded) — only if not using PKCS#12
+    #[cfg(feature = "pades-ltv")]
+    let (priv_key_der, pub_key_der) = if priv_key_der.is_empty() {
+        match identity.algorithm {
+            SignAlgorithm::RsaSha256 => match generate_rsa_keypair() {
+                Ok(pair) => pair,
+                Err(diag) => {
+                    return SignResult {
+                        output: Vec::new(),
+                        signature: SignatureEnvelope {
+                            sig_type: "pdf-pades".to_string(),
+                            subject: identity.subject_cn.clone(),
+                            digest: "sha256".to_string(),
+                            algorithm: "rsa_sha256".to_string(),
+                            signing_time: chrono::Utc::now().to_rfc3339(),
+                            signature_value: String::new(),
+                            signature_length: 0,
+                        },
+                        success: false,
+                        diagnostics: vec![diag],
+                    };
+                }
+            },
+            SignAlgorithm::EcdsaP384 => match generate_ecdsa_keypair() {
+                Ok(pair) => pair,
+                Err(diag) => {
+                    return SignResult {
+                        output: Vec::new(),
+                        signature: SignatureEnvelope {
+                            sig_type: "pdf-pades".to_string(),
+                            subject: identity.subject_cn.clone(),
+                            digest: "sha256".to_string(),
+                            algorithm: "ecdsa_p384".to_string(),
+                            signing_time: chrono::Utc::now().to_rfc3339(),
+                            signature_value: String::new(),
+                            signature_length: 0,
+                        },
+                        success: false,
+                        diagnostics: vec![diag],
+                    };
+                }
+            },
+        }
+    } else {
+        // PKCS#12 path — need to build SPKI from PKCS#8 key
+        // Re-parse the PKCS#8 key to extract the public key
+        (priv_key_der.clone(), Vec::new())
+    };
+
+    // Generate key pair (DER-encoded) when pades-ltv is not enabled
+    #[cfg(not(feature = "pades-ltv"))]
     let (priv_key_der, pub_key_der) = match identity.algorithm {
         SignAlgorithm::RsaSha256 => match generate_rsa_keypair() {
             Ok(pair) => pair,
@@ -847,7 +991,7 @@ pub fn sign_pdf(source_bytes: &[u8], identity: &SigningIdentity) -> SignResult {
                     },
                     success: false,
                     diagnostics: vec![diag],
-                }
+                };
             }
         },
         SignAlgorithm::EcdsaP384 => match generate_ecdsa_keypair() {
@@ -866,20 +1010,19 @@ pub fn sign_pdf(source_bytes: &[u8], identity: &SigningIdentity) -> SignResult {
                     },
                     success: false,
                     diagnostics: vec![diag],
-                }
+                };
             }
         },
     };
 
+    #[cfg(not(feature = "pades-ltv"))]
+    let chain_certs: Vec<Vec<u8>> = Vec::new();
+
     // Build self-signed X.509 certificate.
-    let cert_der = match build_self_signed_cert(
-        &identity.subject_cn,
-        &pub_key_der,
-        &priv_key_der,
-        &identity.algorithm,
-    ) {
-        Ok(c) => c,
-        Err(diag) => {
+    let (cert_der, subject_from_cert) = if priv_key_der.is_empty() {
+        // Using PKCS#12 signing cert
+        let cert_der = chain_certs.first().cloned().unwrap_or(Vec::new());
+        if cert_der.is_empty() {
             return SignResult {
                 output: Vec::new(),
                 signature: SignatureEnvelope {
@@ -892,9 +1035,42 @@ pub fn sign_pdf(source_bytes: &[u8], identity: &SigningIdentity) -> SignResult {
                     signature_length: 0,
                 },
                 success: false,
-                diagnostics: vec![diag],
-            }
+                diagnostics: vec![Diagnostic::new(
+                    "GP-S-024",
+                    Severity::Error,
+                    "Invalid PKCS#12 file — no signing certificate found".to_string(),
+                )],
+            };
         }
+        // Use subject from the cert, not from identity
+        (cert_der, true)
+    } else {
+        // Self-generated cert
+        let cert_der = match build_self_signed_cert(
+            &identity.subject_cn,
+            &pub_key_der,
+            &priv_key_der,
+            &identity.algorithm,
+        ) {
+            Ok(c) => c,
+            Err(diag) => {
+                return SignResult {
+                    output: Vec::new(),
+                    signature: SignatureEnvelope {
+                        sig_type: "pdf-pades".to_string(),
+                        subject: identity.subject_cn.clone(),
+                        digest: "sha256".to_string(),
+                        algorithm: identity.algorithm.to_string(),
+                        signing_time: chrono::Utc::now().to_rfc3339(),
+                        signature_value: String::new(),
+                        signature_length: 0,
+                    },
+                    success: false,
+                    diagnostics: vec![diag],
+                };
+            }
+        };
+        (cert_der, false)
     };
 
     // Build PKCS#7 SignedData over the PDF.
@@ -919,12 +1095,20 @@ pub fn sign_pdf(source_bytes: &[u8], identity: &SigningIdentity) -> SignResult {
                 },
                 success: false,
                 diagnostics: vec![diag],
-            }
+            };
         }
     };
 
     let sig_hex: String = sig_der.iter().map(|b| format!("{:02X}", b)).collect();
     let signing_time = chrono::Utc::now().to_rfc3339();
+
+    // Determine subject for the envelope
+    let subject = if subject_from_cert {
+        // Extract CN from PKCS#12 signing cert
+        extract_cert_subject_cn(&cert_der).unwrap_or_else(|| identity.subject_cn.clone())
+    } else {
+        identity.subject_cn.clone()
+    };
 
     // Insert signature stub into PDF (append-only incremental write).
     let signed = insert_signature_object(source_bytes, &sig_der, &identity.algorithm);
@@ -933,7 +1117,7 @@ pub fn sign_pdf(source_bytes: &[u8], identity: &SigningIdentity) -> SignResult {
         output: signed,
         signature: SignatureEnvelope {
             sig_type: "pdf-pades".to_string(),
-            subject: identity.subject_cn.clone(),
+            subject,
             digest: "sha256".to_string(),
             algorithm: identity.algorithm.to_string(),
             signing_time,
@@ -2658,6 +2842,7 @@ mod tests {
         let identity = SigningIdentity {
             algorithm: SignAlgorithm::EcdsaP384,
             subject_cn: "stichos-ec".to_string(),
+            cert_source: CertSource::SelfSigned,
         };
         let result = sign_pdf(&pdf, &identity);
         assert!(
@@ -2719,6 +2904,7 @@ mod tests {
         let identity = SigningIdentity {
             algorithm: SignAlgorithm::EcdsaP384,
             subject_cn: "stichos-ec".to_string(),
+            cert_source: CertSource::SelfSigned,
         };
         let result = sign_pdf(&pdf, &identity);
         assert!(
@@ -2736,6 +2922,7 @@ mod tests {
         let identity = SigningIdentity {
             algorithm: SignAlgorithm::EcdsaP384,
             subject_cn: "ec-test".to_string(),
+            cert_source: CertSource::SelfSigned,
         };
         let result = sign_pdf(&pdf, &identity);
         assert!(result.success);
@@ -2780,6 +2967,7 @@ mod tests {
         let identity = SigningIdentity {
             algorithm: SignAlgorithm::EcdsaP384,
             subject_cn: "stichos-ec".to_string(),
+            cert_source: CertSource::SelfSigned,
         };
         let result = sign_pdf(&pdf, &identity);
         assert!(
@@ -2842,6 +3030,7 @@ mod tests {
         let identity = SigningIdentity {
             algorithm: SignAlgorithm::EcdsaP384,
             subject_cn: "stichos-ec-b05".to_string(),
+            cert_source: CertSource::SelfSigned,
         };
         let result = sign_pdf(&pdf, &identity);
         assert!(result.success, "ECDSA sign should succeed");
@@ -2951,6 +3140,7 @@ mod tests {
         let identity = SigningIdentity {
             algorithm: SignAlgorithm::EcdsaP384,
             subject_cn: "stichos-ec-ci".to_string(),
+            cert_source: CertSource::SelfSigned,
         };
         let result = sign_pdf(&pdf, &identity);
         assert!(result.success, "ECDSA sign should succeed");
