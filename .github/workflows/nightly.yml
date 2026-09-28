@@ -84,12 +84,12 @@ jobs:
         working-directory: harness/generator
         run: python3 -m gen build
 
-      - name: committed manifests/reference are byte-reproducible (exclude non-deterministic PDF signed)
+      - name: committed manifests/reference are byte-reproducible (exclude PDF fixtures)
         run: |
-          # PDF signed fixtures use cryptographic signatures that vary across environments.
-          # Exclude them from the determinism check; they're verified by gen verify instead.
+          # PDF fixtures are non-deterministic across environments due to pikepdf byte layout
+          # and cryptographic operations. They're verified by gen verify instead.
           FILES=$(git ls-files -- 'corpus/manifests/*.json' 'corpus/reference/*.txt')
-          FILES=$(echo "$FILES" | grep -v 'pdf-signed' || true)
+          FILES=$(echo "$FILES" | grep -v '^corpus/.*pdf' || true)
           git diff --exit-code -- $FILES
 
       - name: "gen verify (full: sha + feature recount + rebuild determinism)"
