@@ -4,7 +4,7 @@
   "title": "Text annotation (comment) on page 1",
   "source": "generated",
   "generator": {
-    "name": "harness/generator",
+    "name": "p5-02-pdf-fixtures",
     "version": "0.1.0"
   },
   "format": "pdf",
@@ -31,5 +31,5 @@
     ]
   },
   "notes": "Single Text annotation (comment icon) with Contents and Name fields.",
-  "sha256": "d2b7c3369d4b2ea2364a90a509299f51ac5c6ea69669060cc4fe6a0d48747c2b"
+  "sha256": "4d7b3f689e50cfaa026a7796adcc240a259319435874e8a4771f11523da10d48"
 }

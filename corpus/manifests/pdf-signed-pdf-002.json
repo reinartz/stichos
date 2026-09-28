@@ -4,7 +4,7 @@
   "title": "PDF with signature flag (no real sig)",
   "source": "generated",
   "generator": {
-    "name": "harness/generator",
+    "name": "p5-02-pdf-fixtures",
     "version": "0.1.0"
   },
   "format": "pdf",
@@ -31,5 +31,5 @@
     ]
   },
   "notes": "PDF with /Sig field in AcroForm but dummy signature contents. Tests signature detection without full verification.",
-  "sha256": "3a6244efddf4d1664947a10649ca4d0c85004d78f253d640c9885850bba4a872"
+  "sha256": "a08ff828cc546a1c1ec7ad08a017f24c50c6bf3f87368fce38fba2553ea9829f"
 }

@@ -42,6 +42,22 @@ import pikepdf  # noqa: E402 — needed when module is imported, not run directl
 FIXED_DT = "2026-01-01T00:00:00Z"
 CREATOR = "stichos P5-02"
 
+# Fixed EC P-256 key pair for deterministic (reproducible sha256) fixture generation.
+# These PEM strings are embedded once and reused on every run.
+_FIXED_PRIV_KEY_PEM = """\
+-----BEGIN EC PRIVATE KEY-----
+MHcCAQEEIDxRSgcVS0io5xo8HMgTJ6yQgpGa1XF1SOoDLx8SqlheoAoGCCqGSM49
+AwEHoUQDQgAEB8Br+9350wCiXqmqV0qa7ovj7rvfDxFPD2ktCFptpcXwNtGsF9ia
+pPbbG0Zn6BlnlLj/mk/Alm+FJI2MlaZPdg==
+-----END EC PRIVATE KEY-----
+"""
+_FIXED_PUB_KEY_PEM = """\
+-----BEGIN PUBLIC KEY-----
+MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDkQADBQB8Br+9350wCiXqmqV0qa7ovj7r
+vfDxFPD2ktCFptpcXwNtGsF9iapPbbG0Zn6BlnlLj/mk/Alm+FJI2MlaZPdg==
+-----END PUBLIC KEY-----
+"""
+
 
 def _save_bytes(pdf) -> bytes:
     """Save a pikepdf.Pdf to bytes via BytesIO."""
@@ -190,16 +206,14 @@ def make_signed_pdf(pdf_bytes: bytes) -> bytes:
     from cryptography import x509
     from cryptography.x509.oid import NameOID
     from cryptography.hazmat.primitives import hashes, serialization
-    from cryptography.hazmat.primitives.asymmetric import rsa
-    from datetime import timedelta
+    from cryptography.hazmat.primitives.asymmetric import ec
 
     pdf = pikepdf.open(io.BytesIO(pdf_bytes))
     pdf_bytes_raw = _save_bytes(pdf)
 
-    # Generate a self-signed key pair
-    private_key = rsa.generate_private_key(
-        public_exponent=65537,
-        key_size=2048,
+    # Load the fixed EC P-256 private key (deterministic for reproducible fixtures)
+    private_key = serialization.load_pem_private_key(
+        _FIXED_PRIV_KEY_PEM.encode(), password=None
     )
     subject = issuer = x509.Name([
         x509.NameAttribute(NameOID.COUNTRY_NAME, "US"),
@@ -211,9 +225,9 @@ def make_signed_pdf(pdf_bytes: bytes) -> bytes:
         .subject_name(subject)
         .issuer_name(issuer)
         .public_key(private_key.public_key())
-        .serial_number(x509.random_serial_number())
-        .not_valid_before(datetime.now(timezone.utc) - timedelta(days=1))
-        .not_valid_after(datetime.now(timezone.utc) + timedelta(days=365))
+        .serial_number(1)
+        .not_valid_before(datetime(2026, 1, 1, tzinfo=timezone.utc))
+        .not_valid_after(datetime(2027, 1, 1, tzinfo=timezone.utc))
         .sign(private_key, hashes.SHA256())
     )
 
@@ -251,12 +265,8 @@ def make_signed_pdf(pdf_bytes: bytes) -> bytes:
         # Create signature using qpdf
         result = subprocess.run(
             ["qpdf", "--sign",
-             f"--cert={cert.public_bytes(serialization.Encoding.PEM)}",
-             f"--key={private_key.private_bytes(
-                 serialization.Encoding.PEM,
-                 serialization.PrivateFormat.TraditionalOpenSSL,
-                 serialization.NoEncryption(),
-             )}",
+             f"--cert={_FIXED_PUB_KEY_PEM}",
+             f"--key={_FIXED_PRIV_KEY_PEM}",
              f"--passphrase=",
              "--password=",
              "--out=/tmp/stichos_signed.pdf",

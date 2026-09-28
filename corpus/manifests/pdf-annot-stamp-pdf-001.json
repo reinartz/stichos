@@ -4,7 +4,7 @@
   "title": "Stamp annotation (Approved) on page 1",
   "source": "generated",
   "generator": {
-    "name": "harness/generator",
+    "name": "p5-02-pdf-fixtures",
     "version": "0.1.0"
   },
   "format": "pdf",
@@ -31,5 +31,5 @@
     ]
   },
   "notes": "Single Stamp annotation with Name=/Approved and Contents.",
-  "sha256": "2c850df5e571c694579db7b07d2c315fbb1848e5d3bafe14a68577296163a50e"
+  "sha256": "9872e0bd91066c7b1d926030403451a7ce17adc777665f2bb91bd69f2df03f8f"
 }

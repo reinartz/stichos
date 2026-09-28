@@ -4,7 +4,7 @@
   "title": "Multiple highlight annotations on one page",
   "source": "generated",
   "generator": {
-    "name": "harness/generator",
+    "name": "p5-02-pdf-fixtures",
     "version": "0.1.0"
   },
   "format": "pdf",
@@ -31,5 +31,5 @@
     ]
   },
   "notes": "Two highlight annotations on page 1 at different positions.",
-  "sha256": "c4d1160551852c6288f75c1520eaa747171e77f5c30a2f1a66268f0794396715"
+  "sha256": "8225c74d8f3bbfc2c37c271d2ac3aeb14f6f3935dfaf3a7d9b09d47918e87112"
 }
