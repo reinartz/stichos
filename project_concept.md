@@ -6,16 +6,16 @@
 `phase5_gate.sh --ci` 8 gates, 1 807 tests (`docs/m5-acceptance.md`, incl. §9 post-acceptance
 correction: `tools/check-deps.sh` fails at the `m5` tree on the `mcp -> adapters-pdf` edge,
 fixed by dependency inversion in Phase 6 Wave 0); **Phase 6 (context budget C14 + M6 intake)
-shipped 2026-09-23** — 35/35 steps, `phase6_gate.sh --ci` green pre-tag, tag `m6` (push pending
-owner); `docs/m6-acceptance.md` §11 records the 2026-09-23 audit corrections (`__budget` envelope
-not yet stamped on 100 % of responses; C7 v1.6 spec-test ceilings red after the uncommitted
-Gate-C defaults flip; gate checks 1b/1d/1e/1f pass in both branches) — closeout tasks in
-[`docs/remaining-work.md`](docs/remaining-work.md).
+shipped 2026-09-23** — 35/35 steps, `phase6_gate.sh --ci` green pre-tag, tag `m6`
+**pushed** (Track A′ closeout round 2 complete — gate 90/90, `p606` 6/6, tag re-anchored +
+pushed); `docs/m6-acceptance.md` §11 records the 2026-09-23 audit corrections (all resolved in
+closeout rounds 1–2, committed in `ff80f8e` + follow-ups) — closeout tasks in
+[`docs/remaining-work.md`](docs/remaining-work.md) (complete).
 Decision **D27**, contract [`docs/contracts/C14-context-budget.md`](docs/contracts/C14-context-budget.md) +
 guide [`docs/implementation-guide-context-budget.md`](docs/implementation-guide-context-budget.md).
-**Last updated:** 2026-09-23 (Phase 6 shipped, corrections recorded; surface re-measured:
-**23 tools** (`spec.rs` assert) / **21 verbs** (`enum Command`), C7 v1.6.0 in `spec.rs` —
-`docs/contracts/C7.md` matrix update pending)
+**Last updated:** 2026-09-27 (Track A′ complete, gate 90/90; Phase-7 Track B mostly complete —
+P7-5 committed `3b4a396`; surface re-measured: **23 tools** (`spec.rs` assert) / **21 verbs**
+(`enum Command`), C7 v1.6.0 in `spec.rs`; `docs/contracts/C7.md` matrix landed 1.6.0 in `ff80f8e`)
 **Project root:** `/localdata/workspace/stichos`
 **Related:** [`brand.md`](brand.md) — identity, colour, typography, logo usage
 
@@ -396,7 +396,8 @@ vendored hash-pinned pdf.js **text layer** opt-in (D24), signature-integrity det
 sign-later (C13, D25), PDF/A revalidation row, launch prep only (D26). Surface measured 2026-09-19:
 **23 tools / 21 verbs**, C7 v1.5.0.
 
-**Phase 6 ✅ — context budget + M6 intake** (shipped 2026-09-23, tag `m6` — push pending owner;
+**Phase 6 ✅ — context budget + M6 intake** (shipped 2026-09-23, tag `m6` — **pushed**; Track A′
+closeout round 2 complete — gate 90/90, tag re-anchored + pushed;
 decision **D27**; concept
 [`docs/phase6-concept.md`](docs/phase6-concept.md), plan [`docs/phase6-plan.md`](docs/phase6-plan.md),
 contract
@@ -411,11 +412,11 @@ M6 intake on the now-available Windows host: COM worker implementation (COM-2..6
 evaluation (ADR + minimal core subset), ODS/ODP revision write, Word-interop verification,
 launch rehearsal only (D26, owner calls C6–C9 in `docs/phase6-concept.md` §10).
 Measured 2026-09-23: 35/35 steps verified; `phase6_gate.sh --ci` green pre-tag; Wave 0 edge removed
-(`check-deps.sh` exit 0); `spec.rs` at C7 v1.6.0. Corrections (`docs/m6-acceptance.md` §11):
-the `__budget` envelope is stamped only in `cli/src/image_output.rs` — the D27 "every response"
-condition is **not yet met** on the remaining CLI verbs and the MCP surface (closeout T-B in
-`docs/remaining-work.md`); Gate-C default flips landed **uncommitted** and left 3 `mcp` spec tests
-red (1.5.0 version ceilings).
+(`check-deps.sh` exit 0); `spec.rs` at C7 v1.6.0. Corrections (`docs/m6-acceptance.md` §11, all
+resolved in closeout rounds 1–2 — Track A′ complete, `phase6_gate.sh --ci` 90/90): `__budget` /
+`rendered_by` stamping completed on all responses (closeout T-B), Gate-C default flips committed
+(`ff80f8e`), spec-test ceilings + gate hardening green (T-A/T-C); `docs/remaining-work.md` tracks
+the rest.
 
 Crate layout: `core` (IR + patch engine, dep-free) · `adapters-ooxml` · `adapters-odf` · `adapters-pdf` ·
 `engines` (probe + subprocess runners) · `lint` · `mcp` · `cli`.
@@ -510,9 +511,10 @@ Crate layout: `core` (IR + patch engine, dep-free) · `adapters-ooxml` · `adapt
 6. ~~**Phase 4 — human loop** (`docs/phase4-plan.md`)~~ Done 2026-09-18 (M4, tag `m4`).
    ~~Phase 5 — PDF-native loop + trust~~ Shipped 2026-09-19 (tag `m5`; `docs/m5-acceptance.md`
    incl. §9 post-acceptance correction on the `mcp -> adapters-pdf` DAG edge, fixed in Phase 6 Wave 0).
-7. ~~**Phase 6 — context budget (C14, D27) + M6 intake**~~ Shipped 2026-09-23 (tag `m6`, push
-   pending owner; `docs/phase6-concept.md`, `docs/phase6-plan.md`, `docs/phase6-status.json`,
+7. ~~**Phase 6 — context budget (C14, D27) + M6 intake**~~ Shipped 2026-09-23 (tag `m6`,
+   **pushed**; `docs/phase6-concept.md`, `docs/phase6-plan.md`, `docs/phase6-status.json`,
    `docs/m6-acceptance.md` §11 corrections): Wave 0 DAG-inversion closeout (`check-deps.sh` green),
-   summary/URL/cap/`dry_run`-true defaults flipped (uncommitted at audit — closeout T-A),
-   C7 v1.6.0 bump in `spec.rs`; **open**: `__budget`+`rendered_by` stamping on all responses
-   (T-B), spec-test ceilings + gate hardening (T-A/T-C), `docs/remaining-work.md` tracks the rest.
+   summary/URL/cap/`dry_run`-true defaults flipped (committed `ff80f8e`),
+   C7 v1.6.0 bump in `spec.rs`. **Closeout rounds 1–2 (Track A′) complete** — gate 90/90.
+   **Remaining open:** Track B residue (P7-3 tranche C/D, P7-9 launch 👤) + Track C engine
+   completion (see `docs/remaining-work.md`).

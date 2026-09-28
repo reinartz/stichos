@@ -1,16 +1,11 @@
 # stichos
 
-Phases 0–6 complete and gated (tags `m1-closeout`..`m6`; **`main` + all tags pushed**, 2026-09-24:
-`origin/main` == tag `m6` == `ff80f8e` — Gate-C defaults flip + closeout round 1 committed and
-pushed). **M6 closeout round 2 is pending**: the hardened `phase6_gate.sh` now truly measures and
-finds 3 real CTX-06 violations (inspect summary `tokens_est` 5988 ≥ 500 — `element_ids` dump; `diff`
-default 30 ops with no `hasMore` wire field; `diff --max-ops 0` returns 0 ops) plus `region` lacks
-the `--json`/`--output` flags (`p606_ctx06_compliance` 3/6 red). Task breakdown:
-`docs/remaining-work.md` (Track A′). The `m6` tag sits on a not-fully-green tree (checks skip when
-the binary is unbuilt) — re-anchor after the fixes. Working tree holds **uncommitted P7-7 WIP**:
-real manual-DER PKCS#7/CMS builder in `gp-core/src/signature.rs` (replaces the `m6`-tag stub;
-signed attrs + byte-range + verify still open) and untracked Phase-7 intake docs/ADRs
-(`docs/track-b-p7-*.md`, ADR-0012/0013 proposed).
+Phases 0–6 complete and gated (tags `m1-closeout`..`m6`; **Track A′ (M6 closeout round 2) ALL
+COMPLETE**: gate 90/90, `p606_ctx06_compliance` 6/6, tag `m6` re-anchored + pushed —
+`docs/remaining-work.md`). Working tree **clean** at `3b4a396` ("phase7: P7-5 — PAdES-T/LTV"):
+P7-7 CMS signing committed (`7d56af5`, `fe266cd`), OQ-C12 confirmed (`6c1ba86`), P7-5 committed
+(`3b4a396`); `main` 4 commits ahead of origin (phase7 commits unpushed). Phase-7 intake docs/ADRs
+are tracked (`docs/track-b-p7-*.md`, ADR-0012/0013 accepted).
 Rust workspace lives in `crates/`; `harness/`, `corpus/`, `docker/`, `baseline/`, `.github/` hold
 the M0 Python fidelity harness and supporting material.
 
@@ -51,12 +46,13 @@ Phase 6 (M6) shipped 2026-09-23: 35/35 steps; closeout round 1 (Gate-C flip + T-
 consistency + T-B envelope on all CLI verbs/MCP serve boundary + T-C gate hardening) committed in
 `ff80f8e`; tag `m6` re-anchored to `ff80f8e`; **`main` + `m6` pushed** 2026-09-24. Records:
 `docs/phase6-concept.md`, `docs/phase6-plan.md`, `docs/phase6-status.json`, `docs/m6-acceptance.md`
-(§11 = 2026-09-23 audit corrections, §12 = 2026-09-24 closeout-round-1 status). Closeout round 2
-remains: 3 CTX-06 contract violations + `region` `--json`/`--output` flags — `docs/remaining-work.md`
-Track A′. Measured 2026-09-24 at `ff80f8e` + working tree: `cargo test --workspace --lib` 2020
-pass / 4 known OPC zip-bomb fails; `cargo test -p mcp --lib` 93/93; `phase6_gate.sh --ci` 86/90
-(3 CTX-06 violations + 1 expected m6-tag artifact); fmt + clippy (lib, `-D warnings`) clean;
-`check-deps.sh` green.
+(§11 = 2026-09-23 audit corrections, §12 = 2026-09-24 closeout-round-1 status, §13 =
+closeout-round-2). **Closeout round 2 (Track A′) complete** — `phase6_gate.sh --ci` **90/90**,
+`p606_ctx06_compliance` **6/6**, tag `m6` re-anchored + pushed. Phase-7 Track B mostly complete
+(P7-1/2/4/5/6/8 and B0 done; P7-3 tranche C/D deferred; P7-9 launch owner-only). Measured
+2026-09-27 at `3b4a396`: `cargo test --workspace --lib --no-fail-fast` 2157 pass / 13 known
+fails (4 OPC zip-bomb + 9 date-hardcoded gp-core); `cargo test -p mcp --lib` 93/93;
+`phase6_gate.sh --ci` 90/90; fmt + clippy (lib, `-D warnings`) clean; `check-deps.sh` green.
 Phase-3 records: `docs/phase3-plan.md`,
 `docs/phase3-status.json`, `docs/m3-acceptance.md` (§7 has post-acceptance corrections).
 

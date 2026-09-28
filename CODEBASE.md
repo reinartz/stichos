@@ -1,14 +1,12 @@
 # stichos — Codebase Structure
 
-> **Note:** This document reflects the current state of the Rust codebase (synced 2026-09-24,
-> tag `m6` = `ff80f8e`, pushed). It is maintained by contributors; `project_plan.md` §3 is the
+> **Note:** This document reflects the current state of the Rust codebase (synced 2026-09-27,
+> HEAD `3b4a396`, working tree clean). It is maintained by contributors; `project_plan.md` §3 is the
 > authoritative plan reference. Where reality and the plan DAG differ, §"Known DAG deviations"
-> below records it. M6 closeout round 1 (Gate-C flip, envelope wiring, C7 v1.6 freeze tests) landed
-> in `ff80f8e`; round 2 (3 CTX-06 cap/budget violations + `region` `--json`/`--output` flags) and
-> the Phase-7 backlog are tracked in `docs/remaining-work.md`; audit trail in `docs/m6-acceptance.md`
-> §11–§12. Working tree additionally holds uncommitted P7-7 WIP (real CMS builder in
-> `gp-core/src/signature.rs`) and untracked Phase-7 intake docs (`docs/track-b-p7-*.md`,
-> ADR-0012/0013 proposed).
+> below records it. Track A′ (M6 closeout round 2) is **complete** — gate 90/90, `p606` 6/6, tag
+> `m6` re-anchored + pushed; Phase-7 Track B status: P7-5 committed (`3b4a396`); remaining: P7-3
+> tranche C/D deferred, P7-9 launch owner-only — tracked in `docs/remaining-work.md`; audit trail
+> in `docs/m6-acceptance.md` §11–§13.
 
 ## Workspace layout
 
@@ -89,7 +87,8 @@ selfupdate. No workspace crate dependencies.
 | `script` | Sandboxed Rhai escape hatch (D17, ADR-0005) | `ScriptConfig`, `ScriptResult`, `run_script`, `has_sandbox_violations` |
 | `selfupdate` | Verify-before-swap update primitive (ADR-0006) | `UpdateChannel`, `UpdateManifest`, `UpdateResult` |
 | `traits` | Core trait definitions | `Codec`, `PatchExecutor`, `Engine`, `Probe`, `Linter`, `EngineInfo` |
-| `signature` | PAdES-B-B sign-later (D25, pure-Rust crypto): keygen, PKCS#7 stub (real manual-DER CMS builder in uncommitted P7-7 WIP), byte-range, `/Sig` detection | `sign_pdf()`, `detect_signatures()`, `detect_signatures_raw()` |
+| `signature` | PAdES-B-B sign-later (D25, pure-Rust crypto): keygen, real manual-DER PKCS#7/CMS builder (P7-7 committed `7d56af5`/`fe266cd`), byte-range, `/Sig` detection | `sign_pdf()`, `detect_signatures()`, `detect_signatures_raw()` |
+| `timestamp_client` / `ocsp_client` / `crl_client` / `ltv` / `pkcs12` / `cert_chain` | PAdES-T/LTV (P7-5, feature `pades-ltv`): RFC 3161 TSA, OCSP/CRL fetch, LTV embed, PKCS#12 + chain (GP-S-020..025) | `SigningIdentity`, `cert_chain` validation |
 | `edit_stability` | Element-ID stability property tests (C2) | — |
 | `macro_check` | Macro expansion checks | — |
 | `testkit` | Shared test utilities | — |
@@ -158,12 +157,12 @@ Render engines as spawned subprocesses, never linked (D3).
 |--------|---------|
 | `libreoffice` | LibreOffice headless runner (isolated profiles, timeouts, wedge kill) |
 | `pandoc` | Pandoc runner: text extraction + creation (`--reference-doc`) |
-| `chromium` | Chromium runner: discovery chain, `--headless=new --print-to-pdf`/`--screenshot`, isolated user-data-dir |
+| `chromium` | Chromium runner: discovery chain, `--headless=new --print-to-pdf`, isolated user-data-dir (print-to-pdf only; `--screenshot` = Track C gap) |
 | `typst` | Typst runner: `typst compile` shell-out, honest-absent path (ADR-0004) |
 | `creation` | Unified creation dispatcher (pandoc/chromium/typst/native/revisions) |
 | `probe` | Engine discovery + fixture-conversion capability probes (D8) |
 | `negotiate` | Renderer negotiation incl. `authoring_order()` per conversion |
-| `doctor` | Doctor probe matrix (engines × fixtures, incl. chromium/pandoc/typst rows + PDF/A revalidation row) |
+| `doctor` | Doctor probe matrix (engines × fixtures + PDF/A revalidation row); SystemInfo carries chromium/pandoc/typst version fields with report rows in `engines::doctor`, but CLI doctor registers only libreoffice+pandoc engines and omits chromium/typst version fields in JSON (Track C gap C1.3) |
 | `raster` | Rasterization ladder (poppler → gs → mutool → soffice) |
 | `cache` | Render master cache (key per INV-4) |
 | `capability` | Capability matrix (C5) |
@@ -211,12 +210,12 @@ MCP (Model Context Protocol) server. Protocol layer only — wiring lives in `cl
 | `transport` | Transport modes (stdio) |
 | `http` | HTTP transport (session store, `POST /` routing, `/viewer/pdf/*` + `/review/<token>/text/<N>.json` routes) |
 
-MCP tool surface (C7 v1.5.0, 23 specs): `inspect_document`, `render_document`,
-`inspect_region`, `diff_documents`, `doctor`, `serve` (v1.0.0); `apply_patch`, `edit_text`,
-`edit_cell`, `edit_structure`, `annotate_pages`, `revert_document`, `journal` (v1.1.0);
+MCP tool surface (C7 v1.6.0, 23 specs): `doctor`, `serve` (v1.0.0); `revert_document` (v1.1.0);
 `create_document`, `script_tool`, `check_update` (v1.2.0); `list_revisions`, `accept_revisions`,
 `reject_revisions`, `add_comment` (v1.3.0); `list_annotations`, `resolve_annotations` (v1.4.0);
-`sign_document` (v1.5.0).
+`sign_document` (v1.5.0); `inspect_document`, `render_document`, `inspect_region`,
+`diff_documents`, `apply_patch`, `edit_text`, `edit_cell`, `edit_structure`, `annotate_pages`,
+`journal` (v1.6.0).
 
 ### cli
 
@@ -293,15 +292,15 @@ docs/
                           #   landed ff80f8e; C12/C13 frozen at M5; C14 frozen at M6 (C7 v1.6.0);
                           #   C15 frozen at M6)
   adr/                    # ADR-0001..0013 (0009 pdf.js vendoring, 0010 crypto stack ACCEPTED,
-                          #   0011 formula evaluation, 0012 PAdES-T/LTV PROPOSED, 0013 PDF redaction
-                          #   PROPOSED) + legacy pre-convention files (see README index)
+                          #   0011 formula evaluation, 0012 PAdES-T/LTV ACCEPTED, 0013 PDF redaction
+                          #   ACCEPTED) + legacy pre-convention files (see README index)
   gov/                    # name hygiene, registration
   harness/                # harness-specific docs
   implementation-guide-context-budget.md  # C14 implementation detail (M6 input)
   phase0-execution.md     # M0 runbook
   phase1-concept/plan/status · phase2-… · phase3-… · phase4-… · phase5-…   # per-phase artifacts
-  phase6-concept/plan/status · m6-acceptance.md  # Phase 6 (M6, shipped; closeout round 2 open)
-  track-b-p7-{1,2,3,4,7,8,9}-*.md  # Phase-7 intake specs (untracked; P7-1 xlsx create, P7-2 pptx
+  phase6-concept/plan/status · m6-acceptance.md  # Phase 6 (M6, shipped; closeout complete)
+  track-b-p7-{1,2,3,4,7,8,9}-*.md  # Phase-7 intake specs (tracked; P7-1 xlsx create, P7-2 pptx
                           #   create, P7-3 formula coverage, P7-4 lint encode/ssim, P7-7 CMS
                           #   signing, P7-8 pdfium spike, P7-9 launch)
   m2-acceptance.md · m3-acceptance.md · m4-acceptance.md · m5-acceptance.md  # milestone acceptance reports (m3 §7, m4 Git-State, m5 §9 = post-acceptance corrections)
@@ -309,7 +308,7 @@ docs/
   threat-model.md         # threat model incl. SEC-06 reviews (M1–M6)
   KNOWN_ISSUES.md         # KI-01..09
   release-playbook.md     # DIS-08 release procedure
-  remaining-work.md       # post-M6 task map (Track A′ closeout round 2; Track B Phase-7 backlog)
+  remaining-work.md       # post-M6 task map (Track A′ closeout round 2 — complete; Track B Phase-7 backlog)
 ```
 
 ## Reviewer + vendored assets
@@ -320,19 +319,19 @@ assets/
   vendor/pdfjs/           # vendored pdf.js 3.11.174 (text layer only) + HASHES.toml (ADR-0009, D24)
 ```
 
-## Test coverage summary (measured 2026-09-20, tag m5, `cargo test --workspace --lib`)
+## Test coverage summary (measured 2026-09-27, HEAD `3b4a396`, `cargo test --workspace --lib --no-fail-fast`)
 
 | Crate | Passed | Failed | Ignored | Notes |
 |-------|--------|--------|---------|-------|
-| gp-core | 360 | 0 | 0 | incl. script sandbox + selfupdate + C12/C13 suites |
-| adapters-ooxml | 332 | 0 | 0 | read + surgical write + creation + revisions (C11) |
-| adapters-odf | 211 | 0 | 0 | zero-patch in-suite + revision write |
-| adapters-pdf | 128 | 0 | 2 | prefix invariant in-suite + annot enumeration/write-back |
-| engines | 239 | 0 | 0 | chromium/typst honest-absent paths + COM skeleton |
-| lint | 294 | 0 | 0 | |
+| gp-core | 567 | 9 | 0 | incl. script sandbox + selfupdate + C12/C13 suites; 9 fails = pre-existing date-hardcoded `formula::evaluator` tests (time-dependent); with `--features pades-ltv`: 567 → 592 pass / 9 fail |
+| adapters-ooxml | 352 | 4 | 0 | read + surgical write + creation + revisions (C11); 4 fails = known OPC zip-bomb (accepted) |
+| adapters-odf | 226 | 0 | 0 | zero-patch in-suite + revision write |
+| adapters-pdf | 149 | 0 | 2 | prefix invariant in-suite + annot enumeration/write-back |
+| engines | 244 | 0 | 0 | chromium/typst honest-absent paths + COM skeleton |
+| lint | 300 | 0 | 0 | |
 | mcp | 93 | 0 | 0 | incl. session/review + text-layer route tests |
-| adapters-ooxfuzz | 150 | 0 | 0 | fuzz regressions locked as tests (rounds 1–4) |
-| **Total (lib)** | **1 807** | **0** | **2** | |
+| adapters-ooxfuzz | 226 | 0 | 0 | fuzz regressions locked as tests (rounds 1–4) |
+| **Total (lib)** | **2 157** | **13** | **2** | 13 = 4 known OPC zip-bomb + 9 date-hardcoded gp-core (all pre-existing) |
 
 (CLI bin + integration + doctest suites from the m3-era table are exercised via the phase gates;
 see `docs/m5-acceptance.md` §3 for the gate transcript.)

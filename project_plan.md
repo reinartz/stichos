@@ -1,13 +1,18 @@
 # stichos — Project Plan
 
 **Status:** **M0–M6 shipped and tagged** · **M6 shipped 2026-09-23** (35/35 steps,
-`phase6_gate.sh --ci` green pre-tag, tag `m6` on `23db42b`; `main` + `m6` **not pushed** — 8 commits
-ahead of origin. `docs/m6-acceptance.md` §11 records the post-acceptance corrections from the
-2026-09-23 audit (Gate-C defaults flip uncommitted, C7 v1.6 spec-test ceilings red, `__budget`
-envelope not yet wired onto 100 % of responses, toothless gate checks 1b/1d/1e/1f); closeout +
-Phase-7 tasks in [`docs/remaining-work.md`](docs/remaining-work.md)) · derived from
+`phase6_gate.sh --ci` green pre-tag, tag `m6` (re-anchored through closeout, now `5579231`); **`main` + `m6` pushed**, **Track A′
+(M6 closeout round 2) complete** — gate 90/90, `p606_ctx06_compliance` 6/6, tag `m6` re-anchored +
+pushed; `main` now 4 commits ahead of origin — phase7 commits unpushed.
+`docs/m6-acceptance.md` §11 records the post-acceptance corrections from the
+2026-09-23 audit (Gate-C defaults flip, C7 v1.6 spec-test ceilings, `__budget`
+envelope wiring, toothless gate checks 1b/1d/1e/1f — all fixed in closeout rounds 1–2, committed in
+`ff80f8e` + follow-ups); Phase-7 tasks in
+[`docs/remaining-work.md`](docs/remaining-work.md)) · derived from
 [`project_concept.md`](project_concept.md) (decisions D1–D27, phases §14)
-**Last updated:** 2026-09-23 — M0 ✅ (harness + 151-fixture corpus + goldens + baseline report-v1, nightly ×3
+**Last updated:** 2026-09-27 — Track A′ complete (gate 90/90), Phase-7 Track B mostly complete
+(P7-5 committed `3b4a396`), engine-completion plan = new Track C in
+[`docs/remaining-work.md`](docs/remaining-work.md); prior: M0 ✅ (harness + 151-fixture corpus + goldens + baseline report-v1, nightly ×3
 green), M1 ✅ tag `m1-closeout`, M2 ✅ tag `m2`, M3 ✅ tag `m3` (creation + ODF/PDF write completion + Rhai
 sandbox + distribution automation; gate re-verified 2026-09-16: 1 644 tests, clippy/fmt/deny clean,
 `phase3_gate.sh` 26/26; `docs/m3-acceptance.md` §7 for corrections), M4 ✅ tag `m4` (2026-09-18, human
@@ -15,7 +20,7 @@ loop), M5 ✅ tag `m5` (2026-09-19, PDF loop + trust; §9 correction noted above
 (2026-09-23, context budget + intake; §11 corrections noted above). Gates G1 ✅ (D19), G4 ✅ (no own repos);
 G3 closed at M6 (Windows host COM-2..6 verified), G5 still open (pdfium, post-M6). Surface measured
 2026-09-23: **23 tools** (`spec.rs` assert) / **21 verbs** (`enum Command`), C7 **v1.6.0** (10 Wave-C
-tools bumped; `docs/contracts/C7.md` matrix update pending, see remaining-work T-A2).
+tools bumped; `docs/contracts/C7.md` matrix landed at 1.6.0 in `ff80f8e`).
 **Rule:** this file is a plan, not a decision record. If a plan choice contradicts the concept,
 resolve it in `project_concept.md` §16 (decision log) first, then reflect it here.
 Traceability: every task cites the concept section (§) or decision (D) it implements.
@@ -43,7 +48,7 @@ Traceability: every task cites the concept section (§) or decision (D) it imple
 | **M3 ✅** (2026-09-16) | Phase 3 — creation | create from IR/Markdown/HTML/Typst; Rhai escape hatch | created docs pass lint + schema validation; pandoc/Chromium/Typst paths measured against corpus | +6 w |
 | **M4 ✅** (2026-09-18) | Phase 4 — human loop | review overlay **shipped as raster-over-masters (D22, not pdf.js)**, accept/reject on tracked changes (OOXML + ODF), comment write-back, `open` handoff | tracked-change accept/reject round-trip lossless on corpus subset — met (tag `m4`) | +6–8 w |
 | **M5 ✅** (2026-09-19) | Phase 5 — PDF loop + trust | PDF annotation round-trip (C12), review session over PDF + opt-in pdf.js text layer (D24), sign-later PAdES-B-B + signature integrity (C13/D25), PDF/A revalidation, launch prep only (D26) | `phase5_gate.sh` 8 gates headless green at acceptance (tag `m5` on the gate-green commit, pushed); post-acceptance correction in `docs/m5-acceptance.md` §9 (`check-deps.sh` fails at the `m5` tree, `mcp -> adapters-pdf` edge — fixed by dependency inversion in Phase 6 Wave 0) | +6 w |
-| **M6 ✅** (2026-09-23) | Phase 6 — context budget + intake | **context-budget defaults at C7 v1.6 (track CTX, D27):** summary-first inspect, URL-first images (temp files + TTL), caps (`max_elements`/`max_pages`/`max_ops`/`max_entries`), `dry_run`-true previews, `__budget` envelope; + COM-2..6 on arriving host, xlsx formula eval, ODS/ODP revisions, Word-interop verification | 35/35 steps, `phase6_gate.sh --ci` green pre-tag (tag `m6`, **push pending owner**); `__budget`-on-100 % + C7 v1.6 spec ceilings **not yet fully met** — `docs/m6-acceptance.md` §11 corrections, closeout in `docs/remaining-work.md` | +6–8 w |
+| **M6 ✅** (2026-09-23) | Phase 6 — context budget + intake | **context-budget defaults at C7 v1.6 (track CTX, D27):** summary-first inspect, URL-first images (temp files + TTL), caps (`max_elements`/`max_pages`/`max_ops`/`max_entries`), `dry_run`-true previews, `__budget` envelope; + COM-2..6 on arriving host, xlsx formula eval, ODS/ODP revisions, Word-interop verification | 35/35 steps, `phase6_gate.sh --ci` green pre-tag (tag `m6`, **pushed**; Track A′ closeout round 2 **complete** — gate 90/90, `p606` 6/6, tag `m6` re-anchored + pushed); `docs/m6-acceptance.md` §11 corrections resolved in closeout rounds 1–2, closeout in `docs/remaining-work.md` (complete) | +6–8 w |
 
 Cross-cutting tracks (SEC, DIS, OPS, GOV) run continuously and are gated per milestone.
 

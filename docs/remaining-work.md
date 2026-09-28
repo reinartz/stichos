@@ -1,9 +1,10 @@
-# stichos — Remaining Work (post-M6, rev 2)
+# stichos — Remaining Work (post-M6, rev 3)
 
 **Created:** 2026-09-23 (completion audit). **Rev 2:** 2026-09-24 — re-measured at `ff80f8e`
 (`== main == origin/main == tag m6`) + working tree; closeout round 1 (old T-A/T-B/T-C) landed,
 Track A rewritten as Track A′ (closeout round 2); Track B expanded per the Phase-7 intake specs
-(`docs/track-b-p7-*.md`).
+(`docs/track-b-p7-*.md`). **Rev 3:** 2026-09-27 — Track C (engine completion) added from the
+2026-09-27 engine audit of `crates/engines`.
 
 Conventions: each **task** is one deliverable; each **subtask** is scoped so a single subagent
 session (~200 k-token context) can finish it end-to-end (read → change → test → report). Subtask
@@ -16,18 +17,18 @@ KI-09).
 
 | Area | State |
 |---|---|
-| Milestones M0–M6 | all tagged; **`main` pushed to origin; tag `m6` re-anchored + pushed** (see git state at bottom) |
+| Milestones M0–M6 | all tagged; **tag `m6` re-anchored + pushed**; **`main` 4 commits ahead of origin (phase7, unpushed)** (see git state at bottom) |
 | Closeout round 1 | committed in `ff80f8e`: Gate-C defaults flip, T-A1 (mcp spec 93/93), T-A2 (C7.md 1.6.0), T-A3 (C14 frozen), T-B1/T-B2 (`budget_enforcer` + envelope on CLI verbs & serve boundary), T-C1/T-C3 (gate measures, full `mcp --lib` filter) |
-| `phase6_gate.sh --ci` (binary built) | **86/90** — 3 real CTX-06 violations + 1 expected `m6`-tag artifact (KI-08) |
-| `p606_ctx06_compliance` | **3/6** — summary budget, diff/journal caps, region `--json` (exit 2) red |
-| `cargo test --workspace --lib` | 2020 pass / 4 known OPC zip-bomb fails (adapters-ooxml); **+41 new tests from P7-5, all passing** |
+| `phase6_gate.sh --ci` (binary built) | **90/90** green |
+| `p606_ctx06_compliance` | **6/6** green |
+| `cargo test --workspace --lib --no-fail-fast` | **2157 pass / 13 known fails** (4 OPC zip-bomb in adapters-ooxml + 9 date-hardcoded in gp-core formula::evaluator, all pre-existing/accepted) |
 | `cargo test -p mcp --lib` | **93/93** green |
 | `cargo test -p gp-core --features pades-ltv` | **592 pass** / 9 time-dependent fails (pre-existing, date-hardcoded); clippy clean |
-| fmt / clippy (lib, `-D warnings`) / `check-deps.sh` | all green (also for uncommitted P7-7 + P7-5 WIP) |
+| fmt / clippy (lib, `-D warnings`) / `check-deps.sh` | all green at `3b4a396` (working tree clean; adapters-ooxfuzz pre-existing clippy errors tolerated by gate CI branch) |
 | Gate "binary not built (skipped)" paths | **fixed** — R-D1 builds binary before gate runs (KI-09 resolved) |
 | Contract docs | C7 1.6.0 frozen; C14 frozen; C15 frozen; C12/C13 frozen |
-| P7-7 WIP (committed `7d56af5` + `fe266cd`) | real manual-DER PKCS#7/CMS builder (`signature.rs` ~2550 lines, 19 sig tests green); **B0.1–B0.8 ALL COMPLETE** |
-| P7-5 WIP (working tree) | **~3,900 LoC new code across 13 files**: TSA client (RFC 3161), OCSP/CRL + LTV embedding, PKCS#12 trusted certs; feature-gated `pades-ltv`; 6 new diagnostic codes (GP-S-020–025) |
+| P7-7 (committed `7d56af5` + `fe266cd`) | real manual-DER PKCS#7/CMS builder (`signature.rs` ~2550 lines, 19 sig tests green); **B0.1–B0.8 ALL COMPLETE** |
+| P7-5 (committed `3b4a396`) | **~3,900 LoC new code across 13 files**: TSA client (RFC 3161), OCSP/CRL + LTV embedding, PKCS#12 trusted certs; feature-gated `pades-ltv`; 6 new diagnostic codes (GP-S-020–025); 41 new tests, all passing |
 | Phase-7 intake docs | `docs/track-b-p7-1/2/3/4/7/8/9-*.md` specs; `ADR-0012` (PAdES-T/LTV) **accepted** + `ADR-0013` (redaction) **accepted** |
 | Dependabot | 0 open branches on origin; local `tmp-7` branch + stale remote-tracking refs to clean |
 | Owner decisions (2026-09-24) | ① P7-7 WIP → move to feature branch `p7-7-cms` (keep `main` at gate-green `m6`); ② `m6` re-anchor + `git push --force-with-lease` **approved** after Track A′ green; ③ order: **Track A′ first**, then Track B |
@@ -108,7 +109,7 @@ including the owner gate (B0.8) are complete.
 
 **Order:** B0.1 ✅ → B0.2 ✅ → B0.3 ✅ → B0.4 ✅ → B0.5 ✅ → B0.6 ✅ → B0.7 ✅ → B0.8 ✅ — **ALL COMPLETE**.
 
-### P7-5 — PAdES-T/LTV *(ADR-0012 accepted — ALL SUBTASKS COMPLETE)*
+### P7-5 — PAdES-T/LTV *(ADR-0012 accepted — ALL SUBTASKS COMPLETE; committed `3b4a396`)*
 
 | Sub | Status | Scope | Deliverable / acceptance | Size |
 |---|---|---|---|---|
@@ -188,7 +189,103 @@ including the owner gate (B0.8) are complete.
 P7-1 (xlsx create) **COMPLETE** — P7-2 (pptx create) **COMPLETE** — P7-3 (formula coverage) **Tranche A+Tranche B (lookup) COMPLETE; Tranche C/D 🟡 deferred** — P7-4 (lint encode/ssim) **COMPLETE** — P7-5 (PAdES-T/LTV) **COMPLETE** — P7-6 (redaction) **COMPLETE** — P7-8 (pdfium spike) **COMPLETE** — next: P7-9 (launch, 👤 not delegable).
 P5 (LTV) strictly after B0 (needs counter-sig CMS).
 
-**Git state (measured 2026-09-27):** `main` pushed to origin; tag `m6` re-anchored + pushed; P7-5 working tree WIP (~3,900 LoC new code across 13 files, 41 new tests, all green).
+**Git state (measured 2026-09-27):** `main` 4 commits ahead of origin (phase7 commits `7d56af5`, `fe266cd`, `6c1ba86`, `3b4a396` — unpushed); tag `m6` re-anchored + pushed; **working tree clean**; P7-5 committed `3b4a396` (~3,900 LoC new code across 13 files, 41 new tests, all green).
+
+---
+
+## Track C — engine completion (pandoc, chromium, typst)
+
+**Context:** full-support gap list from a measured audit of `crates/engines` on 2026-09-27 at
+`3b4a396`. Plan-only this session — implementation happens later, one subtask per subagent
+session, sequential. Scope: ENG-06 (pandoc JSON AST), ENG-10 (chromium screenshot), ENG-11
+(typst), AUT-01/02/03 (project_plan.md §5); KI-04 (`docs/KNOWN_ISSUES.md`); ADR-0004 (typst CLI
+shell-out, `deny.toml` ban); C5 (capability matrix, frozen v1.0 — additive-only doc updates);
+C7 (`dry_run` contract); INV-4 (cache keys need engine versions).
+
+### C-A — Probe & doctor coverage
+
+| Sub | Status | Scope | Deliverable / acceptance | Size |
+|---|---|---|---|---|
+| C1.1 | 🟡 | `crates/engines/src/probe.rs` `standard_fixtures()` | Pandoc write-direction probe fixture (fixes KI-04): add markdown-source fixture(s) so pandoc's create direction (md→docx) is exercised by `probe_engine`; update `docs/KNOWN_ISSUES.md` KI-04 (currently "pandoc works:false by design"). | S |
+| C1.2 | 🟡 | same | Typst probe fixture: typ→pdf fixture in `probe.rs` (honest-absent when typst missing); yields ≥1 pass for typst probe. | S |
+| C1.3 | 🟡 | `crates/cli/src/doctor_tool.rs` + `crates/cli/tests/cli_tests.rs` | CLI doctor completeness: register `ChromiumEngine::new_auto()` + `TypstEngine::new_auto()` when available; JSON + human output emit `pandoc_version`/`chromium_version`/`typst_version` (fields already on `SystemInfo` in `crates/engines/src/doctor.rs`). | M |
+
+### C-B — Version provenance & capability honesty
+
+| Sub | Status | Scope | Deliverable / acceptance | Size |
+|---|---|---|---|---|
+| C2.1 | 🟡 | `pandoc.rs` ~:503, `chromium.rs` ~:269, `typst.rs` ~:298 | Lazy cached `version()` for all three engines (currently return `None`): cache parsed version; feeds `negotiate_for_engine`, `build_rendered_by`, and INV-4 `make_cache_key` (today reports "unknown"); tests. | M |
+| C2.2 | 🟡 | `pandoc.rs` ~:570 / ~:508-510, `chromium.rs` ~:584, `typst.rs` ~:357 | Capability matrix honesty: replace hardcoded `works: false` in `info()` with measured/derived values when binary present (or documented placeholder per C5); fix `can_convert` overclaims xlsx/pptx/odp→markdown in pandoc per `baseline/report-v1.md` (pandoc 3.x has no pptx reader). | M |
+| C2.3 | 🟡 | `crates/engines/src/negotiate.rs` | `RendererPreference::Pandoc` variant + `resolve_candidates` arm (Chromium/Typst variants already exist); tests. | S |
+
+### C-C — Chromium screenshot (ENG-10)
+
+| Sub | Status | Scope | Deliverable / acceptance | Size |
+|---|---|---|---|---|
+| C3.1 | 🟡 | `crates/engines/src/chromium.rs` | html→png screenshot path: `--headless=new --screenshot` API, `can_convert("html","png")`, `supported_conversions`, isolated user-data-dir reuse, diagnostics; unit tests. `CODEBASE.md` already corrected to say screenshot is absent — update docs back to supported when done. | M |
+
+### C-D — Negotiation completion
+
+| Sub | Status | Scope | Deliverable / acceptance | Size |
+|---|---|---|---|---|
+| C4.1 | 🟡 | `negotiate.rs` `authoring_order()` (~:74-79) | Fill holes: add typ→pdf (typst first), md/html→odt, md→pdf entries; decide + document typst-on-Windows platform order (currently omitted from Windows order while Linux/macOS include it); tests in negotiate tests module. | M |
+
+### C-E — Typst template wiring (AUT-03)
+
+| Sub | Status | Scope | Deliverable / acceptance | Size |
+|---|---|---|---|---|
+| C5.1 | 🟡 | `typst.rs` `create_pdf_with_template` (~:245-262; test ~:524 admits it) | Template is written to tempdir but never imported: wire branding (inject `#import`/prelude or documented sibling-import contract); test proving template content affects output. | M |
+
+### C-F — Creation dry-run & store lifecycle (C7)
+
+| Sub | Status | Scope | Deliverable / acceptance | Size |
+|---|---|---|---|---|
+| C6.1 | 🟡 | `creation.rs` `create_document()` (~:585 `_dry_run` ignored; response hardcodes `"dry_run": false` ~:632) + `main.rs` ~:257 | Honor `_dry_run`: no store write, return preview bytes/IR, `dry_run: true`; CLI `--dry-run` flag already plumbed. C7 additive-only → version bump + CHANGELOG + migration note per remaining-work conventions. | M |
+| C6.2 | 🟡 | `creation.rs` (~:603-611) | `create_document` opens a temp `ContentStore` that drops on exit — `document_id` may be unrecoverable by callers: define durable handback (or document contract + test that CLI/MCP consumers can fetch the blob). | M |
+
+### C-G — md→pdf routing honesty
+
+| Sub | Status | Scope | Deliverable / acceptance | Size |
+|---|---|---|---|---|
+| C7.1 | 🟡 | `creation.rs` (~:67-69) | markdown→pdf routes to pandoc which needs an external LaTeX engine: add honest-absent diagnostic (new C3 code) + fallback negotiation (chromium via html, or LibreOffice) when pdflatex absent; tests. | M |
+
+### C-H — Positive e2e tests
+
+| Sub | Status | Scope | Deliverable / acceptance | Size |
+|---|---|---|---|---|
+| C8.1 | 🟡 | `creation.rs` (~:1074-1097) | Chromium html→pdf positive test (skip-if-absent) replacing the either-Ok-or-Err pattern. | S |
+| C8.2 | 🟡 | typst runner + `crates/cli/tests/` | Typst compile positive test (skip-if-absent) + a `stichos create` CLI e2e test (none exists today). | S |
+
+### C-I — Render/region engine dispatch
+
+| Sub | Status | Scope | Deliverable / acceptance | Size |
+|---|---|---|---|---|
+| C9.1 | 🟡 | `crates/cli/src/render.rs` (~:192) + `region.rs` (~:155) | `create_engine_for_choice` hardcodes LibreOfficeEngine regardless of negotiated `engine_id`: dispatch per choice (chromium html→pdf, etc.) or explicitly document + test LO-only behavior with honest diagnostic when another engine requested. | M |
+
+### C-J — Pandoc JSON AST passthrough (ENG-06)
+
+| Sub | Status | Scope | Deliverable / acceptance | Size |
+|---|---|---|---|---|
+| C11.1 | 🟡 | `crates/engines/src/pandoc.rs` | `pandoc --to json` / `--from json` passthrough API (zero occurrences today); tests with golden AST snippets. | M |
+| C11.2 | 🟡 | `pandoc.rs` + `gp-core::ir_convert` | Decide + implement IR mapping boundary: passthrough surface vs `gp-core::ir_convert` bridge for json→IR; document decision in module doc; tests. | M |
+
+### C-K — Contract, docs, gate & CI sync
+
+| Sub | Status | Scope | Deliverable / acceptance | Size |
+|---|---|---|---|---|
+| C10.1 | 🟡 | `docs/contracts/C5.md` | Add chromium/typst engine ids (`lib.rs` already defines them) + correct doctor-rows wording (additive doc-only; C5 frozen). | S |
+| C10.2 | 🟡 | `tools/phase6_gate.sh` (~:615-653) | Add `cargo test -p engines --lib` coverage for `pandoc\|chromium\|typst` filters (today only ms-office/file-existence). | S |
+| C10.3 | 🟡 | `.github/workflows/{pr,nightly}.yml` vs `docs/phase3-plan.md` | CI parity: workflows install no pandoc/chromium/typst while phase3-plan claims pinned typst in CI — either add installs or correct the docs (measure first, pick one, note evidence). | S |
+| C10.4 | 🟡 | `crates/engines/src/pandoc.rs` extract tests (~:613) | Hard-assert success → skip-if-absent for hosts without pandoc (CI portability). | S |
+| C10.5 | 🟡 | `project_plan.md` + this file (stale-doc sweep) | Leftover stale-doc fixes found in this session: `project_plan.md` line ~21 "G5 still open (pdfium)" → G5 closed/adopted 2026-09-26 per P7-8 (also §6.4 G5 row + §7 risk row + §9 note if needed); `project_plan.md` W7 row "push pending owner" → pushed; Track A′ header "Ready for commit/re-anchor/push" → completed + pushed; Notes-for-subagents bullet "R-E3/R-E4 … not yet executed" → executed; §0 Dependabot `tmp-7` row vs R-E4 contradiction → resolve to "clean (R-E4)". | S |
+
+**Track-C order:** C-A ∥ C-B first (probe/version foundations), then C-C ∥ C-D ∥ C-E ∥ C-F ∥ C-G,
+then C-H ∥ C-I ∥ C-J, close with C-K; C6.1 contract bump before any wire change; no task is
+👤-only; all 🟡.
+
+**Dependencies note:** keep DAG rules (mcp ← gp-core only; new engine knowledge via
+`gp-core::traits` wired in cli — Wave-0 precedent); `bash tools/check-deps.sh` must stay green;
+contract changes additive-only (C7 precedent).
 
 ---
 
