@@ -62,7 +62,6 @@ pub fn validate_chain(
     let leaf_cert = match x509_parser::parse_x509_certificate(leaf) {
         Ok((_, c)) => c,
         Err(e) => {
-
             diagnostics.push(Diagnostic::new(
                 "GP-S-025",
                 Severity::Error,
@@ -95,31 +94,33 @@ pub fn validate_chain(
         diagnostics.push(Diagnostic::new(
             "GP-S-025",
             Severity::Error,
-            "Certificate chain validation failed — leaf certificate not valid at this time".to_string(),
+            "Certificate chain validation failed — leaf certificate not valid at this time"
+                .to_string(),
         ));
     }
 
     // Check leaf key usage for digitalSignature
     let mut has_digital_signature = false;
-    let ku_ext_found = if let Ok(Some(ext)) = leaf_cert.get_extension_unique(&OID_KEY_USAGE.parse().unwrap()) {
-        if let Ok((_rest, ku)) = x509_parser::extensions::KeyUsage::from_der(ext.value) {
-            has_digital_signature = ku.digital_signature()
-                || ku.non_repudiation()
-                || ku.key_encipherment();
-            true
+    let ku_ext_found =
+        if let Ok(Some(ext)) = leaf_cert.get_extension_unique(&OID_KEY_USAGE.parse().unwrap()) {
+            if let Ok((_rest, ku)) = x509_parser::extensions::KeyUsage::from_der(ext.value) {
+                has_digital_signature =
+                    ku.digital_signature() || ku.non_repudiation() || ku.key_encipherment();
+                true
+            } else {
+                false
+            }
         } else {
             false
-        }
-    } else {
-        false
-    };
+        };
 
     if ku_ext_found && !has_digital_signature {
         has_error = true;
         diagnostics.push(Diagnostic::new(
             "GP-S-025",
             Severity::Error,
-            "Certificate chain validation failed — leaf missing digitalSignature key usage".to_string(),
+            "Certificate chain validation failed — leaf missing digitalSignature key usage"
+                .to_string(),
         ));
     }
 
@@ -130,11 +131,12 @@ pub fn validate_chain(
         match x509_parser::parse_x509_certificate(interp_der) {
             Ok((_, c)) => all_certs.push(c),
             Err(e) => {
-    
                 diagnostics.push(Diagnostic::new(
                     "GP-S-025",
                     Severity::Error,
-                    format!("Certificate chain validation failed — intermediate {idx} parse error: {e}"),
+                    format!(
+                        "Certificate chain validation failed — intermediate {idx} parse error: {e}"
+                    ),
                 ));
                 return ChainValidationResult {
                     cert_count: all_certs.len(),
@@ -156,17 +158,16 @@ pub fn validate_chain(
             Ok((_, root_cert)) => {
                 let root_subject = root_cert.subject().to_string();
                 if !root_cert.validity().is_valid_at(now) {
-        
                     diagnostics.push(Diagnostic::new(
                         "GP-S-025",
                         Severity::Error,
-                        "Certificate chain validation failed — root CA certificate expired".to_string(),
+                        "Certificate chain validation failed — root CA certificate expired"
+                            .to_string(),
                     ));
                 }
                 Some(root_subject)
             }
             Err(e) => {
-    
                 diagnostics.push(Diagnostic::new(
                     "GP-S-025",
                     Severity::Error,
@@ -189,7 +190,6 @@ pub fn validate_chain(
         let subject_str = issuer_cert.subject().to_string();
 
         if issuer_str != subject_str {
-
             diagnostics.push(Diagnostic::new(
                 "GP-S-025",
                 Severity::Error,
@@ -204,7 +204,6 @@ pub fn validate_chain(
         // Verify certificate signature using x509-parser's built-in method
         let issuer_pubkey = issuer_cert.public_key();
         if let Err(e) = cert.verify_signature(Some(issuer_pubkey)) {
-
             diagnostics.push(Diagnostic::new(
                 "GP-S-025",
                 Severity::Error,
@@ -220,7 +219,6 @@ pub fn validate_chain(
     if root.is_some() {
         let last_cert = all_certs.last().expect("at least one cert");
         if !last_cert.is_ca() {
-
             diagnostics.push(Diagnostic::new(
                 "GP-S-025",
                 Severity::Error,

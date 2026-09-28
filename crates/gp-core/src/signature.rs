@@ -895,11 +895,8 @@ pub fn sign_pdf(source_bytes: &[u8], identity: &SigningIdentity) -> SignResult {
             };
 
             // Validate the certificate chain
-            let validation = crate::cert_chain::validate_chain(
-                &bundle.signing_cert,
-                &bundle.chain,
-                None,
-            );
+            let validation =
+                crate::cert_chain::validate_chain(&bundle.signing_cert, &bundle.chain, None);
 
             if !validation.valid {
                 return SignResult {
@@ -3086,9 +3083,12 @@ mod tests {
         let output = Command::new("openssl")
             .args([
                 "asn1parse",
-                "-inform", "DER",
-                "-in", hex_file.path().to_str().unwrap(),
-                "-out", der_file.path().to_str().unwrap(),
+                "-inform",
+                "DER",
+                "-in",
+                hex_file.path().to_str().unwrap(),
+                "-out",
+                der_file.path().to_str().unwrap(),
             ])
             .output();
 
@@ -3111,10 +3111,13 @@ mod tests {
             .args([
                 "cms",
                 "-verify",
-                "-inform", "DER",
+                "-inform",
+                "DER",
                 "-noverify",
-                "-in", der_file.path().to_str().unwrap(),
-                "-out", "/dev/null",
+                "-in",
+                der_file.path().to_str().unwrap(),
+                "-out",
+                "/dev/null",
             ])
             .output();
 
@@ -3159,9 +3162,12 @@ mod tests {
         let output = Command::new("openssl")
             .args([
                 "asn1parse",
-                "-inform", "DER",
-                "-in", hex_file.path().to_str().unwrap(),
-                "-out", der_file.path().to_str().unwrap(),
+                "-inform",
+                "DER",
+                "-in",
+                hex_file.path().to_str().unwrap(),
+                "-out",
+                der_file.path().to_str().unwrap(),
             ])
             .output();
 
@@ -3181,10 +3187,13 @@ mod tests {
             .args([
                 "cms",
                 "-verify",
-                "-inform", "DER",
+                "-inform",
+                "DER",
                 "-noverify",
-                "-in", der_file.path().to_str().unwrap(),
-                "-out", "/dev/null",
+                "-in",
+                der_file.path().to_str().unwrap(),
+                "-out",
+                "/dev/null",
             ])
             .output();
 

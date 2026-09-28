@@ -18,7 +18,7 @@ sandbox + distribution automation; gate re-verified 2026-09-16: 1 644 tests, cli
 `phase3_gate.sh` 26/26; `docs/m3-acceptance.md` §7 for corrections), M4 ✅ tag `m4` (2026-09-18, human
 loop), M5 ✅ tag `m5` (2026-09-19, PDF loop + trust; §9 correction noted above), M6 ✅ tag `m6`
 (2026-09-23, context budget + intake; §11 corrections noted above). Gates G1 ✅ (D19), G4 ✅ (no own repos);
-G3 closed at M6 (Windows host COM-2..6 verified), G5 still open (pdfium, post-M6). Surface measured
+G3 closed at M6 (Windows host COM-2..6 verified), G5 closed 2026-09-26 (adopted — pdfium dynamic linking per P7-8). Surface measured
 2026-09-23: **23 tools** (`spec.rs` assert) / **21 verbs** (`enum Command`), C7 **v1.6.0** (10 Wave-C
 tools bumped; `docs/contracts/C7.md` matrix landed at 1.6.0 in `ff80f8e`).
 **Rule:** this file is a plan, not a decision record. If a plan choice contradicts the concept,
@@ -434,7 +434,7 @@ design ADRs before implementation and are staffed by the strongest kernel person
 | **W4 ✅** (w23–28, closed 2026-09-16) | ENG-10/11 · AUT-01..05 · API-09/10 · DIS-05..08 (+ Phase-2b intake per S2: ODF-04/05, PDF-03; COM stays deferred; Typst=CLI shell-out per S3; see `docs/phase3-plan.md`) | **M3 ship**: creation |
 | **W5 ✅** (Phase 4, closed 2026-09-18) | HUM-01..03 · OPS-03 · polish + corpus-driven hardening **+ ODF revision write (owner call 2026-09-16) + COM design/CI skeleton (implementation stays deferred)**; overlay = raster-over-masters (D22). Steps in `docs/phase4-plan.md` | **M4 ship**: human loop (tag `m4`) |
 | **W6 ✅** (Phase 5, shipped 2026-09-19) | PDF annotation round-trip (C12) · PDF review session + pdf.js text layer (D24, ADR-0009) · trust (C13/D25, ADR-0010, `sign`) · PDF/A row · launch prep (D26) · fuzz round 4; steps in `docs/phase5-plan.md` | **M5 ship**: PDF loop + trust (tag `m5`; `docs/m5-acceptance.md` §9 post-acceptance correction) |
-| **W7 ✅** (Phase 6, shipped 2026-09-23) | **Wave 0: DAG-inversion closeout** (`mcp -> adapters-pdf` edge removed; `check-deps.sh` green) · **CTX-01..06 — context budget (C14, D27)** · M6 intake on the now-available Windows host: COM-2..6 + Word-interop verification, xlsx formula eval (ADR + minimal subset), ODS/ODP revision write, launch rehearsal only (D26); concept `docs/phase6-concept.md`, plan `docs/phase6-plan.md` | **M6 ship**: tag `m6` (push pending owner); `docs/m6-acceptance.md` §11 corrections + `docs/remaining-work.md` closeout (C14 envelope wiring, gate hardening, C7 v1.6 freeze tests) |
+| **W7 ✅** (Phase 6, shipped 2026-09-23) | **Wave 0: DAG-inversion closeout** (`mcp -> adapters-pdf` edge removed; `check-deps.sh` green) · **CTX-01..06 — context budget (C14, D27)** · M6 intake on the now-available Windows host: COM-2..6 + Word-interop verification, xlsx formula eval (ADR + minimal subset), ODS/ODP revision write, launch rehearsal only (D26); concept `docs/phase6-concept.md`, plan `docs/phase6-plan.md` | **M6 ship**: tag `m6` (pushed; main 4 commits ahead of origin — phase7 commits unpushed); `docs/m6-acceptance.md` §11 corrections + `docs/remaining-work.md` closeout (C14 envelope wiring, gate hardening, C7 v1.6 freeze tests) |
 
 ### 6.4 Decision gates (blocking; each has a decision-by wave and an owner)
 
@@ -444,7 +444,7 @@ design ADRs before implementation and are staffed by the strongest kernel person
 | G2 | OQ3 `gp` alias yes/no — **de facto no**: CLI v1.0–v1.2 shipped with `stichos` spelled out; owner to formalize OQ3 closure | W2 (before API-04 CLI freeze) | C7 tool/CLI naming | §18-3 |
 | G3 | OQ2 Word tier for non-Windows users (Aspose/Syncfusion vs hosted worker vs none) — still open; Phase 4 lands COM **design + compile-only skeleton** only | W3 start | COM-5 scope, M2 marketing claims | §18-2 |
 | G4 | OQ4 own apt/rpm repos vs GitHub Releases + winget/Homebrew — **DECIDED 2026-09-15 (owner): GitHub Releases + winget/Homebrew only, no own repos (phase3-concept §10 S4)** | W4 ✅ | DIS-08 | §18-4 |
-| G5 | pdfium bundling (only if G1 shows pure-Rust extraction insufficient for LIN-01) | after HAR-06 data | D2 "C stays out" invariant — needs D-log entry if reversed | §5.3, D2 |
+| G5 | pdfium bundling — **CLOSED 2026-09-26**: adopted dynamic linking only (P7-8, Option A). D2 intact (no binary C). deny.toml bans removed. | after HAR-06 data | D2 "C stays out" invariant — needs D-log entry if reversed | §5.3, D2 |
 
 ---
 
@@ -456,7 +456,7 @@ design ADRs before implementation and are staffed by the strongest kernel person
 | Byte-surgical zip/XML fidelity (OOX-02/09) | INV-1 fails → "surgical" claim dead | invariant suite per fixture; stream-copy strategy; never use library save paths |
 | Word automation constraints (§9) on Windows ARM64/Store editions | Office tier slips past M2 | probe-never-assume (COM-2); LO fallback always honest (D9); COM-6 logon-agent model isolated from core |
 | Distro LibreOffice age/variability | layout truth varies; doctor blamed | fixture-based capability probes (D8), N/N-1 pinning (D15), version-in-report (D6) |
-| pdfium vs "C stays out" tension | raster/extract quality ceiling | G1/G5 gates with HAR-06 evidence; shell-out ladder (D11) as floor |
+| pdfium vs "C stays out" tension | raster/extract quality ceiling | G5 closed 2026-09-26 (adopted dynamic linking per P7-8); D2 intact; shell-out ladder (D11) as floor |
 | 20-image limit / vision pricing changes (D13) | payload design churn | estimator isolated in REN-02 behind C8; single config point |
 | C14 default flips (`dry_run=true`, base64→URLs, `max_ops` 20) change behavior for existing automation even though the **schema** stays additive | CI scripts silently receive previews or URL refs instead of full docs/base64 | flips ship only at C7 **v1.6** with explicit opt-outs (`output="base64"`, `dry_run=false`, `max_ops=0`); CHANGELOG default-flip section; legacy explicit-parameter tests prove old paths; gate asserts no base64 in URL mode and `__budget` presence (C14 §7.4) |
 | Corpus licensing (HAR-01) | cannot ship harness publicly | generated-fixture fallback (HAR-02); license review as first-class task |

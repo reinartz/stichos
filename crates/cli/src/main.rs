@@ -623,7 +623,15 @@ async fn main() -> Result<()> {
             pkcs12,
             pkcs12_password,
         } => {
-            sign::cmd_sign(&path, subject, algorithm, output, verify, pkcs12, pkcs12_password)?;
+            sign::cmd_sign(
+                &path,
+                subject,
+                algorithm,
+                output,
+                verify,
+                pkcs12,
+                pkcs12_password,
+            )?;
         }
         Command::Verify { path } => {
             sign::cmd_verify(&path)?;
@@ -963,21 +971,42 @@ async fn cmd_create(
                 if let Some(status) = json_value.get("status").and_then(|s| s.as_str()) {
                     match status {
                         "created" => {
-                            if let Some(doc_id) =
-                                json_value.get("document_id").and_then(|d| d.as_str())
-                            {
-                                eprintln!(
-                                    "create: {} (format: {})",
-                                    doc_id,
-                                    json_value["format"].as_str().unwrap_or("?")
-                                );
-                            }
-                            if let Some(rendered_by) = json_value
-                                .get("rendered_by")
-                                .and_then(|r| r.get("engine_id"))
-                                .and_then(|e| e.as_str())
-                            {
-                                eprintln!("  rendered_by: {}", rendered_by);
+                            let is_dry_run = json_value
+                                .get("dry_run")
+                                .and_then(|d| d.as_bool())
+                                .unwrap_or(false);
+                            if is_dry_run {
+                                if let Some(output_size) =
+                                    json_value.get("output_size").and_then(|o| o.as_u64())
+                                {
+                                    eprintln!(
+                                        "dry run: would create {} document ({} bytes)",
+                                        json_value["format"].as_str().unwrap_or("?"),
+                                        output_size
+                                    );
+                                }
+                            } else {
+                                if let Some(doc_id) =
+                                    json_value.get("document_id").and_then(|d| d.as_str())
+                                {
+                                    eprintln!(
+                                        "create: {} (format: {})",
+                                        doc_id,
+                                        json_value["format"].as_str().unwrap_or("?")
+                                    );
+                                }
+                                if let Some(rendered_by) = json_value
+                                    .get("rendered_by")
+                                    .and_then(|r| r.get("engine_id"))
+                                    .and_then(|e| e.as_str())
+                                {
+                                    eprintln!("  rendered_by: {}", rendered_by);
+                                }
+                                if let Some(store_root) =
+                                    json_value.get("store_root").and_then(|s| s.as_str())
+                                {
+                                    eprintln!("  store_root: {}", store_root);
+                                }
                             }
                         }
                         "created_with_revisions" => {

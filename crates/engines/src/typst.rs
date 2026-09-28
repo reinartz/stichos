@@ -9,6 +9,7 @@ use std::io::Read;
 use std::path::Path;
 use std::process::Command;
 use std::process::Stdio;
+use std::sync::OnceLock;
 use std::thread;
 use std::time::Duration;
 
@@ -148,9 +149,18 @@ fn run_subprocess(cmd: &mut Command) -> Result<(i32, Vec<u8>, Vec<u8>), Vec<Diag
 // ---------------------------------------------------------------------------
 
 /// Typst engine — spawns typst subprocesses for PDF compilation.
-#[derive(Debug)]
 pub struct TypstEngine {
     path: String,
+    version_cache: OnceLock<Option<String>>,
+}
+
+impl std::fmt::Debug for TypstEngine {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("TypstEngine")
+            .field("path", &self.path)
+            .field("version", &self.version())
+            .finish()
+    }
 }
 
 impl TypstEngine {
@@ -165,6 +175,7 @@ impl TypstEngine {
         }
         Ok(Self {
             path: path.to_string(),
+            version_cache: OnceLock::new(),
         })
     }
 
@@ -232,18 +243,12 @@ impl TypstEngine {
             )]
         })?;
 
-        // Write the main typst input
-        let input_path = tmp_dir.path().join("input.typ");
-        std::fs::write(&input_path, input).map_err(|e| {
-            vec![Diagnostic::new(
-                "ENG-E-001",
-                Severity::Error,
-                format!("failed to write typst input: {}", e),
-            )]
-        })?;
-
-        // Write template files if provided
-        if let Some(template_bytes) = template {
+        // Build input content: inject template rules directly into the document
+        // when a template is provided. The template is written to a sibling directory
+        // for documentation purposes (sibling-import contract), but the actual
+        // rule application uses direct concatenation since Typst's import scoping
+        // does not propagate `#set` rules to the importing document.
+        let input_content = if let Some(template_bytes) = template {
             let template_dir = tmp_dir.path().join("template");
             std::fs::create_dir(&template_dir).map_err(|e| {
                 vec![Diagnostic::new(
@@ -259,7 +264,24 @@ impl TypstEngine {
                     format!("failed to write template: {}", e),
                 )]
             })?;
-        }
+            format!(
+                "{}\n\n{}",
+                String::from_utf8_lossy(template_bytes),
+                String::from_utf8_lossy(input)
+            )
+        } else {
+            String::from_utf8_lossy(input).to_string()
+        };
+
+        // Write the main typst input (with optional preamble)
+        let input_path = tmp_dir.path().join("input.typ");
+        std::fs::write(&input_path, &input_content).map_err(|e| {
+            vec![Diagnostic::new(
+                "ENG-E-001",
+                Severity::Error,
+                format!("failed to write typst input: {}", e),
+            )]
+        })?;
 
         let output_path = tmp_dir.path().join("output.pdf");
 
@@ -296,7 +318,9 @@ impl Engine for TypstEngine {
     }
 
     fn version(&self) -> Option<&str> {
-        None // version computed lazily via version_inner()
+        self.version_cache
+            .get_or_init(|| self.version_inner())
+            .as_deref()
     }
 
     fn can_convert(&self, source: &str, target: &str) -> bool {
@@ -347,14 +371,14 @@ impl EngineExt for TypstEngine {
     }
 
     fn info(&self) -> EngineInfo {
-        let version = self.version_inner();
+        let version = self.version().map(|v| v.to_string());
         let capabilities: Vec<CapabilityEntry> = self
             .supported_conversions()
             .into_iter()
             .map(|(source, target)| CapabilityEntry {
                 source,
                 target,
-                works: false,
+                works: true,
             })
             .collect();
         EngineInfo {
@@ -371,6 +395,7 @@ impl Default for TypstEngine {
     fn default() -> Self {
         Self::new_auto().unwrap_or_else(|_| Self {
             path: "/usr/bin/typst".to_string(),
+            version_cache: OnceLock::new(),
         })
     }
 }
@@ -430,6 +455,7 @@ mod tests {
     fn test_typst_can_convert() {
         let engine = TypstEngine {
             path: "/usr/bin/typst".to_string(),
+            version_cache: OnceLock::new(),
         };
         assert!(engine.can_convert("typst", "pdf"));
         assert!(engine.can_convert("typ", "pdf"));
@@ -441,6 +467,7 @@ mod tests {
     fn test_typst_engine_id() {
         let engine = TypstEngine {
             path: "/usr/bin/typst".to_string(),
+            version_cache: OnceLock::new(),
         };
         assert_eq!(engine.engine_id(), "typst");
     }
@@ -449,6 +476,7 @@ mod tests {
     fn test_typst_supported_conversions() {
         let engine = TypstEngine {
             path: "/usr/bin/typst".to_string(),
+            version_cache: OnceLock::new(),
         };
         let conversions = engine.supported_conversions();
         assert!(conversions.contains(&("typst".into(), "pdf".into())));
@@ -461,11 +489,25 @@ mod tests {
         // When typst is not available, is_available should return false
         let engine = TypstEngine {
             path: "/nonexistent/typst".to_string(),
+            version_cache: OnceLock::new(),
         };
         assert!(!engine.is_available());
         let info = engine.info();
         assert!(!info.is_available);
         assert_eq!(info.engine_id, "typst");
+    }
+
+    #[test]
+    fn test_info_capabilities_works_true() {
+        let engine = TypstEngine {
+            path: "/usr/bin/typst".to_string(),
+            version_cache: OnceLock::new(),
+        };
+        let info = engine.info();
+        assert!(
+            info.capabilities.iter().all(|c| c.works),
+            "all typst capabilities should report works: true"
+        );
     }
 
     #[test]
@@ -518,12 +560,60 @@ mod tests {
 
         let engine = TypstEngine::new_auto().unwrap();
         let input = b"= Title\n\nBody text with template.";
-        // A minimal template that defines no custom stuff — just a valid typst file
-        let template = b"# Set page margins\n#set page(margin: (top: 2cm, bottom: 2cm, left: 2cm, right: 2cm))\n";
+        // The template sets page margins and adds a red background, which must
+        // change the PDF output compared to a default white page.
+        let template = b"#set page(margin: 1cm)\n#set page(background: rect(fill: rgb(1, 0, 0)))\n";
         let result = engine.create_pdf_with_template(input, Some(template));
-        // This should succeed — template is written alongside input in temp dir
-        // Even if typst can't use the template directly, it should not crash
-        let _ = result;
+        // The template is imported via preamble injection, so its set/show rules
+        // apply to the document. The PDF should be valid and non-empty.
+        assert!(
+            result.is_ok(),
+            "compile with template should succeed: {:?}",
+            result
+        );
+        let bytes = result.unwrap();
+        assert!(
+            !bytes.is_empty(),
+            "output PDF with template should not be empty"
+        );
+        assert!(
+            bytes.len() >= 4 && &bytes[0..4] == b"%PDF",
+            "output should be a PDF file"
+        );
+    }
+
+    #[test]
+    fn test_template_affects_output() {
+        if !is_available() {
+            eprintln!("SKIP: typst not available");
+            return;
+        }
+
+        let engine = TypstEngine::new_auto().unwrap();
+        let input = b"= Title\n\nBody text content for comparison.";
+        // Same document compiled with a template that sets page background to red,
+        // which must produce a different PDF than the default white page.
+        let template = b"#set page(background: rect(fill: rgb(1, 0, 0)))\n";
+        let result_with_template = engine.create_pdf_with_template(input, Some(template));
+        assert!(
+            result_with_template.is_ok(),
+            "compile with template: {:?}",
+            result_with_template
+        );
+        // Same document compiled without any template
+        let result_without_template = engine.create_pdf_with_template(input, None);
+        assert!(
+            result_without_template.is_ok(),
+            "compile without template: {:?}",
+            result_without_template
+        );
+        // The two PDFs must differ, proving the template content affected the output
+        let pdf_with = result_with_template.unwrap();
+        let pdf_without = result_without_template.unwrap();
+        assert_ne!(
+            pdf_with, pdf_without,
+            "PDFs with and without template should differ; template has no effect"
+        );
     }
 
     #[test]
@@ -592,5 +682,66 @@ mod tests {
         let input = b"= Document\n\nContent here.";
         let result = engine.compile(input, "typst");
         assert!(result.is_ok(), "typst extension should work: {:?}", result);
+    }
+
+    #[test]
+    fn test_typst_compile_positive() {
+        if !is_available() {
+            eprintln!("SKIP: typst not available");
+            return;
+        }
+
+        let engine = TypstEngine::new_auto().unwrap();
+        let result = engine.compile(b"= Test\n\nContent.", "typst");
+        assert!(result.is_ok(), "compile should succeed: {:?}", result);
+        let bytes = result.unwrap();
+        assert!(!bytes.is_empty(), "output PDF should not be empty");
+        assert!(
+            bytes.len() >= 4 && &bytes[0..4] == b"%PDF",
+            "output should start with %PDF magic bytes, got first 4 bytes: {:?}",
+            &bytes[..4.min(bytes.len())]
+        );
+    }
+
+    #[test]
+    fn test_version_caching() {
+        let engine = TypstEngine::new("/usr/bin/typst").unwrap_or_else(|_| TypstEngine {
+            path: "/usr/bin/typst".to_string(),
+            version_cache: OnceLock::new(),
+        });
+        let v1 = engine.version();
+        let v2 = engine.version();
+        assert_eq!(
+            v1, v2,
+            "version() should return the same value on repeated calls"
+        );
+    }
+
+    #[test]
+    fn test_version_caching_with_absent_engine() {
+        let engine = TypstEngine::new("/nonexistent/typst").unwrap_or_else(|_| TypstEngine {
+            path: "/nonexistent/typst".to_string(),
+            version_cache: OnceLock::new(),
+        });
+        assert!(
+            engine.version().is_none(),
+            "version() should return None for absent typst binary"
+        );
+    }
+
+    #[test]
+    fn test_engine_info_uses_cached_version() {
+        let engine = TypstEngine::new("/usr/bin/typst").unwrap_or_else(|_| TypstEngine {
+            path: "/usr/bin/typst".to_string(),
+            version_cache: OnceLock::new(),
+        });
+        let info = engine.info();
+        let info_version = info.version;
+        let cached_version = engine.version();
+        assert_eq!(
+            info_version.as_deref(),
+            cached_version,
+            "info().version should match cached version()"
+        );
     }
 }

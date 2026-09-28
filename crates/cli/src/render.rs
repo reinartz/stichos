@@ -4,16 +4,20 @@
 //! This module implements the `render_document` CLI command, which:
 //! 1. Reads a document file (docx, odt, pptx, xlsx, ods, odp)
 //! 2. Negotiates the best rendering engine
-//! 3. Converts to PDF via engine
-//! 4. Rasterizes each page to PNG using the raster ladder
-//! 5. Builds a contact sheet from page thumbnails
-//! 6. Checks payload budget (C8: ≤20 image blocks, ≤2000px/side)
-//! 7. Writes output files
-//! 8. Returns a manifest JSON with `rendered_by` provenance (INV-2)
+//! 3. Dispatches to the negotiated engine (LibreOffice, Pandoc, Chromium, or Typst)
+//! 4. Converts to PDF via engine
+//! 5. Rasterizes each page to PNG using the raster ladder
+//! 6. Builds a contact sheet from page thumbnails
+//! 7. Checks payload budget (C8: ≤20 image blocks, ≤2000px/side)
+//! 8. Writes output files
+//! 9. Returns a manifest JSON with `rendered_by` provenance (INV-2)
 
 use anyhow::Context;
+use engines::chromium::ChromiumEngine;
 use engines::libreoffice::LibreOfficeEngine;
 use engines::negotiate::{negotiate_renderer, RendererPreference};
+use engines::pandoc::PandocEngine;
+use engines::typst::TypstEngine;
 use gp_core::diagnostics::Diagnostic;
 use gp_core::traits::Engine;
 use lint::budget::{check_payload_budget, ImageBlock};
@@ -191,16 +195,49 @@ pub fn render_document(
 /// Create an engine instance based on the negotiated renderer choice.
 fn create_engine_for_choice(
     choice: &engines::negotiate::RendererChoice,
-) -> Result<LibreOfficeEngine, anyhow::Error> {
-    // For P1, we use LibreOffice as the engine. The negotiation step already
-    // verified that LO is available.
-    LibreOfficeEngine::new_auto().map_err(|diags| {
-        anyhow::anyhow!(
-            "failed to create engine (choice={}): {:?}",
-            choice.engine_id,
-            diags.iter().map(|d| d.message.as_str()).collect::<Vec<_>>()
-        )
-    })
+) -> Result<Box<dyn Engine>, anyhow::Error> {
+    match choice.engine_id.as_str() {
+        "libreoffice" => LibreOfficeEngine::new_auto()
+            .map(|e| Box::new(e) as Box<dyn Engine>)
+            .map_err(|diags| {
+                anyhow::anyhow!(
+                    "failed to create engine (choice={}): {:?}",
+                    choice.engine_id,
+                    diags.iter().map(|d| d.message.as_str()).collect::<Vec<_>>()
+                )
+            }),
+        "pandoc" => PandocEngine::new_auto()
+            .map(|e| Box::new(e) as Box<dyn Engine>)
+            .map_err(|diags| {
+                anyhow::anyhow!(
+                    "failed to create engine (choice={}): {:?}",
+                    choice.engine_id,
+                    diags.iter().map(|d| d.message.as_str()).collect::<Vec<_>>()
+                )
+            }),
+        "chromium" => ChromiumEngine::new_auto()
+            .map(|e| Box::new(e) as Box<dyn Engine>)
+            .map_err(|diags| {
+                anyhow::anyhow!(
+                    "failed to create engine (choice={}): {:?}",
+                    choice.engine_id,
+                    diags.iter().map(|d| d.message.as_str()).collect::<Vec<_>>()
+                )
+            }),
+        "typst" => TypstEngine::new_auto()
+            .map(|e| Box::new(e) as Box<dyn Engine>)
+            .map_err(|diags| {
+                anyhow::anyhow!(
+                    "failed to create engine (choice={}): {:?}",
+                    choice.engine_id,
+                    diags.iter().map(|d| d.message.as_str()).collect::<Vec<_>>()
+                )
+            }),
+        unknown => Err(anyhow::anyhow!(
+            "unknown engine id from negotiation: '{}'; this indicates a negotiation bug",
+            unknown
+        )),
+    }
 }
 
 /// Rasterize all pages of a PDF to PNG.
@@ -545,5 +582,68 @@ mod tests {
         assert_eq!(parsed["image_blocks"].as_u64().unwrap(), 4);
         assert!(parsed["budget"]["within_budget"].as_bool().unwrap());
         assert_eq!(parsed["contact_sheet"]["cols"].as_u64().unwrap(), 2);
+    }
+
+    /// test_create_engine_for_choice_libreoffice — dispatches LibreOffice when engine_id matches.
+    #[test]
+    fn test_create_engine_for_choice_libreoffice() {
+        let choice = engines::negotiate::RendererChoice {
+            engine_id: "libreoffice".to_string(),
+            available: true,
+            reason: "selected".to_string(),
+        };
+        let result = create_engine_for_choice(&choice);
+        if let Ok(engine) = result {
+            assert_eq!(engine.engine_id(), "libreoffice");
+        }
+    }
+
+    /// test_create_engine_for_choice_pandoc — dispatches Pandoc when engine_id matches.
+    #[test]
+    fn test_create_engine_for_choice_pandoc() {
+        let choice = engines::negotiate::RendererChoice {
+            engine_id: "pandoc".to_string(),
+            available: true,
+            reason: "selected".to_string(),
+        };
+        let result = create_engine_for_choice(&choice);
+        if let Ok(engine) = result {
+            assert_eq!(engine.engine_id(), "pandoc");
+        }
+    }
+
+    /// test_create_engine_for_choice_chromium — dispatches Chromium when engine_id matches.
+    #[test]
+    fn test_create_engine_for_choice_chromium() {
+        let choice = engines::negotiate::RendererChoice {
+            engine_id: "chromium".to_string(),
+            available: true,
+            reason: "selected".to_string(),
+        };
+        let result = create_engine_for_choice(&choice);
+        if let Ok(engine) = result {
+            assert_eq!(engine.engine_id(), "chromium");
+        }
+    }
+
+    /// test_create_engine_for_choice_unknown — unknown engine_id returns error.
+    #[test]
+    fn test_create_engine_for_choice_unknown() {
+        let choice = engines::negotiate::RendererChoice {
+            engine_id: "nonexistent".to_string(),
+            available: true,
+            reason: "selected".to_string(),
+        };
+        let result = create_engine_for_choice(&choice);
+        match result {
+            Ok(_) => panic!("expected error for unknown engine"),
+            Err(e) => {
+                assert!(
+                    e.to_string().contains("unknown engine id"),
+                    "unexpected error: {}",
+                    e
+                );
+            }
+        }
     }
 }

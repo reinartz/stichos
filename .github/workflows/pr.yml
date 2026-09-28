@@ -130,6 +130,12 @@ jobs:
         with:
           command: check bans licenses advisories sources
 
+      # C10.3 parity note (2026-09-28): phase3-plan §1 originally claimed CI installs
+      # typst/qpdf/verapdf. Measured against pr.yml + nightly.yml: none of these are
+      # installed in CI. Decision: correct the docs (phase3-plan §1) instead of adding
+      # tool installs to CI — honest-absent paths are verified by unit tests (not
+      # subprocess-dependent). pandoc IS installed via system packages on GitHub
+      # ubuntu-latest runners; typst/chromium are soft-dependencies with honest-absent.
       - name: check-deps (dependency DAG + ban check)
         if: ${{ hashFiles('Cargo.toml') != '' }}
         run: bash tools/check-deps.sh

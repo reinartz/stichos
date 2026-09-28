@@ -1,14 +1,16 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
-// engines: Chromium runner with headless PDF export.
+// engines: Chromium runner with headless PDF export and PNG screenshot.
 //
 // Spawns chromium-browser as a subprocess with --headless=new --print-to-pdf
-// for PDF rendering. Uses isolated --user-data-dir per call.
+// for PDF rendering and --headless=new --screenshot for PNG screenshots.
+// Uses isolated --user-data-dir per call.
 
 use std::io::Read;
 use std::io::Write;
 use std::path::Path;
 use std::process::Command;
 use std::process::Stdio;
+use std::sync::OnceLock;
 use std::thread;
 use std::time::Duration;
 
@@ -187,10 +189,20 @@ impl Default for PageMargins {
 }
 
 /// Chromium engine — spawns chromium-browser subprocesses for HTML→PDF.
-#[derive(Debug)]
 pub struct ChromiumEngine {
     pub path: String,
     pub temp_dir: String,
+    version_cache: OnceLock<Option<String>>,
+}
+
+impl std::fmt::Debug for ChromiumEngine {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ChromiumEngine")
+            .field("path", &self.path)
+            .field("temp_dir", &self.temp_dir)
+            .field("version", &self.version())
+            .finish()
+    }
 }
 
 impl ChromiumEngine {
@@ -223,6 +235,7 @@ impl ChromiumEngine {
         Ok(Self {
             path: path.to_string(),
             temp_dir,
+            version_cache: OnceLock::new(),
         })
     }
 
@@ -267,11 +280,13 @@ impl Engine for ChromiumEngine {
     }
 
     fn version(&self) -> Option<&str> {
-        None // version computed lazily via version_inner()
+        self.version_cache
+            .get_or_init(|| self.version_inner())
+            .as_deref()
     }
 
     fn can_convert(&self, source: &str, target: &str) -> bool {
-        source == "html" && target == "pdf"
+        (source == "html" && target == "pdf") || (source == "html" && target == "png")
     }
 
     fn convert(
@@ -289,12 +304,12 @@ impl Engine for ChromiumEngine {
         }
 
         // Validate source/target
-        if source != "html" || target != "pdf" {
+        if source != "html" || (target != "pdf" && target != "png") {
             return Err(vec![Diagnostic::new(
                 "ENG-E-001",
                 Severity::Error,
                 format!(
-                    "chromium only supports html->pdf conversion (got {}->{})",
+                    "chromium only supports html->pdf and html->png conversions (got {}->{})",
                     source, target
                 ),
             )]);
@@ -343,66 +358,95 @@ impl Engine for ChromiumEngine {
             )]
         })?;
 
-        // Build output PDF path
-        let pdf_path = Path::new(&work_dir).join("output.pdf");
-        let pdf_path_str = pdf_path.to_string_lossy().to_string();
+        // Build chromium command based on target format
         let html_path_str = html_path.to_string_lossy().to_string();
-
-        // Build chromium command:
-        // --headless=new      : new headless mode (CH_ mode)
-        // --print-to-pdf=<path>: output PDF to specified path
-        // --user-data-dir=<dir>: isolated profile per invocation
-        // --no-sandbox         : required when running as root
-        // --disable-gpu        : avoid GPU issues in headless mode
-        // --disable-dev-shm-usage: avoid /dev/shm limits
         let mut cmd = Command::new(&self.path);
         cmd.arg("--headless=new")
-            .arg("--print-to-pdf")
-            .arg(&pdf_path_str)
             .arg("--no-sandbox")
             .arg("--disable-gpu")
             .arg("--disable-dev-shm-usage")
-            .arg("--user-data-dir")
-            .arg(&user_data_dir)
-            // Paper size and margins (reasonable defaults)
-            .arg("--paper-size")
-            .arg("letter")
-            .arg("--margin-top")
-            .arg("0.5")
-            .arg("--margin-bottom")
-            .arg("0.5")
-            .arg("--margin-left")
-            .arg("0.5")
-            .arg("--margin-right")
-            .arg("0.5")
-            .arg("--background")
+            .arg(format!("--user-data-dir={}", user_data_dir))
             .arg(&html_path_str);
 
-        let result = run_subprocess(&mut cmd);
+        let outcome = if target == "pdf" {
+            let pdf_path = Path::new(&work_dir).join("output.pdf");
+            let pdf_path_str = pdf_path.to_string_lossy().to_string();
 
-        let read_output = || match std::fs::read(&pdf_path) {
-            Ok(data) => Ok(data),
-            Err(e) => Err(vec![Diagnostic::new(
-                "ENG-E-001",
-                Severity::Error,
-                format!("failed to read PDF output: {}", e),
-            )]),
-        };
+            // --print-to-pdf=<path> outputs PDF to specified path
+            cmd.arg(format!("--print-to-pdf={}", pdf_path_str))
+                // Paper size and margins (reasonable defaults)
+                .arg("--paper-size")
+                .arg("letter")
+                .arg("--margin-top")
+                .arg("0.5")
+                .arg("--margin-bottom")
+                .arg("0.5")
+                .arg("--margin-left")
+                .arg("0.5")
+                .arg("--margin-right")
+                .arg("0.5")
+                .arg("--background");
 
-        let outcome = match result {
-            Ok((exit_code, _stdout, stderr)) => {
-                if exit_code != 0 {
-                    let msg = String::from_utf8_lossy(&stderr);
-                    Err(vec![Diagnostic::new(
-                        "ENG-E-001",
-                        Severity::Error,
-                        format!("chromium exited with code {}: {}", exit_code, msg.trim()),
-                    )])
-                } else {
-                    read_output()
+            let result = run_subprocess(&mut cmd);
+
+            let read_output = || match std::fs::read(&pdf_path) {
+                Ok(data) => Ok(data),
+                Err(e) => Err(vec![Diagnostic::new(
+                    "ENG-E-001",
+                    Severity::Error,
+                    format!("failed to read PDF output: {}", e),
+                )]),
+            };
+
+            match result {
+                Ok((exit_code, _stdout, stderr)) => {
+                    if exit_code != 0 {
+                        let msg = String::from_utf8_lossy(&stderr);
+                        Err(vec![Diagnostic::new(
+                            "ENG-E-001",
+                            Severity::Error,
+                            format!("chromium exited with code {}: {}", exit_code, msg.trim()),
+                        )])
+                    } else {
+                        read_output()
+                    }
                 }
+                Err(diags) => Err(diags),
             }
-            Err(diags) => Err(diags),
+        } else {
+            // target == "png"
+            let png_path = Path::new(&work_dir).join("output.png");
+            let png_path_str = png_path.to_string_lossy().to_string();
+
+            // --screenshot=<path> outputs PNG to specified file path
+            cmd.arg(format!("--screenshot={}", png_path_str));
+
+            let result = run_subprocess(&mut cmd);
+
+            let read_output = || match std::fs::read(&png_path) {
+                Ok(data) => Ok(data),
+                Err(e) => Err(vec![Diagnostic::new(
+                    "ENG-E-001",
+                    Severity::Error,
+                    format!("failed to read PNG output: {}", e),
+                )]),
+            };
+
+            match result {
+                Ok((exit_code, _stdout, stderr)) => {
+                    if exit_code != 0 {
+                        let msg = String::from_utf8_lossy(&stderr);
+                        Err(vec![Diagnostic::new(
+                            "ENG-E-001",
+                            Severity::Error,
+                            format!("chromium exited with code {}: {}", exit_code, msg.trim()),
+                        )])
+                    } else {
+                        read_output()
+                    }
+                }
+                Err(diags) => Err(diags),
+            }
         };
 
         // Clean up work directory
@@ -493,34 +537,25 @@ impl ChromiumEngine {
         // Build chromium command
         let mut cmd = Command::new(&self.path);
         cmd.arg("--headless=new")
-            .arg("--print-to-pdf")
-            .arg(&pdf_path_str)
+            .arg(format!("--print-to-pdf={}", pdf_path_str))
             .arg("--no-sandbox")
             .arg("--disable-gpu")
             .arg("--disable-dev-shm-usage")
-            .arg("--user-data-dir")
-            .arg(&user_data_dir);
+            .arg(format!("--user-data-dir={}", user_data_dir));
 
         // Paper size
-        match paper_size {
-            Some(ps) if !ps.is_empty() => {
-                cmd.arg("--paper-size").arg(ps);
-            }
-            _ => {
-                cmd.arg("--paper-size").arg("letter");
-            }
-        }
+        let ps = match paper_size {
+            Some(p) if !p.is_empty() => p.to_string(),
+            _ => "letter".to_string(),
+        };
+        cmd.arg(format!("--paper-size={}", ps));
 
         // Margins
         let m = margins.unwrap_or_default();
-        cmd.arg("--margin-top")
-            .arg(m.top.to_string())
-            .arg("--margin-bottom")
-            .arg(m.bottom.to_string())
-            .arg("--margin-left")
-            .arg(m.left.to_string())
-            .arg("--margin-right")
-            .arg(m.right.to_string());
+        cmd.arg(format!("--margin-top={}", m.top))
+            .arg(format!("--margin-bottom={}", m.bottom))
+            .arg(format!("--margin-left={}", m.left))
+            .arg(format!("--margin-right={}", m.right));
 
         // Background
         if background {
@@ -562,6 +597,119 @@ impl ChromiumEngine {
 
         outcome
     }
+
+    /// Render HTML to a PNG screenshot.
+    ///
+    /// # Arguments
+    /// * `input` — HTML bytes to render as a screenshot
+    ///
+    /// # Returns
+    /// PNG bytes on success, or diagnostics on failure.
+    pub fn screenshot(&self, input: &[u8]) -> Result<Vec<u8>, Vec<Diagnostic>> {
+        if !Path::new(&self.path).exists() {
+            return Err(vec![Diagnostic::new(
+                "ENG-E-001",
+                Severity::Error,
+                format!("chromium not found: {}", self.path),
+            )]);
+        }
+
+        // Create isolated work directory
+        let work_dir = std::env::temp_dir()
+            .join(format!(
+                "stichos-chromium-screenshot-{:08x}",
+                fastrand::u64(0..0xFFFFFFFF)
+            ))
+            .to_string_lossy()
+            .to_string();
+        std::fs::create_dir_all(&work_dir).map_err(|e| {
+            vec![Diagnostic::new(
+                "ENG-E-001",
+                Severity::Error,
+                format!("failed to create work dir: {}", e),
+            )]
+        })?;
+
+        // Write HTML input to temp file
+        let html_path = Path::new(&work_dir).join("input.html");
+        let mut html_file = std::fs::File::create(&html_path).map_err(|e| {
+            vec![Diagnostic::new(
+                "ENG-E-001",
+                Severity::Error,
+                format!("failed to create HTML file: {}", e),
+            )]
+        })?;
+        html_file.write_all(input).map_err(|e| {
+            vec![Diagnostic::new(
+                "ENG-E-001",
+                Severity::Error,
+                format!("failed to write HTML file: {}", e),
+            )]
+        })?;
+
+        // Create isolated user-data-dir
+        let user_data_dir = work_dir.clone() + "-userData";
+        std::fs::create_dir_all(&user_data_dir).map_err(|e| {
+            vec![Diagnostic::new(
+                "ENG-E-001",
+                Severity::Error,
+                format!("failed to create user-data-dir: {}", e),
+            )]
+        })?;
+
+        // Build output PNG path
+        let png_path = Path::new(&work_dir).join("output.png");
+        let png_path_str = png_path.to_string_lossy().to_string();
+        let html_path_str = html_path.to_string_lossy().to_string();
+
+        // Build chromium command:
+        // --headless=new      : new headless mode (CH_ mode)
+        // --screenshot=<path> : output PNG to specified file path
+        // --user-data-dir=<dir>: isolated profile per invocation
+        // --no-sandbox         : required when running as root
+        // --disable-gpu        : avoid GPU issues in headless mode
+        // --disable-dev-shm-usage: avoid /dev/shm limits
+        let mut cmd = Command::new(&self.path);
+        cmd.arg("--headless=new")
+            .arg(format!("--screenshot={}", png_path_str))
+            .arg("--no-sandbox")
+            .arg("--disable-gpu")
+            .arg("--disable-dev-shm-usage")
+            .arg(format!("--user-data-dir={}", user_data_dir))
+            .arg(&html_path_str);
+
+        let result = run_subprocess(&mut cmd);
+
+        let read_output = || match std::fs::read(&png_path) {
+            Ok(data) => Ok(data),
+            Err(e) => Err(vec![Diagnostic::new(
+                "ENG-E-001",
+                Severity::Error,
+                format!("failed to read PNG output: {}", e),
+            )]),
+        };
+
+        let outcome = match result {
+            Ok((exit_code, _stdout, stderr)) => {
+                if exit_code != 0 {
+                    let msg = String::from_utf8_lossy(&stderr);
+                    Err(vec![Diagnostic::new(
+                        "ENG-E-001",
+                        Severity::Error,
+                        format!("chromium exited with code {}: {}", exit_code, msg.trim()),
+                    )])
+                } else {
+                    read_output()
+                }
+            }
+            Err(diags) => Err(diags),
+        };
+
+        // Clean up work directory
+        let _ = std::fs::remove_dir_all(&work_dir);
+
+        outcome
+    }
 }
 
 impl EngineExt for ChromiumEngine {
@@ -570,18 +718,18 @@ impl EngineExt for ChromiumEngine {
     }
 
     fn supported_conversions(&self) -> Vec<(String, String)> {
-        vec![("html".into(), "pdf".into())]
+        vec![("html".into(), "pdf".into()), ("html".into(), "png".into())]
     }
 
     fn info(&self) -> EngineInfo {
-        let version = self.version_inner();
+        let version = self.version().map(|v| v.to_string());
         let capabilities: Vec<CapabilityEntry> = self
             .supported_conversions()
             .into_iter()
             .map(|(source, target)| CapabilityEntry {
                 source,
                 target,
-                works: false,
+                works: true,
             })
             .collect();
         EngineInfo {
@@ -602,6 +750,7 @@ impl Default for ChromiumEngine {
                 .join("stichos-chromium-default")
                 .to_string_lossy()
                 .to_string(),
+            version_cache: OnceLock::new(),
         })
     }
 }
@@ -689,13 +838,28 @@ mod tests {
                     .join("stichos-chromium-test")
                     .to_string_lossy()
                     .to_string(),
+                version_cache: OnceLock::new(),
             });
         assert!(engine.can_convert("html", "pdf"));
+        assert!(engine.can_convert("html", "png"));
         assert!(!engine.can_convert("docx", "pdf"));
-        assert!(!engine.can_convert("html", "png"));
         assert!(!engine.can_convert("xlsx", "pdf"));
         assert!(!engine.can_convert("html", "docx"));
         assert!(!engine.can_convert("unknown", "pdf"));
+    }
+
+    #[test]
+    fn test_can_convert_html_to_png() {
+        let engine =
+            ChromiumEngine::new("/usr/bin/chromium-browser").unwrap_or_else(|_| ChromiumEngine {
+                path: "/usr/bin/chromium-browser".to_string(),
+                temp_dir: std::env::temp_dir()
+                    .join("stichos-chromium-test")
+                    .to_string_lossy()
+                    .to_string(),
+                version_cache: OnceLock::new(),
+            });
+        assert!(engine.can_convert("html", "png"));
     }
 
     #[test]
@@ -707,10 +871,30 @@ mod tests {
                     .join("stichos-chromium-test")
                     .to_string_lossy()
                     .to_string(),
+                version_cache: OnceLock::new(),
             });
         let conversions = engine.supported_conversions();
-        assert_eq!(conversions.len(), 1);
-        assert_eq!(conversions[0], ("html".into(), "pdf".into()));
+        assert_eq!(conversions.len(), 2);
+        assert!(conversions.contains(&("html".to_string(), "pdf".to_string())));
+        assert!(conversions.contains(&("html".to_string(), "png".to_string())));
+    }
+
+    #[test]
+    fn test_supported_conversions_includes_png() {
+        let engine =
+            ChromiumEngine::new("/usr/bin/chromium-browser").unwrap_or_else(|_| ChromiumEngine {
+                path: "/usr/bin/chromium-browser".to_string(),
+                temp_dir: std::env::temp_dir()
+                    .join("stichos-chromium-test")
+                    .to_string_lossy()
+                    .to_string(),
+                version_cache: OnceLock::new(),
+            });
+        let conversions = engine.supported_conversions();
+        assert!(
+            conversions.iter().any(|(_, t)| t == "png"),
+            "supported_conversions should include html->png"
+        );
     }
 
     #[test]
@@ -722,6 +906,7 @@ mod tests {
                     .join("stichos-chromium-test")
                     .to_string_lossy()
                     .to_string(),
+                version_cache: OnceLock::new(),
             });
         assert_eq!(engine.engine_id(), "chromium");
     }
@@ -735,10 +920,29 @@ mod tests {
                     .join("stichos-chromium-test")
                     .to_string_lossy()
                     .to_string(),
+                version_cache: OnceLock::new(),
             });
         let info = engine.info();
         assert_eq!(info.engine_id, "chromium");
-        assert_eq!(info.capabilities.len(), 1);
+        assert_eq!(info.capabilities.len(), 2);
+    }
+
+    #[test]
+    fn test_info_capabilities_works_true() {
+        let engine =
+            ChromiumEngine::new("/usr/bin/chromium-browser").unwrap_or_else(|_| ChromiumEngine {
+                path: "/usr/bin/chromium-browser".to_string(),
+                temp_dir: std::env::temp_dir()
+                    .join("stichos-chromium-test")
+                    .to_string_lossy()
+                    .to_string(),
+                version_cache: OnceLock::new(),
+            });
+        let info = engine.info();
+        assert!(
+            info.capabilities.iter().all(|c| c.works),
+            "all chromium capabilities should report works: true"
+        );
     }
 
     #[test]
@@ -756,6 +960,7 @@ mod tests {
                 .join("stichos-chromium-test")
                 .to_string_lossy()
                 .to_string(),
+            version_cache: OnceLock::new(),
         };
         let input = b"<html><body>test</body></html>";
         let result = engine.convert(input, "html", "pdf");
@@ -803,6 +1008,7 @@ mod tests {
                 .join("stichos-chromium-test")
                 .to_string_lossy()
                 .to_string(),
+            version_cache: OnceLock::new(),
         };
         let input = b"<html><body><h1>Test</h1></body></html>";
         let result = engine.create_pdf(input, None, None, false);
@@ -822,6 +1028,7 @@ mod tests {
                 .join("stichos-chromium-test")
                 .to_string_lossy()
                 .to_string(),
+            version_cache: OnceLock::new(),
         };
         let input = b"<html><body><h1>A4 Test</h1></body></html>";
         // Should fail with ENG-E-001 (chromium not found) regardless of params
@@ -839,6 +1046,7 @@ mod tests {
                 .join("stichos-chromium-test")
                 .to_string_lossy()
                 .to_string(),
+            version_cache: OnceLock::new(),
         };
         let input = b"<html><body><h1>Margins Test</h1></body></html>";
         let margins = PageMargins {
@@ -861,11 +1069,113 @@ mod tests {
                 .join("stichos-chromium-test")
                 .to_string_lossy()
                 .to_string(),
+            version_cache: OnceLock::new(),
         };
         let input = b"<html><body><h1>Background Test</h1></body></html>";
         let result = engine.create_pdf(input, None, None, true);
         assert!(result.is_err());
         let diags = result.unwrap_err();
         assert_eq!(diags[0].code, "ENG-E-001");
+    }
+
+    #[test]
+    fn test_screenshot_fails_when_chromium_absent() {
+        let engine = ChromiumEngine {
+            path: "/nonexistent/chromium".to_string(),
+            temp_dir: std::env::temp_dir()
+                .join("stichos-chromium-test")
+                .to_string_lossy()
+                .to_string(),
+            version_cache: OnceLock::new(),
+        };
+        let input = b"<html><body><h1>Screenshot Test</h1></body></html>";
+        let result = engine.screenshot(input);
+        assert!(
+            result.is_err(),
+            "screenshot should fail when chromium is absent"
+        );
+        let diags = result.unwrap_err();
+        assert_eq!(diags[0].code, "ENG-E-001");
+    }
+
+    #[test]
+    fn test_chromium_screenshot_positive() {
+        if ChromiumEngine::new_auto().is_err() {
+            eprintln!("SKIP: chromium not available");
+            return;
+        }
+
+        let engine = ChromiumEngine::new_auto().unwrap();
+        let input = b"<html><body><h1>Screenshot Test</h1></body></html>";
+        let result = engine.screenshot(input);
+        assert!(result.is_ok(), "screenshot should succeed: {:?}", result);
+
+        let bytes = result.unwrap();
+        assert!(!bytes.is_empty(), "screenshot should not be empty");
+        assert!(
+            bytes.len() >= 4 && &bytes[0..4] == b"\x89PNG",
+            "output should be PNG (magic: {:02x} {:02x} {:02x} {:02x})",
+            bytes[0],
+            bytes[1],
+            bytes[2],
+            bytes[3]
+        );
+    }
+
+    #[test]
+    fn test_version_caching() {
+        let engine =
+            ChromiumEngine::new("/usr/bin/chromium-browser").unwrap_or_else(|_| ChromiumEngine {
+                path: "/usr/bin/chromium-browser".to_string(),
+                temp_dir: std::env::temp_dir()
+                    .join("stichos-chromium-test")
+                    .to_string_lossy()
+                    .to_string(),
+                version_cache: OnceLock::new(),
+            });
+        let v1 = engine.version();
+        let v2 = engine.version();
+        assert_eq!(
+            v1, v2,
+            "version() should return the same value on repeated calls"
+        );
+    }
+
+    #[test]
+    fn test_version_caching_with_absent_engine() {
+        let engine =
+            ChromiumEngine::new("/nonexistent/chromium").unwrap_or_else(|_| ChromiumEngine {
+                path: "/nonexistent/chromium".to_string(),
+                temp_dir: std::env::temp_dir()
+                    .join("stichos-chromium-test")
+                    .to_string_lossy()
+                    .to_string(),
+                version_cache: OnceLock::new(),
+            });
+        assert!(
+            engine.version().is_none(),
+            "version() should return None for absent chromium binary"
+        );
+    }
+
+    #[test]
+    fn test_engine_info_uses_cached_version() {
+        let engine =
+            ChromiumEngine::new("/usr/bin/chromium-browser").unwrap_or_else(|_| ChromiumEngine {
+                path: "/usr/bin/chromium-browser".to_string(),
+                temp_dir: std::env::temp_dir()
+                    .join("stichos-chromium-test")
+                    .to_string_lossy()
+                    .to_string(),
+                version_cache: OnceLock::new(),
+            });
+        let info = engine.info();
+        let info_version = info.version;
+        let cached_version = engine.version();
+        assert_eq!(
+            info_version.as_deref(),
+            cached_version,
+            "info().version should match cached version()"
+        );
     }
 }

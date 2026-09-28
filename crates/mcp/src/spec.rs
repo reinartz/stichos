@@ -502,7 +502,7 @@ pub const TOOLS: &[ToolSpec] = &[
     // P3-23: create_document tool (C7 v1.2 additive)
     ToolSpec {
         name: "create_document",
-        description: "Create a new document from source content (markdown, html, typst) and return the result with provenance and fidelity budget.",
+        description: "Create a new document from source content (markdown, html, typst) and return the result with provenance and fidelity budget. Response includes store_root path (null for dry_run) for blob retrieval when not dry_run.",
         params: &[
             ParamDef {
                 name: "source_type",
@@ -556,7 +556,7 @@ pub const TOOLS: &[ToolSpec] = &[
         idempotent: false,
         deprecated: false,
         deprecation_notice: None,
-        schema_version: "1.2.0",
+        schema_version: "1.2.1",
     },
     // P3-24 Wave F: script_tool (C7 v1.2 additive)
     ToolSpec {
@@ -863,12 +863,12 @@ pub fn verify_c7_compliance() -> Result<Vec<&'static str>, String> {
                     errors.push(format!("tool '{}' (1.0.0) is not idempotent", tool.name));
                 }
             }
-            "1.1.0" | "1.2.0" | "1.3.0" | "1.4.0" | "1.5.0" | "1.6.0" => {
-                // v1.1/v1.2/v1.3/v1.4/v1.5/v1.6 additive: non-idempotent tools allowed
+            "1.1.0" | "1.2.0" | "1.2.1" | "1.3.0" | "1.4.0" | "1.5.0" | "1.6.0" => {
+                // v1.1/v1.2/v1.2.1/v1.3/v1.4/v1.5/v1.6 additive: non-idempotent tools allowed
             }
             ver => {
                 errors.push(format!(
-                    "tool '{}' has unexpected version '{}', expected '1.0.0', '1.1.0', '1.2.0', '1.3.0', '1.4.0', '1.5.0', or '1.6.0'",
+                    "tool '{}' has unexpected version '{}', expected '1.0.0', '1.1.0', '1.2.0', '1.2.1', '1.3.0', '1.4.0', '1.5.0', or '1.6.0'",
                     tool.name, ver
                 ));
             }
@@ -937,7 +937,8 @@ mod tests {
                 | "apply_patch" | "edit_text" | "edit_cell" | "edit_structure"
                 | "annotate_pages" | "journal" => "1.6.0",
                 "revert_document" => "1.1.0",
-                "check_update" | "create_document" | "script_tool" => "1.2.0",
+                "check_update" | "script_tool" => "1.2.0",
+                "create_document" => "1.2.1",
                 "list_revisions" | "accept_revisions" | "reject_revisions" | "add_comment" => {
                     "1.3.0"
                 }
@@ -1108,12 +1109,12 @@ mod tests {
         assert_eq!(tool.schema_version, "1.6.0");
     }
 
-    // test_create_document_is_non_idempotent — verify create_document is not idempotent (C7 v1.2)
+    // test_create_document_is_non_idempotent — verify create_document is not idempotent (C7 v1.2.1)
     #[test]
     fn test_create_document_is_non_idempotent() {
         let tool = get_tool("create_document").expect("create_document tool must exist");
         assert!(!tool.idempotent, "create_document must not be idempotent");
-        assert_eq!(tool.schema_version, "1.2.0");
+        assert_eq!(tool.schema_version, "1.2.1");
         assert_eq!(tool.params.len(), 8);
         let param_names: Vec<_> = tool.params.iter().map(|p| p.name).collect();
         assert!(param_names.contains(&"source_type"));

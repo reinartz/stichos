@@ -92,10 +92,7 @@ impl CrlCheckResult {
 /// Uses `reqwest` (rustls-tls) to perform an HTTP GET against the CRL
 /// Distribution Point URL.
 #[cfg(feature = "pades-ltv")]
-pub async fn download_crl(
-    url: &str,
-    timeout_secs: u64,
-) -> Result<Vec<u8>, Diagnostic> {
+pub async fn download_crl(url: &str, timeout_secs: u64) -> Result<Vec<u8>, Diagnostic> {
     use reqwest::Client;
 
     let client = Client::builder()
@@ -134,16 +131,13 @@ pub async fn download_crl(
         ));
     }
 
-    let body = response
-        .bytes()
-        .await
-        .map_err(|e| {
-            Diagnostic::new(
-                "GP-S-021",
-                Severity::Warning,
-                format!("Failed to read CRL response body: {}", e),
-            )
-        })?;
+    let body = response.bytes().await.map_err(|e| {
+        Diagnostic::new(
+            "GP-S-021",
+            Severity::Warning,
+            format!("Failed to read CRL response body: {}", e),
+        )
+    })?;
 
     if body.is_empty() {
         return Err(Diagnostic::new(
@@ -164,10 +158,7 @@ pub async fn download_crl(
 ///
 /// Uses `x509-parser` for CRL parsing. The serial number is compared
 /// as a raw byte sequence.
-pub fn check_crl(
-    crl_der: &[u8],
-    serial_number: &[u8],
-) -> Result<CrlCheckResult, Diagnostic> {
+pub fn check_crl(crl_der: &[u8], serial_number: &[u8]) -> Result<CrlCheckResult, Diagnostic> {
     use x509_parser::prelude::FromDer;
     use x509_parser::revocation_list::CertificateRevocationList;
 
@@ -204,9 +195,7 @@ pub fn check_crl(
         if cert_serial == serial_number {
             entry.found = true;
             entry.revoked = true;
-            entry.reason = revoked_cert
-                .reason_code()
-                .map(|(_, rc)| rc.0);
+            entry.reason = revoked_cert.reason_code().map(|(_, rc)| rc.0);
             entry.revocation_time = Some(revoked_cert.revocation_date.to_string());
             break;
         }
@@ -257,7 +246,9 @@ pub fn extract_crl_urls(cert_der: &[u8]) -> Result<Vec<String>, Diagnostic> {
                                 }
                             }
                         }
-                        x509_parser::extensions::DistributionPointName::NameRelativeToCRLIssuer(_) => {
+                        x509_parser::extensions::DistributionPointName::NameRelativeToCRLIssuer(
+                            _,
+                        ) => {
                             // Relative names require the issuer's CRL — skip for now
                         }
                     }

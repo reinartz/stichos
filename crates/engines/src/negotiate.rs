@@ -7,7 +7,7 @@
 //!
 //! # Architecture
 //!
-//! - [`RendererPreference`] — user intent (default, LO, MS Office, chromium, typst, custom).
+//! - [`RendererPreference`] — user intent (default, LO, MS Office, pandoc, chromium, typst, custom).
 //! - [`negotiate_renderer`] — selects the best renderer given preference + platform.
 //! - [`negotiate_for_conversion`] — engine selection for a specific source→target path.
 //! - [`authoring_order`] — preferred engine for each conversion path.
@@ -34,6 +34,8 @@ pub enum RendererPreference {
     LibreOffice,
     /// Prefer Microsoft Office renderer.
     MSOffice,
+    /// Prefer Pandoc renderer (text extraction / markdown conversion).
+    Pandoc,
     /// Prefer Chromium renderer (html→pdf).
     Chromium,
     /// Prefer Typst renderer (typst/typ→pdf).
@@ -68,6 +70,8 @@ pub struct SessionCache {
 /// On Linux: LibreOffice first (only practical option).
 /// On macOS: LibreOffice first (MS Office is rare on Mac).
 /// On Windows: MS Office first, LibreOffice second.
+/// Typst (TYPST_ENGINE_ID) is available on all platforms via pre-compiled
+/// binary from GitHub releases and is included in every platform order.
 #[allow(unreachable_code)]
 pub fn platform_renderer_order() -> Vec<&'static str> {
     #[cfg(target_os = "windows")]
@@ -76,6 +80,7 @@ pub fn platform_renderer_order() -> Vec<&'static str> {
         LIBREOFFICE_ENGINE_ID,
         PANDOC_ENGINE_ID,
         CHROMIUM_ENGINE_ID,
+        TYPST_ENGINE_ID,
     ];
     #[cfg(target_os = "macos")]
     return vec![
@@ -221,6 +226,15 @@ fn resolve_candidates(preference: &RendererPreference) -> Vec<(String, bool)> {
             }
             candidates
         }
+        RendererPreference::Pandoc => {
+            let mut candidates = vec![(PANDOC_ENGINE_ID.to_string(), true)];
+            for id in &platform_order {
+                if *id != PANDOC_ENGINE_ID {
+                    candidates.push((id.to_string(), false));
+                }
+            }
+            candidates
+        }
         RendererPreference::Chromium => {
             let mut candidates = vec![(CHROMIUM_ENGINE_ID.to_string(), true)];
             for id in &platform_order {
@@ -277,13 +291,24 @@ pub fn unavailable_diagnostics(engine_id: &str) -> Vec<Diagnostic> {
 
 /// Authoring order: preferred engine for each conversion path.
 ///
+/// typ/typst→pdf: typst (typst is the natural engine for typst→PDF)
 /// html→pdf: chromium→LO (chromium gives better WYSIWYG HTML→PDF)
-/// md→docx: pandoc→native-later (pandoc converts markdown→docx)
+/// md→docx: pandoc (pandoc converts markdown→docx)
+/// md→odt: pandoc→LO (pandoc first for markdown→ODT)
+/// md→pdf: pandoc→chromium→LO (pandoc with LaTeX; if no LaTeX, pandoc→html→chromium,
+///   or pandoc→odt→LO — LaTeX dependency documented at C7.1)
+/// html→odt: LO→pandoc (LibreOffice handles HTML→ODT well)
 /// Default: platform order
 pub fn authoring_order(source: &str, target: &str) -> Vec<&'static str> {
     match (source, target) {
+        ("typ" | "typst", "pdf") => vec![TYPST_ENGINE_ID],
         ("html", "pdf") => vec![CHROMIUM_ENGINE_ID, LIBREOFFICE_ENGINE_ID],
         ("md" | "markdown", "docx") => vec![PANDOC_ENGINE_ID],
+        ("md" | "markdown", "odt") => vec![PANDOC_ENGINE_ID, LIBREOFFICE_ENGINE_ID],
+        ("md" | "markdown", "pdf") => {
+            vec![PANDOC_ENGINE_ID, CHROMIUM_ENGINE_ID, LIBREOFFICE_ENGINE_ID]
+        }
+        ("html", "odt") => vec![LIBREOFFICE_ENGINE_ID, PANDOC_ENGINE_ID],
         _ => platform_renderer_order(),
     }
 }
@@ -744,5 +769,104 @@ mod tests {
         let candidates = resolve_candidates(&RendererPreference::Typst);
         assert_eq!(candidates[0].0, TYPST_ENGINE_ID);
         assert!(candidates[0].1);
+    }
+
+    /// test_renderer_preference_pandoc: Pandoc preference selects pandoc when available.
+    #[test]
+    fn test_renderer_preference_pandoc() {
+        let choice = negotiate_renderer(&RendererPreference::Pandoc);
+        if check_pandoc_available() {
+            assert_eq!(choice.engine_id, PANDOC_ENGINE_ID);
+            assert!(choice.available);
+        }
+    }
+
+    /// test_resolve_candidates_pandoc: pandoc preference puts pandoc first.
+    #[test]
+    fn test_resolve_candidates_pandoc() {
+        let candidates = resolve_candidates(&RendererPreference::Pandoc);
+        assert_eq!(candidates[0].0, PANDOC_ENGINE_ID);
+        assert!(candidates[0].1);
+    }
+
+    /// test_authoring_order_typ_to_pdf: typ→pdf returns [typst].
+    #[test]
+    fn test_authoring_order_typ_to_pdf() {
+        let order = authoring_order("typ", "pdf");
+        assert_eq!(order, vec![TYPST_ENGINE_ID]);
+    }
+
+    /// test_authoring_order_typst_to_pdf: typst→pdf returns [typst].
+    #[test]
+    fn test_authoring_order_typst_to_pdf() {
+        let order = authoring_order("typst", "pdf");
+        assert_eq!(order, vec![TYPST_ENGINE_ID]);
+    }
+
+    /// test_authoring_order_md_to_odt: md→odt returns [pandoc, libreoffice].
+    #[test]
+    fn test_authoring_order_md_to_odt() {
+        let order = authoring_order("md", "odt");
+        assert_eq!(order, vec![PANDOC_ENGINE_ID, LIBREOFFICE_ENGINE_ID]);
+    }
+
+    /// test_authoring_order_markdown_to_odt: markdown→odt returns [pandoc, libreoffice].
+    #[test]
+    fn test_authoring_order_markdown_to_odt() {
+        let order = authoring_order("markdown", "odt");
+        assert_eq!(order, vec![PANDOC_ENGINE_ID, LIBREOFFICE_ENGINE_ID]);
+    }
+
+    /// test_authoring_order_md_to_pdf: md→pdf returns [pandoc, chromium, libreoffice].
+    #[test]
+    fn test_authoring_order_md_to_pdf() {
+        let order = authoring_order("md", "pdf");
+        assert_eq!(
+            order,
+            vec![PANDOC_ENGINE_ID, CHROMIUM_ENGINE_ID, LIBREOFFICE_ENGINE_ID]
+        );
+    }
+
+    /// test_authoring_order_markdown_to_pdf: markdown→pdf returns [pandoc, chromium, libreoffice].
+    #[test]
+    fn test_authoring_order_markdown_to_pdf() {
+        let order = authoring_order("markdown", "pdf");
+        assert_eq!(
+            order,
+            vec![PANDOC_ENGINE_ID, CHROMIUM_ENGINE_ID, LIBREOFFICE_ENGINE_ID]
+        );
+    }
+
+    /// test_authoring_order_html_to_odt: html→odt returns [libreoffice, pandoc].
+    #[test]
+    fn test_authoring_order_html_to_odt() {
+        let order = authoring_order("html", "odt");
+        assert_eq!(order, vec![LIBREOFFICE_ENGINE_ID, PANDOC_ENGINE_ID]);
+    }
+
+    /// test_platform_renderer_order_windows_has_typst: typst is in Windows order at end.
+    #[test]
+    fn test_platform_renderer_order_windows_has_typst() {
+        #[cfg(target_os = "windows")]
+        {
+            let order = platform_renderer_order();
+            assert!(
+                order.contains(&TYPST_ENGINE_ID),
+                "typst should be in Windows platform order"
+            );
+            assert_eq!(
+                order.last(),
+                Some(&TYPST_ENGINE_ID),
+                "typst should be last in Windows platform order"
+            );
+        }
+    }
+
+    /// test_authoring_order_default_fallback: unspecified paths still fall back to platform order.
+    #[test]
+    fn test_authoring_order_default_fallback() {
+        let order = authoring_order("docx", "odt");
+        let platform = platform_renderer_order();
+        assert_eq!(order, platform);
     }
 }

@@ -15,6 +15,8 @@ pub mod ms_office;
 pub mod negotiate;
 pub mod open_handler;
 pub mod pandoc;
+pub mod pandoc_ast;
+pub mod pandoc_to_ir;
 pub mod probe;
 pub mod raster;
 #[cfg(feature = "pdfium")]

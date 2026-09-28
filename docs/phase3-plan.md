@@ -25,7 +25,9 @@ the JSON tracks them. Do not maintain status in two places.
   command + result + date.
 - Status: `pending → active → verified | blocked(reason)`.
 - **Host facts (measured 2026-09-15):** pandoc 3.7.0.2, chromium-browser, xmllint, soffice 26.2.6.1,
-  pdftoppm present; **typst, qpdf, verapdf absent** — code must probe honestly; CI installs them.
+  pdftoppm present; **typst, qpdf, verapdf absent** — code must probe honestly; CI installs
+  pandoc (system package) for CI text-extraction paths; typst/qpdf/verapdf are NOT installed in
+  CI (honest-absent path verified in CI; C10.3 parity audit 2026-09-28).
   Corpus ODF = 69 fixtures (odt 26 / ods 21 / odp 22).
 
 ## 2. Waves and gates

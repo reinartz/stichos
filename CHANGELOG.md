@@ -8,6 +8,12 @@ breaking changes require a minor bump per `docs/contracts/C7.md`.
 ## [Unreleased] — M4 + M5 + M6 (tags `m4`, `m5`, `m6`)
 
 ### Added
+- **Creation store handback (C7 v1.2.1):** `create_document` returns `store_root` in response
+  (path to content store containing the blob) so CLI/MCP consumers can fetch the document blob
+  by ID after creation. null for dry_run. (Track C / C-F.2)
+- **Create dry-run (C7 v1.2.1):** `create_document` honours `dry_run` — no content store write,
+  returns base64-encoded preview bytes and `"dry_run": true`. CLI `--dry-run` now outputs preview
+  to stdout. (Track C / C-F.1)
 - **Human loop (M4):** `revisions` verb + `list_revisions`, `accept_revisions`,
   `reject_revisions`, `add_comment` tools (C7 v1.3.0); ODF revision read/write (C11);
   `review` session + raster-over-masters overlay (D22); `open` platform handoff;
@@ -58,6 +64,11 @@ breaking changes require a minor bump per `docs/contracts/C7.md`.
   (additive wire change per C7); no schema break.
 - **Hygiene (M5):** `SECURITY.md`, `CODE_OF_CONDUCT.md`, SPDX headers, dual-license audit (D26:
   launch stays owner-timed, prep only).
+
+### Changed
+- **Create dry-run (C7 v1.2.1):** `dry_run=true` now returns `"dry_run": true` in the response
+  and includes base64-encoded preview bytes under `"preview_bytes"`. Previously the field was
+  always `"dry_run": false`.
 
 ### Fixed
 - **Dead dependency cleanup (B0.6):** Removed unused `pkcs7 = "0.4"` from `gp-core/Cargo.toml`

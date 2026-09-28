@@ -281,11 +281,7 @@ pub struct OcspRequest {
 
 impl OcspRequest {
     /// Build a new OCSP request for the given certificate fields.
-    pub fn new(
-        serial_number: Vec<u8>,
-        issuer_hash: Vec<u8>,
-        issuer_name_hash: Vec<u8>,
-    ) -> Self {
+    pub fn new(serial_number: Vec<u8>, issuer_hash: Vec<u8>, issuer_name_hash: Vec<u8>) -> Self {
         Self {
             serial_number,
             issuer_hash,
@@ -351,7 +347,10 @@ pub enum OcspStatus {
     /// The certificate is not revoked.
     Good,
     /// The certificate has been revoked.
-    Revoked { reason: Option<u8>, revocation_time: Option<String> },
+    Revoked {
+        reason: Option<u8>,
+        revocation_time: Option<String>,
+    },
     /// The responder does not know about the certificate.
     Unknown,
 }
@@ -434,8 +433,13 @@ pub fn parse_ocsp_response(raw: &[u8]) -> Result<OcspResponse, Diagnostic> {
             "OCSP response: expected status INTEGER".to_string(),
         ));
     }
-    let status_val = parse_integer_bytes(&inner[0..])
-        .ok_or_else(|| Diagnostic::new("GP-S-021", Severity::Error, "Cannot parse status INTEGER".to_string()))?;
+    let status_val = parse_integer_bytes(&inner[0..]).ok_or_else(|| {
+        Diagnostic::new(
+            "GP-S-021",
+            Severity::Error,
+            "Cannot parse status INTEGER".to_string(),
+        )
+    })?;
 
     let status = match status_val.as_slice() {
         &[0x00] => OcspResponseStatus::Success,
@@ -444,11 +448,13 @@ pub fn parse_ocsp_response(raw: &[u8]) -> Result<OcspResponse, Diagnostic> {
         &[0x03] => OcspResponseStatus::TryLater,
         &[0x04] => OcspResponseStatus::SigRequired,
         &[0x05] => OcspResponseStatus::Unauthorized,
-        v => return Err(Diagnostic::new(
-            "GP-S-021",
-            Severity::Warning,
-            format!("Unknown OCSPResponseStatus: {:?}", v),
-        )),
+        v => {
+            return Err(Diagnostic::new(
+                "GP-S-021",
+                Severity::Warning,
+                format!("Unknown OCSPResponseStatus: {:?}", v),
+            ))
+        }
     };
 
     // Check if responseBytes [0] is present
@@ -471,10 +477,18 @@ pub fn parse_ocsp_response(raw: &[u8]) -> Result<OcspResponse, Diagnostic> {
     }
 
     let (_, loff) = parse_der_length(&inner[pos + 1..]).ok_or_else(|| {
-        Diagnostic::new("GP-S-021", Severity::Error, "Invalid [0] length in OCSP response".to_string())
+        Diagnostic::new(
+            "GP-S-021",
+            Severity::Error,
+            "Invalid [0] length in OCSP response".to_string(),
+        )
     })?;
     let (clen, _) = parse_der_length(&inner[pos + 1..]).ok_or_else(|| {
-        Diagnostic::new("GP-S-021", Severity::Error, "Invalid [0] content length".to_string())
+        Diagnostic::new(
+            "GP-S-021",
+            Severity::Error,
+            "Invalid [0] content length".to_string(),
+        )
     })?;
     let rb_start = pos + 1 + loff;
     let rb_bytes = &inner[rb_start..rb_start + clen];
@@ -484,7 +498,11 @@ pub fn parse_ocsp_response(raw: &[u8]) -> Result<OcspResponse, Diagnostic> {
     //   content       [1] EXPLICIT OCTET STRING OPTIONAL
     // }
     let rb_inner = parse_sequence(rb_bytes).ok_or_else(|| {
-        Diagnostic::new("GP-S-021", Severity::Error, "responseBytes is not a SEQUENCE".to_string())
+        Diagnostic::new(
+            "GP-S-021",
+            Severity::Error,
+            "responseBytes is not a SEQUENCE".to_string(),
+        )
     })?;
 
     // contentType OID
@@ -510,10 +528,18 @@ pub fn parse_ocsp_response(raw: &[u8]) -> Result<OcspResponse, Diagnostic> {
 
     // Skip OID TLV
     let (_, oid_loff) = parse_der_length(&rb_inner[1..]).ok_or_else(|| {
-        Diagnostic::new("GP-S-021", Severity::Error, "Invalid OID length".to_string())
+        Diagnostic::new(
+            "GP-S-021",
+            Severity::Error,
+            "Invalid OID length".to_string(),
+        )
     })?;
     let (oid_clen, _) = parse_der_length(&rb_inner[1..]).ok_or_else(|| {
-        Diagnostic::new("GP-S-021", Severity::Error, "Invalid OID content length".to_string())
+        Diagnostic::new(
+            "GP-S-021",
+            Severity::Error,
+            "Invalid OID content length".to_string(),
+        )
     })?;
     let oid_end = 1 + oid_loff + oid_clen;
 
@@ -526,17 +552,29 @@ pub fn parse_ocsp_response(raw: &[u8]) -> Result<OcspResponse, Diagnostic> {
         ));
     }
     let (_, c_loff) = parse_der_length(&rb_inner[oid_end + 1..]).ok_or_else(|| {
-        Diagnostic::new("GP-S-021", Severity::Error, "Invalid [1] length".to_string())
+        Diagnostic::new(
+            "GP-S-021",
+            Severity::Error,
+            "Invalid [1] length".to_string(),
+        )
     })?;
     let (c_clen, _) = parse_der_length(&rb_inner[oid_end + 1..]).ok_or_else(|| {
-        Diagnostic::new("GP-S-021", Severity::Error, "Invalid [1] content length".to_string())
+        Diagnostic::new(
+            "GP-S-021",
+            Severity::Error,
+            "Invalid [1] content length".to_string(),
+        )
     })?;
     let content_inner_start = oid_end + 1 + c_loff;
     let content_bytes = &rb_inner[content_inner_start..content_inner_start + c_clen];
 
     // content is OCTET STRING wrapping BasicOCSPResponse
     let bos = parse_octet_string(content_bytes).ok_or_else(|| {
-        Diagnostic::new("GP-S-021", Severity::Error, "content is not an OCTET STRING".to_string())
+        Diagnostic::new(
+            "GP-S-021",
+            Severity::Error,
+            "content is not an OCTET STRING".to_string(),
+        )
     })?;
 
     // BasicOCSPResponse ::= SEQUENCE {
@@ -546,7 +584,11 @@ pub fn parse_ocsp_response(raw: &[u8]) -> Result<OcspResponse, Diagnostic> {
     //   certs            [0] EXPLICIT Certs OPTIONAL
     // }
     let _tbs = parse_sequence(bos).ok_or_else(|| {
-        Diagnostic::new("GP-S-021", Severity::Error, "BasicOCSPResponse is not a SEQUENCE".to_string())
+        Diagnostic::new(
+            "GP-S-021",
+            Severity::Error,
+            "BasicOCSPResponse is not a SEQUENCE".to_string(),
+        )
     })?;
     // We don't need to fully parse the signature for LTV purposes
     // The raw DER of the BasicOCSPResponse is what we embed.
@@ -559,7 +601,11 @@ pub fn parse_ocsp_response(raw: &[u8]) -> Result<OcspResponse, Diagnostic> {
     //   singleResponses  SEQUENCE OF SingleResponse
     // }
     let tbs_inner = parse_sequence(bos).ok_or_else(|| {
-        Diagnostic::new("GP-S-021", Severity::Error, "BasicOCSPResponse TBS not a SEQUENCE".to_string())
+        Diagnostic::new(
+            "GP-S-021",
+            Severity::Error,
+            "BasicOCSPResponse TBS not a SEQUENCE".to_string(),
+        )
     })?;
 
     // Parse version [0]
@@ -575,7 +621,11 @@ pub fn parse_ocsp_response(raw: &[u8]) -> Result<OcspResponse, Diagnostic> {
 
     // Find singleResponses: look for SEQUENCE containing SingleResponse
     let single_response = parse_single_response_from_tbs(&tbs_inner[pos..]).ok_or_else(|| {
-        Diagnostic::new("GP-S-021", Severity::Error, "Cannot parse single response from TBS".to_string())
+        Diagnostic::new(
+            "GP-S-021",
+            Severity::Error,
+            "Cannot parse single response from TBS".to_string(),
+        )
     })?;
 
     Ok(OcspResponse {
@@ -619,7 +669,10 @@ fn parse_single_response_from_tbs(data: &[u8]) -> Option<SingleResponse> {
                 if time_tag == 0x17 || time_tag == 0x18 {
                     let (_, tloff) = parse_der_length(&rev_inner[rpos + 1..])?;
                     let (tclen, _) = parse_der_length(&rev_inner[rpos + 1..])?;
-                    let time_str = String::from_utf8_lossy(&rev_inner[rpos + 1 + tloff..rpos + 1 + tloff + tclen]).to_string();
+                    let time_str = String::from_utf8_lossy(
+                        &rev_inner[rpos + 1 + tloff..rpos + 1 + tloff + tclen],
+                    )
+                    .to_string();
                     rpos += 1 + tloff + tclen;
                     // reason [0] EXPLICIT
                     let reason = if rpos < rev_inner.len() && rev_inner[rpos] == 0xA0 {
@@ -630,12 +683,21 @@ fn parse_single_response_from_tbs(data: &[u8]) -> Option<SingleResponse> {
                     } else {
                         None
                     };
-                    OcspStatus::Revoked { reason, revocation_time: Some(time_str) }
+                    OcspStatus::Revoked {
+                        reason,
+                        revocation_time: Some(time_str),
+                    }
                 } else {
-                    OcspStatus::Revoked { reason: None, revocation_time: None }
+                    OcspStatus::Revoked {
+                        reason: None,
+                        revocation_time: None,
+                    }
                 }
             } else {
-                OcspStatus::Revoked { reason: None, revocation_time: None }
+                OcspStatus::Revoked {
+                    reason: None,
+                    revocation_time: None,
+                }
             }
         }
         0x02 => OcspStatus::Unknown,
@@ -649,7 +711,9 @@ fn parse_single_response_from_tbs(data: &[u8]) -> Option<SingleResponse> {
         if time_tag == 0x17 || time_tag == 0x18 {
             let (_, tloff) = parse_der_length(&single[pos + 1..])?;
             let (tclen, _) = parse_der_length(&single[pos + 1..])?;
-            let time_str = String::from_utf8_lossy(&single[pos + 1 + tloff..pos + 1 + tloff + tclen]).to_string();
+            let time_str =
+                String::from_utf8_lossy(&single[pos + 1 + tloff..pos + 1 + tloff + tclen])
+                    .to_string();
             Some(time_str)
         } else {
             None
@@ -663,7 +727,8 @@ fn parse_single_response_from_tbs(data: &[u8]) -> Option<SingleResponse> {
     let next_update = if pos < single.len() && single[pos] == 0xA0 {
         let (_, nloff) = parse_der_length(&single[pos + 1..])?;
         let (nclen, _) = parse_der_length(&single[pos + 1..])?;
-        let time_str = String::from_utf8_lossy(&single[pos + 1 + nloff..pos + 1 + nloff + nclen]).to_string();
+        let time_str =
+            String::from_utf8_lossy(&single[pos + 1 + nloff..pos + 1 + nloff + nclen]).to_string();
         Some(time_str)
     } else {
         None
@@ -772,16 +837,13 @@ pub async fn fetch_ocsp(
         ));
     }
 
-    let body = response
-        .bytes()
-        .await
-        .map_err(|e| {
-            Diagnostic::new(
-                "GP-S-021",
-                Severity::Warning,
-                format!("Failed to read OCSP response body: {}", e),
-            )
-        })?;
+    let body = response.bytes().await.map_err(|e| {
+        Diagnostic::new(
+            "GP-S-021",
+            Severity::Warning,
+            format!("Failed to read OCSP response body: {}", e),
+        )
+    })?;
 
     if body.is_empty() {
         return Err(Diagnostic::new(
@@ -878,7 +940,9 @@ mod tests {
         let req = make_mock_ocsp_request();
         let der = req.to_der();
         let sha256_oid_bytes = oid_bytes(OID_SHA256);
-        assert!(der.windows(sha256_oid_bytes.len()).any(|w| w == sha256_oid_bytes));
+        assert!(der
+            .windows(sha256_oid_bytes.len())
+            .any(|w| w == sha256_oid_bytes));
     }
 
     #[test]
@@ -934,7 +998,11 @@ mod tests {
 
     #[test]
     fn test_ocsp_result_absent() {
-        let diag = Diagnostic::new("GP-S-021", Severity::Warning, "OCSP unreachable".to_string());
+        let diag = Diagnostic::new(
+            "GP-S-021",
+            Severity::Warning,
+            "OCSP unreachable".to_string(),
+        );
         let result = OcspResult::absent(diag.clone());
         assert!(!result.success);
         assert!(result.ocsp_response_der.is_none());
@@ -945,9 +1013,24 @@ mod tests {
     #[test]
     fn test_ocsp_status_display() {
         assert_eq!(format!("{}", OcspStatus::Good), "good");
-        assert_eq!(format!("{}", OcspStatus::Revoked { reason: None, revocation_time: None }), "revoked");
         assert_eq!(
-            format!("{}", OcspStatus::Revoked { reason: Some(1), revocation_time: None }),
+            format!(
+                "{}",
+                OcspStatus::Revoked {
+                    reason: None,
+                    revocation_time: None
+                }
+            ),
+            "revoked"
+        );
+        assert_eq!(
+            format!(
+                "{}",
+                OcspStatus::Revoked {
+                    reason: Some(1),
+                    revocation_time: None
+                }
+            ),
             "revoked (reason=1)"
         );
         assert_eq!(format!("{}", OcspStatus::Unknown), "unknown");

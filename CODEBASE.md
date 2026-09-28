@@ -157,7 +157,7 @@ Render engines as spawned subprocesses, never linked (D3).
 |--------|---------|
 | `libreoffice` | LibreOffice headless runner (isolated profiles, timeouts, wedge kill) |
 | `pandoc` | Pandoc runner: text extraction + creation (`--reference-doc`) |
-| `chromium` | Chromium runner: discovery chain, `--headless=new --print-to-pdf`, isolated user-data-dir (print-to-pdf only; `--screenshot` = Track C gap) |
+| `chromium` | Chromium runner: discovery chain, `--headless=new --print-to-pdf` and `--screenshot` for html→png, isolated user-data-dir (html→pdf and html→png) |
 | `typst` | Typst runner: `typst compile` shell-out, honest-absent path (ADR-0004) |
 | `creation` | Unified creation dispatcher (pandoc/chromium/typst/native/revisions) |
 | `probe` | Engine discovery + fixture-conversion capability probes (D8) |

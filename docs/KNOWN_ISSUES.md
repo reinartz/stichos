@@ -93,7 +93,7 @@ was `"page"` (relative), so the PNG landed in the repo root while the code looke
 
 ## KI-04: Pandoc reports "FAIL" for all doctor fixtures (expected)
 
-**Status:** by-design
+**Status:** partially resolved (2026-09-27, Track C-C1.1)
 **Crate:** `engines` — `crates/engines/src/doctor.rs`
 
 **What happens:** `stichos doctor` probes all engines with the standard fixture set
@@ -107,6 +107,7 @@ correctly and is tested in the full test suite (e.g., `test_pandoc_extract_text_
 **Future fix:** The standard fixture set should include a markdown-source fixture so pandoc
 can demonstrate at least one working capability in `doctor`. Currently the fixture set is
 document → PDF only.
+Resolved in 2026-09-27 (Track C-C1.1): markdown-source probe fixture added to `standard_fixtures()`.
 
 ---
 

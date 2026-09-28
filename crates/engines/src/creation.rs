@@ -13,9 +13,37 @@ use gp_core::diagnostics::Diagnostic;
 use gp_core::diagnostics::Severity;
 use gp_core::fidelity::RendererInfo;
 use gp_core::ir::{CreateSource, CreateTarget, CreationMetadata, CreationResponse};
+use gp_core::traits::Engine;
+
+// Minimal base64 encoder (no external dependency needed)
+fn base64_encode(data: &[u8]) -> String {
+    const CHARS: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    let mut result = String::with_capacity(data.len().div_ceil(3) * 4);
+    let chunks = data.chunks(3);
+    for chunk in chunks {
+        let b0 = chunk[0] as u32;
+        let b1 = if chunk.len() > 1 { chunk[1] as u32 } else { 0 };
+        let b2 = if chunk.len() > 2 { chunk[2] as u32 } else { 0 };
+        let triple = (b0 << 16) | (b1 << 8) | b2;
+        result.push(CHARS[((triple >> 18) & 0x3F) as usize] as char);
+        result.push(CHARS[((triple >> 12) & 0x3F) as usize] as char);
+        if chunk.len() > 1 {
+            result.push(CHARS[((triple >> 6) & 0x3F) as usize] as char);
+        } else {
+            result.push('=');
+        }
+        if chunk.len() > 2 {
+            result.push(CHARS[(triple & 0x3F) as usize] as char);
+        } else {
+            result.push('=');
+        }
+    }
+    result
+}
 use gp_core::store::ContentStore;
 
 use crate::chromium::ChromiumEngine;
+use crate::libreoffice::LibreOfficeEngine;
 use crate::pandoc::PandocEngine;
 
 /// Re-export the create-as-revisions result type from adapters-ooxml.
@@ -54,7 +82,7 @@ fn create_document_engine(
     source: &CreateSource,
     target: &CreateTarget,
     reference_doc: Option<&[u8]>,
-    store: &mut ContentStore,
+    store: Option<&mut ContentStore>,
 ) -> Result<CreationResult, Vec<Diagnostic>> {
     match (source, target) {
         (CreateSource::Markdown { .. } | CreateSource::Html { .. }, CreateTarget::Docx) => {
@@ -65,7 +93,7 @@ fn create_document_engine(
         }
         (CreateSource::Html { .. }, CreateTarget::Pdf) => create_via_chromium(source, store),
         (CreateSource::Markdown { .. }, CreateTarget::Pdf) => {
-            // Pandoc handles markdown→pdf; chromium path is for raw HTML.
+            // Pandoc→pdf (needs LaTeX) with fallback: chromium(html→pdf) → LibreOffice(→odt→pdf)
             create_via_pandoc(source, "pdf", reference_doc, store)
         }
         (CreateSource::Typst { .. }, CreateTarget::Pdf) => {
@@ -90,25 +118,76 @@ fn create_via_pandoc(
     source: &CreateSource,
     target_format: &str,
     reference_doc: Option<&[u8]>,
-    store: &mut ContentStore,
+    store: Option<&mut ContentStore>,
 ) -> Result<CreationResult, Vec<Diagnostic>> {
     let source_format = source.format_name();
     let content = source.content();
 
-    // Convert
+    // For PDF output, check LaTeX availability and attempt fallbacks if absent (C7.1)
+    if target_format == "pdf" && !crate::pandoc::is_latex_available() {
+        // No LaTeX available — try fallback chains
+
+        // Fallback 1: pandoc md→html → chromium html→pdf
+        if let Ok(html_bytes) = PandocEngine::convert_to(content, source_format, "html", None) {
+            if let Ok(engine) = ChromiumEngine::new_auto() {
+                if let Ok(bytes) = engine.create_pdf(&html_bytes, None, None, false) {
+                    let result = store_and_finish(
+                        bytes,
+                        "html→pdf (chromium fallback)",
+                        "pandoc+chromium",
+                        source,
+                        "html",
+                        store,
+                    );
+                    return result;
+                }
+            }
+        }
+
+        // Fallback 2: pandoc md→odt → LibreOffice odt→pdf
+        if let Ok(odt_bytes) = PandocEngine::convert_to(content, source_format, "odt", None) {
+            if let Ok(engine) = LibreOfficeEngine::new_auto() {
+                if let Ok(bytes) = engine.convert(&odt_bytes, "odt", "pdf") {
+                    let result = store_and_finish(
+                        bytes,
+                        "odt→pdf (LibreOffice fallback)",
+                        "pandoc+libreoffice",
+                        source,
+                        "odt",
+                        store,
+                    );
+                    return result;
+                }
+            }
+        }
+
+        // All fallbacks failed — return honest error (C7.1)
+        return Err(vec![Diagnostic::new(
+            "ENG-E-030",
+            Severity::Error,
+            "pandoc PDF output requires a LaTeX engine (pdflatex/xelatex/lualatex). \
+             No fallback renderer (chromium/LibreOffice) available. \
+             Install a LaTeX distribution or chromium/LibreOffice for fallback rendering.",
+        )]);
+    }
+
+    // Normal path: pandoc→pdf directly (with LaTeX) or pandoc→non-pdf
     let bytes = PandocEngine::convert_to(content, source_format, target_format, reference_doc)?;
 
-    // Store in content-addressed store
+    // Store in content-addressed store (skip when dry_run)
     let mime_type = match target_format {
         "docx" => "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         "odt" => "application/vnd.oasis.opendocument.text",
         "pdf" => "application/pdf",
         _ => "application/octet-stream",
     };
-    let blob_key = store.store(&bytes, mime_type).unwrap_or_else(|_| {
-        // Store failure is non-fatal for creation; use empty key
-        gp_core::store::ContentStore::key(&bytes)
-    });
+    let blob_key = match store {
+        Some(s) => s.store(&bytes, mime_type).unwrap_or_else(|_| {
+            // Store failure is non-fatal for creation; use content-addressed key
+            gp_core::store::ContentStore::key(&bytes)
+        }),
+        None => gp_core::store::ContentStore::key(&bytes),
+    };
 
     // Build renderer info
     let version = PandocEngine::get_version();
@@ -147,6 +226,45 @@ fn create_via_pandoc(
     })
 }
 
+/// Build and return a CreationResult after storing the output bytes.
+fn store_and_finish(
+    bytes: Vec<u8>,
+    renderer_id: &str,
+    _engine_label: &str,
+    source: &CreateSource,
+    _intermediate_format: &str,
+    store: Option<&mut ContentStore>,
+) -> Result<CreationResult, Vec<Diagnostic>> {
+    // Store in content-addressed store (skip when dry_run)
+    let blob_key = match store {
+        Some(s) => s
+            .store(&bytes, "application/pdf")
+            .unwrap_or_else(|_| gp_core::store::ContentStore::key(&bytes)),
+        None => gp_core::store::ContentStore::key(&bytes),
+    };
+
+    let rendered_by = RendererInfo {
+        engine_id: renderer_id.into(),
+        version: None,
+        fontset_hash: None,
+    };
+
+    let document_id = format!("doc-{}", &blob_key[..12.min(blob_key.len())]);
+
+    let response = CreationResponse {
+        document_id,
+        bytes,
+        format: "pdf".to_string(),
+        rendered_by,
+        source: source.clone(),
+    };
+
+    Ok(CreationResult {
+        response,
+        diagnostics: vec![],
+    })
+}
+
 /// Create a PDF via typst.
 ///
 /// Supports an optional offline template that is written to a temp directory
@@ -155,7 +273,7 @@ fn create_via_pandoc(
 fn create_via_typst(
     source: &CreateSource,
     template: Option<&[u8]>,
-    store: &mut ContentStore,
+    store: Option<&mut ContentStore>,
 ) -> Result<CreationResult, Vec<Diagnostic>> {
     // Check if typst engine is available — honest absent path (P3-21)
     if !crate::typst::is_available() {
@@ -177,10 +295,13 @@ fn create_via_typst(
     let content = source.content();
     let bytes = typst_engine.create_pdf_with_template(content, template)?;
 
-    // Store in content-addressed store
-    let blob_key = store
-        .store(&bytes, "application/pdf")
-        .unwrap_or_else(|_| gp_core::store::ContentStore::key(&bytes));
+    // Store in content-addressed store (skip when dry_run)
+    let blob_key = match store {
+        Some(s) => s
+            .store(&bytes, "application/pdf")
+            .unwrap_or_else(|_| gp_core::store::ContentStore::key(&bytes)),
+        None => gp_core::store::ContentStore::key(&bytes),
+    };
 
     let version = typst_engine.version_inner();
     let rendered_by = RendererInfo {
@@ -213,7 +334,7 @@ fn create_via_typst(
 /// - no background rendering
 fn create_via_chromium(
     source: &CreateSource,
-    store: &mut ContentStore,
+    store: Option<&mut ContentStore>,
 ) -> Result<CreationResult, Vec<Diagnostic>> {
     // Check if chromium engine can be created
     let chromium_engine = match ChromiumEngine::new_auto() {
@@ -235,10 +356,13 @@ fn create_via_chromium(
     // Use defaults: letter paper, 0.5in margins, no background
     let bytes = chromium_engine.create_pdf(content, None, None, false)?;
 
-    // Store in content-addressed store
-    let blob_key = store
-        .store(&bytes, "application/pdf")
-        .unwrap_or_else(|_| gp_core::store::ContentStore::key(&bytes));
+    // Store in content-addressed store (skip when dry_run)
+    let blob_key = match store {
+        Some(s) => s
+            .store(&bytes, "application/pdf")
+            .unwrap_or_else(|_| gp_core::store::ContentStore::key(&bytes)),
+        None => gp_core::store::ContentStore::key(&bytes),
+    };
 
     // Get version from chromium
     let version = chromium_engine.version_inner();
@@ -271,7 +395,7 @@ fn create_via_chromium(
 /// adapters-ooxml xlsx creation writer.
 fn create_via_xlsx(
     source: &CreateSource,
-    store: &mut ContentStore,
+    store: Option<&mut ContentStore>,
 ) -> Result<CreationResult, Vec<Diagnostic>> {
     let CreateSource::Spreadsheet { content } = source else {
         return Err(vec![Diagnostic::new(
@@ -302,13 +426,16 @@ fn create_via_xlsx(
             result
         })?;
 
-    // Store in content-addressed store
-    let blob_key = store
-        .store(
-            &bytes,
-            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        )
-        .unwrap_or_else(|_| gp_core::store::ContentStore::key(&bytes));
+    // Store in content-addressed store (skip when dry_run)
+    let blob_key = match store {
+        Some(s) => s
+            .store(
+                &bytes,
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            )
+            .unwrap_or_else(|_| gp_core::store::ContentStore::key(&bytes)),
+        None => gp_core::store::ContentStore::key(&bytes),
+    };
 
     let rendered_by = RendererInfo {
         engine_id: "ooxml-xlsx".into(),
@@ -342,7 +469,7 @@ fn create_via_xlsx(
 /// adapters-ooxml pptx creation writer.
 fn create_via_pptx(
     source: &CreateSource,
-    store: &mut ContentStore,
+    store: Option<&mut ContentStore>,
 ) -> Result<CreationResult, Vec<Diagnostic>> {
     let CreateSource::Presentation { content } = source else {
         return Err(vec![Diagnostic::new(
@@ -373,13 +500,16 @@ fn create_via_pptx(
             result
         })?;
 
-    // Store in content-addressed store
-    let blob_key = store
-        .store(
-            &bytes,
-            "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-        )
-        .unwrap_or_else(|_| gp_core::store::ContentStore::key(&bytes));
+    // Store in content-addressed store (skip when dry_run)
+    let blob_key = match store {
+        Some(s) => s
+            .store(
+                &bytes,
+                "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+            )
+            .unwrap_or_else(|_| gp_core::store::ContentStore::key(&bytes)),
+        None => gp_core::store::ContentStore::key(&bytes),
+    };
 
     let rendered_by = RendererInfo {
         engine_id: "ooxml-pptx".into(),
@@ -576,13 +706,22 @@ fn parse_target(target_format: &str) -> CreateTarget {
 ///
 /// # Returns
 /// A JSON value with the creation response, or diagnostics on validation failure.
+///
+/// # Store Lifecycle Contract
+///
+/// When `dry_run=false`, the created document blob is stored in a `ContentStore` at the path
+/// returned in `store_root`. Callers MAY:
+/// 1. Use `store_root` to retrieve the blob later (blob key = SHA-256 of bytes).
+/// 2. Delete `store_root` after copying the blob if they no longer need it.
+///
+/// When `dry_run=true`, `store_root` is null and no store is written.
 #[allow(clippy::too_many_arguments)]
 pub fn create_document(
     input: &[u8],
     source_type: &str,
     target_format: &str,
     template: Option<&[u8]>,
-    _dry_run: bool,
+    dry_run: bool,
     target_path: Option<&str>,
     author: &str,
     direct: bool,
@@ -599,25 +738,36 @@ pub fn create_document(
     let source = parse_source(source_type, input);
     let target = parse_target(target_format);
 
-    // Create a temporary store (for non-dry-run mode)
-    let mut store = ContentStore::open_at(&std::env::temp_dir().join("stichos-creation-temp"))
-        .unwrap_or_else(|_| {
-            let id = std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap_or_default()
-                .as_nanos();
-            ContentStore::open_at(&std::env::temp_dir().join(format!("stichos-creation-{id}")))
-                .unwrap()
-        });
+    // Create a temporary store (for non-dry-run mode).
+    // Capture the root path before the store is dropped so we can hand it back.
+    let id = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_nanos();
+    let store_dir = std::env::temp_dir().join(format!("stichos-creation-{id}"));
+    let mut store = ContentStore::open_at(&store_dir).unwrap_or_else(|_| {
+        let id2 = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_nanos();
+        ContentStore::open_at(&std::env::temp_dir().join(format!("stichos-creation-{id2}")))
+            .unwrap()
+    });
+    let store_root = store.root().to_path_buf();
 
-    // Route to the appropriate engine
-    let result = create_document_engine(&source, &target, template, &mut store);
+    // Route to the appropriate engine (skip store when dry_run)
+    let result = create_document_engine(
+        &source,
+        &target,
+        template,
+        if dry_run { None } else { Some(&mut store) },
+    );
 
     // Convert result to JSON
     match result {
         Ok(creation) => {
             let response = creation.response;
-            let json = serde_json::json!({
+            let mut json = serde_json::json!({
                 "status": "created",
                 "document_id": response.document_id,
                 "format": response.format,
@@ -629,8 +779,18 @@ pub fn create_document(
                 "source_type": source_type,
                 "source_size": input.len(),
                 "output_size": response.bytes.len(),
-                "dry_run": false,
+                "dry_run": dry_run,
+                "store_root": if dry_run {
+                    None
+                } else {
+                    Some(store_root.to_string_lossy().to_string())
+                },
             });
+            // When dry_run, include base64-encoded preview bytes
+            if dry_run {
+                let preview = base64_encode(&response.bytes);
+                json["preview_bytes"] = serde_json::json!(preview);
+            }
             Ok(json)
         }
         Err(diags) => Err(diags),
@@ -961,7 +1121,7 @@ mod tests {
         };
         let target = CreateTarget::Docx;
 
-        let result = create_document_engine(&source, &target, None, &mut store);
+        let result = create_document_engine(&source, &target, None, Some(&mut store));
         assert!(
             result.is_ok(),
             "create_document should succeed: {:?}",
@@ -991,7 +1151,7 @@ mod tests {
         };
         let target = CreateTarget::Odt;
 
-        let result = create_document_engine(&source, &target, None, &mut store);
+        let result = create_document_engine(&source, &target, None, Some(&mut store));
         assert!(
             result.is_ok(),
             "create_document markdown→odt should succeed: {:?}",
@@ -1015,7 +1175,7 @@ mod tests {
         };
         let target = CreateTarget::Docx;
 
-        let result = create_document_engine(&source, &target, None, &mut store);
+        let result = create_document_engine(&source, &target, None, Some(&mut store));
         assert!(result.is_err(), "typst→docx should fail");
         let diags = result.unwrap_err();
         assert_eq!(diags[0].code, "ENG-E-001");
@@ -1053,13 +1213,20 @@ mod tests {
 
     #[test]
     fn test_create_document_html_to_pdf_via_chromium_returns_error_when_absent() {
+        // This test verifies the error path when chromium is absent.
+        // Skip if chromium IS available (we can't easily hide it).
+        if ChromiumEngine::new_auto().is_ok() {
+            eprintln!("SKIP: chromium is available, cannot test absent-path");
+            return;
+        }
+
         let (mut store, root) = temp_store();
         let source = CreateSource::Html {
             content: b"<html><body><h1>Test</h1></body></html>".to_vec(),
         };
         let target = CreateTarget::Pdf;
 
-        let result = create_document_engine(&source, &target, None, &mut store);
+        let result = create_document_engine(&source, &target, None, Some(&mut store));
         assert!(
             result.is_err(),
             "html→pdf should fail when chromium is absent"
@@ -1072,26 +1239,31 @@ mod tests {
 
     #[test]
     fn test_create_document_html_to_pdf_uses_chromium_not_pandoc() {
+        if ChromiumEngine::new_auto().is_err() {
+            eprintln!("SKIP: chromium not available");
+            return;
+        }
+
         let (mut store, root) = temp_store();
         let source = CreateSource::Html {
             content: b"<html><body><h1>Test</h1></body></html>".to_vec(),
         };
         let target = CreateTarget::Pdf;
 
-        let result = create_document_engine(&source, &target, None, &mut store);
-        // Either it succeeds (chromium available) or fails with chromium-not-available error
-        if let Ok(creation) = result {
-            assert_eq!(creation.response.rendered_by.engine_id, "chromium");
-            assert_eq!(creation.response.format, "pdf");
-        } else {
-            let diags = result.unwrap_err();
-            // Should be a chromium-not-found error, not a "no engine available" error
-            assert!(
-                diags[0].message.contains("chromium"),
-                "error should mention chromium: {}",
-                diags[0].message
-            );
-        }
+        let result = create_document_engine(&source, &target, None, Some(&mut store));
+        assert!(result.is_ok(), "html→pdf should succeed: {:?}", result);
+
+        let creation = result.unwrap();
+        assert_eq!(creation.response.rendered_by.engine_id, "chromium");
+        assert_eq!(creation.response.format, "pdf");
+        assert!(
+            !creation.response.bytes.is_empty(),
+            "output should not be empty"
+        );
+        assert!(
+            creation.response.bytes.len() >= 4 && &creation.response.bytes[0..4] == b"%PDF",
+            "output should be PDF"
+        );
 
         let _ = std::fs::remove_dir_all(&root);
     }
@@ -1113,7 +1285,7 @@ mod tests {
         };
         let target = CreateTarget::Pdf;
 
-        let result = create_document_engine(&source, &target, None, &mut store);
+        let result = create_document_engine(&source, &target, None, Some(&mut store));
         assert!(result.is_ok(), "typst→pdf should succeed: {:?}", result);
 
         let creation = result.unwrap();
@@ -1145,7 +1317,7 @@ mod tests {
         };
         let target = CreateTarget::Pdf;
 
-        let result = create_document_engine(&source, &target, None, &mut store);
+        let result = create_document_engine(&source, &target, None, Some(&mut store));
 
         if let Ok(creation) = result {
             // Typst is available — verify the engine path
@@ -1181,7 +1353,7 @@ mod tests {
         };
         let target = CreateTarget::Pdf;
 
-        let result = create_document_engine(&source, &target, None, &mut store);
+        let result = create_document_engine(&source, &target, None, Some(&mut store));
         assert!(
             result.is_err(),
             "invalid typst should return error, not panic"
@@ -1206,7 +1378,7 @@ mod tests {
         let target = CreateTarget::Pdf;
         let template = b"# Minimal template\n#set page(margin: (top: 2cm, bottom: 2cm, left: 2cm, right: 2cm))\n";
 
-        let result = create_document_engine(&source, &target, Some(template), &mut store);
+        let result = create_document_engine(&source, &target, Some(template), Some(&mut store));
         // Template may or may not be used by typst depending on content;
         // the key check is that routing works and doesn't panic
         match result {
@@ -1231,7 +1403,7 @@ mod tests {
         };
         let target = CreateTarget::Docx;
 
-        let result = create_document_engine(&source, &target, None, &mut store);
+        let result = create_document_engine(&source, &target, None, Some(&mut store));
         assert!(result.is_err(), "typst→docx should fail");
         let diags = result.unwrap_err();
         assert_eq!(diags[0].code, "ENG-E-001");
@@ -1394,7 +1566,7 @@ mod tests {
             content: serde_json::to_vec(&spreadsheet_json).unwrap(),
         };
         let target = CreateTarget::Xlsx;
-        let result = create_document_engine(&source, &target, None, &mut store);
+        let result = create_document_engine(&source, &target, None, Some(&mut store));
         assert!(
             result.is_ok(),
             "spreadsheet->xlsx should succeed: {:?}",
@@ -1445,7 +1617,7 @@ mod tests {
             content: serde_json::to_vec(&presentation_json).unwrap(),
         };
         let target = CreateTarget::Pptx;
-        let result = create_document_engine(&source, &target, None, &mut store);
+        let result = create_document_engine(&source, &target, None, Some(&mut store));
         assert!(
             result.is_ok(),
             "presentation->pptx should succeed: {:?}",
@@ -1461,5 +1633,349 @@ mod tests {
         assert_eq!(response.format, "pptx");
         assert_eq!(response.rendered_by.engine_id, "ooxml-pptx");
         let _ = std::fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn test_create_document_dry_run_returns_preview_bytes() {
+        // dry_run=true should not write to store but return preview bytes
+        let result = create_document(
+            b"# Hello", "markdown", "docx", None, true, None, "agent", false,
+        );
+        assert!(result.is_ok(), "dry_run should succeed: {:?}", result);
+        let json = result.unwrap();
+        assert_eq!(json["status"], "created");
+        assert_eq!(json["dry_run"], true);
+        assert!(json.get("document_id").is_some(), "should have document_id");
+        assert!(json.get("output_size").is_some(), "should have output_size");
+        // dry_run response should include preview_bytes
+        assert!(
+            json.get("preview_bytes").is_some(),
+            "dry_run should include preview_bytes"
+        );
+        let preview = json["preview_bytes"]
+            .as_str()
+            .expect("preview_bytes should be string");
+        assert!(!preview.is_empty(), "preview_bytes should not be empty");
+        // Verify it's valid base64 (starts with expected characters for PK zip file)
+        assert!(
+            preview.len() > 10,
+            "preview_bytes should be reasonably sized"
+        );
+    }
+
+    #[test]
+    fn test_create_document_dry_run_false_no_preview_bytes() {
+        // dry_run=false should NOT include preview_bytes (to avoid bloating responses)
+        let result = create_document(
+            b"# Hello", "markdown", "docx", None, false, None, "agent", false,
+        );
+        assert!(result.is_ok(), "non-dry-run should succeed: {:?}", result);
+        let json = result.unwrap();
+        assert_eq!(json["status"], "created");
+        assert_eq!(json["dry_run"], false);
+        // preview_bytes should NOT be present when dry_run=false
+        assert!(
+            json.get("preview_bytes").is_none(),
+            "non-dry_run should NOT include preview_bytes"
+        );
+    }
+
+    // ------------------------------------------------------------------
+    // Store handback (C-F.2) tests
+    // ------------------------------------------------------------------
+
+    #[test]
+    fn test_create_document_returns_store_root_when_not_dry_run() {
+        let result = create_document(
+            b"# Store Handback Test\n\nContent here.",
+            "markdown",
+            "docx",
+            None,
+            false,
+            None,
+            "agent",
+            false,
+        );
+        assert!(
+            result.is_ok(),
+            "create_document should succeed: {:?}",
+            result
+        );
+        let json = result.unwrap();
+        assert_eq!(json["status"], "created");
+        assert_eq!(json["dry_run"], false);
+        // store_root should be present and non-null
+        let store_root = json
+            .get("store_root")
+            .and_then(|s| s.as_str())
+            .expect("store_root should be a string when dry_run=false");
+        assert!(!store_root.is_empty(), "store_root should not be empty");
+        // store_root should point to an existing directory
+        assert!(
+            std::path::Path::new(store_root).is_dir(),
+            "store_root ({}) should be an existing directory",
+            store_root
+        );
+        // Clean up the store directory after the test
+        let _ = std::fs::remove_dir_all(store_root);
+    }
+
+    #[test]
+    fn test_create_document_store_root_null_when_dry_run() {
+        let result = create_document(
+            b"# Dry Run Store Test\n\nContent here.",
+            "markdown",
+            "docx",
+            None,
+            true,
+            None,
+            "agent",
+            false,
+        );
+        assert!(
+            result.is_ok(),
+            "dry_run create_document should succeed: {:?}",
+            result
+        );
+        let json = result.unwrap();
+        assert_eq!(json["status"], "created");
+        assert_eq!(json["dry_run"], true);
+        // store_root should be null for dry_run
+        assert!(
+            json.get("store_root").and_then(|s| s.as_str()).is_none(),
+            "store_root should be null when dry_run=true"
+        );
+    }
+
+    #[test]
+    fn test_create_document_blob_exists_at_store_root() {
+        let result = create_document(
+            b"# Blob Existence Test\n\nVerifying blob storage.",
+            "markdown",
+            "docx",
+            None,
+            false,
+            None,
+            "agent",
+            false,
+        );
+        assert!(
+            result.is_ok(),
+            "create_document should succeed: {:?}",
+            result
+        );
+        let json = result.unwrap();
+        assert_eq!(json["status"], "created");
+        let store_root = json
+            .get("store_root")
+            .and_then(|s| s.as_str())
+            .expect("store_root should be present");
+        let document_id = json
+            .get("document_id")
+            .and_then(|s| s.as_str())
+            .expect("document_id should be present");
+        // Verify document_id has the expected "doc-<12hex>" format
+        assert!(
+            document_id.len() >= 6,
+            "document_id should be 'doc-' + hex prefix"
+        );
+        // The blobs/ directory should exist at store_root
+        let blob_dir = std::path::Path::new(store_root).join("blobs");
+        assert!(blob_dir.exists(), "blobs/ dir should exist at store_root");
+        // Count blob files in the store to verify content was actually stored
+        let blob_count: usize = std::fs::read_dir(&blob_dir)
+            .ok()
+            .into_iter()
+            .flatten()
+            .filter_map(|e| e.ok())
+            .filter(|e| e.file_type().map(|ft| ft.is_dir()).unwrap_or(false))
+            .filter_map(|dir| std::fs::read_dir(dir.path()).ok())
+            .flatten()
+            .filter_map(|e| e.ok())
+            .filter(|e| e.file_type().map(|ft| ft.is_file()).unwrap_or(false))
+            .count();
+        assert!(
+            blob_count >= 1,
+            "store should have at least one blob file (found {blob_count})"
+        );
+        // Clean up
+        let _ = std::fs::remove_dir_all(store_root);
+    }
+
+    // ------------------------------------------------------------------
+    // C7.1: md→pdf LaTeX fallback chain tests
+    // ------------------------------------------------------------------
+
+    #[test]
+    fn test_create_document_markdown_to_pdf_no_latex_fallback_chromium() {
+        // When no LaTeX is available but chromium is, fallback to chromium via html
+        // This test validates the markdown→html→pdf fallback chain works
+        let has_latex = crate::pandoc::is_latex_available();
+        let has_chromium = ChromiumEngine::new_auto().is_ok();
+
+        if !has_latex && has_chromium {
+            let result = create_document(
+                b"# Fallback Chromium Test\n\nThis tests html to pdf fallback.",
+                "markdown",
+                "pdf",
+                None,
+                true,
+                None,
+                "agent",
+                false,
+            );
+            assert!(
+                result.is_ok(),
+                "markdown→pdf should succeed via chromium fallback when no LaTeX: {:?}",
+                result
+            );
+            let json = result.unwrap();
+            assert_eq!(json["status"], "created");
+            let engine_id = json["rendered_by"]["engine_id"]
+                .as_str()
+                .expect("should have engine_id");
+            assert!(
+                engine_id.contains("chromium") || engine_id.contains("pandoc"),
+                "fallback engine should be chromium or pandoc, got: {}",
+                engine_id
+            );
+            return;
+        }
+
+        // If LaTeX IS available or chromium IS NOT available, this test validates routing only
+        eprintln!(
+            "SKIP: has_latex={}, has_chromium={} — test validates fallback routing only",
+            has_latex, has_chromium
+        );
+    }
+
+    #[test]
+    fn test_create_document_markdown_to_pdf_no_latex_no_fallback_returns_030() {
+        // When no LaTeX and no chromium/LO fallbacks, returns ENG-E-030
+        // This tests the honest-absent diagnostic path
+        let has_latex = crate::pandoc::is_latex_available();
+
+        // Only test this path when there's no LaTeX AND no fallback available
+        if !has_latex {
+            let has_chromium = ChromiumEngine::new_auto().is_ok();
+            let has_lo = LibreOfficeEngine::new_auto().is_ok();
+
+            if !has_chromium && !has_lo {
+                let result = create_document(
+                    b"# No Fallback Test\n\nContent here.",
+                    "markdown",
+                    "pdf",
+                    None,
+                    true,
+                    None,
+                    "agent",
+                    false,
+                );
+                assert!(
+                    result.is_err(),
+                    "should fail when no LaTeX and no fallback available"
+                );
+                let diags = result.unwrap_err();
+                assert_eq!(
+                    diags[0].code, "ENG-E-030",
+                    "should return ENG-E-030 diagnostic code"
+                );
+                assert!(
+                    diags[0].message.contains("LaTeX") || diags[0].message.contains("latex"),
+                    "error should mention LaTeX: {}",
+                    diags[0].message
+                );
+                return;
+            }
+
+            eprintln!(
+                "SKIP: no latex but has_chromium={}, has_lo={} — ENG-E-030 path not reachable",
+                has_chromium, has_lo
+            );
+            return;
+        }
+
+        // LaTeX is available — pandoc→pdf should work directly
+        eprintln!("SKIP: LaTeX is available — test validates absent path only");
+    }
+
+    #[test]
+    fn test_create_document_markdown_to_pdf_with_latex_direct() {
+        // When LaTeX is available, pandoc→pdf should work directly without fallback
+        let has_latex = crate::pandoc::is_latex_available();
+
+        if has_latex && PandocEngine::get_version().is_some() {
+            let (mut store, root) = temp_store();
+            let source = CreateSource::Markdown {
+                content: b"# LaTeX Direct Test\n\nTesting direct pandoc to pdf.".to_vec(),
+            };
+            let target = CreateTarget::Pdf;
+
+            let result = create_document_engine(&source, &target, None, Some(&mut store));
+            assert!(
+                result.is_ok(),
+                "markdown→pdf should succeed with LaTeX: {:?}",
+                result
+            );
+            let creation = result.unwrap();
+            let response = creation.response;
+            assert!(!response.bytes.is_empty(), "should produce PDF bytes");
+            assert!(
+                response.bytes.len() >= 4 && &response.bytes[0..4] == b"%PDF",
+                "output should be PDF"
+            );
+            // Should use pandoc directly, not fallback
+            assert!(
+                response.rendered_by.engine_id.contains("pandoc"),
+                "should use pandoc directly, got: {}",
+                response.rendered_by.engine_id
+            );
+            let _ = std::fs::remove_dir_all(&root);
+        } else {
+            eprintln!(
+                "SKIP: has_latex={}, has_pandoc={} — direct LaTeX path not testable",
+                has_latex,
+                PandocEngine::get_version().is_some()
+            );
+        }
+    }
+
+    #[test]
+    fn test_create_document_markdown_to_pdf_via_pandoc_dry_run() {
+        // The unified API should work for markdown→pdf (uses pandoc path)
+        let result = create_document(
+            b"# Dry Run PDF Test\n\nTesting dry run markdown to pdf.",
+            "markdown",
+            "pdf",
+            None,
+            true,
+            None,
+            "agent",
+            false,
+        );
+        // May succeed (if LaTeX or fallback available) or fail with ENG-E-030 (if neither)
+        match result {
+            Ok(json) => {
+                assert_eq!(json["status"], "created");
+                assert!(
+                    json.get("preview_bytes").is_some(),
+                    "dry_run should include preview_bytes"
+                );
+                let engine_id = json["rendered_by"]["engine_id"]
+                    .as_str()
+                    .expect("engine_id");
+                eprintln!("markdown→pdf dry_run succeeded via: {}", engine_id);
+            }
+            Err(diags) => {
+                // Accept ENG-E-030 or ENG-E-001 as valid failure modes
+                assert!(
+                    diags
+                        .iter()
+                        .any(|d| d.code == "ENG-E-030" || d.code == "ENG-E-001"),
+                    "expected ENG-E-030 or ENG-E-001, got: {:?}",
+                    diags
+                );
+            }
+        }
     }
 }

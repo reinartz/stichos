@@ -5,10 +5,12 @@
 //! in both human-readable and JSON formats.
 
 use anyhow::Result;
+use engines::chromium::ChromiumEngine;
 use engines::libreoffice::LibreOfficeEngine;
 use engines::mock::MockEngine;
 use engines::pandoc::PandocEngine;
 use engines::probe::standard_fixtures;
+use engines::typst::TypstEngine;
 use gp_core::traits::EngineExt;
 
 /// Run the doctor command and return results.
@@ -29,6 +31,16 @@ pub fn run_doctor(json: bool) -> Result<String> {
     // Probe Pandoc
     if let Ok(pandoc) = PandocEngine::new_auto() {
         engine_refs.push(Box::leak(Box::new(pandoc)) as &dyn EngineExt);
+    }
+
+    // Probe Chromium
+    if let Ok(chromium) = ChromiumEngine::new_auto() {
+        engine_refs.push(Box::leak(Box::new(chromium)) as &dyn EngineExt);
+    }
+
+    // Probe Typst
+    if let Ok(typst) = TypstEngine::new_auto() {
+        engine_refs.push(Box::leak(Box::new(typst)) as &dyn EngineExt);
     }
 
     // Always include mock engine
@@ -83,6 +95,9 @@ pub fn run_doctor(json: bool) -> Result<String> {
                 "libreoffice_version": result.system_info.libreoffice_version,
                 "poppler_version": result.system_info.poppler_version,
                 "ghostscript_version": result.system_info.ghostscript_version,
+                "chromium_version": result.system_info.chromium_version,
+                "pandoc_version": result.system_info.pandoc_version,
+                "typst_version": result.system_info.typst_version,
             },
             "handoff": result.handoff.as_ref().map(|h| {
                 serde_json::json!({
@@ -193,6 +208,9 @@ pub fn run_doctor(json: bool) -> Result<String> {
                 "libreoffice_version": result.system_info.libreoffice_version,
                 "poppler_version": result.system_info.poppler_version,
                 "ghostscript_version": result.system_info.ghostscript_version,
+                "chromium_version": result.system_info.chromium_version,
+                "pandoc_version": result.system_info.pandoc_version,
+                "typst_version": result.system_info.typst_version,
             },
             "handoff": result.handoff.as_ref().map(|h| {
                 serde_json::json!({

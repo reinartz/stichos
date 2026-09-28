@@ -4,17 +4,23 @@
 //! This module implements the `inspect_region` CLI command, which:
 //! 1. Validates a crop request (bbox + zoom within page bounds)
 //! 2. Reads or renders a master page image from the document
-//! 3. Crops the requested region using the cropper
-//! 4. Returns cropped image data with coordinate conversion record
+//! 3. Dispatches to the negotiated engine (LibreOffice, Pandoc, Chromium, or Typst)
+//! 4. Converts to PDF via engine
+//! 5. Rasterizes the target page
+//! 6. Crops the requested region using the cropper
+//! 7. Returns cropped image data with coordinate conversion record
 //!
 //! Master pages are rendered on demand via the engine pipeline:
-//! document → PDF (LibreOffice) → rasterize (pdftoppm/gs/mutool) → PNG.
+//! document → PDF (engine) → rasterize (pdftoppm/gs/mutool) → PNG.
 
 use anyhow::Context;
 use engines::cache::{make_cache_key, sha256, MasterCache};
+use engines::chromium::ChromiumEngine;
 use engines::libreoffice::LibreOfficeEngine;
 use engines::negotiate::{negotiate_renderer, RendererPreference};
+use engines::pandoc::PandocEngine;
 use engines::raster;
+use engines::typst::TypstEngine;
 use gp_core::traits::Engine;
 use lint::coords::DETAIL_DPI;
 use lint::cropper::{crop_region, validate_crop_request, CropRequest};
@@ -154,14 +160,49 @@ fn read_master_page(path: &str, page: usize) -> Result<(Vec<u8>, String), anyhow
 /// Create an engine instance based on the negotiated renderer choice.
 fn create_engine_for_choice(
     choice: &engines::negotiate::RendererChoice,
-) -> Result<LibreOfficeEngine, anyhow::Error> {
-    LibreOfficeEngine::new_auto().map_err(|diags| {
-        anyhow::anyhow!(
-            "failed to create engine (choice={}): {:?}",
-            choice.engine_id,
-            diags.iter().map(|d| d.message.as_str()).collect::<Vec<_>>()
-        )
-    })
+) -> Result<Box<dyn Engine>, anyhow::Error> {
+    match choice.engine_id.as_str() {
+        "libreoffice" => LibreOfficeEngine::new_auto()
+            .map(|e| Box::new(e) as Box<dyn Engine>)
+            .map_err(|diags| {
+                anyhow::anyhow!(
+                    "failed to create engine (choice={}): {:?}",
+                    choice.engine_id,
+                    diags.iter().map(|d| d.message.as_str()).collect::<Vec<_>>()
+                )
+            }),
+        "pandoc" => PandocEngine::new_auto()
+            .map(|e| Box::new(e) as Box<dyn Engine>)
+            .map_err(|diags| {
+                anyhow::anyhow!(
+                    "failed to create engine (choice={}): {:?}",
+                    choice.engine_id,
+                    diags.iter().map(|d| d.message.as_str()).collect::<Vec<_>>()
+                )
+            }),
+        "chromium" => ChromiumEngine::new_auto()
+            .map(|e| Box::new(e) as Box<dyn Engine>)
+            .map_err(|diags| {
+                anyhow::anyhow!(
+                    "failed to create engine (choice={}): {:?}",
+                    choice.engine_id,
+                    diags.iter().map(|d| d.message.as_str()).collect::<Vec<_>>()
+                )
+            }),
+        "typst" => TypstEngine::new_auto()
+            .map(|e| Box::new(e) as Box<dyn Engine>)
+            .map_err(|diags| {
+                anyhow::anyhow!(
+                    "failed to create engine (choice={}): {:?}",
+                    choice.engine_id,
+                    diags.iter().map(|d| d.message.as_str()).collect::<Vec<_>>()
+                )
+            }),
+        unknown => Err(anyhow::anyhow!(
+            "unknown engine id from negotiation: '{}'; this indicates a negotiation bug",
+            unknown
+        )),
+    }
 }
 
 /// Extract image dimensions from PNG bytes.
@@ -370,5 +411,68 @@ mod tests {
         // blocks: ceil(600/28) * ceil(600/28) = 22 * 22 = 484
         let tokens2x = lint::cropper::estimate_crop_tokens([0.0, 0.0, 72.0, 72.0], DETAIL_DPI, 2.0);
         assert_eq!(tokens2x, 484);
+    }
+
+    /// test_create_engine_for_choice_libreoffice — dispatches LibreOffice when engine_id matches.
+    #[test]
+    fn test_create_engine_for_choice_libreoffice() {
+        let choice = engines::negotiate::RendererChoice {
+            engine_id: "libreoffice".to_string(),
+            available: true,
+            reason: "selected".to_string(),
+        };
+        let result = create_engine_for_choice(&choice);
+        if let Ok(engine) = result {
+            assert_eq!(engine.engine_id(), "libreoffice");
+        }
+    }
+
+    /// test_create_engine_for_choice_pandoc — dispatches Pandoc when engine_id matches.
+    #[test]
+    fn test_create_engine_for_choice_pandoc() {
+        let choice = engines::negotiate::RendererChoice {
+            engine_id: "pandoc".to_string(),
+            available: true,
+            reason: "selected".to_string(),
+        };
+        let result = create_engine_for_choice(&choice);
+        if let Ok(engine) = result {
+            assert_eq!(engine.engine_id(), "pandoc");
+        }
+    }
+
+    /// test_create_engine_for_choice_chromium — dispatches Chromium when engine_id matches.
+    #[test]
+    fn test_create_engine_for_choice_chromium() {
+        let choice = engines::negotiate::RendererChoice {
+            engine_id: "chromium".to_string(),
+            available: true,
+            reason: "selected".to_string(),
+        };
+        let result = create_engine_for_choice(&choice);
+        if let Ok(engine) = result {
+            assert_eq!(engine.engine_id(), "chromium");
+        }
+    }
+
+    /// test_create_engine_for_choice_unknown — unknown engine_id returns error.
+    #[test]
+    fn test_create_engine_for_choice_unknown() {
+        let choice = engines::negotiate::RendererChoice {
+            engine_id: "nonexistent".to_string(),
+            available: true,
+            reason: "selected".to_string(),
+        };
+        let result = create_engine_for_choice(&choice);
+        match result {
+            Ok(_) => panic!("expected error for unknown engine"),
+            Err(e) => {
+                assert!(
+                    e.to_string().contains("unknown engine id"),
+                    "unexpected error: {}",
+                    e
+                );
+            }
+        }
     }
 }

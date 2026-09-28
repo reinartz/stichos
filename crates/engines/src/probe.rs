@@ -404,6 +404,14 @@ fn minimal_html_bytes() -> Vec<u8> {
     .to_vec()
 }
 
+/// Build a minimal valid markdown document.
+fn minimal_markdown_bytes() -> Vec<u8> {
+    b"# Stichos Probe
+
+This is a test document for pandoc create direction."
+        .to_vec()
+}
+
 /// Build a minimal valid PDF v1.4 bytes.
 fn minimal_pdf_bytes() -> Vec<u8> {
     let raw = b"%PDF-1.4\n1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] >>\nendobj\nxref\n0 4\n0000000000 65535 f \n0000000009 00000 n \n0000000058 00000 n \n0000000115 00000 n \ntrailer\n<< /Size 4 /Root 1 0 R >>\nstartxref\n190\n%%EOF";
@@ -424,6 +432,11 @@ fn minimal_png_bytes() -> Vec<u8> {
         0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4E, 0x44, // IEND
         0xAE, 0x42, 0x60, 0x82, // IEND CRC
     ]
+}
+
+/// Build a minimal valid typst document.
+fn minimal_typst_bytes() -> Vec<u8> {
+    b"= Stichos Probe\n\nThis is a minimal typst document for probe testing.".to_vec()
 }
 
 /// Return the standard probe fixtures for engine capability testing.
@@ -460,6 +473,12 @@ pub fn standard_fixtures() -> Vec<ProbeFixture> {
             data: minimal_html_bytes(),
         },
         ProbeFixture {
+            source_format: "markdown".into(),
+            target_format: "docx".into(),
+            name: "minimal_markdown_to_docx".into(),
+            data: minimal_markdown_bytes(),
+        },
+        ProbeFixture {
             source_format: "pdf".into(),
             target_format: "png".into(),
             name: "minimal_pdf_to_png".into(),
@@ -470,6 +489,12 @@ pub fn standard_fixtures() -> Vec<ProbeFixture> {
             target_format: "pdf".into(),
             name: "minimal_png_to_pdf".into(),
             data: minimal_png_bytes(),
+        },
+        ProbeFixture {
+            source_format: "typ".into(),
+            target_format: "pdf".into(),
+            name: "minimal_typst_to_pdf".into(),
+            data: minimal_typst_bytes(),
         },
     ]
 }
@@ -1081,7 +1106,7 @@ mod tests {
     #[test]
     fn test_fixtures_for_target() {
         let pdf_fixtures = fixtures_for_target("pdf");
-        assert_eq!(pdf_fixtures.len(), 6);
+        assert_eq!(pdf_fixtures.len(), 7);
         for f in &pdf_fixtures {
             assert_eq!(f.target_format, "pdf");
         }
@@ -1091,7 +1116,7 @@ mod tests {
     #[test]
     fn test_document_to_pdf_fixtures() {
         let fixtures = document_to_pdf_fixtures();
-        assert_eq!(fixtures.len(), 6);
+        assert_eq!(fixtures.len(), 7);
         for f in &fixtures {
             assert_eq!(f.target_format, "pdf");
         }
@@ -1101,15 +1126,17 @@ mod tests {
     #[test]
     fn test_standard_fixtures_completeness() {
         let fixtures = standard_fixtures();
-        assert_eq!(fixtures.len(), 7);
+        assert_eq!(fixtures.len(), 9);
         let names: Vec<&str> = fixtures.iter().map(|f| f.name.as_str()).collect();
         assert!(names.contains(&"minimal_docx_to_pdf"));
         assert!(names.contains(&"minimal_pptx_to_pdf"));
         assert!(names.contains(&"minimal_xlsx_to_pdf"));
         assert!(names.contains(&"minimal_odt_to_pdf"));
         assert!(names.contains(&"minimal_html_to_pdf"));
+        assert!(names.contains(&"minimal_markdown_to_docx"));
         assert!(names.contains(&"minimal_pdf_to_png"));
         assert!(names.contains(&"minimal_png_to_pdf"));
+        assert!(names.contains(&"minimal_typst_to_pdf"));
     }
 
     /// test_minimal_docx_bytes_produces_valid_zip: minimal DOCX is a valid ZIP.

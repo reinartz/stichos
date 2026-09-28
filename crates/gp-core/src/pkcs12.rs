@@ -78,20 +78,22 @@ pub fn parse_pkcs12(data: &[u8], _password: &[u8]) -> Result<Pkcs12Bundle, Diagn
     // The ContentInfo inside is typically PKCS#7 EnvelopedData.
 
     // Try to extract the inner data after the outer SEQUENCE
-    let outer_content = parse_tlv_content(data, 0)
-        .ok_or_else(|| Diagnostic::new(
+    let outer_content = parse_tlv_content(data, 0).ok_or_else(|| {
+        Diagnostic::new(
             "GP-S-024",
             Severity::Error,
             "Invalid PKCS#12 file — cannot parse outer SEQUENCE".to_string(),
-        ))?;
+        )
+    })?;
 
     // Skip version INTEGER
-    let version_end = parse_tlv_total_len(outer_content, 0)
-        .ok_or_else(|| Diagnostic::new(
+    let version_end = parse_tlv_total_len(outer_content, 0).ok_or_else(|| {
+        Diagnostic::new(
             "GP-S-024",
             Severity::Error,
             "Invalid PKCS#12 file — cannot parse version".to_string(),
-        ))?;
+        )
+    })?;
 
     let auth_items = &outer_content[version_end..];
 
@@ -101,12 +103,13 @@ pub fn parse_pkcs12(data: &[u8], _password: &[u8]) -> Result<Pkcs12Bundle, Diagn
     let mut certs: Vec<Vec<u8>> = Vec::new();
 
     while pos < auth_items.len() {
-        let item_end = parse_tlv_total_len(auth_items, pos)
-            .ok_or_else(|| Diagnostic::new(
+        let item_end = parse_tlv_total_len(auth_items, pos).ok_or_else(|| {
+            Diagnostic::new(
                 "GP-S-024",
                 Severity::Error,
                 "Invalid PKCS#12 file — cannot parse auth item".to_string(),
-            ))?;
+            )
+        })?;
 
         let item = &auth_items[pos..pos + item_end];
 
@@ -116,74 +119,84 @@ pub fn parse_pkcs12(data: &[u8], _password: &[u8]) -> Result<Pkcs12Bundle, Diagn
             continue;
         }
 
-        let item_inner = parse_tlv_content(item, 0)
-            .ok_or_else(|| Diagnostic::new(
+        let item_inner = parse_tlv_content(item, 0).ok_or_else(|| {
+            Diagnostic::new(
                 "GP-S-024",
                 Severity::Error,
                 "Invalid PKCS#12 file — cannot parse auth item inner".to_string(),
-            ))?;
+            )
+        })?;
 
         // Look for [0] EXPLICIT tag (authSafe)
         let mut i = 0;
         while i < item_inner.len() {
             if item_inner[i] == 0xA0 {
                 // Found authSafe
-                let auth_safe_content = parse_tlv_content(item_inner, i)
-                    .ok_or_else(|| Diagnostic::new(
+                let auth_safe_content = parse_tlv_content(item_inner, i).ok_or_else(|| {
+                    Diagnostic::new(
                         "GP-S-024",
                         Severity::Error,
                         "Invalid PKCS#12 file — cannot parse authSafe".to_string(),
-                    ))?;
+                    )
+                })?;
 
                 // authSafe is a ContentInfo: SEQUENCE { contentType OID, content [0] ... }
                 if auth_safe_content.len() >= 2 && auth_safe_content[0] == 0x30 {
-                    let ci_content = parse_tlv_content(auth_safe_content, 0)
-                        .ok_or_else(|| Diagnostic::new(
+                    let ci_content = parse_tlv_content(auth_safe_content, 0).ok_or_else(|| {
+                        Diagnostic::new(
                             "GP-S-024",
                             Severity::Error,
                             "Invalid PKCS#12 file — cannot parse ContentInfo".to_string(),
-                        ))?;
+                        )
+                    })?;
 
                     // Skip contentType OID (should be 1.2.840.113549.1.7.7 = envelopedData)
-                    let ci_oid_end = parse_tlv_total_len(ci_content, 0)
-                        .ok_or_else(|| Diagnostic::new(
+                    let ci_oid_end = parse_tlv_total_len(ci_content, 0).ok_or_else(|| {
+                        Diagnostic::new(
                             "GP-S-024",
                             Severity::Error,
                             "Invalid PKCS#12 file — cannot parse contentType OID".to_string(),
-                        ))?;
+                        )
+                    })?;
 
                     // The content should be [2] EXPLICIT EncryptedData
                     if ci_oid_end < ci_content.len() && ci_content[ci_oid_end] == 0xA2 {
-                        let enc_data = parse_tlv_content(ci_content, ci_oid_end)
-                            .ok_or_else(|| Diagnostic::new(
-                                "GP-S-024",
-                                Severity::Error,
-                                "Invalid PKCS#12 file — cannot parse EncryptedData".to_string(),
-                            ))?;
+                        let enc_data =
+                            parse_tlv_content(ci_content, ci_oid_end).ok_or_else(|| {
+                                Diagnostic::new(
+                                    "GP-S-024",
+                                    Severity::Error,
+                                    "Invalid PKCS#12 file — cannot parse EncryptedData".to_string(),
+                                )
+                            })?;
 
                         // EncryptedData: SEQUENCE { version, algorithm, encryptedContentInfo }
                         if enc_data.len() >= 2 && enc_data[0] == 0x30 {
-                            let enc_inner = parse_tlv_content(enc_data, 0)
-                                .ok_or_else(|| Diagnostic::new(
+                            let enc_inner = parse_tlv_content(enc_data, 0).ok_or_else(|| {
+                                Diagnostic::new(
                                     "GP-S-024",
                                     Severity::Error,
-                                    "Invalid PKCS#12 file — cannot parse EncryptedData inner".to_string(),
-                                ))?;
+                                    "Invalid PKCS#12 file — cannot parse EncryptedData inner"
+                                        .to_string(),
+                                )
+                            })?;
 
                             // Skip version and algorithm identifier
-                            let mut p = parse_tlv_total_len(enc_inner, 0)
-                                .ok_or_else(|| Diagnostic::new(
+                            let mut p = parse_tlv_total_len(enc_inner, 0).ok_or_else(|| {
+                                Diagnostic::new(
                                     "GP-S-024",
                                     Severity::Error,
                                     "Invalid PKCS#12 file — cannot parse version".to_string(),
-                                ))?;
+                                )
+                            })?;
 
-                            p += parse_tlv_total_len(enc_inner, p)
-                                .ok_or_else(|| Diagnostic::new(
+                            p += parse_tlv_total_len(enc_inner, p).ok_or_else(|| {
+                                Diagnostic::new(
                                     "GP-S-024",
                                     Severity::Error,
                                     "Invalid PKCS#12 file — cannot parse algorithm".to_string(),
-                                ))?;
+                                )
+                            })?;
 
                             // encryptedContentInfo is SEQUENCE
                             if p < enc_inner.len() && enc_inner[p] == 0x30 {
@@ -195,12 +208,15 @@ pub fn parse_pkcs12(data: &[u8], _password: &[u8]) -> Result<Pkcs12Bundle, Diagn
                                     ))?;
 
                                 // Skip contentType OID
-                                let ec_oid_end = parse_tlv_total_len(ec_inner, 0)
-                                    .ok_or_else(|| Diagnostic::new(
-                                        "GP-S-024",
-                                        Severity::Error,
-                                        "Invalid PKCS#12 file — cannot parse eContentType".to_string(),
-                                    ))?;
+                                let ec_oid_end =
+                                    parse_tlv_total_len(ec_inner, 0).ok_or_else(|| {
+                                        Diagnostic::new(
+                                            "GP-S-024",
+                                            Severity::Error,
+                                            "Invalid PKCS#12 file — cannot parse eContentType"
+                                                .to_string(),
+                                        )
+                                    })?;
 
                                 // eContent [0] EXPLICIT OCTET STRING (the SafeContents)
                                 if ec_oid_end < ec_inner.len() && ec_inner[ec_oid_end] == 0xA0 {
@@ -212,7 +228,8 @@ pub fn parse_pkcs12(data: &[u8], _password: &[u8]) -> Result<Pkcs12Bundle, Diagn
                                         ))?;
 
                                     // Parse SafeContents (SEQUENCE OF SafeBag)
-                                    if safe_contents_der.len() >= 2 && safe_contents_der[0] == 0x30 {
+                                    if safe_contents_der.len() >= 2 && safe_contents_der[0] == 0x30
+                                    {
                                         let bags = parse_tlv_content(safe_contents_der, 0)
                                             .ok_or_else(|| Diagnostic::new(
                                                 "GP-S-024",
@@ -246,24 +263,33 @@ pub fn parse_pkcs12(data: &[u8], _password: &[u8]) -> Result<Pkcs12Bundle, Diagn
 
                                             // Skip bagId OID
                                             let bag_oid_end = parse_tlv_total_len(bag_inner, 0)
-                                                .ok_or_else(|| Diagnostic::new(
-                                                    "GP-S-024",
-                                                    Severity::Error,
-                                                    "Invalid PKCS#12 file — cannot parse bagId".to_string(),
-                                                ))?;
+                                                .ok_or_else(|| {
+                                                    Diagnostic::new(
+                                                        "GP-S-024",
+                                                        Severity::Error,
+                                                        "Invalid PKCS#12 file — cannot parse bagId"
+                                                            .to_string(),
+                                                    )
+                                                })?;
 
                                             // bagValue [0] EXPLICIT
-                                            if bag_oid_end >= bag_inner.len() || bag_inner[bag_oid_end] != 0xA0 {
+                                            if bag_oid_end >= bag_inner.len()
+                                                || bag_inner[bag_oid_end] != 0xA0
+                                            {
                                                 bp += bag_end;
                                                 continue;
                                             }
 
-                                            let bag_value = parse_tlv_content(bag_inner, bag_oid_end)
-                                                .ok_or_else(|| Diagnostic::new(
+                                            let bag_value =
+                                                parse_tlv_content(bag_inner, bag_oid_end)
+                                                    .ok_or_else(|| {
+                                                        Diagnostic::new(
                                                     "GP-S-024",
                                                     Severity::Error,
-                                                    "Invalid PKCS#12 file — cannot parse bagValue".to_string(),
-                                                ))?;
+                                                    "Invalid PKCS#12 file — cannot parse bagValue"
+                                                        .to_string(),
+                                                )
+                                                    })?;
 
                                             // Determine bag type from bagId OID
                                             let bag_oid_bytes = &bag_inner[0..bag_oid_end];
@@ -274,13 +300,20 @@ pub fn parse_pkcs12(data: &[u8], _password: &[u8]) -> Result<Pkcs12Bundle, Diagn
                                                     // keyBag — contains PKCS#8 PrivateKeyInfo
                                                     key_bytes = Some(bag_value.to_vec());
                                                 }
-                                                "1.2.840.113549.1.12.10.1.3" if bag_value.len() >= 2 && bag_value[0] == 0x30 => {
+                                                "1.2.840.113549.1.12.10.1.3"
+                                                    if bag_value.len() >= 2
+                                                        && bag_value[0] == 0x30 =>
+                                                {
                                                     // certBag — X509Certificate
                                                     // bagValue is SEQUENCE { cCert [0] EXPLICIT Certificate }
-                                                    if let Some(inner) = parse_tlv_content(bag_value, 0) {
+                                                    if let Some(inner) =
+                                                        parse_tlv_content(bag_value, 0)
+                                                    {
                                                         // Look for [0] EXPLICIT cert
                                                         if inner.len() >= 2 && inner[0] == 0xA0 {
-                                                            if let Some(cert) = parse_tlv_content(inner, 0) {
+                                                            if let Some(cert) =
+                                                                parse_tlv_content(inner, 0)
+                                                            {
                                                                 certs.push(cert.to_vec());
                                                             }
                                                         }
@@ -432,5 +465,9 @@ fn parse_oid_str(data: &[u8]) -> String {
             val = 0;
         }
     }
-    parts.iter().map(|p| p.to_string()).collect::<Vec<_>>().join(".")
+    parts
+        .iter()
+        .map(|p| p.to_string())
+        .collect::<Vec<_>>()
+        .join(".")
 }

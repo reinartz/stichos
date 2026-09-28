@@ -123,6 +123,34 @@ fn test_inspect_text() {
     );
 }
 
+/// `doctor --json` includes chromium and typst versions in system info.
+#[test]
+fn test_doctor_system_info_versions() {
+    let (code, stdout, _stderr) = run_stichos(&["doctor", "--json"]);
+    assert_eq!(code, 0);
+    let parsed: serde_json::Value =
+        serde_json::from_str(&stdout).expect("doctor --json did not produce valid JSON");
+    // system info should include the new engine version fields
+    assert!(
+        parsed["system"]["chromium_version"].is_null()
+            || parsed["system"]["chromium_version"].is_string(),
+        "chromium_version should be null or string, got: {}",
+        parsed["system"]["chromium_version"]
+    );
+    assert!(
+        parsed["system"]["pandoc_version"].is_null()
+            || parsed["system"]["pandoc_version"].is_string(),
+        "pandoc_version should be null or string, got: {}",
+        parsed["system"]["pandoc_version"]
+    );
+    assert!(
+        parsed["system"]["typst_version"].is_null()
+            || parsed["system"]["typst_version"].is_string(),
+        "typst_version should be null or string, got: {}",
+        parsed["system"]["typst_version"]
+    );
+}
+
 /// `doctor --json` outputs valid JSON with engines and system info.
 #[test]
 fn test_doctor_json() {

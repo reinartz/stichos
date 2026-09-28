@@ -453,16 +453,25 @@ pub fn parse_timestamp_response(raw: &[u8]) -> Result<TimestampResponse, Diagnos
     let oid_tag = content_info[0];
     if oid_tag != 0x06 {
         return Err(Diagnostic::new(
-            "GP-S-020", Severity::Error,
-            format!("ContentInfo: expected OID tag (0x06), got 0x{:02X}", oid_tag),
+            "GP-S-020",
+            Severity::Error,
+            format!(
+                "ContentInfo: expected OID tag (0x06), got 0x{:02X}",
+                oid_tag
+            ),
         ));
     }
     let (_, len_off) = parse_der_length(&content_info[1..]).ok_or_else(|| {
-        Diagnostic::new("GP-S-020", Severity::Error, "ContentInfo: invalid OID length".to_string())
+        Diagnostic::new(
+            "GP-S-020",
+            Severity::Error,
+            "ContentInfo: invalid OID length".to_string(),
+        )
     })?;
     let (oid_clen, _) = parse_der_length(&content_info[1..]).ok_or_else(|| {
         Diagnostic::new(
-            "GP-S-020", Severity::Error,
+            "GP-S-020",
+            Severity::Error,
             "ContentInfo: invalid OID content length".to_string(),
         )
     })?;
@@ -471,8 +480,12 @@ pub fn parse_timestamp_response(raw: &[u8]) -> Result<TimestampResponse, Diagnos
     let oid_str = parse_oid(oid_bytes).unwrap_or_default();
     if oid_str != OID_CT_TIMESTAMP_REPLY {
         return Err(Diagnostic::new(
-            "GP-S-020", Severity::Error,
-            format!("ContentInfo OID mismatch: got {}, expected {}", oid_str, OID_CT_TIMESTAMP_REPLY),
+            "GP-S-020",
+            Severity::Error,
+            format!(
+                "ContentInfo OID mismatch: got {}, expected {}",
+                oid_str, OID_CT_TIMESTAMP_REPLY
+            ),
         ));
     }
 
@@ -491,7 +504,11 @@ pub fn parse_timestamp_response(raw: &[u8]) -> Result<TimestampResponse, Diagnos
         ));
     }
     let (_, loff) = parse_der_length(&content_info[pos + 1..]).ok_or_else(|| {
-        Diagnostic::new("GP-S-020", Severity::Error, "ContentInfo: invalid [0] length".to_string())
+        Diagnostic::new(
+            "GP-S-020",
+            Severity::Error,
+            "ContentInfo: invalid [0] length".to_string(),
+        )
     })?;
     let (clen, _) = parse_der_length(&content_info[pos + 1..]).ok_or_else(|| {
         Diagnostic::new(
@@ -505,7 +522,11 @@ pub fn parse_timestamp_response(raw: &[u8]) -> Result<TimestampResponse, Diagnos
 
     // TimestampReply ::= SEQUENCE { status PKIStatus, timeStToken [0] EXPLICIT OPTIONAL }
     let reply_inner = parse_sequence(reply_bytes).ok_or_else(|| {
-        Diagnostic::new("GP-S-020", Severity::Error, "TimestampReply is not a valid SEQUENCE".to_string())
+        Diagnostic::new(
+            "GP-S-020",
+            Severity::Error,
+            "TimestampReply is not a valid SEQUENCE".to_string(),
+        )
     })?;
 
     // Parse PKIStatus (INTEGER)
@@ -544,22 +565,21 @@ pub fn parse_timestamp_response(raw: &[u8]) -> Result<TimestampResponse, Diagnos
     let timestamp_token = if pos < reply_inner.len() {
         // Check for [0] EXPLICIT (tag 0xA0)
         if reply_inner[pos] == 0xA0 {
-            let (_, loff) = parse_der_length(&reply_inner[pos + 1..])
-                .ok_or_else(|| {
-                    Diagnostic::new(
-                        "GP-S-020", Severity::Error,
-                        "TimestampToken: invalid [0] length".to_string(),
-                    )
-                })?;
-            let (clen, _) = parse_der_length(&reply_inner[pos + 1..])
-                .ok_or_else(|| {
-                    Diagnostic::new(
-                        "GP-S-020", Severity::Error,
-                        "TimestampToken: invalid [0] content length".to_string(),
-                    )
-                })?;
-            let token_inner =
-                &reply_inner[pos + 1 + loff..pos + 1 + loff + clen];
+            let (_, loff) = parse_der_length(&reply_inner[pos + 1..]).ok_or_else(|| {
+                Diagnostic::new(
+                    "GP-S-020",
+                    Severity::Error,
+                    "TimestampToken: invalid [0] length".to_string(),
+                )
+            })?;
+            let (clen, _) = parse_der_length(&reply_inner[pos + 1..]).ok_or_else(|| {
+                Diagnostic::new(
+                    "GP-S-020",
+                    Severity::Error,
+                    "TimestampToken: invalid [0] content length".to_string(),
+                )
+            })?;
+            let token_inner = &reply_inner[pos + 1 + loff..pos + 1 + loff + clen];
             Some(token_inner.to_vec())
         } else {
             None
@@ -634,16 +654,13 @@ pub async fn fetch_timestamp(
         ));
     }
 
-    let body = response
-        .bytes()
-        .await
-        .map_err(|e| {
-            Diagnostic::new(
-                "GP-S-020",
-                Severity::Warning,
-                format!("Failed to read TSA response body: {}", e),
-            )
-        })?;
+    let body = response.bytes().await.map_err(|e| {
+        Diagnostic::new(
+            "GP-S-020",
+            Severity::Warning,
+            format!("Failed to read TSA response body: {}", e),
+        )
+    })?;
 
     if body.is_empty() {
         return Err(Diagnostic::new(
@@ -754,7 +771,9 @@ mod tests {
         let request = TimestampRequest::new(hash.to_vec());
         let der = request.to_der();
         let sha256_oid_bytes = oid_bytes(OID_SHA256);
-        assert!(der.windows(sha256_oid_bytes.len()).any(|w| w == sha256_oid_bytes));
+        assert!(der
+            .windows(sha256_oid_bytes.len())
+            .any(|w| w == sha256_oid_bytes));
     }
 
     #[test]
@@ -764,7 +783,10 @@ mod tests {
         let response = parse_timestamp_response(&response_der).expect("parse should succeed");
         assert_eq!(response.status, PKIStatus::Granted);
         assert!(response.timestamp_token.is_some());
-        assert_eq!(response.timestamp_token.as_deref(), Some(mock_token.as_slice()));
+        assert_eq!(
+            response.timestamp_token.as_deref(),
+            Some(mock_token.as_slice())
+        );
     }
 
     #[test]
@@ -866,7 +888,9 @@ mod tests {
     fn test_oid_bytes_sha256() {
         let bytes = oid_bytes(OID_SHA256);
         assert_eq!(bytes[0], 0x06);
-        let expected: Vec<u8> = vec![0x06, 0x09, 0x60, 0x86, 0x48, 0x01, 0x65, 0x03, 0x04, 0x02, 0x01];
+        let expected: Vec<u8> = vec![
+            0x06, 0x09, 0x60, 0x86, 0x48, 0x01, 0x65, 0x03, 0x04, 0x02, 0x01,
+        ];
         assert_eq!(bytes, expected);
     }
 

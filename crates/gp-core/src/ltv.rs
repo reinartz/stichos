@@ -121,7 +121,10 @@ pub fn build_ltv_dict(entry: &LtvEntry) -> lopdf::Object {
     // /V — DER-encoded validation data as hex string
     dict.set(
         b"V",
-        Object::String(entry.validation_data.clone(), lopdf::StringFormat::Hexadecimal),
+        Object::String(
+            entry.validation_data.clone(),
+            lopdf::StringFormat::Hexadecimal,
+        ),
     );
 
     // /Cert — array of certificate DER bytes (hex strings)
@@ -222,8 +225,14 @@ mod tests {
         };
         let obj = build_ltv_dict(&entry);
         let dict = obj.as_dict().unwrap();
-        assert_eq!(dict.get(b"Type").unwrap(), &lopdf::Object::Name(b"LTV".to_vec()));
-        assert_eq!(dict.get(b"Subtype").unwrap(), &lopdf::Object::Name(b"PDFCA".to_vec()));
+        assert_eq!(
+            dict.get(b"Type").unwrap(),
+            &lopdf::Object::Name(b"LTV".to_vec())
+        );
+        assert_eq!(
+            dict.get(b"Subtype").unwrap(),
+            &lopdf::Object::Name(b"PDFCA".to_vec())
+        );
         assert!(dict.has(b"V"));
         assert!(dict.has(b"Cert"));
     }
@@ -238,7 +247,10 @@ mod tests {
         };
         let obj = build_ltv_dict(&entry);
         let dict = obj.as_dict().unwrap();
-        assert_eq!(dict.get(b"Subtype").unwrap(), &lopdf::Object::Name(b"ETSI.CAdES.detached".to_vec()));
+        assert_eq!(
+            dict.get(b"Subtype").unwrap(),
+            &lopdf::Object::Name(b"ETSI.CAdES.detached".to_vec())
+        );
     }
 
     #[test]

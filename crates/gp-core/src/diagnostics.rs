@@ -623,6 +623,15 @@ impl DiagnosticRegistry {
                 description: "Engine version mismatch: expected {} found {}",
             },
         );
+        entries.insert(
+            "ENG-E-030",
+            CodeEntry {
+                code: "ENG-E-030",
+                severity: Severity::Error,
+                category: "engine",
+                description: "LaTeX engine required for pandoc PDF output; no fallback available",
+            },
+        );
 
         // LIN (lint) codes
         entries.insert(
@@ -1051,8 +1060,7 @@ impl DiagnosticRegistry {
                 code: "GP-S-020",
                 severity: Severity::Warning,
                 category: "security",
-                description:
-                    "Timestamp server unreachable — signed without TSA (PAdES-B-B)",
+                description: "Timestamp server unreachable — signed without TSA (PAdES-B-B)",
             },
         );
         entries.insert(
@@ -1061,8 +1069,7 @@ impl DiagnosticRegistry {
                 code: "GP-S-021",
                 severity: Severity::Warning,
                 category: "security",
-                description:
-                    "OCSP/CRL unavailable — signed without LTV data",
+                description: "OCSP/CRL unavailable — signed without LTV data",
             },
         );
         entries.insert(
@@ -1071,8 +1078,7 @@ impl DiagnosticRegistry {
                 code: "GP-S-022",
                 severity: Severity::Error,
                 category: "security",
-                description:
-                    "Signing certificate is revoked per OCSP — signing refused",
+                description: "Signing certificate is revoked per OCSP — signing refused",
             },
         );
         entries.insert(
@@ -1081,8 +1087,7 @@ impl DiagnosticRegistry {
                 code: "GP-S-023",
                 severity: Severity::Warning,
                 category: "security",
-                description:
-                    "Signing certificate expired per CRL — signed with warning",
+                description: "Signing certificate expired per CRL — signed with warning",
             },
         );
         entries.insert(
@@ -1091,8 +1096,7 @@ impl DiagnosticRegistry {
                 code: "GP-S-024",
                 severity: Severity::Error,
                 category: "security",
-                description:
-                    "Invalid PKCS#12 file — signing refused",
+                description: "Invalid PKCS#12 file — signing refused",
             },
         );
         entries.insert(
@@ -1101,8 +1105,7 @@ impl DiagnosticRegistry {
                 code: "GP-S-025",
                 severity: Severity::Error,
                 category: "security",
-                description:
-                    "Certificate chain validation failed — signing refused",
+                description: "Certificate chain validation failed — signing refused",
             },
         );
 
@@ -2001,6 +2004,7 @@ mod tests {
             "ENG-E-133",
             "ENG-E-134",
             "ENG-E-135",
+            "ENG-E-030",
             "ENG-E-201",
             "ENG-E-202",
             "ENG-E-203",
