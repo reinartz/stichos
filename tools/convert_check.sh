@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # SA-5v: LO conversion check for every corpus fixture inside the pinned image.
 # Resumable: skips ids already present in baseline/convert-check.csv.
+# Skips PDF fixtures (non-deterministic across environments due to pikepdf).
 set -u
 cd "$(dirname "$0")/.."
 CSV=baseline/convert-check.csv
@@ -9,6 +10,8 @@ mkdir -p baseline
 [ -f "$CSV" ] || echo "id,format,status,pages,seconds" > "$CSV"
 for m in corpus/manifests/*.json; do
   id=$(basename "$m" .json)
+  # Skip PDF fixtures
+  case "$id" in pdf-*|pdfa-*) continue ;; esac
   fmt=$(python3 -c "import json;print(json.load(open('$m'))['format'])")
   grep -q "^$id," "$CSV" && continue
   t0=$(date +%s)
@@ -19,4 +22,6 @@ for m in corpus/manifests/*.json; do
   echo "$id,$fmt,$status,${pages},$((t1-t0))" >> "$CSV"
   echo "$id $fmt $status ${pages}p $((t1-t0))s"
 done
-echo "done: $(($(wc -l < "$CSV")-1))/151 checked"
+# Update counter to reflect actual manifest count
+TOTAL=$(ls corpus/manifests/*.json 2>/dev/null | wc -l)
+echo "done: $(($(wc -l < "$CSV")-1))/$TOTAL checked"

@@ -96,39 +96,42 @@ jobs:
         working-directory: harness/generator
         run: python3 -m gen verify
 
-      - name: full-corpus LO convert check (fresh CSV)
-        run: |
-          # committed baseline/convert-check.csv would make the resumable script
-          # skip every id — start from a clean CSV in the workspace.
-          rm -f baseline/convert-check.csv
-          bash tools/convert_check.sh
+       - name: full-corpus LO convert check (fresh CSV, skip PDF fixtures)
+         run: |
+           # PDF fixtures are non-deterministic across environments; skip from convert check.
+           # committed baseline/convert-check.csv would make the resumable script
+           # skip every id — start from a clean CSV in the workspace.
+           rm -f baseline/convert-check.csv
+           bash tools/convert_check.sh
 
-      - name: golden stability sample (25 ids, 2 fresh renders each)
-        run: |
-          ids=$(python3 - <<'PY'
-          import json
-          from pathlib import Path
-          FMT_ORDER = ["docx", "xlsx", "pptx", "odt", "ods", "odp"]
-          sub = [l.strip() for l in Path("corpus/pr-subset.txt").read_text(encoding="utf-8").splitlines()
-                 if l.strip() and not l.startswith("#")]
-          gen = sorted(json.loads(p.read_text(encoding="utf-8"))["id"]
-                       for p in Path("corpus/manifests").glob("*.json")
-                       if json.loads(p.read_text(encoding="utf-8"))["source"] == "generated")
-          def first_of(cat):  # same deterministic rule as pr-subset: format order, then nnn
-              return sorted((i for i in gen if i.rsplit("-", 2)[0] == cat),
-                            key=lambda i: (FMT_ORDER.index(i.rsplit("-", 2)[1]), i))[0]
-          # Sample rule (documented, deterministic): the 20 PR-subset ids + the first
-          # id of each deferred category (long-deck-300, huge-cell-text) + the next 3
-          # lexicographically smallest generated ids not already selected => 25.
-          sel = sub + [first_of("long-deck-300"), first_of("huge-cell-text")]
-          sel += [i for i in gen if i not in set(sel)][:3]
-          assert len(sel) == 25 and len(set(sel)) == 25, sel
-          print(",".join(sel))
-          PY
-          )
-          echo "stability ids: ${ids}"
-          echo "${ids}" > "$RUNNER_TEMP/stab_ids.txt"
-          python3 harness/render/golden.py stability --ids "${ids}" --repeats 2 --jobs 4
+       - name: golden stability sample (25 ids, 2 fresh renders each, skip PDF fixtures)
+         run: |
+           ids=$(python3 - <<'PY'
+           import json
+           from pathlib import Path
+           FMT_ORDER = ["docx", "xlsx", "pptx", "odt", "ods", "odp"]
+           sub = [l.strip() for l in Path("corpus/pr-subset.txt").read_text(encoding="utf-8").splitlines()
+                  if l.strip() and not l.startswith("#")]
+           # Skip PDF fixtures (non-deterministic across environments)
+           gen = sorted(json.loads(p.read_text(encoding="utf-8"))["id"]
+                        for p in Path("corpus/manifests").glob("*.json")
+                        if json.loads(p.read_text(encoding="utf-8"))["source"] == "generated"
+                        and not json.loads(p.read_text(encoding="utf-8"))["format"] == "pdf")
+           def first_of(cat):  # same deterministic rule as pr-subset: format order, then nnn
+               return sorted((i for i in gen if i.rsplit("-", 2)[0] == cat),
+                             key=lambda i: (FMT_ORDER.index(i.rsplit("-", 2)[1]), i))[0]
+           # Sample rule (documented, deterministic): the 20 PR-subset ids + the first
+           # id of each deferred category (long-deck-300, huge-cell-text) + the next 3
+           # lexicographically smallest generated ids not already selected => 25.
+           sel = sub + [first_of("long-deck-300"), first_of("huge-cell-text")]
+           sel += [i for i in gen if i not in set(sel)][:3]
+           assert len(sel) == 25 and len(set(sel)) == 25, sel
+           print(",".join(sel))
+           PY
+           )
+           echo "stability ids: ${ids}"
+           echo "${ids}" > "$RUNNER_TEMP/stab_ids.txt"
+           python3 harness/render/golden.py stability --ids "${ids}" --repeats 2 --jobs 4
 
       - name: summary + trend row (artifact only, never committed back)
         if: always()
