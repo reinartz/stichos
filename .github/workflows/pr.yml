@@ -1,11 +1,8 @@
 # stichos PR gate (SA-8: HAR-07 + DIS-01 flavor + SEC-02-for-python)
 #
-# M0 reality: no Cargo workspace exists yet, and corpus/blobs/ is gitignored
-# (corpus/PLAN.md §6) — so this gate is platform-agnostic, manifest-only:
-#   gen verify --no-blobs · metrics pytest · taxonomy/PR-subset lint · yaml+json gates.
-# The fidelity (LibreOffice image) run lives in nightly.yml (linux-only by design, SA-3/D15).
-# cargo-deny is a ready-but-skipped placeholder below: it self-activates via the
-# hashFiles('Cargo.toml') condition when the workspace lands (CORE-01, plan §3.3).
+# Platform-agnostic manifest validation + metrics pytest + taxonomy/PR-subset lint
+# + yaml+json syntax gates. The fidelity (LibreOffice image) run lives in nightly.yml
+# (linux-only by design, SA-3/D15). cargo-deny lives in phase3/4/5/6 gates.
 name: pr
 on:
   pull_request:
@@ -85,8 +82,16 @@ jobs:
           if len(cats) != len(ids):
               bad.append("ids do not cover one distinct category each")
           deferred = gen_cats - cats
-          if deferred != {"long-deck-300", "huge-cell-text"}:
-              bad.append(f"deferred categories {sorted(deferred)} != ['huge-cell-text', 'long-deck-300'] (PLAN.md §3)")
+          _expected_deferred = {
+              "long-deck-300", "huge-cell-text",
+              "pdf-annot-highlight", "pdf-annot-comment", "pdf-annot-freetext",
+              "pdf-annot-stamp", "pdf-annot-mixed", "pdf-annot-multipage",
+              "pdf-annot-damaged", "pdf-signed", "pdf-a",
+              "revision-delete", "revision-insert", "revision-mixed",
+              "revision-multi-author", "revision-table-row", "revision-empty-body",
+          }
+          if deferred != _expected_deferred:
+              bad.append(f"deferred {sorted(deferred)} != expected (PLAN.md §3)")
           for b in bad:
               print("FAIL", b)
           sys.exit(1 if bad else 0)
@@ -120,30 +125,12 @@ jobs:
           sys.exit(1 if bad else 0)
           PY
 
-      # SEC-02 (plan §3.3): cargo-deny is READY but SKIPPED at M0 — there is no Cargo
-      # workspace yet. deny.toml at repo root carries the license allow-list, the
-      # C-renderer -sys bans (pdfium/MuPDF/LOKit) and the advisory gate. This step
-      # self-activates the moment Cargo.toml lands (CORE-01); no CI edit needed.
-      - name: cargo-deny (auto-activates at CORE-01 when Cargo.toml exists)
-        if: ${{ hashFiles('Cargo.toml') != '' }}
-        uses: EmbarkStudios/cargo-deny-action@v2
-        with:
-          command: check bans licenses advisories sources
-
-      # C10.3 parity note (2026-09-28): phase3-plan §1 originally claimed CI installs
-      # typst/qpdf/verapdf. Measured against pr.yml + nightly.yml: none of these are
-      # installed in CI. Decision: correct the docs (phase3-plan §1) instead of adding
-      # tool installs to CI — honest-absent paths are verified by unit tests (not
-      # subprocess-dependent). pandoc IS installed via system packages on GitHub
-      # ubuntu-latest runners; typst/chromium are soft-dependencies with honest-absent.
       - name: check-deps (dependency DAG + ban check)
-        if: ${{ hashFiles('Cargo.toml') != '' }}
         run: bash tools/check-deps.sh
 
   # DIS-01: cross-compile ×6 + no-C check gate
   cross-compile:
     runs-on: ubuntu-latest
-    if: ${{ hashFiles('Cargo.toml') != '' }}
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
@@ -161,7 +148,6 @@ jobs:
   # MS-Office feature: Windows MSVC compile gate
   windows-msvc-ms-office:
     runs-on: ubuntu-latest
-    if: ${{ hashFiles('Cargo.toml') != '' }}
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
@@ -174,7 +160,6 @@ jobs:
   perf-gate:
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    if: ${{ hashFiles('Cargo.toml') != '' }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
@@ -192,7 +177,6 @@ jobs:
   docker-profile:
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    if: ${{ hashFiles('Cargo.toml') != '' }}
     steps:
       - uses: actions/checkout@v7
       - name: build profile image

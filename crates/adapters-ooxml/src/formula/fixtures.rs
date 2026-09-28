@@ -667,7 +667,7 @@ mod tests {
         // Should be a valid ZIP
         let cursor = std::io::Cursor::new(&xlsx);
         let reader = zip::ZipArchive::new(cursor).expect("should be valid ZIP");
-        assert!(reader.len() > 0);
+        assert!(!reader.is_empty());
     }
 
     #[test]
@@ -676,7 +676,7 @@ mod tests {
         assert!(!xlsx.is_empty());
         let cursor = std::io::Cursor::new(&xlsx);
         let reader = zip::ZipArchive::new(cursor).expect("should be valid ZIP");
-        assert!(reader.len() > 0);
+        assert!(!reader.is_empty());
     }
 
     #[test]
@@ -685,7 +685,7 @@ mod tests {
         assert!(!xlsx.is_empty());
         let cursor = std::io::Cursor::new(&xlsx);
         let reader = zip::ZipArchive::new(cursor).expect("should be valid ZIP");
-        assert!(reader.len() > 0);
+        assert!(!reader.is_empty());
     }
 
     #[test]
@@ -694,7 +694,7 @@ mod tests {
         assert!(!xlsx.is_empty());
         let cursor = std::io::Cursor::new(&xlsx);
         let reader = zip::ZipArchive::new(cursor).expect("should be valid ZIP");
-        assert!(reader.len() > 0);
+        assert!(!reader.is_empty());
     }
 
     #[test]
@@ -703,7 +703,7 @@ mod tests {
         assert!(!xlsx.is_empty());
         let cursor = std::io::Cursor::new(&xlsx);
         let reader = zip::ZipArchive::new(cursor).expect("should be valid ZIP");
-        assert!(reader.len() > 0);
+        assert!(!reader.is_empty());
     }
 
     #[test]
@@ -712,7 +712,7 @@ mod tests {
         assert!(!xlsx.is_empty());
         let cursor = std::io::Cursor::new(&xlsx);
         let reader = zip::ZipArchive::new(cursor).expect("should be valid ZIP");
-        assert!(reader.len() > 0);
+        assert!(!reader.is_empty());
     }
 
     #[test]

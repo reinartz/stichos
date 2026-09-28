@@ -809,7 +809,7 @@ async fn cmd_diff(
     // --max-ops 0 means unlimited — use a large sentinel so the
     // default-cap logic in diff_tool can distinguish "not provided"
     // (apply cap) from "explicitly unlimited" (skip cap).
-    let max_ops = max_ops.and_then(|v| if v == 0 { Some(usize::MAX) } else { Some(v) });
+    let max_ops = max_ops.map(|v| if v == 0 { usize::MAX } else { v });
     let result = diff_tool::diff_documents(
         a.to_string_lossy().as_ref(),
         b.to_string_lossy().as_ref(),

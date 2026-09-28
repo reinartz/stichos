@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "id": "multi-highlight-pdf-001",
+  "id": "pdf-annot-highlight-pdf-002",
   "title": "Multiple highlight annotations on one page",
   "source": "generated",
   "generator": {
-    "name": "p5-02-pdf-fixtures",
+    "name": "harness/generator",
     "version": "0.1.0"
   },
   "format": "pdf",
@@ -14,10 +14,10 @@
   "features": {
     "pdf:pages": 1,
     "pdf:annotations": 2,
-    "pdf:annot-types": "/Highlight",
+    "pdf:annot-types": 1,
     "pdf:sig-fields": 0
   },
-  "reference_text": "corpus/reference/multi-highlight-pdf-001.txt",
+  "reference_text": "corpus/reference/pdf-annot-highlight-pdf-002.txt",
   "expected": {
     "page_count_min": 1,
     "page_count_max": 1
@@ -31,5 +31,5 @@
     ]
   },
   "notes": "Two highlight annotations on page 1 at different positions.",
-  "sha256": "b1bf9c54ab7d71412d73f91fc19d6df087207dba5e33db786de0e9cec4dd3aaf"
+  "sha256": "d486d432563ae0e6f0e3b7e85a45cf52d9edd790d781e33c73b074023f9bcc13"
 }

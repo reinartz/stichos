@@ -392,7 +392,7 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_orderedList() {
+    fn test_parse_ordered_list() {
         let json = r#"{
             "blocks": [
                 {"t": "OrderedList", "c": [1, {}, [[{"t":"Para","c":[{"t":"Str","c":"first"}]}], [{"t":"Para","c":[{"t":"Str","c":"second"}]}]]]}

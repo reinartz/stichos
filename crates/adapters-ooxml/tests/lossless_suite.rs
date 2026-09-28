@@ -268,7 +268,7 @@ fn test_tier1_mixed_accept_all() {
         ins_text, del_text
     );
     let pkg = make_pkg_with_revisions(&revision_xml);
-    let revs = vec![
+    let revs = [
         make_test_insert(ins_text, "rev-1"),
         make_test_delete(del_text, "rev-2"),
     ];

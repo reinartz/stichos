@@ -37,6 +37,8 @@ BLOBS.mkdir(exist_ok=True)
 MANIFESTS.mkdir(exist_ok=True)
 REFERENCE.mkdir(exist_ok=True)
 
+import pikepdf  # noqa: E402 — needed when module is imported, not run directly
+
 FIXED_DT = "2026-01-01T00:00:00Z"
 CREATOR = "stichos P5-02"
 
@@ -373,7 +375,7 @@ class PdfFixture:
             return {
                 "pdf:pages": len(pdf.pages),
                 "pdf:annotations": annot_count,
-                "pdf:annot-types": ",".join(sorted(annot_types)) if annot_types else "none",
+                "pdf:annot-types": len(annot_types),
                 "pdf:sig-fields": sig_fields,
             }
         except Exception as e:
@@ -383,7 +385,7 @@ class PdfFixture:
 FIXTURES: list[PdfFixture] = [
     # --- Annotation fixtures ---
     PdfFixture(
-        "highlight-annot-pdf-001",
+        "pdf-annot-highlight-pdf-001",
         "Highlight annotation on page 1",
         ["pdf-annot-highlight"],
         lambda base: add_highlight_annot(base, 0, "Highlight note"),
@@ -391,7 +393,7 @@ FIXTURES: list[PdfFixture] = [
         "Single highlight annotation with QuadPoints on page 1; yellow color [1,1,0].",
     ),
     PdfFixture(
-        "comment-annot-pdf-001",
+        "pdf-annot-comment-pdf-001",
         "Text annotation (comment) on page 1",
         ["pdf-annot-comment"],
         lambda base: add_text_annot(base, 0, "Comment note"),
@@ -399,7 +401,7 @@ FIXTURES: list[PdfFixture] = [
         "Single Text annotation (comment icon) with Contents and Name fields.",
     ),
     PdfFixture(
-        "freetext-annot-pdf-001",
+        "pdf-annot-freetext-pdf-001",
         "FreeText annotation on page 1",
         ["pdf-annot-freetext"],
         lambda base: add_freetext_annot(base, 0, "FreeText annotation"),
@@ -407,7 +409,7 @@ FIXTURES: list[PdfFixture] = [
         "Single FreeText annotation with DA (default appearance) and DM (modification date).",
     ),
     PdfFixture(
-        "stamp-annot-pdf-001",
+        "pdf-annot-stamp-pdf-001",
         "Stamp annotation (Approved) on page 1",
         ["pdf-annot-stamp"],
         lambda base: add_stamp_annot(base, 0, "Approved"),
@@ -415,7 +417,7 @@ FIXTURES: list[PdfFixture] = [
         "Single Stamp annotation with Name=/Approved and Contents.",
     ),
     PdfFixture(
-        "mixed-annot-pdf-001",
+        "pdf-annot-mixed-pdf-001",
         "Multiple annotation types on page 1",
         ["pdf-annot-mixed"],
         lambda base: (
@@ -433,7 +435,7 @@ FIXTURES: list[PdfFixture] = [
         "Four annotations on page 1: Highlight + Text + FreeText + Stamp (4 total).",
     ),
     PdfFixture(
-        "multipage-annot-pdf-001",
+        "pdf-annot-multipage-pdf-001",
         "Annotations on multiple pages",
         ["pdf-annot-multipage"],
         lambda base: (
@@ -446,7 +448,7 @@ FIXTURES: list[PdfFixture] = [
         page_count=3,
     ),
     PdfFixture(
-        "multi-highlight-pdf-001",
+        "pdf-annot-highlight-pdf-002",
         "Multiple highlight annotations on one page",
         ["pdf-annot-highlight"],
         lambda base: (
@@ -456,7 +458,7 @@ FIXTURES: list[PdfFixture] = [
         "Two highlight annotations on page 1 at different positions.",
     ),
     PdfFixture(
-        "multipage-annot-pdf-002",
+        "pdf-annot-multipage-pdf-002",
         "2-page document with text and free-text annotations",
         ["pdf-annot-multipage"],
         lambda base: (
@@ -467,7 +469,7 @@ FIXTURES: list[PdfFixture] = [
         page_count=2,
     ),
     PdfFixture(
-        "damaged-annot-pdf-001",
+        "pdf-annot-damaged-pdf-001",
         "Damaged/orphan annotation dict",
         ["pdf-annot-damaged"],
         lambda base: add_orphan_annot(base),
@@ -477,7 +479,7 @@ FIXTURES: list[PdfFixture] = [
     ),
     # --- Signed PDF fixtures ---
     PdfFixture(
-        "selfsigned-pdf-001",
+        "pdf-signed-pdf-001",
         "Self-signed PDF (simple)",
         ["pdf-signed"],
         lambda base: make_signed_pdf(base),
@@ -486,7 +488,7 @@ FIXTURES: list[PdfFixture] = [
         "Tests signature detection + PAdES-B-B path.",
     ),
     PdfFixture(
-        "sigflag-pdf-001",
+        "pdf-signed-pdf-002",
         "PDF with signature flag (no real sig)",
         ["pdf-signed"],
         lambda base: make_pdf_with_sig_flag(base),
@@ -496,7 +498,7 @@ FIXTURES: list[PdfFixture] = [
     ),
     # --- PDF/A fixture ---
     PdfFixture(
-        "pdfa-basic-pdf-001",
+        "pdf-a-pdf-001",
         "PDF/A-1b sample fixture",
         ["pdf-a"],
         lambda base: make_pdfa_pdf(base),
@@ -621,7 +623,7 @@ def generate_all(count: int | None = None) -> list[dict]:
 def verify_fixtures() -> list[str]:
     """Verify all generated fixtures are parseable by pikepdf."""
     problems = []
-    for mp in sorted(MANIFESTS.glob("pdf-annot-*.json")) + sorted(MANIFESTS.glob("selfsigned-*.json")) + sorted(MANIFESTS.glob("sigflag-*.json")) + sorted(MANIFESTS.glob("pdfa-*.json")):
+    for mp in sorted(MANIFESTS.glob("pdf-annot-*.json")) + sorted(MANIFESTS.glob("pdf-signed-*.json")) + sorted(MANIFESTS.glob("pdf-a-*.json")):
         m = json.loads(mp.read_text(encoding="utf-8"))
         fid = m["id"]
         blob = BLOBS / f"{fid}.pdf"

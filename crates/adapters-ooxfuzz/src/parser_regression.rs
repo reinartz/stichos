@@ -258,12 +258,9 @@ pub fn fuzz_find_stream_kw(data: &[u8]) -> FuzzResult {
         }
         let result = find_stream_kw(data);
         // Verify the result is reasonable (None or a valid position)
-        match result {
-            Some(pos) => {
-                assert!(pos > 0, "stream position must be > 0");
-                assert!(pos + 6 <= data.len(), "stream keyword must fit in data");
-            }
-            None => {}
+        if let Some(pos) = result {
+            assert!(pos > 0, "stream position must be > 0");
+            assert!(pos + 6 <= data.len(), "stream keyword must fit in data");
         }
     });
     match result {
@@ -364,6 +361,26 @@ pub fn run_parser_regression_all() -> FuzzResult {
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
+
+/// Helper function to test find_stream_kw directly.
+/// Mirrors the implementation in parser.rs:496-512.
+fn find_stream_kw_test(data: &[u8]) -> Option<usize> {
+    let mut pos = 0;
+    let limit = data.len().saturating_sub(6).min(8192);
+    while pos < limit {
+        if data[pos..].starts_with(b"stream") && pos > 0 {
+            let prev = data[pos - 1];
+            if matches!(prev, b'\n' | b'\r' | b' ' | b'\t') {
+                let after = pos + 6;
+                if after >= data.len() || matches!(data[after], b'\n' | b'\r' | b' ') {
+                    return Some(pos);
+                }
+            }
+        }
+        pos += 1;
+    }
+    None
+}
 
 #[cfg(test)]
 mod tests {
@@ -505,24 +522,4 @@ mod tests {
             result
         );
     }
-}
-
-/// Helper function to test find_stream_kw directly.
-/// Mirrors the implementation in parser.rs:496-512.
-fn find_stream_kw_test(data: &[u8]) -> Option<usize> {
-    let mut pos = 0;
-    let limit = data.len().saturating_sub(6).min(8192);
-    while pos < limit {
-        if data[pos..].starts_with(b"stream") && pos > 0 {
-            let prev = data[pos - 1];
-            if matches!(prev, b'\n' | b'\r' | b' ' | b'\t') {
-                let after = pos + 6;
-                if after >= data.len() || matches!(data[after], b'\n' | b'\r' | b' ') {
-                    return Some(pos);
-                }
-            }
-        }
-        pos += 1;
-    }
-    None
 }

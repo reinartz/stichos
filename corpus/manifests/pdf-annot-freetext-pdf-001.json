@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "id": "freetext-annot-pdf-001",
+  "id": "pdf-annot-freetext-pdf-001",
   "title": "FreeText annotation on page 1",
   "source": "generated",
   "generator": {
-    "name": "p5-02-pdf-fixtures",
+    "name": "harness/generator",
     "version": "0.1.0"
   },
   "format": "pdf",
@@ -14,10 +14,10 @@
   "features": {
     "pdf:pages": 1,
     "pdf:annotations": 1,
-    "pdf:annot-types": "/FreeText",
+    "pdf:annot-types": 1,
     "pdf:sig-fields": 0
   },
-  "reference_text": "corpus/reference/freetext-annot-pdf-001.txt",
+  "reference_text": "corpus/reference/pdf-annot-freetext-pdf-001.txt",
   "expected": {
     "page_count_min": 1,
     "page_count_max": 1
@@ -31,5 +31,5 @@
     ]
   },
   "notes": "Single FreeText annotation with DA (default appearance) and DM (modification date).",
-  "sha256": "95cf5feab86dd4e0ce679109696599cc7fb5287a1028381aebf3b7a5c469e1ef"
+  "sha256": "5faf69a9ab4df8c69128e5b9325a1049ad7c19b9b57fff6834cfeea9d160aa36"
 }

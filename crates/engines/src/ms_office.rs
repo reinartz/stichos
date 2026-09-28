@@ -318,7 +318,7 @@ mod tests {
         let info = engine.info();
         assert_eq!(info.engine_id, "ms-office");
         assert!(!info.is_available);
-        assert!(info.capabilities.len() > 0);
+        assert!(!info.capabilities.is_empty());
         // All capabilities should have works=false in stub mode
         for cap in &info.capabilities {
             assert!(!cap.works);

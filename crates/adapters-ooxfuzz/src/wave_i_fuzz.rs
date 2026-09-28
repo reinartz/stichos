@@ -295,36 +295,7 @@ pub fn presentation_inspect_shape_chain_500() -> Presentation {
     };
 
     // Build a chain: slide element -> shape0 -> shape1 -> ... -> shape499
-    let mut parent_id = slide.id.clone();
-    let mut current_children = vec![];
-
-    for i in (0..500).rev() {
-        let shape = SlideElement {
-            id: ElementId::content_anchored("shape", &[&format!("shape:{}", i)], ""),
-            kind: SlideElementKind::Other(format!("shape{}", i)),
-            text: None,
-            bold: None,
-            italic: None,
-            font_name: None,
-            font_size_pt: None,
-            alignment: None,
-            x_pt: None,
-            y_pt: None,
-            width_pt: None,
-            height_pt: None,
-            data: None,
-            mime_type: None,
-            preset: None,
-            fill_color: None,
-            line_color: None,
-        };
-        if i == 499 {
-            // Leaf shape
-            current_children = vec![shape];
-        } else {
-            current_children = vec![shape];
-        }
-    }
+    // (dead scaffolding removed — parent_id/current_children were never read)
 
     // Simpler approach: just add 500 shapes to a single slide
     // (the IR converter will handle the tree structure)
@@ -478,7 +449,7 @@ pub fn presentation_inspect_100_slides() -> Presentation {
 /// A PatchOp with deeply nested IR (1000 levels of TaggedNode children).
 pub fn apply_op_deeply_nested_ir() -> IRDocument {
     // Build a deeply nested tree: root -> child -> grandchild -> ... (1000 deep)
-    let mut current_id = ElementId::content_anchored("document", &["document"], "root");
+    let current_id = ElementId::content_anchored("document", &["document"], "root");
     let mut current = TaggedNode {
         id: current_id.clone(),
         tag: "document".to_string(),
@@ -927,7 +898,7 @@ pub fn run_presentation_inspect_stress_fuzz() -> FuzzResult {
 /// Run the apply-op fuzz fixtures.
 pub fn run_apply_op_fuzz() -> FuzzResult {
     // Start with a valid IR
-    let mut ir = IRDocument {
+    let ir = IRDocument {
         ir_version: IR_VERSION.to_string(),
         root: TaggedNode {
             id: ElementId::content_anchored("document", &["document"], "root"),
@@ -953,7 +924,7 @@ pub fn run_apply_op_fuzz() -> FuzzResult {
         ("null_bytes", apply_op_null_bytes_in_value()),
     ];
 
-    for (name, op) in ops {
+    for (_name, op) in ops {
         // Reset IR for each test
         let mut test_ir = ir.clone();
         match fuzz_apply_op(&mut test_ir, &op) {
@@ -1054,7 +1025,7 @@ mod tests {
         let ss = sheet_inspect_c15_deep_nesting_formula();
         let formula = &ss.sheets[0].rows[0].cells[0].formula;
         assert!(formula.is_some());
-        let refusal = check_refusal(&formula.as_ref().unwrap());
+        let refusal = check_refusal(formula.as_ref().unwrap());
         assert_eq!(refusal, Some(gp_core::formula::GpFCode::DeepNesting));
     }
 

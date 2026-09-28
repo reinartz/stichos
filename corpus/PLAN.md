@@ -8,9 +8,9 @@ Concept §14 Phase 0 nasty-document list; plan §5 Track HAR.
 | Constraint | Value |
 |---|---|
 | Total fixtures | ≥150 |
-| Generated (HAR-02) | ≥120 — plan allocates **151** (§3, v1.1; was 127 at v1.0) |
+| Generated (HAR-02) | ≥120 — plan allocates **169** (§3, v1.2; 151 M0 + 18 D3 additions) |
 | Curated real-world (HAR-01 sourcing) | ≤30 — plan allocates **24** (§5) — ingest outstanding (owner follow-up) |
-| Planned total | **151 generated** (v1.1 M0-gate additions, §3) + 24 curated when ingested |
+| Planned total | **169 generated** (v1.2: 151 M0 + 18 D3, §3) + 24 curated when ingested |
 | PDF inputs | **None in Phase 0.** PDF enters at baseline via rendering (HAR-06); `pdf-external` category exists for curated XFA/scanned items only, flagged out-of-scope-for-generation |
 
 ## 2. Category taxonomy
@@ -44,6 +44,21 @@ Formats: `docx xlsx pptx odt ods odp` (+ `pdf` for curated `pdf-external` only).
 | `protected-readonly` | protected/readonly | all 6 | yes | doc protection, sheet lock, final readonly flag |
 | `unicode-edge` | unicode edge cases | all 6 | yes | ligature chars, ZWJ/ZWSP/soft-hyphen, surrogates-as-emoji, combining stacks |
 | `huge-cell-text` | huge single-cell text | docx xlsx odt ods | yes | ≥64 KB in one cell; overflow + pagination stress |
+| `pdf-annot-highlight` | highlight annotations | pdf | yes | single/multi highlight with QuadPoints |
+| `pdf-annot-comment` | text/comment annotations | pdf | yes | Text (comment) annotations |
+| `pdf-annot-freetext` | FreeText annotations | pdf | yes | FreeText annotations with DA/DM |
+| `pdf-annot-stamp` | stamp annotations | pdf | yes | Stamp annotations (Approved/Draft) |
+| `pdf-annot-mixed` | mixed annotation types | pdf | yes | Highlight + Text + FreeText + Stamp |
+| `pdf-annot-multipage` | annotations across pages | pdf | yes | annotations on multiple pages |
+| `pdf-annot-damaged` | damaged annotation dicts | pdf | yes | orphan/damaged annot dict with unknown subtype |
+| `pdf-signed` | PDF signatures | pdf | yes | self-signed + sig-flag (AcroForm with /Sig) |
+| `pdf-a` | PDF/A compliance | pdf | yes | PDF/A-1b best-effort fixture |
+| `revision-delete` | tracked deletion | docx | yes | single w:del tracked change |
+| `revision-insert` | tracked insertion | docx | yes | single w:ins tracked change |
+| `revision-mixed` | mixed tracked changes | docx | yes | multiple inserts + deletes, multi-author |
+| `revision-multi-author` | multi-author revisions | docx | yes | changes by alice/bob/charlie |
+| `revision-table-row` | tracked table row | docx | yes | tracked w:trPr/w:ins on table row |
+| `revision-empty-body` | tracked change in empty body | docx | yes | entire body is a single tracked insertion |
 | `corrupt-zip-bomb` | hostile packages | reserved | no | **SEC-01 corpus (later).** Id reserved, 0 fixtures now |
 | `corrupt-entity-bomb` | hostile packages | reserved | no | **SEC-01 corpus (later).** Id reserved, 0 fixtures now |
 
@@ -59,31 +74,46 @@ Every added fixture is a real second instance with **content that differs from `
 (different strings/layout/counts, asserted in the builders; byte-dedup-checked across same-category
 fixtures), not a re-hash.
 
-| Category | docx | xlsx | pptx | odt | ods | odp | Σ |
-|---|---|---|---|---|---|---|---|
-| merged-cells | 2 | 3 | 2 ✚ | 1 | 2 | 0 | 10 |
-| smartart-drawing | 3 | 0 | 2 | 0 | 0 | 0 | 5 |
-| embedded-ole | 2 | 1 | 2 ✚ | 1 | 2 ✚ | 2 ✚ | 10 |
-| tracked-changes | 3 | 1 | 0 | 2 | 1 | 0 | 7 |
-| scanned-ocr | 1 | 0 | 2 ✚ | 1 | 0 | 2 ✚ | 6 |
-| cjk-text | 2 | 1 | 2 ✚ | 2 | 1 | 2 ✚ | 10 |
-| rtl-text | 2 | 0 | 2 ✚ | 2 | 0 | 2 ✚ | 8 |
-| rtl-sheets | 0 | 2 | 0 | 0 | 2 | 0 | 4 |
-| long-deck-300 | 0 | 0 | 2 | 0 | 0 | 2 ✚ | 4 |
-| long-tables | 2 | 2 | 0 | 1 | 1 | 0 | 6 |
-| footnotes-endnotes | 2 | 0 | 0 | 2 | 0 | 0 | 4 |
-| headers-fields | 2 | 0 | 0 | 2 | 0 | 0 | 4 |
-| toc-fields | 2 | 0 | 0 | 2 | 0 | 0 | 4 |
-| image-textwrap | 2 | 0 | 2 ✚ | 1 | 0 | 2 ✚ | 7 |
-| formulas-cached | 0 | 3 | 0 | 0 | 3 | 0 | 6 |
-| conditional-formatting | 0 | 2 | 0 | 0 | 2 | 0 | 4 |
-| custom-styles | 2 | 1 | 2 ✚ | 2 | 1 | 2 ✚ | 10 |
-| numbering-restarts | 2 | 0 | 2 ✚ | 2 | 0 | 2 ✚ | 8 |
-| comments-annotations | 2 | 1 | 2 ✚ | 1 | 2 ✚ | 2 ✚ | 10 |
-| protected-readonly | 1 | 1 | 2 ✚ | 1 | 1 | 2 ✚ | 8 |
-| unicode-edge | 2 | 1 | 2 ✚ | 2 | 1 | 2 ✚ | 10 |
-| huge-cell-text | 1 | 2 | 0 | 1 | 2 | 0 | 6 |
-| **Σ** | **35** | **21** | **26** | **26** | **21** | **22** | **151** |
+| Category | docx | xlsx | pptx | odt | ods | odp | pdf | Σ |
+|---|---|---|---|---|---|---|---|---|
+| merged-cells | 2 | 3 | 2 ✚ | 1 | 2 | 0 | 0 | 10 |
+| smartart-drawing | 3 | 0 | 2 | 0 | 0 | 0 | 0 | 5 |
+| embedded-ole | 2 | 1 | 2 ✚ | 1 | 2 ✚ | 2 ✚ | 0 | 10 |
+| tracked-changes | 3 | 1 | 0 | 2 | 1 | 0 | 0 | 7 |
+| scanned-ocr | 1 | 0 | 2 ✚ | 1 | 0 | 2 ✚ | 0 | 6 |
+| cjk-text | 2 | 1 | 2 ✚ | 2 | 1 | 2 ✚ | 0 | 10 |
+| rtl-text | 2 | 0 | 2 ✚ | 2 | 0 | 2 ✚ | 0 | 8 |
+| rtl-sheets | 0 | 2 | 0 | 0 | 2 | 0 | 0 | 4 |
+| long-deck-300 | 0 | 0 | 2 | 0 | 0 | 2 ✚ | 0 | 4 |
+| long-tables | 2 | 2 | 0 | 1 | 1 | 0 | 0 | 6 |
+| footnotes-endnotes | 2 | 0 | 0 | 2 | 0 | 0 | 0 | 4 |
+| headers-fields | 2 | 0 | 0 | 2 | 0 | 0 | 0 | 4 |
+| toc-fields | 2 | 0 | 0 | 2 | 0 | 0 | 0 | 4 |
+| image-textwrap | 2 | 0 | 2 ✚ | 1 | 0 | 2 ✚ | 0 | 7 |
+| formulas-cached | 0 | 3 | 0 | 0 | 3 | 0 | 0 | 6 |
+| conditional-formatting | 0 | 2 | 0 | 0 | 2 | 0 | 0 | 4 |
+| custom-styles | 2 | 1 | 2 ✚ | 2 | 1 | 2 ✚ | 0 | 10 |
+| numbering-restarts | 2 | 0 | 2 ✚ | 2 | 0 | 2 ✚ | 0 | 8 |
+| comments-annotations | 2 | 1 | 2 ✚ | 1 | 2 ✚ | 2 ✚ | 0 | 10 |
+| protected-readonly | 1 | 1 | 2 ✚ | 1 | 1 | 2 ✚ | 0 | 8 |
+| unicode-edge | 2 | 1 | 2 ✚ | 2 | 1 | 2 ✚ | 0 | 10 |
+| huge-cell-text | 1 | 2 | 0 | 1 | 2 | 0 | 0 | 6 |
+| pdf-annot-highlight | 0 | 0 | 0 | 0 | 0 | 0 | 2 | 2 |
+| pdf-annot-comment | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 1 |
+| pdf-annot-freetext | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 1 |
+| pdf-annot-stamp | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 1 |
+| pdf-annot-mixed | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 1 |
+| pdf-annot-multipage | 0 | 0 | 0 | 0 | 0 | 0 | 2 | 2 |
+| pdf-annot-damaged | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 1 |
+| pdf-signed | 0 | 0 | 0 | 0 | 0 | 0 | 2 | 2 |
+| pdf-a | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 1 |
+| revision-delete | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 1 |
+| revision-insert | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 1 |
+| revision-mixed | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 1 |
+| revision-multi-author | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 1 |
+| revision-table-row | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 1 |
+| revision-empty-body | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 1 |
+| **Σ** | **41** | **21** | **26** | **26** | **21** | **22** | **12** | **169** |
 
 **v1.1 M0-gate additions (+24):** pptx merged-cells/embedded-ole/scanned-ocr/cjk-text/rtl-text/
 image-textwrap/custom-styles/numbering-restarts/comments-annotations/protected-readonly/unicode-edge
@@ -91,8 +121,10 @@ image-textwrap/custom-styles/numbering-restarts/comments-annotations/protected-r
 numbering-restarts/comments-annotations/protected-readonly/unicode-edge/long-deck-300 (11×1→2);
 ods embedded-ole/comments-annotations (2×1→2). Generated total 151 ≥ 150 gate ✓ without waiting on
 curated-24 ingest (which stays planned, §5 — owner follow-up; if ingested later, the total grows
-beyond 151). 151 ≥ 120 ✓. `corrupt-*` rows omitted (reserved, count 0). PR-subset (HAR-07) excludes
-`long-deck-300` and `huge-cell-text` and is unchanged (all 001 ids).
+beyond 151). 151 ≥ 120 ✓. **v1.2 D3 additions (+18):** 9 PDF categories (12 fixtures) + 6
+revision categories (6 fixtures) for lossless proof suite and PDF annotation/signed/PDF-A fixtures
+(Phase 5). Generated total 169 ≥ 150 ✓. `corrupt-*` rows omitted (reserved, count 0). PR-subset
+(HAR-07) excludes `long-deck-300` and `huge-cell-text` and is unchanged (all 001 ids).
 
 ## 4. Ground truth strategy
 

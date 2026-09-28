@@ -1834,9 +1834,7 @@ pub fn hostile_pdf_byterange_tampered() -> Vec<u8> {
     data.extend_from_slice(b" /ByteRange [0 200 1000 80]\n");
     data.extend_from_slice(b" /Contents <");
     // 80 hex chars = 40 bytes of dummy signature data (padded)
-    for _ in 0..80 {
-        data.push(b'A');
-    }
+    data.extend(std::iter::repeat_n(b'A', 80));
     data.extend_from_slice(b">>\n");
     data.extend_from_slice(b" /Filter /adbe.pkcs7.detached\n");
     data.extend_from_slice(b" /V 1\n>>\nendobj\n");
@@ -1883,9 +1881,7 @@ pub fn hostile_pdf_byterange_second_tampered() -> Vec<u8> {
     data.extend_from_slice(b"5 0 obj\n<< /Type /Annot /Subtype /Sig\n");
     data.extend_from_slice(b" /ByteRange [0 100 1200 80]\n");
     data.extend_from_slice(b" /Contents <");
-    for _ in 0..80 {
-        data.push(b'B');
-    }
+    data.extend(std::iter::repeat_n(b'B', 80));
     // Tamper with bytes after the hex content (in range 1)
     data.extend_from_slice(b">>\n");
     data.extend_from_slice(b" /Filter /adbe.pkcs7.detached\n");
@@ -4460,7 +4456,7 @@ mod tests {
         });
         // Should not panic - parser should handle corrupted PDFs gracefully
         assert!(
-            matches!(result, Ok(_)),
+            result.is_ok(),
             "parser should not panic on tampered byterange PDF"
         );
     }
@@ -4474,7 +4470,7 @@ mod tests {
             let _parsed = adapters_pdf::parser::parse_pdf(&data);
         });
         assert!(
-            matches!(result, Ok(_)),
+            result.is_ok(),
             "parser should not panic on tampered byterange-1 PDF"
         );
     }
@@ -4488,7 +4484,7 @@ mod tests {
             let _parsed = adapters_pdf::parser::parse_pdf(&data);
         });
         assert!(
-            matches!(result, Ok(_)),
+            result.is_ok(),
             "parser should not panic on hex-tampered PDF"
         );
     }
@@ -4508,7 +4504,7 @@ mod tests {
                 let _ = adapters_pdf::parser::parse_pdf(&data);
             });
             assert!(
-                matches!(result, Ok(_)),
+                result.is_ok(),
                 "fixture should not cause panic: {:?} bytes",
                 data.len()
             );

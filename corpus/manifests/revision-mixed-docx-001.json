@@ -11,7 +11,14 @@
   "categories": [
     "revision-mixed"
   ],
-  "features": {},
+  "features": {
+    "w:tbl": 0,
+    "w:drawing": 0,
+    "w:fldSimple": 0,
+    "w:commentReference": 0,
+    "w:comment": 0,
+    "w:instrText": 0
+  },
   "reference_text": "corpus/reference/revision-mixed-docx-001.txt",
   "expected": {
     "page_count_min": null,

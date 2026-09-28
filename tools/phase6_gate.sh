@@ -94,6 +94,8 @@ run_check() {
     if [ "$rc" -eq "$ok_exit" ]; then
         return 0
     else
+        echo "  LOG (tail -40):"
+        tail -40 "$LOG"
         return 1
     fi
 }
@@ -216,6 +218,15 @@ with open('$STATUS_JSON', 'w') as f:
     fi
     echo ""
     exit 0
+fi
+
+# ---------------------------------------------------------------------------
+# Blob bootstrap
+# ---------------------------------------------------------------------------
+if ! ls corpus/blobs/*.docx 2>/dev/null | head -1 > /dev/null 2>&1; then
+    echo "  No corpus blobs found — running gen build..."
+    pip install -q -r harness/requirements-dev.txt 2>/dev/null || true
+    python3 -m gen build 2>&1 || { echo "  gen build failed"; exit 1; }
 fi
 
 # ---------------------------------------------------------------------------
@@ -794,7 +805,7 @@ fi
 # 6a. cargo test -p adapters-ooxfuzz --lib
 echo "  Running: cargo test -p adapters-ooxfuzz --lib"
 set +e
-cargo test -p adapters-ooxfuzz --lib > "$LOG" 2>&1
+cargo test -p adapters-ooxfuzz --lib -- --test-threads=2 > "$LOG" 2>&1
 FUZZ_RC=$?
 set -e
 if [ "$FUZZ_RC" -eq 0 ]; then

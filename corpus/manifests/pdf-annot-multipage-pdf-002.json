@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "id": "multipage-annot-pdf-002",
+  "id": "pdf-annot-multipage-pdf-002",
   "title": "2-page document with text and free-text annotations",
   "source": "generated",
   "generator": {
-    "name": "p5-02-pdf-fixtures",
+    "name": "harness/generator",
     "version": "0.1.0"
   },
   "format": "pdf",
@@ -14,10 +14,10 @@
   "features": {
     "pdf:pages": 2,
     "pdf:annotations": 2,
-    "pdf:annot-types": "/FreeText,/Text",
+    "pdf:annot-types": 2,
     "pdf:sig-fields": 0
   },
-  "reference_text": "corpus/reference/multipage-annot-pdf-002.txt",
+  "reference_text": "corpus/reference/pdf-annot-multipage-pdf-002.txt",
   "expected": {
     "page_count_min": 2,
     "page_count_max": 2
@@ -31,5 +31,5 @@
     ]
   },
   "notes": "2-page document with Text annot on page 1 and FreeText on page 2.",
-  "sha256": "38166256768edd6f1fcb4ceec1d7fce18ad8d66f9941c421b1d1d0d9d2404e51"
+  "sha256": "ed9099821c85a4615d48a9232c5b0643a13730d862481628e899aae84f928dc1"
 }

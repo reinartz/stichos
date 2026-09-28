@@ -65,7 +65,7 @@ sys.exit(failed)
 check "Highlight fixtures have annotations" bash -c "python3 -c \"
 import json, sys
 root = '$ROOT'
-for fid in ['highlight-annot-pdf-001', 'mixed-annot-pdf-001', 'multi-highlight-pdf-001']:
+for fid in ['pdf-annot-highlight-pdf-001', 'pdf-annot-mixed-pdf-001', 'pdf-annot-highlight-pdf-002']:
     m = json.loads(open(f'{root}/corpus/manifests/{fid}.json').read())
     if m['features'].get('pdf:annotations', 0) < 1:
         print(f'  No annotations in {fid}')
@@ -77,7 +77,7 @@ sys.exit(0)
 check "Damaged fixture has /Unknown subtype" bash -c 'python3 -c "
 import pikepdf, json, pathlib
 root = pathlib.Path(\"'\"$ROOT\"'\")
-m = json.loads((root / \"corpus\" / \"manifests\" / \"damaged-annot-pdf-001.json\").read_text())
+m = json.loads((root / \"corpus\" / \"manifests\" / \"pdf-annot-damaged-pdf-001.json\").read_text())
 pdf = pikepdf.open(str(root / \"corpus\" / \"blobs\" / (m[\"id\"] + \".pdf\")))
 if \"/Annots\" in pdf.Root:
     for a in pdf.Root[\"/Annots\"]:
@@ -92,7 +92,7 @@ exit(1)
 check "Signed fixture has AcroForm with /Sig field" bash -c 'python3 -c "
 import pikepdf, json, pathlib
 root = pathlib.Path(\"'\"$ROOT\"'\")
-m = json.loads((root / \"corpus\" / \"manifests\" / \"selfsigned-pdf-001.json\").read_text())
+m = json.loads((root / \"corpus\" / \"manifests\" / \"pdf-signed-pdf-001.json\").read_text())
 pdf = pikepdf.open(str(root / \"corpus\" / \"blobs\" / (m[\"id\"] + \".pdf\")))
 if \"/AcroForm\" in pdf.Root and \"/Fields\" in pdf.Root.AcroForm:
     exit(0)

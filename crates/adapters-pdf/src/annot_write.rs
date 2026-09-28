@@ -1445,7 +1445,7 @@ mod tests {
     #[test]
     fn test_build_annotation_state_dict() {
         let dict = build_annotation_state_dict(AnnotationState::Resolved);
-        assert!(dict.contains_key(&b"Subj".to_vec()));
+        assert!(dict.contains_key(b"Subj".as_slice()));
     }
 
     // -----------------------------------------------------------------------

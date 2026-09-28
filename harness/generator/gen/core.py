@@ -37,7 +37,7 @@ FIXED_ZIP_DT = (2026, 1, 1, 0, 0, 0)
 FIXED_DT = datetime(2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
 RENDER = {"dpis": [150], "engines": ["soffice-26.2.5"]}
 
-# Generated-fixture budget, verbatim from corpus/PLAN.md §3 (Σ=151).
+# Generated-fixture budget, verbatim from corpus/PLAN.md §3 (Σ=169; 151 M0 + 18 D3 additions).
 # v1.1 M0-gate additions (+24, entries ending ": 2  # ✚"): the M0 exit gate needs the
 # harness to run >=150 fixtures; v1.0 shipped 127 generated + 24 curated *planned* = 151,
 # but curated-24 ingest (PLAN.md §5) is an outstanding owner follow-up (per-file license
@@ -84,6 +84,15 @@ BUDGET: dict[tuple[str, str], int] = {
     ("unicode-edge", "odt"): 2, ("unicode-edge", "ods"): 1, ("unicode-edge", "odp"): 2,  # ✚ odp 1->2
     ("huge-cell-text", "docx"): 1, ("huge-cell-text", "xlsx"): 2,
     ("huge-cell-text", "odt"): 1, ("huge-cell-text", "ods"): 2,
+    # P5-02 generated PDF fixtures (D3.2c)
+    ("pdf-annot-highlight", "pdf"): 2, ("pdf-annot-comment", "pdf"): 1,
+    ("pdf-annot-freetext", "pdf"): 1, ("pdf-annot-stamp", "pdf"): 1,
+    ("pdf-annot-mixed", "pdf"): 1, ("pdf-annot-multipage", "pdf"): 2,
+    ("pdf-annot-damaged", "pdf"): 1, ("pdf-signed", "pdf"): 2, ("pdf-a", "pdf"): 1,
+    # P4-07 revision proof suite fixtures (D3.2d)
+    ("revision-insert", "docx"): 1, ("revision-delete", "docx"): 1,
+    ("revision-mixed", "docx"): 1, ("revision-multi-author", "docx"): 1,
+    ("revision-table-row", "docx"): 1, ("revision-empty-body", "docx"): 1,
 }
 
 BUILDERS: dict[tuple[str, str], Callable[["Ctx", int], "BuildResult"]] = {}
@@ -274,8 +283,54 @@ def select(fmt: str | None, cat: str | None) -> list[tuple[str, str, int]]:
     return jobs
 
 
+def build_pdf(cat: str | None, out: Path | None = None) -> list[dict]:
+    """Build PDF fixtures from the pdf_fixtures module."""
+    from . import pdf_fixtures as pf
+    manifests: list[dict] = []
+    for fix in pf.FIXTURES:
+        if cat and fix.categories[0] != cat:
+            continue
+        print(f"Building PDF fixture {fix.name}...")
+        data = fix.generate()
+        blob = CORPUS / "blobs" / f"{fix.name}.pdf"
+        blob.parent.mkdir(parents=True, exist_ok=True)
+        blob.write_bytes(data)
+        sha = sha256_file(blob)
+        rdir = CORPUS / "reference"
+        rdir.mkdir(parents=True, exist_ok=True)
+        ref_path = rdir / f"{fix.name}.txt"
+        ref_path.write_text(fix.reference_text, encoding="utf-8")
+        features = fix.feature_count(data)
+        manifest = {
+            "schema_version": 1,
+            "id": fix.name,
+            "title": fix.title,
+            "source": "generated",
+            "generator": GENERATOR,
+            "format": "pdf",
+            "categories": fix.categories,
+            "features": features,
+            "reference_text": f"corpus/reference/{fix.name}.txt",
+            "expected": {"page_count_min": fix.page_count, "page_count_max": fix.page_count},
+            "render": RENDER,
+            "notes": fix.notes,
+            "sha256": sha,
+        }
+        mdir = CORPUS / "manifests"
+        mdir.mkdir(parents=True, exist_ok=True)
+        (mdir / f"{fix.name}.json").write_text(
+            json.dumps(manifest, indent=2, ensure_ascii=False) + "\n",
+            encoding="utf-8"
+        )
+        manifests.append(manifest)
+        print(f"built {fix.name} sha256={sha[:12]}…")
+    return manifests
+
+
 def build_all(fmt: str | None, cat: str | None) -> list[dict]:
     manifests = []
+    if fmt == "pdf":
+        return build_pdf(cat)
     for c, f, i in select(fmt, cat):
         m = build_one(c, f, i)
         manifests.append(m)
@@ -309,7 +364,17 @@ def _no_blob_problems(mp: Path, m: dict, fid: str) -> list[str]:
             problems.append(f"{fid}: reference_text {rt} != corpus/reference/{fid}.txt")
         if m["generator"]["name"] != GENERATOR["name"]:
             problems.append(f"{fid}: generator.name != {GENERATOR['name']}")
-        if (cat, fmt) not in BUDGET:
+        if fmt == "pdf":
+            # PDF fixtures: check against pdf_fixtures.FIXTURES
+            from . import pdf_fixtures as pf
+            matching = [f for f in pf.FIXTURES if f.categories[0] == cat]
+            if not matching:
+                problems.append(f"{fid}: ({cat}, {fmt}) not in pdf fixtures")
+            else:
+                max_n = max(int(f.name.rsplit("-", 1)[1]) for f in matching if f.categories[0] == cat)
+                if not 1 <= nnn <= max_n:
+                    problems.append(f"{fid}: nnn {nnn:03d} outside pdf fixture range 1..{max_n:03d}")
+        elif (cat, fmt) not in BUDGET:
             problems.append(f"{fid}: ({cat}, {fmt}) not in corpus/PLAN.md §3 budget")
         elif not 1 <= nnn <= BUDGET[(cat, fmt)]:
             problems.append(f"{fid}: nnn {nnn:03d} outside budget 1..{BUDGET[(cat, fmt)]:03d}")
@@ -343,12 +408,21 @@ def verify_all(no_blobs: bool = False) -> list[str]:
         if sha256_file(blob) != m["sha256"]:
             problems.append(f"{fid}: sha256 drift")
             continue
-        recount = {k: v for k, v in feature_counts(blob).items() if ":" in k}
+        if m["format"] == "pdf":
+            # PDF fixtures: use pdf_fixtures module for feature recount
+            from . import pdf_fixtures as pf
+            fix = next((f for f in pf.FIXTURES if f.name == fid), None)
+            if fix:
+                recount = fix.feature_count(blob.read_bytes())
+            else:
+                recount = {}
+        else:
+            recount = {k: v for k, v in feature_counts(blob).items() if ":" in k}
         if recount != m["features"]:
             problems.append(f"{fid}: feature recount {recount} != manifest {m['features']}")
         key = (fid.rsplit("-", 2)[0], m["format"])
         cat, nnn = key[0], int(fid.rsplit("-", 1)[1])
-        if key in BUILDERS:
+        if m["format"] != "pdf" and key in BUILDERS:
             with tempfile.TemporaryDirectory() as td:
                 m2 = build_one(cat, m["format"], nnn, out=Path(td))
             if m2["sha256"] != m["sha256"]:

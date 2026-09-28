@@ -462,6 +462,7 @@ mod tests {
 
     /// test_enumerate_revisions_paraId — paraId attribute creates cross-link.
     #[test]
+    #[allow(non_snake_case)]
     fn test_enumerate_revisions_paraId() {
         let xml = r#"<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
             <w:body>
@@ -485,6 +486,7 @@ mod tests {
 
     /// test_enumerate_revisions_pPrChange — w:pPrChange produces GP-R-001 diagnostic.
     #[test]
+    #[allow(non_snake_case)]
     fn test_enumerate_revisions_pPrChange() {
         let xml = r#"<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
             <w:body>
@@ -506,6 +508,7 @@ mod tests {
 
     /// test_enumerate_revisions_moveFrom — w:moveFrom produces GP-R-001 diagnostic.
     #[test]
+    #[allow(non_snake_case)]
     fn test_enumerate_revisions_moveFrom() {
         let xml = r#"<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
             <w:body>

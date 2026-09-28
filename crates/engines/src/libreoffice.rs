@@ -994,8 +994,6 @@ mod tests {
     #[cfg(unix)]
     #[test]
     fn test_noclosefile_returns_zero_on_eof() {
-        use std::os::unix::io::FromRawFd;
-
         // Create a pipe, close the write end, then read via NoCloseFile.
         // poll() should detect the closed write end and return 0 bytes.
         let mut fds: [libc::c_int; 2] = [0; 2];

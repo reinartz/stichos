@@ -242,13 +242,10 @@ pub fn fuzz_formula_parse(formula: &str) -> FuzzResult {
 pub fn fuzz_formula_refusal(formula: &str) -> FuzzResult {
     let result = std::panic::catch_unwind(|| {
         let refusal = check_refusal(formula);
-        match refusal {
-            Some(code) => {
-                let _code_str = gp_core::formula::gp_f_code_str(code);
-                let _supported = gp_core::formula::is_supported_function("SUM");
-                let _all_codes = gp_core::formula::all_refuse_codes();
-            }
-            None => {}
+        if let Some(code) = refusal {
+            let _code_str = gp_core::formula::gp_f_code_str(code);
+            let _supported = gp_core::formula::is_supported_function("SUM");
+            let _all_codes = gp_core::formula::all_refuse_codes();
         }
     });
     match result {
@@ -488,7 +485,7 @@ mod tests {
 
     #[test]
     fn test_unsupported_vlookup() {
-        let formula = formula_unsupported_vlookup();
+        let _formula = formula_unsupported_vlookup();
         assert!(!gp_core::formula::is_supported_function("VLOOKUP"));
     }
 

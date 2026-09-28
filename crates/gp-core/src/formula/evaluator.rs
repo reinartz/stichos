@@ -2164,8 +2164,8 @@ mod tests {
     #[test]
     fn test_round() {
         assert_eq!(
-            evaluate_formula("ROUND(3.14159,2)"),
-            Some(EvalResult::Number(3.14))
+            evaluate_formula("ROUND(2.7183,2)"),
+            Some(EvalResult::Number(2.72))
         );
         assert_eq!(
             evaluate_formula("ROUND(2.5,0)"),
@@ -2350,18 +2350,6 @@ mod tests {
                 CachedCellValue {
                     numeric: Some(value),
                     text: None,
-                    bool: None,
-                },
-            );
-            self
-        }
-
-        fn with_text(mut self, ref_name: &str, text: &str) -> Self {
-            self.cells.insert(
-                ref_name.to_string(),
-                CachedCellValue {
-                    numeric: None,
-                    text: Some(text.to_string()),
                     bool: None,
                 },
             );

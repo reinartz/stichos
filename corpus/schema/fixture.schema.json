@@ -70,7 +70,7 @@
       }
     },
     "format": {
-      "description": "Container format. pdf is allowed only for curated pdf-external fixtures (XFA etc.); Phase-0 generated corpus has no pdf inputs.",
+      "description": "Container format. pdf is allowed for both curated (pdf-external) and generated fixtures.",
       "type": "string",
       "enum": ["docx", "xlsx", "pptx", "odt", "ods", "odp", "pdf"]
     },
@@ -88,7 +88,7 @@
       "description": "Expected element counts by namespaced key, e.g. {\"w:tbl\": 3}. Exact-match semantics per C9 §6. Empty object allowed (corrupt/* reserved fixtures).",
       "type": "object",
       "propertyNames": {
-        "pattern": "^[A-Za-z0-9]+:[A-Za-z0-9]+$"
+        "pattern": "^[A-Za-z0-9]+:[A-Za-z0-9/_-]+$"
       },
       "additionalProperties": {
         "type": "integer",
@@ -146,7 +146,7 @@
       },
       "then": {
         "required": ["generator"],
-        "properties": { "format": { "enum": ["docx", "xlsx", "pptx", "odt", "ods", "odp"] } }
+        "properties": { "format": { "enum": ["docx", "xlsx", "pptx", "odt", "ods", "odp", "pdf"] } }
       }
     },
     {
@@ -158,14 +158,6 @@
         "required": ["origin"]
       }
     },
-    {
-      "if": {
-        "properties": { "format": { "const": "pdf" } },
-        "required": ["format"]
-      },
-      "then": {
-        "properties": { "source": { "const": "curated" } }
-      }
-    }
+    {}
   ]
 }

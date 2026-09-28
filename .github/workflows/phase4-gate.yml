@@ -9,8 +9,11 @@ jobs:
   gate:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/checkout@v7
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.98
       - name: Run phase4 gate
         run: bash tools/phase4_gate.sh --ci
       - name: Planted violation test (should pass — gate catches it)

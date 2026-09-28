@@ -513,8 +513,8 @@ mod tests {
         let img1: Vec<u8> = (0..256).map(|i| (i % 256) as u8).collect();
         let img2: Vec<u8> = (0..256).map(|i| (i % 256) as u8).collect();
         let r = pick_resize_target(16, 16);
-        let encoded1 = encode_image(&img1, 16, 16, &r, EncodeFormat::Jpeg { quality: 85 });
-        let encoded2 = encode_image(&img2, 16, 16, &r, EncodeFormat::Jpeg { quality: 85 });
+        let encoded1 = encode_image(&img1, 16, 16, r, EncodeFormat::Jpeg { quality: 85 });
+        let encoded2 = encode_image(&img2, 16, 16, r, EncodeFormat::Jpeg { quality: 85 });
         assert_eq!(
             encoded1.unwrap().data,
             encoded2.unwrap().data,
@@ -533,7 +533,7 @@ mod tests {
             })
             .collect();
         let r = pick_resize_target(16, 16);
-        let encoded = encode_image(&pixels, 16, 16, &r, EncodeFormat::Jpeg { quality: 85 });
+        let encoded = encode_image(&pixels, 16, 16, r, EncodeFormat::Jpeg { quality: 85 });
         assert!(encoded.is_ok(), "encoding 16x16 grayscale should succeed");
         let enc = encoded.unwrap();
         assert!(!enc.data.is_empty());
@@ -564,8 +564,8 @@ mod tests {
     fn test_encode_baseline_quality_variance() {
         let pixels: Vec<u8> = vec![128u8; 64 * 64];
         let r = pick_resize_target(64, 64);
-        let enc_85 = encode_image(&pixels, 64, 64, &r, EncodeFormat::Jpeg { quality: 85 }).unwrap();
-        let enc_50 = encode_image(&pixels, 64, 64, &r, EncodeFormat::Jpeg { quality: 50 }).unwrap();
+        let enc_85 = encode_image(&pixels, 64, 64, r, EncodeFormat::Jpeg { quality: 85 }).unwrap();
+        let enc_50 = encode_image(&pixels, 64, 64, r, EncodeFormat::Jpeg { quality: 50 }).unwrap();
         assert!(!enc_85.data.is_empty());
         assert!(!enc_50.data.is_empty());
     }

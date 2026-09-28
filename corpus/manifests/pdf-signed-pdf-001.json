@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "id": "selfsigned-pdf-001",
+  "id": "pdf-signed-pdf-001",
   "title": "Self-signed PDF (simple)",
   "source": "generated",
   "generator": {
-    "name": "p5-02-pdf-fixtures",
+    "name": "harness/generator",
     "version": "0.1.0"
   },
   "format": "pdf",
@@ -14,10 +14,10 @@
   "features": {
     "pdf:pages": 1,
     "pdf:annotations": 0,
-    "pdf:annot-types": "none",
+    "pdf:annot-types": 0,
     "pdf:sig-fields": 0
   },
-  "reference_text": "corpus/reference/selfsigned-pdf-001.txt",
+  "reference_text": "corpus/reference/pdf-signed-pdf-001.txt",
   "expected": {
     "page_count_min": 1,
     "page_count_max": 1
@@ -31,5 +31,5 @@
     ]
   },
   "notes": "Self-signed PDF with PKCS#7 detached signature. Tests signature detection + PAdES-B-B path.",
-  "sha256": "fc02d666dab47b40ad369cb20a783311580f7ca57adc66b3879b9c833a17a962"
+  "sha256": "52bf7f8f2c27c3c381fdf71dce2f8f9c709be9b0beff79bd116edd4ef31975e2"
 }

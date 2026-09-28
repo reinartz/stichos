@@ -10,10 +10,12 @@
 # as docker/harness/Dockerfile so fontset_hash is identical.
 
 # ── Stage: build ────────────────────────────────────────────────────────────
-FROM rust:1.85-slim AS build
+FROM rust:1.98-slim AS build
 
 WORKDIR /workspace
 
+COPY Cargo.lock ./
+COPY rust-toolchain.toml ./
 COPY Cargo.toml ./
 COPY crates/ ./crates/
 

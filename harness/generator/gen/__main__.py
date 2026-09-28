@@ -12,7 +12,7 @@ def main() -> int:
     sub = ap.add_subparsers(dest="cmd", required=True)
 
     b = sub.add_parser("build", help="build fixtures into corpus/")
-    b.add_argument("--format", choices=["docx", "xlsx", "pptx", "odt", "ods", "odp"])
+    b.add_argument("--format", choices=["docx", "xlsx", "pptx", "odt", "ods", "odp", "pdf"])
     b.add_argument("--category")
 
     v = sub.add_parser("verify", help="schema + sha + feature + determinism check")

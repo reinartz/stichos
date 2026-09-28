@@ -41,7 +41,7 @@ jobs:
             archive: tar.gz
             artifact_name: stichos-aarch64-apple-darwin
           - target: x86_64-apple-darwin
-            os: macos-13
+            os: macos-14
             arch: x86_64
             archive: tar.gz
             artifact_name: stichos-x86_64-apple-darwin
@@ -53,23 +53,24 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Determine version
         id: version
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+            VERSION="${{ github.event.inputs.version }}"
           else
-            echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+            VERSION="${GITHUB_REF#refs/tags/v}"
           fi
-          echo "version: ${{ steps.version.outputs.version }}"
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "version: ${VERSION}"
 
       - name: Install Rust toolchain
-        uses: dtolnay/rust-action@stable
+        uses: dtolnay/rust-toolchain@master
         with:
+          toolchain: 1.98
           targets: ${{ matrix.target }}
-          rust-version: 1.85
 
       - name: Install cross-compilation dependencies (Linux hosts)
         if: runner.os == 'Linux'
@@ -91,7 +92,7 @@ jobs:
           true
 
       - name: Cache cargo registry
-        uses: actions/cache@v4
+        uses: actions/cache@v7
         with:
           path: |
             ~/.cargo/registry
@@ -147,7 +148,7 @@ jobs:
           echo "archive=$ARCHIVE" >> $GITHUB_OUTPUT
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.artifact_name }}
           path: |
@@ -163,7 +164,7 @@ jobs:
       contents: write
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Download all artifacts
         uses: actions/download-artifact@v4
@@ -231,7 +232,7 @@ jobs:
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Determine version
         run: |
@@ -267,7 +268,7 @@ jobs:
           cat dist/winget/stichos.winget.yaml
 
       - name: Upload winget manifest
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: winget-manifest
           path: dist/winget/stichos.winget.yaml
@@ -279,7 +280,7 @@ jobs:
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Generate Homebrew formula
         run: |
@@ -325,7 +326,7 @@ jobs:
           cat dist/homebrew/stichos.rb
 
       - name: Upload formula
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: homebrew-formula
           path: dist/homebrew/stichos.rb

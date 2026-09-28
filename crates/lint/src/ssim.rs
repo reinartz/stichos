@@ -499,7 +499,7 @@ mod tests {
         // With 112x112 window and deterministic brightness variation,
         // SSIM scores are lower than naive expectations.
         assert!(
-            score >= 0.00 && score <= 0.50,
+            (0.00..=0.50).contains(&score),
             "brightness shift got {:.4}, expected <= 0.50",
             score
         );
@@ -513,7 +513,7 @@ mod tests {
         let score = ssim(&a, &b, 112, 112);
         // Pure noise against uniform gray produces very low SSIM.
         assert!(
-            score >= 0.00 && score <= 0.30,
+            (0.00..=0.30).contains(&score),
             "noise got {:.4}, expected <= 0.30",
             score
         );
