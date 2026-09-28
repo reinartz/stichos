@@ -4,7 +4,7 @@
   "title": "Annotations on multiple pages",
   "source": "generated",
   "generator": {
-    "name": "p5-02-pdf-fixtures",
+    "name": "harness/generator",
     "version": "0.1.0"
   },
   "format": "pdf",
@@ -31,5 +31,5 @@
     ]
   },
   "notes": "3-page document with Text annot on page 1, FreeText on page 2, Highlight on page 3.",
-  "sha256": "489e65195f5b1009b03b0520496661c2a4737c3b4d4eb5e4f17b8e87973c5324"
+  "sha256": "29cf65fe3a7be5f4db8c0f3fb7093d686ad73f207efec7a44e77839b61a5539d"
 }

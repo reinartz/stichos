@@ -4,7 +4,7 @@
   "title": "PDF/A-1b sample fixture",
   "source": "generated",
   "generator": {
-    "name": "p5-02-pdf-fixtures",
+    "name": "harness/generator",
     "version": "0.1.0"
   },
   "format": "pdf",
@@ -31,5 +31,5 @@
     ]
   },
   "notes": "Best-effort PDF/A-1b fixture with XMP metadata, MarkInfo, and pdfaid scheme. Not veraPDF-validated (tool absent on host); CI path uses veraPDF.",
-  "sha256": "f1e5b70f8a00c46ad73448a24db45e4f9aad2a00d1e8d546aa09963c53a303f3"
+  "sha256": "f9f672befdaa069a0096702b4051d8e11f197adc279275a279f1157ca12778a6"
 }

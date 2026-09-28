@@ -4,7 +4,7 @@
   "title": "Damaged/orphan annotation dict",
   "source": "generated",
   "generator": {
-    "name": "p5-02-pdf-fixtures",
+    "name": "harness/generator",
     "version": "0.1.0"
   },
   "format": "pdf",
@@ -31,5 +31,5 @@
     ]
   },
   "notes": "Damaged PDF: annotation dict with unknown Subtype (/Unknown) in Root Annots; reader should refuse/skip, never silently drop.",
-  "sha256": "ab37768ff79dd1de4ef7db346f9b323a975c014d27d25426c609051fed9beb3f"
+  "sha256": "8bb5bf102c56d4f2a857170bcbe3d2db7a295c75bb869696434acdae90ad3e56"
 }

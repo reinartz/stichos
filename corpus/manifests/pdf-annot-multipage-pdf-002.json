@@ -4,7 +4,7 @@
   "title": "2-page document with text and free-text annotations",
   "source": "generated",
   "generator": {
-    "name": "p5-02-pdf-fixtures",
+    "name": "harness/generator",
     "version": "0.1.0"
   },
   "format": "pdf",
@@ -31,5 +31,5 @@
     ]
   },
   "notes": "2-page document with Text annot on page 1 and FreeText on page 2.",
-  "sha256": "1cf80d7347e76b19d946c787fb12e5335eef100668a09880dd85991361147e17"
+  "sha256": "aeab73950f438d08a9aa6fed65844b7718f8fcf8c875e9fd2c83f2569caf96e4"
 }

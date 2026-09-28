@@ -4,7 +4,7 @@
   "title": "Self-signed PDF (simple)",
   "source": "generated",
   "generator": {
-    "name": "p5-02-pdf-fixtures",
+    "name": "harness/generator",
     "version": "0.1.0"
   },
   "format": "pdf",
@@ -31,5 +31,5 @@
     ]
   },
   "notes": "Self-signed PDF with PKCS#7 detached signature. Tests signature detection + PAdES-B-B path.",
-  "sha256": "3f87bd8aadac999ceb565c056737d3890f9b8c4844eba69fba7d088ea48b4cfe"
+  "sha256": "9548b9617cee0b4b2ed37aefc1e5a53bf77063db1cede5ac09931dd39220b56a"
 }

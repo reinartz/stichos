@@ -4,7 +4,7 @@
   "title": "FreeText annotation on page 1",
   "source": "generated",
   "generator": {
-    "name": "p5-02-pdf-fixtures",
+    "name": "harness/generator",
     "version": "0.1.0"
   },
   "format": "pdf",
@@ -31,5 +31,5 @@
     ]
   },
   "notes": "Single FreeText annotation with DA (default appearance) and DM (modification date).",
-  "sha256": "ec40f144a2d4cbb4d3c8cbe4c5bc072cbbdc098374de27ab7babf887cfbad16c"
+  "sha256": "e436d621b68ddd1feec2327ae81a77ed87d73f29b26a3b71848f6012f243b985"
 }

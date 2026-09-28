@@ -4,7 +4,7 @@
   "title": "Multiple annotation types on page 1",
   "source": "generated",
   "generator": {
-    "name": "p5-02-pdf-fixtures",
+    "name": "harness/generator",
     "version": "0.1.0"
   },
   "format": "pdf",
@@ -31,5 +31,5 @@
     ]
   },
   "notes": "Four annotations on page 1: Highlight + Text + FreeText + Stamp (4 total).",
-  "sha256": "3fc7dc81d3b2419e7068ac505badcc200970912ff95ad25417842c154b4395f7"
+  "sha256": "bd90e7151e9ed365d739a98be786db41a0f565517b6344df75a1bc18e3d192c1"
 }

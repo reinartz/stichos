@@ -4,7 +4,7 @@
   "title": "Highlight annotation on page 1",
   "source": "generated",
   "generator": {
-    "name": "p5-02-pdf-fixtures",
+    "name": "harness/generator",
     "version": "0.1.0"
   },
   "format": "pdf",
@@ -31,5 +31,5 @@
     ]
   },
   "notes": "Single highlight annotation with QuadPoints on page 1; yellow color [1,1,0].",
-  "sha256": "78db15bed940467c73d67bf2d467e7e145c5db7e56d098244b2c5d5a178ca3d5"
+  "sha256": "1ddee0837a4a6f4f9c10e22a7653e335334c63260a8d4011531470480c3e90be"
 }
