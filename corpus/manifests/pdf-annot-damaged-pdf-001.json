@@ -31,5 +31,5 @@
     ]
   },
   "notes": "Damaged PDF: annotation dict with unknown Subtype (/Unknown) in Root Annots; reader should refuse/skip, never silently drop.",
-  "sha256": "8bea0aad5b0f16c22a7bb704c994701c6b09a724ee05459f8eb02e39901d4cac"
+  "sha256": "1f787eade60277de6da5c8f2c6e82e334a2a17043f3cc7662b3d2722bbfe909d"
 }

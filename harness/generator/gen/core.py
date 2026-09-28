@@ -335,6 +335,9 @@ def build_all(fmt: str | None, cat: str | None) -> list[dict]:
         m = build_one(c, f, i)
         manifests.append(m)
         print(f"built {m['id']} sha256={m['sha256'][:12]}…")
+    # Always generate PDF fixtures (they're not in BUILDERS, handled separately)
+    if fmt is None or fmt == "pdf":
+        manifests.extend(build_pdf(cat))
     return manifests
 
 
