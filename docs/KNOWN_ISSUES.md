@@ -199,4 +199,28 @@ Fixed: R-D1 added `cargo build -p stichos` at the beginning of the gate script. 
 
 ---
 
-*Last updated: 2026-09-24*
+*Last updated: 2026-09-28*
+
+---
+
+## KI-10: Corpus blob-dependent tests fail in clean checkout
+
+**Status:** fixed 2026-09-28 (Track D3.4)
+**Area:** CI workflows, `harness/generator`
+**Created:** 2026-09-28 (measured at `b7b8805`)
+
+**What happened:** `cargo test --workspace --lib` in a clean checkout failed with 48 failures (29 adapters-ooxml + 10 adapters-odf + 9 gp-core) because corpus blobs are gitignored. The `gen build` command was not run in CI or gate scripts before Rust tests.
+
+**Fix:** D3.4 added `pip install -r harness/requirements-dev.txt` + `python3 -m gen build` to phase3/4/5/6 gate `--ci` paths. D3.3 registered PDF generation in `gen build` so all 169 corpus blobs (including generated PDFs) are produced by a single `gen build` call. Clean checkout CI now shows only the 13 known fails (4 OPC zip-bomb + 9 date-hardcoded gp-core).
+
+---
+
+## KI-11: pr.yml and phase5-gate.yml workflow YAML parse errors
+
+**Status:** fixed 2026-09-28 (Track D4.1 + D4.2)
+**Area:** `.github/workflows/pr.yml`, `.github/workflows/phase5-gate.yml`
+**Created:** 2026-09-28 (measured at `b7b8805`)
+
+**What happened:** `pr.yml` had 4 job-level `hashFiles()` expressions rejected by actionlint/GitHub (0 jobs created on push). `phase5-gate.yml` had unquoted step names containing colons, making the file unparseable YAML — this also blocked Dependabot's `github_actions` ecosystem scanner.
+
+**Fix:** D4.2 removed 4 job-level `hashFiles` from `pr.yml`. D4.1 quoted the four colon-containing step names in `phase5-gate.yml`. All 8 workflow files now parse cleanly and actionlint reports 0 errors. Dependabot `github_actions` update jobs will succeed.

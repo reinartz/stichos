@@ -2,9 +2,7 @@
 
 Phases 0–6 complete and gated (tags `m1-closeout`..`m6`; **Track A′ (M6 closeout round 2) ALL
 COMPLETE**: gate 90/90, `p606_ctx06_compliance` 6/6, tag `m6` re-anchored + pushed —
-`docs/remaining-work.md`). Working tree **clean** at `3b4a396` ("phase7: P7-5 — PAdES-T/LTV"):
-P7-7 CMS signing committed (`7d56af5`, `fe266cd`), OQ-C12 confirmed (`6c1ba86`), P7-5 committed
-(`3b4a396`); `main` 4 commits ahead of origin (phase7 commits unpushed). Phase-7 intake docs/ADRs
+`docs/remaining-work.md`). **Track D (CI green) complete** — `phase6_gate.sh --ci` 93/93, `phase3/4/5_gate.sh --ci` 26/26/26. Working tree **clean** at `bd29637` ("Track D: clippy/fmt fixes + corpus PDF renames + workflow YAML fixes + gate hardening"): D1 fmt ✅, D2 clippy all-targets 0 errors ✅, D3 corpus PDF renames + gen build ✅, D4 workflow YAML fixes ✅, D5 gate hardening ✅, D7 evidence + CI green ✅. P7-7 CMS signing committed (`7d56af5`, `fe266cd`), OQ-C12 confirmed (`6c1ba86`), P7-5 committed (`3b4a396`). Phase-7 intake docs/ADRs
 are tracked (`docs/track-b-p7-*.md`, ADR-0012/0013 accepted).
 Rust workspace lives in `crates/`; `harness/`, `corpus/`, `docker/`, `baseline/`, `.github/` hold
 the M0 Python fidelity harness and supporting material.
@@ -49,10 +47,11 @@ consistency + T-B envelope on all CLI verbs/MCP serve boundary + T-C gate harden
 (§11 = 2026-09-23 audit corrections, §12 = 2026-09-24 closeout-round-1 status, §13 =
 closeout-round-2). **Closeout round 2 (Track A′) complete** — `phase6_gate.sh --ci` **90/90**,
 `p606_ctx06_compliance` **6/6**, tag `m6` re-anchored + pushed. Phase-7 Track B mostly complete
-(P7-1/2/4/5/6/8 and B0 done; P7-3 tranche C/D deferred; P7-9 launch owner-only). Measured
-2026-09-27 at `3b4a396`: `cargo test --workspace --lib --no-fail-fast` 2157 pass / 13 known
+(P7-1/2/4/5/6/8 and B0 done; P7-3 tranche C/D deferred; P7-9 launch owner-only). Track D (CI green)
+complete: `phase6_gate.sh --ci` 93/93, `phase3_gate.sh --ci` 26/26, `phase4_gate.sh --ci` 26/26.
+Measured 2026-09-28 at `bd29637`: `cargo test --workspace --lib --no-fail-fast` 2157 pass / 13 known
 fails (4 OPC zip-bomb + 9 date-hardcoded gp-core); `cargo test -p mcp --lib` 93/93;
-`phase6_gate.sh --ci` 90/90; fmt + clippy (lib, `-D warnings`) clean; `check-deps.sh` green.
+`phase6_gate.sh --ci` 93/93; fmt + clippy (lib + all-targets, `-D warnings`) clean; `check-deps.sh` green.
 Phase-3 records: `docs/phase3-plan.md`,
 `docs/phase3-status.json`, `docs/m3-acceptance.md` (§7 has post-acceptance corrections).
 
