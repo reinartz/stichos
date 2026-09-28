@@ -31,5 +31,5 @@
     ]
   },
   "notes": "PDF with /Sig field in AcroForm but dummy signature contents. Tests signature detection without full verification.",
-  "sha256": "8888221f62703461243be56bfa17f838877463c2e68982dff0a2fae49a3ba318"
+  "sha256": "57d33efcf53cf68331adb2ee9af5a0a2e03e3154df75bf54923531c827a28746"
 }

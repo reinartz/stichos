@@ -31,5 +31,5 @@
     ]
   },
   "notes": "Self-signed PDF with PKCS#7 detached signature. Tests signature detection + PAdES-B-B path.",
-  "sha256": "9548b9617cee0b4b2ed37aefc1e5a53bf77063db1cede5ac09931dd39220b56a"
+  "sha256": "963ddba510597a8fa280ae4f4fd8a45f3a8114215d34d6d3707f15c3871e4580"
 }

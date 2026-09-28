@@ -31,5 +31,5 @@
     ]
   },
   "notes": "Best-effort PDF/A-1b fixture with XMP metadata, MarkInfo, and pdfaid scheme. Not veraPDF-validated (tool absent on host); CI path uses veraPDF.",
-  "sha256": "f9f672befdaa069a0096702b4051d8e11f197adc279275a279f1157ca12778a6"
+  "sha256": "ebb11e55cae93fecf22cad05bcd669cdc4f467baab1f8037c8929e67ff66f9f0"
 }
