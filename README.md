@@ -19,11 +19,13 @@ loop + trust: C12 annotation round-trip, PDF review session + opt-in pdf.js text
 signature integrity + PAdES-B-B sign-later, launch prep only) is complete** (tag `m5`,
 1 807 lib tests green; see `docs/m5-acceptance.md` — §9 holds the post-acceptance correction).
 **Phase 6 / M6 (context budget C14 + COM/formula/revisions intake) shipped 2026-09-23**
-(35/35 steps, `phase6_gate.sh --ci` green pre-tag, tag `m6`). `docs/m6-acceptance.md` §11 records
-the post-acceptance corrections (Gate-C defaults flip uncommitted, C7 v1.6 spec-test ceilings,
-`__budget` envelope wiring) and [`docs/remaining-work.md`](docs/remaining-work.md) holds the
-closeout + Phase-7 task breakdown. `main` and tag `m6` are **not yet pushed**. See
-[`docs/phase4-concept.md`](docs/phase4-concept.md) / [`docs/phase4-plan.md`](docs/phase4-plan.md) /
+(35/35 steps, `phase6_gate.sh --ci` green pre-tag, tag `m6`; `main` + `m6` **pushed**).
+`docs/m6-acceptance.md` §11–§13 record the closeout rounds; Phase-7 Tracks A′/B/C/D are complete
+except P7-3 tranches C/D and the owner-timed launch (P7-9).
+[`docs/remaining-work.md`](docs/remaining-work.md) (rev 6) holds the remaining-track breakdown
+(Tracks E/F/G + Track H (proposed) + owner items). Track-H work (generic Office handling; H0
+adoption declined 2026-10-01) is preserved on branch `track-h-proposed`; `main` is clean.
+See [`docs/phase4-concept.md`](docs/phase4-concept.md) / [`docs/phase4-plan.md`](docs/phase4-plan.md) /
 [`docs/support-matrix.md`](docs/support-matrix.md).
 
 ## Doc map

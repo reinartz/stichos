@@ -199,7 +199,9 @@ Fixed: R-D1 added `cargo build -p stichos` at the beginning of the gate script. 
 
 ---
 
-*Last updated: 2026-09-28*
+*Last updated: 2026-09-29 (completion audit: KI-02 mitigated, KI-04 resolved, KI-05 active;
+KI-06/07/08/09/10/11 resolved/fixed; former 4 OPC zip-bomb known-fails no longer reproduce —
+workspace known-fails now 9, all gp-core date-hardcoded)*
 
 ---
 

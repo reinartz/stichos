@@ -1,9 +1,14 @@
 # stichos
 
-Phases 0–6 complete and gated (tags `m1-closeout`..`m6`; **Track A′ (M6 closeout round 2) ALL
-COMPLETE**: gate 90/90, `p606_ctx06_compliance` 6/6, tag `m6` re-anchored + pushed —
-`docs/remaining-work.md`). **Track D (CI green) complete** — `phase6_gate.sh --ci` 93/93, `phase3/4/5_gate.sh --ci` 26/26/26. Working tree **clean** at `bd29637` ("Track D: clippy/fmt fixes + corpus PDF renames + workflow YAML fixes + gate hardening"): D1 fmt ✅, D2 clippy all-targets 0 errors ✅, D3 corpus PDF renames + gen build ✅, D4 workflow YAML fixes ✅, D5 gate hardening ✅, D7 evidence + CI green ✅. P7-7 CMS signing committed (`7d56af5`, `fe266cd`), OQ-C12 confirmed (`6c1ba86`), P7-5 committed (`3b4a396`). Phase-7 intake docs/ADRs
-are tracked (`docs/track-b-p7-*.md`, ADR-0012/0013 accepted).
+Phases 0–6 complete and gated (tags `m1-closeout`..`m6`). Phase-7 Tracks A′/B/C/D complete
+(A′ closeout, B except P7-3 C/D + P7-9, C engine completion, D CI green). **Measured at clean HEAD:**
+`cargo test --workspace --lib` **2244 pass / 9 known fails**
+(9 date-hardcoded gp-core formula), `cargo test -p mcp --lib` **93/93**, fmt + clippy
+(all-targets, `-D warnings`) + `check-deps.sh` green. p606_ctx06_compliance **6/6**.
+Remaining work = **Tracks E/F/G + owner items** in `docs/remaining-work.md`. P7-7 CMS signing
+committed (`7d56af5`, `fe266cd`), OQ-C12 confirmed (`6c1ba86`), P7-5 committed (`3b4a396`);
+ADR-0012/0013 accepted. **Track H** (generic Office handling) **proposed but not adopted** (owner
+declined H0 2026-10-01); proposed code preserved on branch `track-h-proposed`.
 Rust workspace lives in `crates/`; `harness/`, `corpus/`, `docker/`, `baseline/`, `.github/` hold
 the M0 Python fidelity harness and supporting material.
 
@@ -13,8 +18,9 @@ the M0 Python fidelity harness and supporting material.
 - `brand.md` — identity rules; `assets/` holds the mark, wordmarks, lockups, generated rasters.
 - Name is **always lowercase** `stichos`. Never `Stichos`, never bold the wordmark (use ink vs paper).
 - Voice: "proof", "render", "fidelity budget", "renderer provenance"; CLI verbs `inspect render diff apply doctor`
-  (21 verbs total at M5: `inspect region render diff doctor serve schema apply edit annotate revert
-  journal perf create script update revisions annots review open sign`).
+   (24 verbs: 22 M5 verbs + `verify` + `validate` + `finish`):
+   `inspect region render diff doctor serve schema apply edit annotate revert journal perf create
+   script update revisions annots review open sign verify validate finish`.
 
 ## Asset pipeline (run from `assets/`)
 - `python3 wordmark.py` regenerates `wordmark*.svg` and `lockup*.svg` (needs PIL + fontconfig; picks Inter via fc-match).
@@ -45,13 +51,13 @@ consistency + T-B envelope on all CLI verbs/MCP serve boundary + T-C gate harden
 `ff80f8e`; tag `m6` re-anchored to `ff80f8e`; **`main` + `m6` pushed** 2026-09-24. Records:
 `docs/phase6-concept.md`, `docs/phase6-plan.md`, `docs/phase6-status.json`, `docs/m6-acceptance.md`
 (§11 = 2026-09-23 audit corrections, §12 = 2026-09-24 closeout-round-1 status, §13 =
-closeout-round-2). **Closeout round 2 (Track A′) complete** — `phase6_gate.sh --ci` **90/90**,
-`p606_ctx06_compliance` **6/6**, tag `m6` re-anchored + pushed. Phase-7 Track B mostly complete
-(P7-1/2/4/5/6/8 and B0 done; P7-3 tranche C/D deferred; P7-9 launch owner-only). Track D (CI green)
-complete: `phase6_gate.sh --ci` 93/93, `phase3_gate.sh --ci` 26/26, `phase4_gate.sh --ci` 26/26.
-Measured 2026-09-28 at `bd29637`: `cargo test --workspace --lib --no-fail-fast` 2157 pass / 13 known
-fails (4 OPC zip-bomb + 9 date-hardcoded gp-core); `cargo test -p mcp --lib` 93/93;
-`phase6_gate.sh --ci` 93/93; fmt + clippy (lib + all-targets, `-D warnings`) clean; `check-deps.sh` green.
+closeout-round-2). **Closeout round 2 (Track A′) complete** — `phase6_gate.sh --ci` **90/90**
+at tag time, `p606_ctx06_compliance` **6/6**. Phase-7 Track B mostly complete
+(P7-1/2/4/5/6/8 and B0 done; P7-3 tranche C/D deferred; P7-9 launch owner-only). Tracks C
+(engine completion) and D (CI green) complete; see the header block for 2026-09-29 re-measured
+gate/test counts. **Track H** (generic Office handling, `docs/track-h-generic-office-handling.md`)
+proposed 2026-09-29; owner declined H0 adoption 2026-10-01 — code uncommitted in the working tree,
+closeout H9 not performed; at-tree regressions logged in `docs/remaining-work.md` rev 6.
 Phase-3 records: `docs/phase3-plan.md`,
 `docs/phase3-status.json`, `docs/m3-acceptance.md` (§7 has post-acceptance corrections).
 
@@ -68,7 +74,7 @@ Phase-3 records: `docs/phase3-plan.md`,
 | `engines` | Render engine abstraction (libreoffice, pandoc, chromium, typst live; ms-office COM on Windows host via logon-agent model) |
 | `lint` | Fidelity linting (budget, ssim, contrast, font, diff, cropper) |
 | `mcp` | MCP protocol (jsonrpc, dispatch, server, session/review incl. text-layer routes, tools, transport, http, spec) |
-| `cli` | `stichos` binary — 21 verbs (inspect, region, render, diff, doctor, serve, schema, apply, edit, annotate, revert, journal, perf, create, script, update, revisions, annots, review, open, sign) |
+| `cli` | `stichos` binary — 24 verbs (inspect, region, render, diff, doctor, serve, schema, apply, edit, annotate, revert, journal, perf, create, script, update, revisions, annots, review, open, sign, verify, validate, finish) |
 | `adapters-ooxfuzz` | Fuzzing harness for OOXML adapters (dev-only) |
 
 Engines are spawned subprocesses, never linked; zero hard external deps.

@@ -1,12 +1,16 @@
 # stichos — Codebase Structure
 
-> **Note:** This document reflects the current state of the Rust codebase (synced 2026-09-27,
-> HEAD `3b4a396`, working tree clean). It is maintained by contributors; `project_plan.md` §3 is the
+> **Note:** This document reflects the current state of the Rust codebase (synced 2026-09-29 at
+> clean HEAD `76a98cb`, `main` == `origin/main`; 2026-10-01 re-audit: working tree had 60 porcelain
+> entries incl. **proposed Track-H** code — moved to branch `track-h-proposed` by Phase U; `main`
+> is clean again).
+> It is maintained by contributors; `project_plan.md` §3 is the
 > authoritative plan reference. Where reality and the plan DAG differ, §"Known DAG deviations"
-> below records it. Track A′ (M6 closeout round 2) is **complete** — gate 90/90, `p606` 6/6, tag
-> `m6` re-anchored + pushed; Phase-7 Track B status: P7-5 committed (`3b4a396`); remaining: P7-3
-> tranche C/D deferred, P7-9 launch owner-only — tracked in `docs/remaining-work.md`; audit trail
-> in `docs/m6-acceptance.md` §11–§13.
+> below records it. Track A′ (M6 closeout round 2) is **complete**; Phase-7 Tracks B (except
+> P7-3 tranche C/D + P7-9), C (engine completion) and D (CI green) are **complete** — remaining
+> work = Tracks E/F/G + Track H (proposed, preserved on branch `track-h-proposed`) + owner items
+> in `docs/remaining-work.md` (rev 6);
+> audit trail in `docs/m6-acceptance.md` §11–§13.
 
 ## Workspace layout
 
@@ -35,7 +39,8 @@ crates/
   mcp/                        # MCP protocol: spec, tool registry, dispatch, jsonrpc,
                               #   server, transport, http (protocol layer only; Wave 0
                               #   removed the adapters-pdf edge via gp-core::traits)
-  cli/                        # the `stichos` binary — 21 verbs, wires everything together
+  cli/                        # the `stichos` binary — 22 verbs at HEAD (24 in proposed
+                               #   Track-H tree on branch `track-h-proposed`), wires everything together
   adapters-ooxfuzz/           # fuzzing harness (dev-only): read + write-path fuzz corpora
 ```
 
@@ -92,6 +97,7 @@ selfupdate. No workspace crate dependencies.
 | `edit_stability` | Element-ID stability property tests (C2) | — |
 | `macro_check` | Macro expansion checks | — |
 | `testkit` | Shared test utilities | — |
+| `file_access` | *(branch `track-h-proposed`, Track H — proposed; not adopted)* locked-file copy-aside + OneDrive placeholder hydration (`read_document_bytes`) | — |
 
 Constants: `IR_VERSION = "1.0.0"`, `ELEMENT_ID_PATTERN = "^id-[0-9a-f]{12,}$"`
 
@@ -114,6 +120,8 @@ Open XML (OOXML) adapters: read, surgical write, create, revisions.
 | `revision_reader` / `revision_executor` / `revision_ops` / `comment_writer` | Revision + comment read/write (C11, M4) |
 | `census` | Feature census → fidelity budget |
 | `validate` | Schema/structural validation gate |
+| `opc_validate` | *(branch `track-h-proposed`, Track H — proposed; not adopted)* OPC package integrity validation (rel targets, orphan parts, content-type coverage, slide counts, ZIP entry order) |
+| `potx` | *(branch `track-h-proposed`, Track H — proposed; not adopted)* POTX → PPTX template conversion (content-type override rewrite) |
 
 ### adapters-odf
 
@@ -162,7 +170,7 @@ Render engines as spawned subprocesses, never linked (D3).
 | `creation` | Unified creation dispatcher (pandoc/chromium/typst/native/revisions) |
 | `probe` | Engine discovery + fixture-conversion capability probes (D8) |
 | `negotiate` | Renderer negotiation incl. `authoring_order()` per conversion |
-| `doctor` | Doctor probe matrix (engines × fixtures + PDF/A revalidation row); SystemInfo carries chromium/pandoc/typst version fields with report rows in `engines::doctor`, but CLI doctor registers only libreoffice+pandoc engines and omits chromium/typst version fields in JSON (Track C gap C1.3) |
+| `doctor` | Doctor probe matrix (engines × fixtures + PDF/A revalidation row); SystemInfo + CLI doctor carry chromium/pandoc/typst version fields (Track C C1.3 complete) |
 | `raster` | Rasterization ladder (poppler → gs → mutool → soffice) |
 | `cache` | Render master cache (key per INV-4) |
 | `capability` | Capability matrix (C5) |
@@ -202,7 +210,7 @@ MCP (Model Context Protocol) server. Protocol layer only — wiring lives in `cl
 | Module | Purpose |
 |--------|---------|
 | `spec` | Tool specification types (C7 compliance; per-tool `schema_version`) |
-| `tools` | Tool registry (23 specs) + validation |
+| `tools` | Tool registry (24 specs) + validation |
 | `dispatch` | Tool handler trait + closure adapter |
 | `jsonrpc` | JSON-RPC protocol |
 | `server` | MCP server implementation |
@@ -210,12 +218,13 @@ MCP (Model Context Protocol) server. Protocol layer only — wiring lives in `cl
 | `transport` | Transport modes (stdio) |
 | `http` | HTTP transport (session store, `POST /` routing, `/viewer/pdf/*` + `/review/<token>/text/<N>.json` routes) |
 
-MCP tool surface (C7 v1.6.0, 23 specs): `doctor`, `serve` (v1.0.0); `revert_document` (v1.1.0);
+MCP tool surface (C7 v1.7.0, 24 specs): `doctor`, `serve` (v1.0.0); `revert_document` (v1.1.0);
 `create_document`, `script_tool`, `check_update` (v1.2.0); `list_revisions`, `accept_revisions`,
 `reject_revisions`, `add_comment` (v1.3.0); `list_annotations`, `resolve_annotations` (v1.4.0);
 `sign_document` (v1.5.0); `inspect_document`, `render_document`, `inspect_region`,
 `diff_documents`, `apply_patch`, `edit_text`, `edit_cell`, `edit_structure`, `annotate_pages`,
-`journal` (v1.6.0).
+`journal` (v1.6.0). Proposed Track-H tree (branch `track-h-proposed`): 24 tools / 24 verbs
+(schema still 1.6.0).
 
 ### cli
 
@@ -223,7 +232,7 @@ The `stichos` binary. Entry point, clap parsing, subcommand dispatch, engine/ada
 
 | Module | Purpose |
 |--------|---------|
-| `main` | CLI entry, 21-verb dispatch |
+| `main` | CLI entry, 22-verb dispatch (24 in proposed Track-H tree on branch `track-h-proposed`) |
 | `inspect` / `region` / `render` / `diff_tool` / `doctor_tool` | Read-side verbs (doctor incl. PDF/A revalidation row) |
 | `apply_tool` / `sugar_edits` | `apply`, `edit` — surgical edits + sugar (tracked revisions default) |
 | `journal_tool` | `journal` / `revert` |
@@ -237,9 +246,10 @@ The `stichos` binary. Entry point, clap parsing, subcommand dispatch, engine/ada
 | `budget_enforcer` | INV-2 / C8 payload budget enforcement |
 | (verbs in `main.rs`) | `serve`, `schema`, `create`, `update` |
 
-Subcommands (21): `inspect`, `region`, `render`, `diff`, `doctor`, `serve`, `schema`, `apply`,
-`edit`, `annotate`, `revert`, `journal`, `perf`, `create`, `script`, `update`, `revisions`,
-`annots`, `review`, `open`, `sign`.
+Subcommands (22 at HEAD; `verify` from P7-7/B0.4): `inspect`, `region`, `render`, `diff`, `doctor`,
+`serve`, `schema`, `apply`, `edit`, `annotate`, `revert`, `journal`, `perf`, `create`, `script`,
+`update`, `revisions`, `annots`, `review`, `open`, `sign`, `verify`. Proposed Track-H tree (branch
+`track-h-proposed`) adds `validate` + `finish` (24).
 
 ### adapters-ooxfuzz
 
@@ -308,7 +318,10 @@ docs/
   threat-model.md         # threat model incl. SEC-06 reviews (M1–M6)
   KNOWN_ISSUES.md         # KI-01..09
   release-playbook.md     # DIS-08 release procedure
-  remaining-work.md       # post-M6 task map (Track A′ closeout round 2 — complete; Track B Phase-7 backlog)
+  track-h-generic-office-handling.md   # generic Office handling — PROPOSED (H0 adoption
+                           #   declined 2026-10-01); code on branch `track-h-proposed`
+  remaining-work.md       # post-M6 task map (rev 6): remaining Tracks E/F/G + Track H (proposed
+                           #   on branch `track-h-proposed`) + owner items; Tracks A′/B/C/D complete
 ```
 
 ## Reviewer + vendored assets
@@ -319,19 +332,19 @@ assets/
   vendor/pdfjs/           # vendored pdf.js 3.11.174 (text layer only) + HASHES.toml (ADR-0009, D24)
 ```
 
-## Test coverage summary (measured 2026-09-27, HEAD `3b4a396`, `cargo test --workspace --lib --no-fail-fast`)
+## Test coverage summary (measured 2026-09-29 at clean HEAD `76a98cb`, `cargo test --workspace --lib --no-fail-fast`; 2026-10-01 dirty tree build fixed by Phase U — code moved to branch `track-h-proposed`; main is clean again)
 
 | Crate | Passed | Failed | Ignored | Notes |
 |-------|--------|--------|---------|-------|
-| gp-core | 567 | 9 | 0 | incl. script sandbox + selfupdate + C12/C13 suites; 9 fails = pre-existing date-hardcoded `formula::evaluator` tests (time-dependent); with `--features pades-ltv`: 567 → 592 pass / 9 fail |
-| adapters-ooxml | 352 | 4 | 0 | read + surgical write + creation + revisions (C11); 4 fails = known OPC zip-bomb (accepted) |
+| gp-core | 567 | 9 | 0 | incl. script sandbox + selfupdate + C12/C13 + P7-5 LTV suites; 9 fails = pre-existing date-hardcoded `formula::evaluator` tests (time-dependent) |
+| adapters-ooxml | 356 | 0 | 0 | read + surgical write + creation + revisions (C11); **former 4 OPC zip-bomb fails no longer reproduce** |
 | adapters-odf | 226 | 0 | 0 | zero-patch in-suite + revision write |
-| adapters-pdf | 149 | 0 | 2 | prefix invariant in-suite + annot enumeration/write-back |
-| engines | 244 | 0 | 0 | chromium/typst honest-absent paths + COM skeleton |
+| adapters-pdf | 149 | 0 | 2 | prefix invariant in-suite + annot enumeration/write-back + redaction |
+| engines | 327 | 0 | 0 | chromium/typst/pandoc (Track C), COM workers, pdfium rung |
 | lint | 300 | 0 | 0 | |
 | mcp | 93 | 0 | 0 | incl. session/review + text-layer route tests |
 | adapters-ooxfuzz | 226 | 0 | 0 | fuzz regressions locked as tests (rounds 1–4) |
-| **Total (lib)** | **2 157** | **13** | **2** | 13 = 4 known OPC zip-bomb + 9 date-hardcoded gp-core (all pre-existing) |
+| **Total (lib)** | **2 244** | **9** | **2** | 9 = date-hardcoded gp-core formula::evaluator (all pre-existing) |
 
 (CLI bin + integration + doctest suites from the m3-era table are exercised via the phase gates;
 see `docs/m5-acceptance.md` §3 for the gate transcript.)

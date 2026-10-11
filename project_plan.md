@@ -1,26 +1,32 @@
 # stichos — Project Plan
 
 **Status:** **M0–M6 shipped and tagged** · **M6 shipped 2026-09-23** (35/35 steps,
-`phase6_gate.sh --ci` green pre-tag, tag `m6` (re-anchored through closeout, now `5579231`); **`main` + `m6` pushed**, **Track A′
-(M6 closeout round 2) complete** — gate 90/90, `p606_ctx06_compliance` 6/6, tag `m6` re-anchored +
-pushed; `main` now 4 commits ahead of origin — phase7 commits unpushed.
+`phase6_gate.sh --ci` green pre-tag, tag `m6` (at `5579231`, 18 commits behind HEAD — re-anchor
+tracked as E4); **`main` + `m6` pushed**, **Track A′ (M6 closeout round 2) complete** — gate 90/90
+at tag time, `p606` 6/6.
 `docs/m6-acceptance.md` §11 records the post-acceptance corrections from the
 2026-09-23 audit (Gate-C defaults flip, C7 v1.6 spec-test ceilings, `__budget`
 envelope wiring, toothless gate checks 1b/1d/1e/1f — all fixed in closeout rounds 1–2, committed in
-`ff80f8e` + follow-ups); Phase-7 tasks in
-[`docs/remaining-work.md`](docs/remaining-work.md)) · derived from
+`ff80f8e` + follow-ups); Phase-7 Tracks B/C/D complete (except P7-3 tranche C/D + P7-9 launch);
+remaining work = Tracks E/F/G + **Track H (proposed, adoption declined 2026-10-01)** + owner items in
+[`docs/remaining-work.md`](docs/remaining-work.md) rev 6 — Track H code on branch `track-h-proposed`
+(Phase U unblock); derived from
 [`project_concept.md`](project_concept.md) (decisions D1–D27, phases §14)
-**Last updated:** 2026-09-27 — Track A′ complete (gate 90/90), Phase-7 Track B mostly complete
-(P7-5 committed `3b4a396`), engine-completion plan = new Track C in
+**Last updated:** 2026-10-01; completion audit re-measured 2026-09-29 at clean tree `76a98cb`:
+phase6 gate **92/93**
+(only fail = m6 tag lag), phase3/4 **26/26**, phase5 **50/52** (2 stale-gate fails → Track E),
+workspace tests **2244/9**, Tracks C+D complete, remaining work restructured in
 [`docs/remaining-work.md`](docs/remaining-work.md); prior: M0 ✅ (harness + 151-fixture corpus + goldens + baseline report-v1, nightly ×3
 green), M1 ✅ tag `m1-closeout`, M2 ✅ tag `m2`, M3 ✅ tag `m3` (creation + ODF/PDF write completion + Rhai
 sandbox + distribution automation; gate re-verified 2026-09-16: 1 644 tests, clippy/fmt/deny clean,
 `phase3_gate.sh` 26/26; `docs/m3-acceptance.md` §7 for corrections), M4 ✅ tag `m4` (2026-09-18, human
 loop), M5 ✅ tag `m5` (2026-09-19, PDF loop + trust; §9 correction noted above), M6 ✅ tag `m6`
 (2026-09-23, context budget + intake; §11 corrections noted above). Gates G1 ✅ (D19), G4 ✅ (no own repos);
-G3 closed at M6 (Windows host COM-2..6 verified), G5 closed 2026-09-26 (adopted — pdfium dynamic linking per P7-8). Surface measured
-2026-09-23: **23 tools** (`spec.rs` assert) / **21 verbs** (`enum Command`), C7 **v1.6.0** (10 Wave-C
-tools bumped; `docs/contracts/C7.md` matrix landed at 1.6.0 in `ff80f8e`).
+G3 closed at M6 (Windows host COM-2..6 verified), G5 closed 2026-09-26 (adopted — pdfium dynamic linking per P7-8). Surface
+at HEAD `76a98cb`: **22 verbs** (`enum Command`: 21 M5 verbs + `verify` from P7-7/B0.4) /
+**23 tools** (`spec.rs` assert), C7 **v1.6.0** (10 Wave-C
+tools bumped; `docs/contracts/C7.md` matrix landed at 1.6.0 in `ff80f8e`; proposed Track-H tree on
+branch `track-h-proposed`: 24 verbs / 24 tools).
 **Rule:** this file is a plan, not a decision record. If a plan choice contradicts the concept,
 resolve it in `project_concept.md` §16 (decision log) first, then reflect it here.
 Traceability: every task cites the concept section (§) or decision (D) it implements.
@@ -434,15 +440,15 @@ design ADRs before implementation and are staffed by the strongest kernel person
 | **W4 ✅** (w23–28, closed 2026-09-16) | ENG-10/11 · AUT-01..05 · API-09/10 · DIS-05..08 (+ Phase-2b intake per S2: ODF-04/05, PDF-03; COM stays deferred; Typst=CLI shell-out per S3; see `docs/phase3-plan.md`) | **M3 ship**: creation |
 | **W5 ✅** (Phase 4, closed 2026-09-18) | HUM-01..03 · OPS-03 · polish + corpus-driven hardening **+ ODF revision write (owner call 2026-09-16) + COM design/CI skeleton (implementation stays deferred)**; overlay = raster-over-masters (D22). Steps in `docs/phase4-plan.md` | **M4 ship**: human loop (tag `m4`) |
 | **W6 ✅** (Phase 5, shipped 2026-09-19) | PDF annotation round-trip (C12) · PDF review session + pdf.js text layer (D24, ADR-0009) · trust (C13/D25, ADR-0010, `sign`) · PDF/A row · launch prep (D26) · fuzz round 4; steps in `docs/phase5-plan.md` | **M5 ship**: PDF loop + trust (tag `m5`; `docs/m5-acceptance.md` §9 post-acceptance correction) |
-| **W7 ✅** (Phase 6, shipped 2026-09-23) | **Wave 0: DAG-inversion closeout** (`mcp -> adapters-pdf` edge removed; `check-deps.sh` green) · **CTX-01..06 — context budget (C14, D27)** · M6 intake on the now-available Windows host: COM-2..6 + Word-interop verification, xlsx formula eval (ADR + minimal subset), ODS/ODP revision write, launch rehearsal only (D26); concept `docs/phase6-concept.md`, plan `docs/phase6-plan.md` | **M6 ship**: tag `m6` (pushed; main 4 commits ahead of origin — phase7 commits unpushed); `docs/m6-acceptance.md` §11 corrections + `docs/remaining-work.md` closeout (C14 envelope wiring, gate hardening, C7 v1.6 freeze tests) |
+| **W7 ✅** (Phase 6, shipped 2026-09-23) | **Wave 0: DAG-inversion closeout** (`mcp -> adapters-pdf` edge removed; `check-deps.sh` green) · **CTX-01..06 — context budget (C14, D27)** · M6 intake on the now-available Windows host: COM-2..6 + Word-interop verification, xlsx formula eval (ADR + minimal subset), ODS/ODP revision write, launch rehearsal only (D26); concept `docs/phase6-concept.md`, plan `docs/phase6-plan.md` | **M6 ship**: tag `m6` (pushed; `main` == `origin/main` at `76a98cb`); `docs/m6-acceptance.md` §11 corrections + `docs/remaining-work.md` closeout (Tracks A′/B/C/D complete; remaining E/F/G) |
 
 ### 6.4 Decision gates (blocking; each has a decision-by wave and an owner)
 
 | Gate | Question | Decide by | Blocks | Concept ref |
 |---|---|---|---|---|
 | G1 | OQ1 license split: pure-Rust only vs shell-out vs AGPL-in-process — **DECIDED 2026-09-08 (owner): lopdf + pdf-writer, qpdf shell-out (ADR-0001 accepted, D19)** | W0 ✅ | PDF-02 raster path, `cargo deny` allow-list, dual-license choice | §18-1, D2 |
-| G2 | OQ3 `gp` alias yes/no — **de facto no**: CLI v1.0–v1.2 shipped with `stichos` spelled out; owner to formalize OQ3 closure | W2 (before API-04 CLI freeze) | C7 tool/CLI naming | §18-3 |
-| G3 | OQ2 Word tier for non-Windows users (Aspose/Syncfusion vs hosted worker vs none) — still open; Phase 4 lands COM **design + compile-only skeleton** only | W3 start | COM-5 scope, M2 marketing claims | §18-2 |
+| G2 | OQ3 `gp` alias yes/no — **RESOLVED 2026-09-18 (owner): no** (concept §18-4); CLI ships `stichos` spelled out | W2 ✅ | C7 tool/CLI naming | §18-3 |
+| G3 | OQ2 Word tier for non-Windows users (Aspose/Syncfusion vs hosted worker vs none) — still open; COM-2..6 **implemented** on the Windows host at M6, but the non-Windows tier question is unanswered | W3 start | COM-5 scope for non-Windows, marketing claims | §18-2 |
 | G4 | OQ4 own apt/rpm repos vs GitHub Releases + winget/Homebrew — **DECIDED 2026-09-15 (owner): GitHub Releases + winget/Homebrew only, no own repos (phase3-concept §10 S4)** | W4 ✅ | DIS-08 | §18-4 |
 | G5 | pdfium bundling — **CLOSED 2026-09-26**: adopted dynamic linking only (P7-8, Option A). D2 intact (no binary C). deny.toml bans removed. | after HAR-06 data | D2 "C stays out" invariant — needs D-log entry if reversed | §5.3, D2 |
 

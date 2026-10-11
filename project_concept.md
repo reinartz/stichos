@@ -7,15 +7,20 @@
 correction: `tools/check-deps.sh` fails at the `m5` tree on the `mcp -> adapters-pdf` edge,
 fixed by dependency inversion in Phase 6 Wave 0); **Phase 6 (context budget C14 + M6 intake)
 shipped 2026-09-23** — 35/35 steps, `phase6_gate.sh --ci` green pre-tag, tag `m6`
-**pushed** (Track A′ closeout round 2 complete — gate 90/90, `p606` 6/6, tag re-anchored +
-pushed); `docs/m6-acceptance.md` §11 records the 2026-09-23 audit corrections (all resolved in
-closeout rounds 1–2, committed in `ff80f8e` + follow-ups) — closeout tasks in
-[`docs/remaining-work.md`](docs/remaining-work.md) (complete).
+**pushed** (Track A′ closeout round 2 complete — gate 90/90 at tag time, `p606` 6/6;
+tag `m6` currently at `5579231`, 18 commits behind HEAD — re-anchor tracked as E4 in
+[`docs/remaining-work.md`](docs/remaining-work.md)); `docs/m6-acceptance.md` §11 records the
+2026-09-23 audit corrections (all resolved in closeout rounds 1–2, committed in `ff80f8e` +
+follow-ups). Phase-7 Tracks B/C/D complete (except P7-3 tranche C/D + P7-9 launch 👤);
+remaining work = Tracks E/F/G + **Track H (proposed; H0 adoption declined 2026-10-01)** + owner
+items in [`docs/remaining-work.md`](docs/remaining-work.md) rev 6 — Track H code on branch
+`track-h-proposed` (Phase U unblock); main is clean.
 Decision **D27**, contract [`docs/contracts/C14-context-budget.md`](docs/contracts/C14-context-budget.md) +
 guide [`docs/implementation-guide-context-budget.md`](docs/implementation-guide-context-budget.md).
-**Last updated:** 2026-09-27 (Track A′ complete, gate 90/90; Phase-7 Track B mostly complete —
-P7-5 committed `3b4a396`; surface re-measured: **23 tools** (`spec.rs` assert) / **21 verbs**
-(`enum Command`), C7 v1.6.0 in `spec.rs`; `docs/contracts/C7.md` matrix landed 1.6.0 in `ff80f8e`)
+**Last updated:** 2026-10-01 (2026-09-29 clean-tree completion audit at `76a98cb`: phase6 gate
+92/93, phase3/4 26/26, phase5 50/52, tests 2244/9; Tracks C+D complete; remaining work
+restructured; surface at HEAD: **22 verbs** / **23 tools**, C7 v1.6.0; 24/24 in the proposed
+Track-H tree)
 **Project root:** `/localdata/workspace/stichos`
 **Related:** [`brand.md`](brand.md) — identity, colour, typography, logo usage
 
@@ -492,10 +497,13 @@ Crate layout: `core` (IR + patch engine, dep-free) · `adapters-ooxml` · `adapt
 1. ~~License split~~ **RESOLVED 2026-09-08 (G1, owner):** lopdf + pdf-writer pure-Rust core, qpdf shell-out;
    AGPL never in-process (ADR-0001 accepted; D19).
 2. Word-rendering tier for non-Windows users: paid Aspose/Syncfusion path or a hosted Word worker?
-3. Is a `gp` short binary alias wanted for the CLI, or `stichos` spelled out everywhere?
-4. **RESOLVED 2026-09-18 (OQ3/G2, owner):** `gp` alias — **no**. The CLI verb surface (19 verbs) already covers the full tool set; a 2-char alias adds ambiguity without value (`gp inspect` vs `stichos inspect` in logs). D18 agent rule: always use `stichos` spelled out.
-5. **RESOLVED 2026-09-15 (G4, owner):** GitHub Releases + winget/Homebrew only; no own apt/rpm repos
-   (`docs/phase3-concept.md` §10 S4; DIS-05/06/08 land in Phase 3 Wave G).
+   (still open — COM-2..6 shipped on the Windows host at M6; non-Windows tier unanswered)
+3. ~~Is a `gp` short binary alias wanted for the CLI, or `stichos` spelled out everywhere?~~
+   **RESOLVED 2026-09-18 (OQ3/G2, owner):** `gp` alias — **no**. The CLI verb surface (21 verbs) already
+   covers the full tool set; a 2-char alias adds ambiguity without value (`gp inspect` vs `stichos inspect`
+   in logs). D18 agent rule: always use `stichos` spelled out.
+4. **RESOLVED 2026-09-15 (G4, owner):** GitHub Releases + winget/Homebrew only; no own apt/rpm repos
+   (`docs/phase3-concept.md` §10 S4; DIS-05/06/08 landed in Phase 3 Wave G).
 5. **RESOLVED 2026-09-08:** no trademark filing for this open-source project (D21); skip `stichos.com`,
    `stichos.dev` only (D20).
 
@@ -515,6 +523,7 @@ Crate layout: `core` (IR + patch engine, dep-free) · `adapters-ooxml` · `adapt
    **pushed**; `docs/phase6-concept.md`, `docs/phase6-plan.md`, `docs/phase6-status.json`,
    `docs/m6-acceptance.md` §11 corrections): Wave 0 DAG-inversion closeout (`check-deps.sh` green),
    summary/URL/cap/`dry_run`-true defaults flipped (committed `ff80f8e`),
-   C7 v1.6.0 bump in `spec.rs`. **Closeout rounds 1–2 (Track A′) complete** — gate 90/90.
-   **Remaining open:** Track B residue (P7-3 tranche C/D, P7-9 launch 👤) + Track C engine
-   completion (see `docs/remaining-work.md`).
+   C7 v1.6.0 bump in `spec.rs`. **Closeout rounds 1–2 (Track A′) complete** — gate 90/90;
+   **Tracks C (engine completion) + D (CI green) complete** (2026-09-28).
+    **Remaining open:** Tracks E/F/G + Track H (proposed, H0 declined 2026-10-01) + owner items —
+    see `docs/remaining-work.md` rev 6 §1.

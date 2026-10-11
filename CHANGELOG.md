@@ -7,8 +7,18 @@ breaking changes require a minor bump per `docs/contracts/C7.md`.
 
 ## [Unreleased] — M4 + M5 + M6 (tags `m4`, `m5`, `m6`)
 
+**2026-10-01 completion audit:** measured dirty-tree state recorded in `docs/remaining-work.md`
+rev 6 — working tree carried uncommitted proposed Track-H code (60 porcelain entries); the
+2026-09-29 clean-HEAD `76a98cb` figures above remain the baseline.
+**Track H (generic Office handling, `docs/track-h-generic-office-handling.md`):** proposed
+2026-09-29; H0 adoption declined by owner 2026-10-01 — code moved to branch `track-h-proposed`
+by Phase U (2026-10-01), closeout H9 not performed; `main` returned to clean state.
+**Doc sweep (Track G G3) complete:** `AGENTS.md`, `CODEBASE.md`, `README.md`, `project_plan.md`,
+`project_concept.md` headers synced to the Phase U clean-HEAD state (verb/tool counts, Track H
+status).
+
 ### Added
-- **Track D (CI green):** All CI gates now pass — `phase6_gate.sh --ci` 93/93, `phase3/4/5_gate.sh --ci` 26/26/26. Includes: corpus PDF renames (D3.2), `gen build` PDF integration (D3.3), `gen build` blob bootstrap in CI (D3.4), workflow YAML fixes (D4), gate known-failures tolerance (D5), clippy/fmt fixes across all crates (D1/D2).
+- **Track D (CI green):** CI gates green — `phase6_gate.sh --ci` 93/93 at `bd29637` (92/93 at 2026-09-29 HEAD: `m6` tag lag, E4), `phase3/4_gate.sh --ci` 26/26, `phase5_gate.sh --ci` 50/52 (2 stale-gate fails, E1). Includes: corpus PDF renames (D3.2), `gen build` PDF integration (D3.3), `gen build` blob bootstrap in CI (D3.4), workflow YAML fixes (D4), gate known-failures tolerance (D5), clippy/fmt fixes across all crates (D1/D2).
 - **Creation store handback (C7 v1.2.1):** `create_document` returns `store_root` in response
   (path to content store containing the blob) so CLI/MCP consumers can fetch the document blob
   by ID after creation. null for dry_run. (Track C / C-F.2)
@@ -28,10 +38,10 @@ breaking changes require a minor bump per `docs/contracts/C7.md`.
   startup sweep, `expiresAt`), caps `max_elements=100` / `max_pages=3–5` / `max_ops=20` /
   `max_entries=10`, `dry_run=true` default on `apply_patch`/`edit_*` (CLI `--apply` opts out;
   `--dry-run` kept as deprecated no-op); `__budget` envelope types in `gp-core` (`envelope.rs`,
-  `tempfiles.rs`). 10 Wave-C tools bumped to `schema_version` 1.6.0. **Closeout open:** the
-  `__budget`+`rendered_by` stamping currently lands only in `cli/src/image_output.rs` — full
-  100 %-response wiring and the C7 v1.6 spec-test/contract-doc freeze are tracked in
-  `docs/remaining-work.md` (T-A/T-B), see `docs/m6-acceptance.md` §11.
+  `tempfiles.rs`). 10 Wave-C tools bumped to `schema_version` 1.6.0. **Closeout complete:**
+  `__budget`+`rendered_by` stamped on 100 % of CLI verb + MCP serve-boundary responses (T-B),
+  C7 v1.6 spec-test freeze + C7.md/C14.md frozen (T-A), gate hardened (T-C) — Track A′ complete,
+  see `docs/m6-acceptance.md` §12–§13.
 - **Formula evaluation (M6, C15/ADR-0011):** own evaluator for the xlsx subset (12 functions:
   SUM, AVERAGE/AVG, COUNT, MIN, MAX, AND, OR, NOT, IF, CONCATENATE, IFERROR), cached-value
   semantics, GP-F-001..004/010/020 refuse codes, parity lint (LIN-B-010) for stale caches;
