@@ -251,6 +251,6 @@ jobs:
         run: pip install -r harness/requirements-dev.txt
       - name: gen verify --no-blobs (manifests are the git truth; blobs gitignored)
         working-directory: harness/generator
-        run: python -m gen verify --no-blobs
+        run: python3 -m gen verify --no-blobs
       - name: metrics test suite
-        run: python -m pytest harness/metrics/tests -q
+        run: python3 -m pytest harness/metrics/tests -q
