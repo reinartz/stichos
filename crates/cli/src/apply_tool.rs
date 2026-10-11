@@ -13,6 +13,7 @@ use base64::Engine as _;
 use gp_core::{
     diff::diff_documents,
     executor::{ExecutorConfig, FormatType},
+    file_access::read_document_bytes,
     journal::Journal,
     patch::PatchOp,
     store::ContentStore,
@@ -41,8 +42,8 @@ pub fn apply_patch(
     author: &str,
 ) -> Result<serde_json::Value, anyhow::Error> {
     // Read the document
-    let source_bytes =
-        std::fs::read(path).map_err(|e| anyhow!("failed to read document '{}': {}", path, e))?;
+    let source_bytes = read_document_bytes(path)
+        .map_err(|e| anyhow!("failed to read document '{}': {}", path, e))?;
 
     // Parse ops from JSON
     let ops: Vec<PatchOp> = serde_json::from_str(ops_json)

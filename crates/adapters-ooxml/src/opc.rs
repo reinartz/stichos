@@ -281,33 +281,42 @@ fn parse_content_types_xml(data: &[u8]) -> Result<BTreeMap<String, String>, Vec<
 
     // Parse Override elements: <Override ... PartName="..." ContentType="..."/>
     // (PartName is the OPC spec attribute; Path is sometimes used in practice)
-    for line in content.lines() {
-        let trimmed = line.trim();
-        if !trimmed.contains("<Override") {
-            continue;
-        }
+    // Use find_iter-based approach to handle multiple Override elements per line
+    let mut search_start = 0;
+    while let Some(pos) = content[search_start..].find("<Override") {
+        let actual_pos = search_start + pos;
+        let rest = &content[actual_pos..];
+        let end_tag = rest.find(">").unwrap_or(rest.len());
+        let tag_content = &rest[..end_tag];
 
         // Try PartName first (OPC spec), then Path (alternative)
-        let path = extract_attr(trimmed, "PartName").or_else(|| extract_attr(trimmed, "Path"));
+        let path =
+            extract_attr(tag_content, "PartName").or_else(|| extract_attr(tag_content, "Path"));
 
-        if let (Some(path), Some(ct)) = (path, extract_attr(trimmed, "ContentType")) {
+        if let (Some(path), Some(ct)) = (path, extract_attr(tag_content, "ContentType")) {
             let normalized = path.strip_prefix('/').unwrap_or(&path).to_string();
             result.insert(normalized, ct);
         }
+
+        search_start = actual_pos + 1;
     }
 
     // Also check Default elements for extension-based matching.
-    for line in content.lines() {
-        let trimmed = line.trim();
-        if !trimmed.contains("<Default") {
-            continue;
-        }
+    search_start = 0;
+    while let Some(pos) = content[search_start..].find("<Default") {
+        let actual_pos = search_start + pos;
+        let rest = &content[actual_pos..];
+        let end_tag = rest.find(">").unwrap_or(rest.len());
+        let tag_content = &rest[..end_tag];
+
         if let (Some(ext), Some(ct)) = (
-            extract_attr(trimmed, "Extension"),
-            extract_attr(trimmed, "ContentType"),
+            extract_attr(tag_content, "Extension"),
+            extract_attr(tag_content, "ContentType"),
         ) {
             result.insert(format!("/{}", ext), ct);
         }
+
+        search_start = actual_pos + 1;
     }
 
     Ok(result)

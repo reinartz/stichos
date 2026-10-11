@@ -6,6 +6,7 @@
 //! Supports user-provided PKCS#12 certificate chains via --pkcs12 flag.
 
 use anyhow::{bail, Context, Result};
+use gp_core::file_access::read_document_bytes;
 use gp_core::signature::{self, verify_signature, CertSource, SignAlgorithm, SigningIdentity};
 
 /// Execute the sign command.
@@ -18,7 +19,7 @@ pub fn cmd_sign(
     pkcs12_path: Option<String>,
     pkcs12_password: Option<String>,
 ) -> Result<()> {
-    let source = std::fs::read(path).with_context(|| "failed to read input PDF")?;
+    let source = read_document_bytes(path).with_context(|| "failed to read input PDF")?;
 
     let identity = if let Some(p12_path) = pkcs12_path {
         let password = pkcs12_password.unwrap_or_default();
@@ -119,7 +120,7 @@ fn parse_algorithm(s: Option<&str>) -> Result<SignAlgorithm> {
 
 /// Execute the verify command.
 pub fn cmd_verify(path: &std::path::Path) -> Result<()> {
-    let source = std::fs::read(path).with_context(|| "failed to read PDF")?;
+    let source = read_document_bytes(path).with_context(|| "failed to read PDF")?;
     let vr = verify_signature(&source);
 
     println!("{}", serde_json::to_string_pretty(&vr).unwrap());

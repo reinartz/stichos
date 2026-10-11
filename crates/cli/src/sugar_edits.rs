@@ -5,6 +5,7 @@
 //! appropriate `PatchOp` JSON internally and delegate to it.
 
 use anyhow::Result;
+use gp_core::file_access::read_document_bytes;
 
 /// Replace text in an element by ID. Idempotent: same args produces same result.
 ///
@@ -46,6 +47,31 @@ pub fn edit_cell(
         "op": "set_cell_value",
         "cell": element_id,
         "value": value,
+    });
+    let ops_json = serde_json::to_string(&vec![op])?;
+    super::apply_tool::apply_patch(path, &ops_json, dry_run, format_hint, direct, author)
+}
+
+/// Set a spreadsheet cell's rich text runs by element ID (T2 — CellRichText).
+///
+/// Accepts a JSON array of run objects:
+/// `[{"text":"Hello ", "bold":true}, {"text":"World", "color":"FF0000"}]`
+#[allow(clippy::too_many_arguments)]
+pub fn edit_cell_rich(
+    path: &str,
+    element_id: &str,
+    runs_json: &str,
+    dry_run: bool,
+    direct: bool,
+    author: &str,
+    format_hint: Option<&str>,
+) -> Result<serde_json::Value> {
+    let runs: Vec<gp_core::ir::CellRun> =
+        serde_json::from_str(runs_json).map_err(|e| anyhow::anyhow!("invalid runs JSON: {}", e))?;
+    let op = serde_json::json!({
+        "op": "set_cell_rich",
+        "cell": element_id,
+        "runs": runs,
     });
     let ops_json = serde_json::to_string(&vec![op])?;
     super::apply_tool::apply_patch(path, &ops_json, dry_run, format_hint, direct, author)
@@ -98,7 +124,7 @@ pub fn edit_comment(
     author: &str,
     format_hint: Option<&str>,
 ) -> Result<serde_json::Value> {
-    let bytes = std::fs::read(path)?;
+    let bytes = read_document_bytes(path)?;
     let ext = if let Some(fh) = format_hint {
         fh.to_lowercase()
     } else {

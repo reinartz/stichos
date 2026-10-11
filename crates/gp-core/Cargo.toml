@@ -9,6 +9,7 @@ rust-version.workspace = true
 workspace = true
 
 [dependencies]
+anyhow = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
@@ -78,4 +79,5 @@ version = "2"
 optional = true
 
 [dev-dependencies]
-proptest = "1"
+ proptest = "1"
+ winapi = { version = "0.3", features = ["winbase", "fileapi", "handleapi", "winnt"] }

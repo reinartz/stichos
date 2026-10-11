@@ -117,9 +117,48 @@ pub fn check_engine_available(engine_id: &str) -> bool {
     }
 }
 
-/// Check if LibreOffice is available (soffice binary on PATH).
+/// Check if LibreOffice is available (soffice binary on PATH or common paths).
 fn check_libreoffice_available() -> bool {
-    which_binary("soffice").is_some() || which_binary("libreoffice").is_some()
+    // First check PATH (including soffice.bin on Windows)
+    #[cfg(windows)]
+    {
+        if which_binary("soffice.bin").is_some()
+            || which_binary("soffice").is_some()
+            || which_binary("libreoffice").is_some()
+        {
+            return true;
+        }
+    }
+    #[cfg(not(windows))]
+    {
+        if which_binary("soffice").is_some() || which_binary("libreoffice").is_some() {
+            return true;
+        }
+    }
+    // Fall back to common installation paths (mirrors find_lo_binary in libreoffice.rs)
+    let common = &[
+        #[cfg(windows)]
+        "C:\\Program Files\\LibreOffice\\program\\soffice.bin",
+        #[cfg(windows)]
+        "C:\\Program Files\\LibreOffice\\program\\soffice.exe",
+        #[cfg(windows)]
+        "C:\\Program Files (x86)\\LibreOffice\\program\\soffice.bin",
+        #[cfg(windows)]
+        "C:\\Program Files (x86)\\LibreOffice\\program\\soffice.exe",
+        #[cfg(not(windows))]
+        "/usr/bin/soffice",
+        #[cfg(not(windows))]
+        "/usr/bin/libreoffice",
+        #[cfg(not(windows))]
+        "/usr/local/bin/soffice",
+        #[cfg(not(windows))]
+        "/usr/local/bin/libreoffice",
+        #[cfg(not(windows))]
+        "/opt/libreoffice/program/soffice",
+        #[cfg(not(windows))]
+        "/Applications/LibreOffice.app/Contents/MacOS/soffice",
+    ];
+    common.iter().any(|p| std::path::Path::new(p).exists())
 }
 
 /// Check if Microsoft Office is available (heuristic: check common paths).
@@ -712,13 +751,16 @@ mod tests {
         );
     }
 
-    /// test_negotiate_for_conversion_md_to_docx: prefers pandoc for md→docx.
+    /// test_negotiate_for_conversion_md_to_docx: prefers pandoc for md→docx,
+    /// falls back to LO if pandoc unavailable.
     #[test]
     fn test_negotiate_for_conversion_md_to_docx() {
         let choice = negotiate_for_conversion("md", "docx");
         assert!(
-            choice.engine_id == PANDOC_ENGINE_ID || !choice.available,
-            "should prefer pandoc for md→docx (got {})",
+            choice.engine_id == PANDOC_ENGINE_ID
+                || choice.engine_id == LIBREOFFICE_ENGINE_ID
+                || !choice.available,
+            "should prefer pandoc for md→docx, or LO if pandoc unavailable (got {})",
             choice.engine_id
         );
     }

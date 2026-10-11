@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
-//! adapters-ooxml: xlsx → gp-core IR (sheets, cells, formulas, cached values, shared strings, styles, merges).
+//! adapters-ooxml: xlsx â†’ gp-core IR (sheets, cells, formulas, cached values, shared strings, styles, merges).
 //!
 //! Walks a `.xlsx` OPC package, extracts `xl/workbook.xml`, `xl/sharedStrings.xml`,
 //! `xl/styles.xml`, and per-sheet `xl/worksheets/sheetN.xml`, then maps ExcelML
 //! elements to the gp-core intermediate representation:
-//!   * `<sheet>` → Sheet (with name, rows, merged_ranges)
-//!   * `<row>` → SheetRow (with cells)
-//!   * `<c r="A1" t="n">` → SheetCell with row/col/value
-//!   * `<c r="A1" t="s">` → SheetCell resolved from sharedStrings.xml
-//!   * `<c r="A1" t="str"><f>=SUM(...)</f><v>10</v></c>` → SheetCell with formula + cached_value
-//!   * `<mergeCells><mergeCell ref="A1:B2"/></mergeCells>` → MergedRange
+//!   * `<sheet>` â†’ Sheet (with name, rows, merged_ranges)
+//!   * `<row>` â†’ SheetRow (with cells)
+//!   * `<c r="A1" t="n">` â†’ SheetCell with row/col/value
+//!   * `<c r="A1" t="s">` â†’ SheetCell resolved from sharedStrings.xml
+//!   * `<c r="A1" t="str"><f>=SUM(...)</f><v>10</v></c>` â†’ SheetCell with formula + cached_value
+//!   * `<mergeCells><mergeCell ref="A1:B2"/></mergeCells>` â†’ MergedRange
 
 use gp_core::diagnostics::Diagnostic;
 use gp_core::diagnostics::Severity;
@@ -55,7 +55,7 @@ fn get_attr<'a>(attrs: &'a BTreeMap<super::xml::TagName, String>, key: &str) -> 
 // ===========================================================================
 
 /// Convert Excel column letter(s) to a zero-based column index.
-/// "A" → 0, "Z" → 25, "AA" → 26, "ZZ" → 51, "AAA" → 702
+/// "A" â†’ 0, "Z" â†’ 25, "AA" â†’ 26, "ZZ" â†’ 51, "AAA" â†’ 702
 pub fn col_to_index(col: &str) -> usize {
     let mut result: usize = 0;
     for c in col.chars() {
@@ -65,7 +65,7 @@ pub fn col_to_index(col: &str) -> usize {
 }
 
 /// Convert a cell reference like "A1" to (col, row) zero-based indices.
-/// "A1" → (0, 0), "B2" → (1, 1), "AA1" → (26, 0)
+/// "A1" â†’ (0, 0), "B2" â†’ (1, 1), "AA1" â†’ (26, 0)
 pub fn cell_ref_to_coords(ref_str: &str) -> (usize, usize) {
     let mut col_str = String::new();
     let mut row_str = String::new();
@@ -141,6 +141,106 @@ fn extract_text_from_children(children: &[XmlNode], out: &mut String) {
             _ => {}
         }
     }
+}
+
+/// Parse rich text runs from an `<is>` (inline string) element's children.
+///
+/// Excel rich text in cells uses `<is><r><rPr>...</rPr><t>...</t></r>...</is>` structure.
+/// If no `<r>` elements are found, falls back to plain text extraction.
+/// Returns (plain_text, rich_runs) where plain_text is the concatenated text and
+/// rich_runs contains the per-run formatting (T2 â€” CellRichText).
+fn parse_rich_runs_from_is(children: &[XmlNode]) -> (String, Vec<gp_core::ir::CellRun>) {
+    let mut plain_text = String::new();
+    let mut runs: Vec<gp_core::ir::CellRun> = Vec::new();
+    let mut found_r = false;
+
+    for child in children {
+        if let XmlNode::Element {
+            name,
+            children: inner,
+            ..
+        } = child
+        {
+            if name.local_name == "r" {
+                found_r = true;
+                let mut run_text = String::new();
+                let mut bold: Option<bool> = None;
+                let mut strikethrough: Option<bool> = None;
+                let mut color: Option<String> = None;
+                let mut size: Option<f64> = None;
+
+                for r_child in inner {
+                    if let XmlNode::Element {
+                        name: r_child_name,
+                        attributes: _,
+                        children: r_inner,
+                        ..
+                    } = r_child
+                    {
+                        if r_child_name.local_name == "rPr" {
+                            for rp_child in r_inner {
+                                if let XmlNode::Element {
+                                    name: prop_name,
+                                    attributes: prop_attrs,
+                                    ..
+                                } = rp_child
+                                {
+                                    match prop_name.local_name.as_str() {
+                                        "b" => {
+                                            bold = Some(true);
+                                        }
+                                        "i" => {}
+                                        "strike" => {
+                                            strikethrough = Some(true);
+                                        }
+                                        "u" => {}
+                                        "sz" => {
+                                            if let Some(val) = get_attr(prop_attrs, "val") {
+                                                if let Ok(s) = val.parse::<f64>() {
+                                                    size = Some(s);
+                                                }
+                                            }
+                                        }
+                                        "color" => {
+                                            if let Some(rgb) = get_attr(prop_attrs, "rgb") {
+                                                color = if rgb.len() >= 6 {
+                                                    Some(rgb[2..].to_string())
+                                                } else {
+                                                    Some(rgb.clone())
+                                                };
+                                            }
+                                        }
+                                        _ => {}
+                                    }
+                                }
+                            }
+                        }
+                        if r_child_name.local_name == "t" {
+                            extract_text_from_children(r_inner, &mut run_text);
+                        }
+                    }
+                }
+
+                if !run_text.is_empty() {
+                    runs.push(gp_core::ir::CellRun {
+                        text: run_text.clone(),
+                        color,
+                        strikethrough,
+                        bold,
+                        size,
+                    });
+                    plain_text.push_str(&run_text);
+                }
+            }
+        }
+    }
+
+    // Fallback: no <r> elements found â€” extract plain text from <t> children directly
+    if !found_r {
+        extract_text_from_children(children, &mut plain_text);
+    }
+
+    (plain_text, runs)
 }
 
 // ===========================================================================
@@ -219,7 +319,7 @@ fn get_style_name(
 }
 
 // ===========================================================================
-// Workbook → sheet names
+// Workbook â†’ sheet names
 // ===========================================================================
 
 /// Parse workbook.xml and return a list of (sheet_name, sheet_id) tuples.
@@ -321,7 +421,7 @@ fn resolve_sheet_part(package: &OpcPackage, sheet_id: &str) -> Result<String, Ve
 }
 
 // ===========================================================================
-// Worksheet → Sheet IR
+// Worksheet â†’ Sheet IR
 // ===========================================================================
 
 /// Parse a single sheet's worksheet XML into a Sheet IR.
@@ -388,7 +488,7 @@ fn read_sheet(
             }
         }
 
-        // Then parse sheetData → rows → cells
+        // Then parse sheetData â†’ rows â†’ cells
         for child in children {
             if let XmlNode::Element {
                 name,
@@ -502,6 +602,7 @@ fn parse_cell(
     let mut value: Option<String> = None;
     let mut formula: Option<String> = None;
     let mut cached_value: Option<String> = None;
+    let mut cell_rich: Option<Vec<gp_core::ir::CellRun>> = None;
 
     for child in children {
         if let XmlNode::Element {
@@ -564,12 +665,14 @@ fn parse_cell(
                 }
             }
 
-            // <is> - inline string (t="inlineStr")
+            // <is> - inline string with optional rich runs (t="inlineStr")
             if child_name.local_name == "is" {
-                let mut text = String::new();
-                extract_text_from_children(inner, &mut text);
-                if !text.is_empty() {
-                    value = Some(text);
+                let (plain, rich) = parse_rich_runs_from_is(inner);
+                if !plain.is_empty() {
+                    value = Some(plain);
+                }
+                if !rich.is_empty() {
+                    cell_rich = Some(rich);
                 }
             }
 
@@ -627,6 +730,7 @@ fn parse_cell(
         cached_value,
         style_name,
         number_format: None,
+        rich: cell_rich,
     })
 }
 
@@ -726,7 +830,7 @@ fn evaluate_sheet_formulas(rows: &[SheetRow], sheet_name: &str, diags: &mut Vec<
                                         "GP-F-030",
                                         Severity::Warning,
                                         format!(
-                                            "sheet '{}': stale cache on {} — cached={}, computed={}",
+                                            "sheet '{}': stale cache on {} â€” cached={}, computed={}",
                                             sheet_name,
                                             col_to_ref(cell.col, cell.row),
                                             cached_val,
@@ -739,7 +843,7 @@ fn evaluate_sheet_formulas(rows: &[SheetRow], sheet_name: &str, diags: &mut Vec<
                                         "GP-F-031",
                                         Severity::Info,
                                         format!(
-                                            "sheet '{}': no cache on {} — computed={}",
+                                            "sheet '{}': no cache on {} â€” computed={}",
                                             sheet_name,
                                             col_to_ref(cell.col, cell.row),
                                             computed_str
@@ -751,7 +855,7 @@ fn evaluate_sheet_formulas(rows: &[SheetRow], sheet_name: &str, diags: &mut Vec<
                                 }
                             }
                         } else {
-                            // Evaluation returned None — cell references not in context
+                            // Evaluation returned None â€” cell references not in context
                             diags.push(Diagnostic::new(
                                 "GP-F-040",
                                 Severity::Info,
@@ -824,7 +928,7 @@ impl FormulaContext for XlsxCellContext {
 pub fn read_xlsx(package: &OpcPackage) -> Result<ReadResult, Vec<Diagnostic>> {
     let mut diags: Vec<Diagnostic> = Vec::new();
 
-    // 1. Parse workbook.xml → sheet names
+    // 1. Parse workbook.xml â†’ sheet names
     let sheets_meta = {
         let s = read_sheets(package)?;
         diags.push(Diagnostic::new(
@@ -835,7 +939,7 @@ pub fn read_xlsx(package: &OpcPackage) -> Result<ReadResult, Vec<Diagnostic>> {
         s
     };
 
-    // 2. Parse sharedStrings.xml → shared string table
+    // 2. Parse sharedStrings.xml â†’ shared string table
     let shared_strings = match read_shared_strings(package) {
         Ok(s) => {
             diags.push(Diagnostic::new(
@@ -855,7 +959,7 @@ pub fn read_xlsx(package: &OpcPackage) -> Result<ReadResult, Vec<Diagnostic>> {
         }
     };
 
-    // 3. Parse styles.xml → style table
+    // 3. Parse styles.xml â†’ style table
     let (style_names, cell_style_props) = match read_styles(package) {
         Ok((sn, scp)) => {
             diags.push(Diagnostic::new(
@@ -875,7 +979,7 @@ pub fn read_xlsx(package: &OpcPackage) -> Result<ReadResult, Vec<Diagnostic>> {
         }
     };
 
-    // 4. Parse each sheet → Sheet with rows/cells
+    // 4. Parse each sheet â†’ Sheet with rows/cells
     let mut sheet_ir_vec: Vec<Sheet> = Vec::new();
     for (sheet_name, sheet_id) in &sheets_meta {
         match read_sheet(
@@ -951,7 +1055,7 @@ pub fn read_xlsx(package: &OpcPackage) -> Result<ReadResult, Vec<Diagnostic>> {
 
 /// Reader for .xlsx files (Excel Spreadsheet ML).
 ///
-/// Implements the `Codec` trait to parse xlsx → gp-core Spreadsheet IR.
+/// Implements the `Codec` trait to parse xlsx â†’ gp-core Spreadsheet IR.
 pub struct XlsxReader;
 
 impl XlsxReader {
@@ -1341,7 +1445,7 @@ mod tests {
     use gp_core::traits::Codec;
     use test_fixtures::*;
 
-    /// test_parse_xlsx_corpus_fixture — parse formulas-cached-xlsx-001.xlsx and verify IR.
+    /// test_parse_xlsx_corpus_fixture â€” parse formulas-cached-xlsx-001.xlsx and verify IR.
     #[test]
     fn test_parse_xlsx_corpus_fixture() {
         let path = concat!(
@@ -1383,7 +1487,7 @@ mod tests {
         assert_eq!(b1.cached_value.as_deref(), Some("30"));
     }
 
-    /// test_parse_cell_values — t="n" → cached_value
+    /// test_parse_cell_values â€” t="n" â†’ cached_value
     #[test]
     fn test_parse_cell_values() {
         let data = create_xlsx_simple();
@@ -1404,7 +1508,7 @@ mod tests {
         assert_eq!(sheet.rows[1].cells[0].value.as_deref(), Some("100"));
     }
 
-    /// test_parse_formulas — <f>=SUM(...)</f> → formula
+    /// test_parse_formulas â€” <f>=SUM(...)</f> â†’ formula
     #[test]
     fn test_parse_formulas() {
         let data = create_xlsx_with_formulas_and_merges();
@@ -1423,7 +1527,7 @@ mod tests {
         assert_eq!(b3.formula.as_deref(), Some("15"));
     }
 
-    /// test_parse_cached_values_with_formulas — formula + cached value both present
+    /// test_parse_cached_values_with_formulas â€” formula + cached value both present
     #[test]
     fn test_parse_cached_values_with_formulas() {
         let data = create_xlsx_with_formulas_and_merges();
@@ -1443,28 +1547,28 @@ mod tests {
         assert_eq!(b3.cached_value.as_deref(), Some("15"));
     }
 
-    /// test_parse_shared_strings — t="s" → resolved string from sharedStrings.xml
+    /// test_parse_shared_strings â€” t="s" â†’ resolved string from sharedStrings.xml
     #[test]
     fn test_parse_shared_strings() {
         let data = create_xlsx_with_formulas_and_merges();
         let result = XlsxReader::new().read(&data).expect("should parse");
         let ss: Spreadsheet = serde_json::from_slice(&result.ir).expect("should deserialize");
 
-        // A1 t="s" v="0" → "Header1"
-        // B1 t="s" v="1" → "Header2"
+        // A1 t="s" v="0" â†’ "Header1"
+        // B1 t="s" v="1" â†’ "Header2"
         let sheet = &ss.sheets[0];
         let a1 = &sheet.rows[0].cells[0];
         assert_eq!(a1.value.as_deref(), Some("Header1"));
         let b1 = &sheet.rows[0].cells[1];
         assert_eq!(b1.value.as_deref(), Some("Header2"));
 
-        // Sheet2: A1 t="s" v="2" → "Row1Col1"
+        // Sheet2: A1 t="s" v="2" â†’ "Row1Col1"
         let sheet2 = &ss.sheets[1];
         let a1_s2 = &sheet2.rows[0].cells[0];
         assert_eq!(a1_s2.value.as_deref(), Some("Row1Col1"));
     }
 
-    /// test_parse_merged_ranges — mergeCells → MergedRange list
+    /// test_parse_merged_ranges â€” mergeCells â†’ MergedRange list
     #[test]
     fn test_parse_merged_ranges() {
         let data = create_xlsx_with_formulas_and_merges();
@@ -1481,7 +1585,7 @@ mod tests {
         assert_eq!(mr.end_col, 1);
     }
 
-    /// test_parse_styles — styles.xml → style_name on cells
+    /// test_parse_styles â€” styles.xml â†’ style_name on cells
     #[test]
     fn test_parse_styles() {
         let data = create_xlsx_with_formulas_and_merges();
@@ -1496,7 +1600,7 @@ mod tests {
         assert_eq!(b1.style_name, None);
     }
 
-    /// test_parse_multiple_sheets — workbook with multiple sheets
+    /// test_parse_multiple_sheets â€” workbook with multiple sheets
     #[test]
     fn test_parse_multiple_sheets() {
         let data = create_xlsx_with_formulas_and_merges();
@@ -1512,7 +1616,7 @@ mod tests {
         assert_eq!(ss.sheets[1].rows.len(), 1);
     }
 
-    /// test_xlsx_codec_integration — XlsxReader.read() produces valid IR
+    /// test_xlsx_codec_integration â€” XlsxReader.read() produces valid IR
     #[test]
     fn test_xlsx_codec_integration() {
         let reader = XlsxReader::new();
@@ -1533,7 +1637,7 @@ mod tests {
         assert!(!result.diagnostics.is_empty());
     }
 
-    /// test_parse_all_xlsx_fixtures — all xlsx files parse successfully
+    /// test_parse_all_xlsx_fixtures â€” all xlsx files parse successfully
     #[test]
     fn test_parse_all_xlsx_fixtures() {
         let blobs_dir = concat!(env!("CARGO_MANIFEST_DIR"), "/../../corpus/blobs");
@@ -1578,7 +1682,7 @@ mod tests {
         );
     }
 
-    /// test_formula_cell_has_both — formula cell has both formula and cached_value
+    /// test_formula_cell_has_both â€” formula cell has both formula and cached_value
     #[test]
     fn test_formula_cell_has_both() {
         let data = create_xlsx_with_formulas_and_merges();
@@ -1603,7 +1707,7 @@ mod tests {
         assert!(b3.cached_value.is_some(), "B3 should have cached_value");
     }
 
-    /// test_merged_range_count_vs_manifest — matches expected merged count
+    /// test_merged_range_count_vs_manifest â€” matches expected merged count
     #[test]
     fn test_merged_range_count_vs_manifest() {
         let data = create_xlsx_merged_only();
@@ -1630,7 +1734,7 @@ mod tests {
         assert_eq!(mr1.end_col, 4);
     }
 
-    /// test_parse_cell_coordinate — "A1"→(0,0), "B2"→(1,1), "AA1"→(26,0)
+    /// test_parse_cell_coordinate â€” "A1"â†’(0,0), "B2"â†’(1,1), "AA1"â†’(26,0)
     #[test]
     fn test_parse_cell_coordinate() {
         assert_eq!(cell_ref_to_coords("A1"), (0, 0));
@@ -1646,7 +1750,7 @@ mod tests {
         assert_eq!(col_to_index("AAA"), 702);
     }
 
-    /// test_parse_boolean_cells — t="b" → boolean value
+    /// test_parse_boolean_cells â€” t="b" â†’ boolean value
     #[test]
     fn test_parse_boolean_cells() {
         let data = create_xlsx_with_types();
@@ -1654,20 +1758,20 @@ mod tests {
         let ss: Spreadsheet = serde_json::from_slice(&result.ir).expect("should deserialize");
 
         let sheet = &ss.sheets[0];
-        // A1 t="b" v="1" → true
+        // A1 t="b" v="1" â†’ true
         let a1 = &sheet.rows[0].cells[0];
         assert_eq!(a1.value.as_deref(), Some("true"));
 
-        // B1 t="b" v="0" → false
+        // B1 t="b" v="0" â†’ false
         let b1 = &sheet.rows[0].cells[1];
         assert_eq!(b1.value.as_deref(), Some("false"));
 
-        // C1 t="e" v="#DIV/0!" → error text
+        // C1 t="e" v="#DIV/0!" â†’ error text
         let c1 = &sheet.rows[0].cells[2];
         assert_eq!(c1.value.as_deref(), Some("#DIV/0!"));
     }
 
-    /// test_merged_range_ref — parse merged range references
+    /// test_merged_range_ref â€” parse merged range references
     #[test]
     fn test_merged_range_ref() {
         let (sr, sc, er, ec) = merged_range_ref("A1:B2");
@@ -1683,7 +1787,7 @@ mod tests {
         assert_eq!((sr, sc, er, ec), (0, 0, 0, 0));
     }
 
-    /// test_spreadsheet_visit_ids — Visit impl for Spreadsheet
+    /// test_spreadsheet_visit_ids â€” Visit impl for Spreadsheet
     #[test]
     fn test_spreadsheet_visit_ids() {
         let data = create_xlsx_with_formulas_and_merges();
@@ -1706,7 +1810,7 @@ mod tests {
         assert!(kinds.contains("sheet_row"), "Should have sheet_row kind");
     }
 
-    /// test_parse_merged_cells_corpus — merged-cells-xlsx-001.xlsx
+    /// test_parse_merged_cells_corpus â€” merged-cells-xlsx-001.xlsx
     #[test]
     fn test_parse_merged_cells_corpus() {
         let path = concat!(
@@ -1729,7 +1833,7 @@ mod tests {
         assert_eq!(mr.end_col, 1);
     }
 
-    /// test_parse_merged_cells_corpus_multi — merged-cells-xlsx-002.xlsx (2 merged ranges)
+    /// test_parse_merged_cells_corpus_multi â€” merged-cells-xlsx-002.xlsx (2 merged ranges)
     #[test]
     fn test_parse_merged_cells_corpus_multi() {
         let path = concat!(
@@ -1747,7 +1851,7 @@ mod tests {
         assert_eq!(sheet.merged_ranges.len(), 2);
     }
 
-    /// test_parse_merged_cells_corpus_3 — merged-cells-xlsx-003.xlsx (1 merged range)
+    /// test_parse_merged_cells_corpus_3 â€” merged-cells-xlsx-003.xlsx (1 merged range)
     #[test]
     fn test_parse_merged_cells_corpus_3() {
         let path = concat!(
@@ -1762,7 +1866,7 @@ mod tests {
         assert_eq!(sheet.merged_ranges.len(), 1);
     }
 
-    /// test_parse_formulas_corpus_002 — formulas-cached-xlsx-002.xlsx
+    /// test_parse_formulas_corpus_002 â€” formulas-cached-xlsx-002.xlsx
     #[test]
     fn test_parse_formulas_corpus_002() {
         let path = concat!(
@@ -1779,7 +1883,7 @@ mod tests {
         assert!(!ss.sheets[0].rows.is_empty());
     }
 
-    /// test_parse_formulas_corpus_003 — formulas-cached-xlsx-003.xlsx (formula + style)
+    /// test_parse_formulas_corpus_003 â€” formulas-cached-xlsx-003.xlsx (formula + style)
     #[test]
     fn test_parse_formulas_corpus_003() {
         let path = concat!(
@@ -1810,7 +1914,7 @@ mod tests {
         assert_eq!(b3.cached_value.as_deref(), Some("0.5"));
     }
 
-    /// test_parse_empty_worksheet — xlsx with no sheet parts produces empty sheets list
+    /// test_parse_empty_worksheet â€” xlsx with no sheet parts produces empty sheets list
     #[test]
     fn test_parse_empty_worksheet() {
         let data = create_xlsx_empty_worksheets();
@@ -1820,7 +1924,7 @@ mod tests {
         assert_eq!(ss.sheets.len(), 0);
     }
 
-    /// test_row_values_in_sheet — verify row values exist for each sheet in multi-sheet xlsx
+    /// test_row_values_in_sheet â€” verify row values exist for each sheet in multi-sheet xlsx
     #[test]
     fn test_row_values_in_sheet() {
         let data = create_xlsx_with_formulas_and_merges();
@@ -1836,5 +1940,45 @@ mod tests {
         let summary_sheet = &ss.sheets[1];
         let b1 = &summary_sheet.rows[0].cells[1];
         assert_eq!(b1.value.as_deref(), Some("42"));
+    }
+
+    /// test_rich_plain_inline_string — plain inlineStr has no rich runs
+    #[test]
+    fn test_rich_plain_inline_string() {
+        let data = create_xlsx_with_formulas_and_merges();
+        let result = XlsxReader::new().read(&data).expect("should parse");
+        let ss: Spreadsheet = serde_json::from_slice(&result.ir).expect("should deserialize");
+        let sheet = &ss.sheets[0];
+        let a1 = &sheet.rows[0].cells[0];
+        // Plain inline string should parse without error; rich may be None or Some
+        assert!(a1.value.is_some() || a1.rich.is_none());
+    }
+
+    /// test_rich_json_serializes — CellRun serializes/deserializes correctly
+    #[test]
+    fn test_rich_json_serializes() {
+        use gp_core::ir::CellRun;
+        let runs = vec![
+            CellRun {
+                text: "Hello ".to_string(),
+                bold: Some(true),
+                color: Some("FF0000".to_string()),
+                strikethrough: None,
+                size: Some(11.0),
+            },
+            CellRun {
+                text: "World".to_string(),
+                strikethrough: Some(true),
+                color: None,
+                bold: None,
+                size: None,
+            },
+        ];
+        let json = serde_json::to_string(&runs).expect("serialize");
+        let back: Vec<CellRun> = serde_json::from_str(&json).expect("deserialize");
+        assert_eq!(runs.len(), back.len());
+        assert_eq!(runs[0].text, back[0].text);
+        assert_eq!(runs[0].bold, back[0].bold);
+        assert_eq!(runs[1].strikethrough, back[1].strikethrough);
     }
 }

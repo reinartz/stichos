@@ -5,6 +5,7 @@
 //! and returns a JSON result with the structural diff.
 
 use anyhow::{anyhow, Context, Result};
+use gp_core::file_access::read_document_bytes;
 use gp_core::ir::{Document, PdfDocument, Presentation, Spreadsheet};
 use lint::diff;
 use lint::diff::IrDiff;
@@ -28,8 +29,8 @@ pub fn diff_documents(
         Some(v) => Some(v),
     };
 
-    let a_bytes = std::fs::read(a_path).with_context(|| format!("read {}", a_path))?;
-    let b_bytes = std::fs::read(b_path).with_context(|| format!("read {}", b_path))?;
+    let a_bytes = read_document_bytes(a_path).with_context(|| format!("read {}", a_path))?;
+    let b_bytes = read_document_bytes(b_path).with_context(|| format!("read {}", b_path))?;
 
     let (a_ir, a_type) = parse_document(&a_bytes, a_path)?;
     let (b_ir, b_type) = parse_document(&b_bytes, b_path)?;

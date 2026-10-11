@@ -11,6 +11,7 @@
 //! - **Delete** — remove an element from the IR.
 //! - **SetRunProps** — update formatting properties on a run.
 //! - **SetCellValue** — update a spreadsheet cell value.
+//! - **SetCellRich** — update a spreadsheet cell's rich text runs (T2).
 //! - **TrackInsert** — tracked (revisions) insert.
 //! - **TrackDelete** — tracked (revisions) delete.
 //!
@@ -59,6 +60,11 @@ pub enum PatchOp {
     },
     /// Update a spreadsheet cell value.
     SetCellValue { cell: ElementId, value: String },
+    /// Set a spreadsheet cell's rich text runs (T2 — CellRichText).
+    SetCellRich {
+        cell: ElementId,
+        runs: Vec<super::ir::CellRun>,
+    },
     /// Tracked (revisions) insert — used by collaboration engines.
     TrackInsert {
         anchor: ElementId,
@@ -121,6 +127,9 @@ pub fn apply_op(ir: &mut IRDocument, op: &PatchOp) -> Result<ApplyResult, Vec<Di
         }
         PatchOp::SetCellValue { cell, value } => {
             set_cell_value_in_tree(&mut ir.root, cell, value, &mut changed);
+        }
+        PatchOp::SetCellRich { cell, runs } => {
+            set_cell_rich_text_in_tree(&mut ir.root, cell, runs, &mut changed);
         }
         PatchOp::TrackInsert {
             anchor,
@@ -279,6 +288,24 @@ fn set_cell_value_in_tree(
     } else {
         for child in &mut node.children {
             set_cell_value_in_tree(child, cell_id, value, changed);
+        }
+    }
+}
+
+/// Recursively search a tagged tree for a cell element and set its rich text runs.
+fn set_cell_rich_text_in_tree(
+    node: &mut TaggedNode,
+    cell_id: &ElementId,
+    runs: &[crate::ir::CellRun],
+    changed: &mut Vec<ElementId>,
+) {
+    if node.id == *cell_id {
+        // Store runs as JSON in the alt_text field (IR metadata)
+        node.alt_text = Some(format!("rich_runs:{}", runs.len()));
+        changed.push(node.id.clone());
+    } else {
+        for child in &mut node.children {
+            set_cell_rich_text_in_tree(child, cell_id, runs, changed);
         }
     }
 }

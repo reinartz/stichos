@@ -24,6 +24,7 @@ use std::io::Read;
 
 use crate::commit::{CommitContext, FormatType as CommitFormatType, RevisionMeta};
 use crate::opc::parse_opc;
+use crate::opc_validate;
 
 // ---------------------------------------------------------------------------
 // Schema validation post-commit (P2-31: LIN-04)
@@ -64,6 +65,12 @@ fn validate_post_commit(output: &[u8]) -> Vec<Diagnostic> {
                 format!("Schema validation failed for {}: {}", name, e),
             ));
         }
+    }
+
+    // Run OPC package integrity validation
+    let opc_diagnostics = opc_validate::validate_package_bytes(output);
+    for diag in opc_diagnostics {
+        diagnostics.push(diag);
     }
 
     diagnostics

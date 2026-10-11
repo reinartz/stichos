@@ -197,6 +197,9 @@ impl<'a> PptxPatchWriter<'a> {
                         "SetCellValue not applicable to pptx".to_string(),
                     ));
                 }
+                PatchOp::SetCellRich { .. } => {
+                    // Spreadsheet operation — not applicable to pptx.
+                }
                 PatchOp::TrackInsert { anchor, kind, .. } => {
                     match self.route_track_insert(anchor, kind, parts, &mut mutations_by_part) {
                         Ok(_) => {}

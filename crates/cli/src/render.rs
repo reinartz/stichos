@@ -19,6 +19,7 @@ use engines::negotiate::{negotiate_renderer, RendererPreference};
 use engines::pandoc::PandocEngine;
 use engines::typst::TypstEngine;
 use gp_core::diagnostics::Diagnostic;
+use gp_core::file_access::read_document_bytes;
 use gp_core::traits::Engine;
 use lint::budget::{check_payload_budget, ImageBlock};
 use lint::sheet::build_sheet_from_pages;
@@ -48,7 +49,7 @@ pub fn render_document(
 ) -> anyhow::Result<serde_json::Value> {
     // Read document bytes
     let bytes =
-        std::fs::read(path).with_context(|| format!("failed to read document: {}", path))?;
+        read_document_bytes(path).with_context(|| format!("failed to read document: {}", path))?;
 
     // Negotiate renderer
     let choice = negotiate_renderer(&RendererPreference::Default);

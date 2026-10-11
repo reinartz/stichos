@@ -18,6 +18,8 @@ pub mod executor;
 pub mod formula;
 pub mod md_ir;
 pub mod opc;
+pub mod opc_validate;
+pub mod potx;
 pub mod pptx;
 pub mod pptx_writer;
 pub mod revision_executor;

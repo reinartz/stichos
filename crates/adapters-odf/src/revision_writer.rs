@@ -362,7 +362,9 @@ impl RevisionWriter {
                         }
                     }
                 }
-                PatchOp::SetRunProps { .. } | PatchOp::SetCellValue { .. } => {
+                PatchOp::SetRunProps { .. }
+                | PatchOp::SetCellValue { .. }
+                | PatchOp::SetCellRich { .. } => {
                     // Not applicable for ODF text revision writing.
                 }
             }

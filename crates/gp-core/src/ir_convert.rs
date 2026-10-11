@@ -259,6 +259,7 @@ mod tests {
             cached_value: None,
             style_name: None,
             number_format: None,
+            rich: None,
         };
         let cell_b = SheetCell {
             id: ElementId::content_anchored("cell", &["b"], "v2"),
@@ -269,6 +270,7 @@ mod tests {
             cached_value: None,
             style_name: None,
             number_format: None,
+            rich: None,
         };
         let cell_c = SheetCell {
             id: ElementId::content_anchored("cell", &["c"], "v3"),
@@ -279,6 +281,7 @@ mod tests {
             cached_value: None,
             style_name: None,
             number_format: None,
+            rich: None,
         };
         let row = SheetRow {
             id: ElementId::content_anchored("row", &["r0"], ""),
@@ -341,6 +344,7 @@ mod tests {
             cached_value: Some("cached".to_string()),
             style_name: None,
             number_format: None,
+            rich: None,
         };
         assert_eq!(cell_display_value(&cell1), Some("val".to_string()));
 
@@ -354,6 +358,7 @@ mod tests {
             cached_value: Some("cached".to_string()),
             style_name: None,
             number_format: None,
+            rich: None,
         };
         assert_eq!(cell_display_value(&cell2), Some("cached".to_string()));
 
@@ -367,6 +372,7 @@ mod tests {
             cached_value: None,
             style_name: None,
             number_format: None,
+            rich: None,
         };
         assert_eq!(cell_display_value(&cell3), Some("=3".to_string()));
 
@@ -380,6 +386,7 @@ mod tests {
             cached_value: None,
             style_name: None,
             number_format: None,
+            rich: None,
         };
         assert_eq!(cell_display_value(&cell4), None);
     }
@@ -569,6 +576,7 @@ mod tests {
             cached_value: None,
             style_name: None,
             number_format: None,
+            rich: None,
         };
         let row = SheetRow {
             id: ElementId::content_anchored("row", &["r0"], ""),
@@ -681,6 +689,7 @@ mod tests {
                     cached_value: None,
                     style_name: None,
                     number_format: None,
+                    rich: None,
                 }],
             }],
             merged_ranges: vec![],

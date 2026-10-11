@@ -111,7 +111,7 @@ try {{
     fn is_word_available() -> bool {
         let script = build_word_available_script();
         let output = Command::new("powershell")
-            .args(&["-NoProfile", "-NonInteractive", "-Command", &script])
+            .args(["-NoProfile", "-NonInteractive", "-Command", &script])
             .output();
 
         match output {
@@ -139,7 +139,7 @@ try {{
         std::thread::sleep(std::time::Duration::from_millis(100)); // Brief pause for filesystem
 
         let output = Command::new("powershell")
-            .args(&["-NoProfile", "-NonInteractive", "-File", &script_path])
+            .args(["-NoProfile", "-NonInteractive", "-File", &script_path])
             .output();
 
         match output {
@@ -388,7 +388,7 @@ try {{
             .filter_map(|r| r["author"].as_str())
             .collect();
         assert!(
-            authors.len() >= 1,
+            !authors.is_empty(),
             "multi-author fixture should have at least 1 author, got: {:?}",
             authors
         );
@@ -665,8 +665,14 @@ try {{
         );
 
         // Both must be valid docx files (same extension, non-empty)
-        assert!(accept_bytes.len() > 0, "accept output should be non-empty");
-        assert!(reject_bytes.len() > 0, "reject output should be non-empty");
+        assert!(
+            !accept_bytes.is_empty(),
+            "accept output should be non-empty"
+        );
+        assert!(
+            !reject_bytes.is_empty(),
+            "reject output should be non-empty"
+        );
     }
 
     /// test_word_empty_revision_body — revision-empty-body-docx-001 → Word → stichos reader.

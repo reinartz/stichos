@@ -8,6 +8,7 @@
 /// Options: `--id`, `--author`, `--all`, `--dry-run`, `--json`
 use anyhow::Result;
 use clap::Subcommand;
+use gp_core::file_access::read_document_bytes;
 use gp_core::ir::{AnnotationKind, AnnotationState};
 use serde_json::json;
 
@@ -86,7 +87,7 @@ pub async fn handle_annots(cmd: AnnotsCommand) -> Result<()> {
 ///
 /// Returns JSON with annotations array, counts, and document version hash.
 pub fn list_annotations(path: &str, all: bool, author: Option<&str>) -> Result<serde_json::Value> {
-    let bytes = std::fs::read(path).with_context(|| format!("failed to read {}", path))?;
+    let bytes = read_document_bytes(path).with_context(|| format!("failed to read {}", path))?;
 
     let mut doc = adapters_pdf::parser::parse_pdf_data(&bytes).map_err(|diags| {
         anyhow::anyhow!(
@@ -178,7 +179,7 @@ pub fn resolve_annotations(
     dry_run: bool,
     session: Option<&str>,
 ) -> Result<serde_json::Value> {
-    let bytes = std::fs::read(path).with_context(|| format!("failed to read {}", path))?;
+    let bytes = read_document_bytes(path).with_context(|| format!("failed to read {}", path))?;
 
     let mut doc = adapters_pdf::parser::parse_pdf_data(&bytes).map_err(|diags| {
         anyhow::anyhow!(

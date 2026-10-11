@@ -27,9 +27,20 @@ pub struct SpanMutation {
 #[derive(Debug, Clone)]
 pub enum MutationKind {
     ReplaceText(String),
+    /// Replace text in a table cell while preserving the first run's formatting.
+    /// When `blank_subsequent` is true, subsequent text nodes in the cell's first
+    /// paragraph are cleared â€” mirrors the skill's run-rewrite pattern where
+    /// `cell.text = â€¦` destroys formatting.
+    ReplaceTextPreserving {
+        new_text: String,
+        blank_subsequent: bool,
+    },
     InsertNode(XmlNode),
     DeleteNode,
-    SetAttribute { name: TagName, value: String },
+    SetAttribute {
+        name: TagName,
+        value: String,
+    },
     WrapDelete,
 }
 
@@ -45,7 +56,7 @@ pub struct SpanMutationResult {
 // Helpers
 // ---------------------------------------------------------------------------
 
-fn node_span(node: &XmlNode) -> &ByteSpan {
+pub(crate) fn node_span(node: &XmlNode) -> &ByteSpan {
     match node {
         XmlNode::Element { span, .. }
         | XmlNode::Text { span, .. }
@@ -68,6 +79,156 @@ fn find_node_by_span<'a>(node: &'a XmlNode, span: &ByteSpan) -> Option<&'a XmlNo
         }
     }
     None
+}
+
+/// Check if an element name matches (handles namespace-qualified names).
+fn is_word_elem(name: &TagName, local: &str) -> bool {
+    name.local_name == local
+}
+
+/// Recursively find the first w:tc (table cell) element in an XmlNode tree.
+pub fn find_first_cell(node: &XmlNode) -> Option<&XmlNode> {
+    match node {
+        XmlNode::Element { name, children, .. } => {
+            if is_word_elem(name, "tc") {
+                return Some(node);
+            }
+            for child in children {
+                if let Some(found) = find_first_cell(child) {
+                    return Some(found);
+                }
+            }
+            None
+        }
+        _ => None,
+    }
+}
+
+/// Recursively find the first w:p (paragraph) element in children.
+#[allow(dead_code)]
+fn find_first_paragraph(children: &[XmlNode]) -> Option<&XmlNode> {
+    for child in children {
+        if let XmlNode::Element {
+            name, children: gc, ..
+        } = child
+        {
+            if is_word_elem(name, "p") {
+                return Some(child);
+            }
+            if let Some(found) = find_first_paragraph(gc) {
+                return Some(found);
+            }
+        }
+    }
+    None
+}
+
+/// Find the first w:r (run) element in a list of children.
+#[allow(dead_code)]
+fn find_first_run(children: &[XmlNode]) -> Option<&XmlNode> {
+    for child in children {
+        if let XmlNode::Element { name, .. } = child {
+            if is_word_elem(name, "r") {
+                return Some(child);
+            }
+        }
+    }
+    None
+}
+
+/// Find the first w:t (text) element in a list of children.
+#[allow(dead_code)]
+fn find_first_text_node(children: &[XmlNode]) -> Option<&XmlNode> {
+    for child in children {
+        if let XmlNode::Element { name, .. } = child {
+            if is_word_elem(name, "t") {
+                return Some(child);
+            }
+        }
+    }
+    None
+}
+
+/// Recursively walk a cell's children and replace the first w:t text content
+fn replace_first_cell_text_preserving(
+    children: &mut [XmlNode],
+    new_text: String,
+    found: &mut bool,
+) {
+    if *found {
+        return;
+    }
+    for child in children.iter_mut() {
+        if *found {
+            return;
+        }
+        if let XmlNode::Element {
+            name, children: gc, ..
+        } = child
+        {
+            match name.local_name.as_str() {
+                "rPr" | "tcPr" => {}
+                "p" | "r" | "tc" => {
+                    replace_first_cell_text_preserving(gc, new_text.clone(), found);
+                }
+                "t" => {
+                    if let XmlNode::Element { children: tc, .. } = child {
+                        if let Some(XmlNode::Text { text, span }) = tc.get_mut(0) {
+                            *text = new_text.clone();
+                            *span = ByteSpan {
+                                offset: span.offset,
+                                length: new_text.len(),
+                            };
+                            *found = true;
+                        }
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
+}
+
+/// Blank all text nodes after the first one in the cell's paragraph runs.
+fn blank_remaining_texts(children: &mut [XmlNode]) {
+    for child in children.iter_mut() {
+        if let XmlNode::Element {
+            name, children: gc, ..
+        } = child
+        {
+            if is_word_elem(name, "p") {
+                let mut first_found = false;
+                for run in gc.iter_mut() {
+                    if let XmlNode::Element {
+                        name, children: rc, ..
+                    } = run
+                    {
+                        if is_word_elem(name, "r") {
+                            for node in rc.iter_mut() {
+                                if let XmlNode::Element {
+                                    name: tname,
+                                    children: tc,
+                                    ..
+                                } = node
+                                {
+                                    if is_word_elem(tname, "t") {
+                                        if first_found {
+                                            if let Some(XmlNode::Text { text, .. }) = tc.first_mut()
+                                            {
+                                                *text = String::new();
+                                            }
+                                        } else {
+                                            first_found = true;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -182,6 +343,61 @@ fn apply_mut_to_node(
     let old_span = node_span(node).clone();
 
     match kind {
+        MutationKind::ReplaceTextPreserving {
+            new_text,
+            blank_subsequent,
+        } => {
+            // This mutation targets a table cell (w:tc) element.
+            // Replace text in the first w:t while preserving its rPr formatting,
+            // and optionally blank subsequent text nodes in the cell.
+            match node {
+                XmlNode::Element {
+                    name,
+                    attributes,
+                    namespaces,
+                    children,
+                    span: s,
+                } => {
+                    if !is_word_elem(name, "tc") && !is_word_elem(name, "tbl") {
+                        return Err(Diagnostic::new(
+                            "OOX-E-002",
+                            Severity::Error,
+                            "ReplaceTextPreserving requires a table cell or table element"
+                                .to_string(),
+                        ));
+                    }
+                    // Replace text in the first w:t while preserving its rPr formatting,
+                    // and optionally blank subsequent text nodes in the cell.
+                    let mut text_replaced = false;
+                    replace_first_cell_text_preserving(
+                        children,
+                        new_text.clone(),
+                        &mut text_replaced,
+                    );
+                    if text_replaced && *blank_subsequent {
+                        blank_remaining_texts(children);
+                    }
+                    // Update span length for the changed node
+                    let updated = XmlNode::Element {
+                        name: name.clone(),
+                        attributes: attributes.clone(),
+                        namespaces: namespaces.clone(),
+                        children: children.clone(),
+                        span: s.clone(),
+                    };
+                    *s = ByteSpan {
+                        offset: s.offset,
+                        length: updated.to_bytes().len(),
+                    };
+                    Ok(s.clone())
+                }
+                _ => Err(Diagnostic::new(
+                    "OOX-E-002",
+                    Severity::Error,
+                    "ReplaceTextPreserving on non-Element node".to_string(),
+                )),
+            }
+        }
         MutationKind::ReplaceText(new_text) => match node {
             XmlNode::Text { text, span: s } => {
                 *text = new_text.clone();
@@ -605,5 +821,97 @@ mod tests {
             length: 1,
         };
         assert!(verify_span(&doc, &stale).is_err());
+    }
+
+    #[test]
+    fn test_replace_cell_text_preserves_formatting() {
+        // A table cell with a styled first run (bold w:rPr) and subsequent runs.
+        // Simulates a CRCoverPage-style cell where the first run has formatting.
+        let xml = b"<w:tc xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:tcPr/><w:p><w:r><w:rPr><w:b w:val=\"1\"/></w:rPr><w:t>Old Text</w:t></w:r><w:r><w:t>extra</w:t></w:r></w:p></w:tc>";
+        let doc = crate::xml::parse_xml(xml).expect("valid cell XML");
+        let cell_span = find_element_span(&doc.root).expect("should find cell");
+
+        let mutation = SpanMutation {
+            span: cell_span,
+            kind: MutationKind::ReplaceTextPreserving {
+                new_text: "New Value".to_string(),
+                blank_subsequent: true,
+            },
+        };
+        let result = apply_span_mutation(&doc, &mutation);
+        assert!(result.is_ok(), "cell text replacement should succeed");
+        let r = result.unwrap();
+        let mutated = String::from_utf8_lossy(r.document.source());
+        // Verify the new text is present
+        assert!(
+            mutated.contains("New Value"),
+            "should contain new text, got: {}",
+            mutated
+        );
+        assert!(mutated.contains("New Value"), "should contain new text");
+        // Verify the old text is gone
+        assert!(!mutated.contains("Old Text"), "should not contain old text");
+        // Verify the rPr formatting element is still present
+        assert!(
+            mutated.contains("<w:rPr>"),
+            "should preserve rPr formatting element"
+        );
+    }
+
+    #[test]
+    fn test_replace_cell_text_blanks_subsequent() {
+        let xml = b"<w:tc xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:p><w:r><w:rPr><w:b w:val=\"1\"/></w:rPr><w:t>first</w:t></w:r><w:r><w:t>second</w:t></w:r></w:p></w:tc>";
+        let doc = crate::xml::parse_xml(xml).expect("valid cell XML");
+        let cell_span = find_element_span(&doc.root).expect("should find cell");
+
+        let mutation = SpanMutation {
+            span: cell_span,
+            kind: MutationKind::ReplaceTextPreserving {
+                new_text: "replaced".to_string(),
+                blank_subsequent: true,
+            },
+        };
+        let result = apply_span_mutation(&doc, &mutation);
+        assert!(result.is_ok());
+        let r = result.unwrap();
+        let mutated = String::from_utf8_lossy(r.document.source());
+        // First run's text should be replaced
+        assert!(
+            mutated.contains("replaced"),
+            "first text should be replaced"
+        );
+        // Second run's text should be blanked
+        assert!(
+            mutated.contains("<w:t></w:t>"),
+            "subsequent text should be blanked"
+        );
+    }
+
+    #[test]
+    fn test_replace_cell_text_keeps_subsequent_when_flag_false() {
+        let xml = b"<w:tc xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:p><w:r><w:rPr><w:b w:val=\"1\"/></w:rPr><w:t>first</w:t></w:r><w:r><w:t>second</w:t></w:r></w:p></w:tc>";
+        let doc = crate::xml::parse_xml(xml).expect("valid cell XML");
+        let cell_span = find_element_span(&doc.root).expect("should find cell");
+
+        let mutation = SpanMutation {
+            span: cell_span,
+            kind: MutationKind::ReplaceTextPreserving {
+                new_text: "replaced".to_string(),
+                blank_subsequent: false,
+            },
+        };
+        let result = apply_span_mutation(&doc, &mutation);
+        assert!(result.is_ok());
+        let r = result.unwrap();
+        let mutated = String::from_utf8_lossy(r.document.source());
+        assert!(
+            mutated.contains("replaced"),
+            "first text should be replaced"
+        );
+        // Second text should still be present
+        assert!(
+            mutated.contains("second"),
+            "subsequent text should be preserved"
+        );
     }
 }

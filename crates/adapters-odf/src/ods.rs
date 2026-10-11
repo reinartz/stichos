@@ -204,6 +204,7 @@ fn parse_sheet(node: &XmlNode, si: usize, diags: &mut Vec<Diagnostic>) -> Option
                                 cached_value: None,
                                 style_name: None,
                                 number_format: None,
+                                rich: None,
                             })
                             .collect(),
                     });
@@ -340,6 +341,7 @@ fn parse_cell(
         cached_value: if formula.is_some() { cached } else { None },
         style_name: style,
         number_format: None,
+        rich: None,
     })
 }
 

@@ -255,3 +255,4 @@ and force-moving `m4` to that commit. Gate re-verified on the final tree before 
 5. Headless gate scripts (phase2/phase3/phase4) all work correctly without /dev/tty (P4-01).
 6. Security hardening: fuzz round 3 covers revision trees, session HTTP, XSS corpus.
 7. ODF revisions match OOXML capabilities — both support accept/reject lossless round-trip.
+8. **Track-H adopted (2026-10-01):** MCP tool surface expanded from 20 to **24 MCP tools** (`validate`, `finish` added); CLI verbs expanded from 19 to 21. C7 bumped to v1.7.0.

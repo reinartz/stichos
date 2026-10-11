@@ -176,6 +176,12 @@ impl<'a> XlsxPatchWriter<'a> {
                         Err(e) => diags.extend(e),
                     }
                 }
+                PatchOp::SetCellRich { cell, runs } => {
+                    match self.route_set_cell_rich_text(cell, runs, parts, &mut mutations_by_part) {
+                        Ok(_) => {}
+                        Err(e) => diags.extend(e),
+                    }
+                }
                 PatchOp::ReplaceText { elem, old: _, new } => {
                     match self.route_replace_text(elem, new, parts, &mut mutations_by_part) {
                         Ok(_) => {}
@@ -355,6 +361,190 @@ impl<'a> XlsxPatchWriter<'a> {
             }
         }
         Ok(())
+    }
+
+    /// Route SetCellRich op — write rich runs into an `<is>` element.
+    fn route_set_cell_rich_text(
+        &self,
+        cell_id: &ElementId,
+        runs: &[gp_core::ir::CellRun],
+        parts: &BTreeMap<String, XmlDocument>,
+        mutations_by_part: &mut BTreeMap<String, Vec<SpanMutation>>,
+    ) -> Result<(), Vec<Diagnostic>> {
+        let rich_xml = self.create_rich_text_is(runs);
+        for (part_uri, doc) in parts {
+            if let Some(cell_span) = self.find_cell_span_by_id(doc, cell_id) {
+                // Delete the existing cell content and insert rich text.
+                // We replace the entire cell by inserting the new rich structure.
+                mutations_by_part
+                    .entry(part_uri.clone())
+                    .or_default()
+                    .push(SpanMutation {
+                        span: cell_span,
+                        kind: MutationKind::InsertNode(rich_xml.clone()),
+                    });
+                return Ok(());
+            }
+        }
+        Ok(())
+    }
+
+    /// Find a cell's span by matching its cell reference attribute (e.g., r="A1").
+    fn find_cell_span_by_id(&self, doc: &XmlDocument, cell_id: &ElementId) -> Option<ByteSpan> {
+        self.find_cell_node(&doc.root, cell_id)
+    }
+
+    /// Recursively find a cell <c> node by matching its r attribute.
+    fn find_cell_node<'b>(&'b self, node: &'b XmlNode, target_id: &ElementId) -> Option<ByteSpan> {
+        if let XmlNode::Element {
+            attributes,
+            children,
+            span,
+            ..
+        } = node
+        {
+            // Match on 'r' attribute (cell reference like A1) or element id
+            if let Some(r_attr) = attributes.get(&TagName::local("r")) {
+                if r_attr == target_id.as_str() {
+                    return Some(span.clone());
+                }
+            }
+            // Also try matching element IDs stored in alt_text
+            if let Some(id_attr) = attributes.get(&TagName::local("id")) {
+                if id_attr == target_id.as_str() {
+                    return Some(span.clone());
+                }
+            }
+            for child in children {
+                if let Some(found) = self.find_cell_node(child, target_id) {
+                    return Some(found);
+                }
+            }
+        }
+        None
+    }
+
+    /// Build an `<is>` element containing rich run XML from CellRun values.
+    fn create_rich_text_is(&self, runs: &[gp_core::ir::CellRun]) -> XmlNode {
+        let mut children: Vec<XmlNode> = Vec::new();
+        for run in runs {
+            let mut run_children: Vec<XmlNode> = Vec::new();
+
+            // Build <rPr> if any formatting is set
+            let has_formatting = run.color.is_some()
+                || run.strikethrough == Some(true)
+                || run.bold == Some(true)
+                || run.size.is_some();
+
+            if has_formatting {
+                let mut rp_children: Vec<XmlNode> = Vec::new();
+
+                if run.bold == Some(true) {
+                    rp_children.push(XmlNode::Element {
+                        name: TagName::local("b"),
+                        attributes: BTreeMap::new(),
+                        namespaces: vec![],
+                        children: vec![],
+                        span: ByteSpan {
+                            offset: 0,
+                            length: 2,
+                        },
+                    });
+                }
+
+                if run.strikethrough == Some(true) {
+                    rp_children.push(XmlNode::Element {
+                        name: TagName::local("strike"),
+                        attributes: BTreeMap::new(),
+                        namespaces: vec![],
+                        children: vec![],
+                        span: ByteSpan {
+                            offset: 0,
+                            length: 6,
+                        },
+                    });
+                }
+
+                if let Some(size) = run.size {
+                    let mut sz_attrs = BTreeMap::new();
+                    sz_attrs.insert(TagName::local("val"), format!("{:.1}", size));
+                    rp_children.push(XmlNode::Element {
+                        name: TagName::local("sz"),
+                        attributes: sz_attrs,
+                        namespaces: vec![],
+                        children: vec![XmlNode::Text {
+                            text: format!("{:.1}", size),
+                            span: ByteSpan {
+                                offset: 0,
+                                length: 3,
+                            },
+                        }],
+                        span: ByteSpan {
+                            offset: 0,
+                            length: 6,
+                        },
+                    });
+                }
+
+                if let Some(ref color) = run.color {
+                    let mut color_attrs = BTreeMap::new();
+                    // Excel uses ARGB; prefix "00" for non-transparent RGB
+                    color_attrs.insert(TagName::local("rgb"), format!("00{}", color));
+                    rp_children.push(XmlNode::Element {
+                        name: TagName::local("color"),
+                        attributes: color_attrs,
+                        namespaces: vec![],
+                        children: vec![],
+                        span: ByteSpan {
+                            offset: 0,
+                            length: 6,
+                        },
+                    });
+                }
+
+                run_children.push(XmlNode::Element {
+                    name: TagName::local("rPr"),
+                    attributes: BTreeMap::new(),
+                    namespaces: vec![],
+                    children: rp_children,
+                    span: ByteSpan {
+                        offset: 0,
+                        length: 4,
+                    },
+                });
+            }
+
+            // Add <t> element with the run text
+            run_children.push(XmlNode::Text {
+                text: run.text.clone(),
+                span: ByteSpan {
+                    offset: 0,
+                    length: run.text.len(),
+                },
+            });
+
+            children.push(XmlNode::Element {
+                name: TagName::local("r"),
+                attributes: BTreeMap::new(),
+                namespaces: vec![],
+                children: run_children,
+                span: ByteSpan {
+                    offset: 0,
+                    length: 2,
+                },
+            });
+        }
+
+        XmlNode::Element {
+            name: TagName::local("is"),
+            attributes: BTreeMap::new(),
+            namespaces: vec![],
+            children,
+            span: ByteSpan {
+                offset: 0,
+                length: 2,
+            },
+        }
     }
 
     /// Detect stale cached values by scanning formula references.

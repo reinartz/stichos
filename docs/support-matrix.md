@@ -67,6 +67,7 @@
 
 ## Phase-7 Intake (post-M6)
 
+- **24 MCP tools** (Track-H adopted: added `validate`, `finish`): 12 tools at `schema_version: "1.6.0"` (additive defaults), 11 tools at `schema_version: "1.0.0"` (read-only), 1 tool at `schema_version: "1.7.0"` (`validate_package`)
 - xlsx/pptx create (content-driven from IR)
 - Full formula coverage (C15 extension)
 - Lint encode/ssim refresh

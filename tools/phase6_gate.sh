@@ -592,12 +592,12 @@ else
     pass "CHANGELOG.md: file not present (skipped)"
 fi
 
-# 3e. 23 tools count in spec.rs
+# 3e. 24 tools count in spec.rs
 if [ -f "crates/mcp/src/spec.rs" ]; then
-    if grep -q 'TOOLS\.len(), 23' crates/mcp/src/spec.rs; then
-        pass "crates/mcp/src/spec.rs: 23 tools count verified"
+    if grep -q 'TOOLS\.len(), 24' crates/mcp/src/spec.rs; then
+        pass "crates/mcp/src/spec.rs: 24 tools count verified"
     else
-        fail "crates/mcp/src/spec.rs: 23 tools count not found"
+        fail "crates/mcp/src/spec.rs: 24 tools count not found"
     fi
 else
     fail "crates/mcp/src/spec.rs: missing"

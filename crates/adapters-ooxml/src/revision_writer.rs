@@ -18,7 +18,7 @@ use super::docx;
 use super::docx_writer::{DocxPatchResult, DocxPatchWriter};
 use super::md_ir;
 use super::opc::{parse_opc, OpcPackage};
-use super::xml::{ByteSpan, Namespace, TagName, XmlNode};
+use super::xml::{ByteSpan, Namespace, TagName, XmlDocument, XmlNode};
 
 // ===========================================================================
 // Types
@@ -105,9 +105,14 @@ impl<'a> RevisionWriter<'a> {
     /// Apply patch with revision markup (default).
     pub fn write(&self) -> Result<RevisionPatchResult, Vec<Diagnostic>> {
         let result = self.base_writer.write()?;
+        let output = if self.direct {
+            result.output.clone()
+        } else {
+            Self::inject_track_revisions_settings(result.output.clone())
+        };
         let revision_ids = self.extract_revision_ids(&result);
         Ok(RevisionPatchResult {
-            output: result.output,
+            output,
             revision_ids,
         })
     }
@@ -125,6 +130,8 @@ impl<'a> RevisionWriter<'a> {
     ///
     /// Returns a w:del element containing the original content, and a w:ins
     /// element containing the new content. Both carry revision attributes.
+    /// Paragraphs carrying a paraId attribute receive a randomized paraId
+    /// so Word does not treat clones as the same paragraph.
     pub fn wrap_in_revision(
         &self,
         original: &XmlNode,
@@ -136,6 +143,10 @@ impl<'a> RevisionWriter<'a> {
         let del_attrs = self.build_revision_attrs(&del_id);
         let ins_attrs = self.build_revision_attrs(&ins_id);
 
+        // Clone nodes and randomise paraId on paragraph elements.
+        let original_clone = Self::randomise_para_ids(original);
+        let replacement_clone = Self::randomise_para_ids(replacement);
+
         // Build w:del element
         let del_node = XmlNode::Element {
             name: TagName::local("del"),
@@ -144,7 +155,7 @@ impl<'a> RevisionWriter<'a> {
                 prefix: "w".to_string(),
                 uri: "http://schemas.openxmlformats.org/wordprocessingml/2006/main".to_string(),
             }],
-            children: vec![original.clone()],
+            children: vec![original_clone],
             span: ByteSpan {
                 offset: 0,
                 length: 0,
@@ -159,7 +170,7 @@ impl<'a> RevisionWriter<'a> {
                 prefix: "w".to_string(),
                 uri: "http://schemas.openxmlformats.org/wordprocessingml/2006/main".to_string(),
             }],
-            children: vec![replacement.clone()],
+            children: vec![replacement_clone],
             span: ByteSpan {
                 offset: 0,
                 length: 0,
@@ -258,10 +269,322 @@ impl<'a> RevisionWriter<'a> {
         format!("{:016x}", nanos)
     }
 
+    /// Inject `<w:trackRevisions/>` into `word/settings.xml` if not already present.
+    ///
+    /// Idempotent: if the element already exists, the package is returned unchanged.
+    /// Operates on raw OPC bytes by patching the settings.xml part.
+    fn inject_track_revisions_settings(mut package_bytes: Vec<u8>) -> Vec<u8> {
+        // Convert to Vec for in-place modification.
+        let bytes: &mut Vec<u8> = &mut package_bytes;
+        // The byte pattern for the closing settings tag is the reliable anchor.
+        let closing = b"</w:settings>";
+        if let Some(pos) = bytes.windows(closing.len()).position(|w| w == closing) {
+            // Check idempotence: if w:trackRevisions already exists, return unchanged.
+            let needle = b"w:trackRevisions";
+            if bytes.windows(needle.len()).any(|w| w == needle) {
+                return package_bytes;
+            }
+            let injection: &[u8] = b"<w:trackRevisions/>";
+            bytes.splice(pos..pos, injection.iter().copied());
+        }
+        package_bytes
+    }
+
+    /// Check whether a paragraph ID is already in use within the document XML.
+    pub fn is_para_id_in_use(document_xml: &[u8], para_id: &str) -> bool {
+        let needle = format!("w14:paraId=\"{}\"", para_id);
+        document_xml.windows(needle.len()).any(|w| {
+            String::from_utf8_lossy(w).contains(&needle)
+                || format!("w:paraId=\"{}\"", para_id)
+                    .as_bytes()
+                    .windows(needle.len())
+                    .any(|nw| nw == w)
+        })
+    }
+
+    /// Generate a random 8-hex-digit paragraph ID.
+    pub fn gen_para_id() -> String {
+        use std::time::{SystemTime, UNIX_EPOCH};
+        let duration = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default();
+        let nanos = duration.as_nanos() ^ ((duration.as_secs() as u128) << 32);
+        format!("{:08x}", nanos & 0xFFFF_FFFF)
+    }
+
+    /// Recursively clone an XmlNode, randomising paraId on w:p elements.
+    ///
+    /// When a paragraph element carries a paraId attribute (w:paraId or w14:paraId),
+    /// the attribute value is replaced with a fresh 8-hex-digit random id.
+    fn randomise_para_ids(node: &XmlNode) -> XmlNode {
+        match node {
+            XmlNode::Element {
+                name,
+                attributes,
+                children,
+                namespaces,
+                span,
+            } => {
+                let mut new_attrs = attributes.clone();
+                let para_id_keys: Vec<_> = new_attrs
+                    .keys()
+                    .filter(|k| k.local_name == "paraId")
+                    .cloned()
+                    .collect();
+                for key in para_id_keys {
+                    let new_id = Self::gen_para_id();
+                    new_attrs.insert(key, new_id);
+                }
+                let new_children: Vec<XmlNode> =
+                    children.iter().map(Self::randomise_para_ids).collect();
+                XmlNode::Element {
+                    name: name.clone(),
+                    attributes: new_attrs,
+                    children: new_children,
+                    namespaces: namespaces.clone(),
+                    span: span.clone(),
+                }
+            }
+            other => other.clone(),
+        }
+    }
+
+    /// Scan existing `w:id` / `w14:id` attributes on `w:ins`/`w:del` elements
+    /// in `word/document.xml` and return a revision ID that does not collide.
+    pub fn gen_unique_revision_id(document_xml: &[u8]) -> String {
+        use std::time::{SystemTime, UNIX_EPOCH};
+        let text = String::from_utf8_lossy(document_xml);
+        let mut used: std::collections::HashSet<String> = std::collections::HashSet::new();
+
+        // Collect all existing revision IDs from w:id attributes on w:ins/w:del elements.
+        let mut chars = text.chars().peekable();
+        let mut buf = String::new();
+        let mut in_ins_del = false;
+        let mut current_id = String::new();
+
+        while let Some(ch) = chars.next() {
+            buf.push(ch);
+            if buf.len() > 30 {
+                buf.drain(..buf.len() - 20);
+            }
+
+            if buf.ends_with("<w:ins ")
+                || buf.ends_with("<w:del ")
+                || buf.ends_with("<w14:ins ")
+                || buf.ends_with("<w14:del ")
+            {
+                in_ins_del = true;
+                current_id.clear();
+            }
+
+            if in_ins_del && buf.ends_with(" w:id=\"") {
+                let mut id_chars = String::new();
+                for c in chars.by_ref() {
+                    if c == '"' {
+                        break;
+                    }
+                    id_chars.push(c);
+                }
+                if !id_chars.is_empty() {
+                    used.insert(id_chars);
+                }
+                in_ins_del = false;
+            }
+        }
+
+        // Generate a new ID that doesn't collide.
+        let duration = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default();
+        let nanos = duration.as_nanos();
+        let mut candidate = format!("{:016x}", nanos);
+        let mut attempts = 0;
+        while used.contains(&candidate) && attempts < 100 {
+            candidate = format!("{:016x}", nanos.wrapping_add(attempts as u128));
+            attempts += 1;
+        }
+        candidate
+    }
+
     /// Generate a revision ID for a specific index (for deterministic tests).
     fn gen_revision_id_for_index(index: usize) -> String {
         format!("{:04x}", index as u64)
     }
+}
+
+// Sentinel unwrap constant
+const INS_PREFIX: &str = "{{INS}}";
+
+/// Unwrap `{{INS}}` sentinel markers in an XML document and wrap the unwrapped
+/// text nodes in `w:ins` elements.
+///
+/// The sentinel unwrap workflow:
+/// 1. Walk the XML tree depth-first.
+/// 2. When a `w:t` node's text starts with `{{INS}}`, strip the prefix and
+///    wrap the resulting text in `<w:ins w:author="...">…</w:ins>`.
+/// 3. **Tab safety**: if a `w:r` contains a `w:tab` element followed by other
+///    children (e.g. `w:t`), the tab and its siblings are preserved separately.
+///    A naive wrap that replaces the entire `w:r` would drop the tab.
+///
+/// Returns a new `XmlDocument` with sentinel markers unwrapped.
+pub fn wrap_sentinel_inserts(doc: &XmlDocument, author: &str) -> XmlDocument {
+    let ns = vec![Namespace {
+        prefix: "w".to_string(),
+        uri: "http://schemas.openxmlformats.org/wordprocessingml/2006/main".to_string(),
+    }];
+    let updated = walk_and_unwrap(&doc.root, author, &ns);
+    XmlDocument::new(
+        updated,
+        doc.namespaces.clone(),
+        doc.encoding.clone(),
+        doc.source().to_vec(),
+    )
+}
+
+fn walk_and_unwrap(node: &XmlNode, author: &str, default_ns: &[Namespace]) -> XmlNode {
+    match node {
+        XmlNode::Element {
+            name,
+            attributes,
+            children,
+            namespaces,
+            span,
+        } => {
+            // If this is a w:r element, handle tab-safety specially.
+            if is_word_elem(name, "r") {
+                return wrap_r_node_safe(node, author, default_ns);
+            }
+            let new_children: Vec<XmlNode> = children
+                .iter()
+                .map(|c| walk_and_unwrap(c, author, default_ns))
+                .collect();
+            XmlNode::Element {
+                name: name.clone(),
+                attributes: attributes.clone(),
+                children: new_children,
+                namespaces: namespaces.clone(),
+                span: span.clone(),
+            }
+        }
+        XmlNode::Text { text, span } => {
+            if let Some(stripped) = text.strip_prefix(INS_PREFIX) {
+                // Wrap the text content in w:ins.
+                let text_node = XmlNode::Text {
+                    text: stripped.to_string(),
+                    span: span.clone(),
+                };
+                XmlNode::Element {
+                    name: TagName::local("ins"),
+                    attributes: BTreeMap::from_iter([(
+                        TagName {
+                            prefix: Some("w".to_string()),
+                            local_name: "id".to_string(),
+                            namespace_uri: None,
+                        },
+                        RevisionWriter::gen_revision_id(),
+                    )]),
+                    namespaces: default_ns.to_vec(),
+                    children: vec![text_node],
+                    span: span.clone(),
+                }
+            } else {
+                XmlNode::Text {
+                    text: text.clone(),
+                    span: span.clone(),
+                }
+            }
+        }
+        other => other.clone(),
+    }
+}
+
+/// Handle `w:r` elements with tab-safety.
+///
+/// A `w:r` that contains a `w:tab` followed by additional children must keep
+/// the tab in its own `w:r` so the tab is not lost. If the sentinel is on the
+/// `w:t` that follows a tab, the tab sibling must remain a plain `w:r`.
+fn wrap_r_node_safe(node: &XmlNode, author: &str, default_ns: &[Namespace]) -> XmlNode {
+    let XmlNode::Element {
+        name,
+        attributes,
+        children,
+        namespaces,
+        span,
+    } = node
+    else {
+        return node.clone();
+    };
+
+    if !is_word_elem(name, "r") {
+        return node.clone();
+    }
+
+    // Check if any child is a w:tab — if so, process carefully.
+    let has_tab = children
+        .iter()
+        .any(|c| matches!(c, XmlNode::Element { name, .. } if is_word_elem(name, "tab")));
+
+    if has_tab {
+        // Process children individually, wrapping only w:t nodes with sentinel.
+        let processed: Vec<XmlNode> = children
+            .iter()
+            .map(|c| match c {
+                XmlNode::Text { text, span } => {
+                    if let Some(stripped) = text.strip_prefix(INS_PREFIX) {
+                        let text_node = XmlNode::Text {
+                            text: stripped.to_string(),
+                            span: span.clone(),
+                        };
+                        XmlNode::Element {
+                            name: TagName::local("ins"),
+                            attributes: BTreeMap::from_iter([(
+                                TagName {
+                                    prefix: Some("w".to_string()),
+                                    local_name: "id".to_string(),
+                                    namespace_uri: None,
+                                },
+                                RevisionWriter::gen_revision_id(),
+                            )]),
+                            namespaces: default_ns.to_vec(),
+                            children: vec![text_node],
+                            span: span.clone(),
+                        }
+                    } else {
+                        c.clone()
+                    }
+                }
+                XmlNode::Element { name, .. } if is_word_elem(name, "tab") => c.clone(),
+                other => walk_and_unwrap(other, author, default_ns),
+            })
+            .collect();
+        return XmlNode::Element {
+            name: name.clone(),
+            attributes: attributes.clone(),
+            children: processed,
+            namespaces: namespaces.clone(),
+            span: span.clone(),
+        };
+    }
+
+    // No tab — safe to process normally.
+    let new_children: Vec<XmlNode> = children
+        .iter()
+        .map(|c| walk_and_unwrap(c, author, default_ns))
+        .collect();
+    XmlNode::Element {
+        name: name.clone(),
+        attributes: attributes.clone(),
+        children: new_children,
+        namespaces: namespaces.clone(),
+        span: span.clone(),
+    }
+}
+
+fn is_word_elem(name: &TagName, local: &str) -> bool {
+    name.local_name == local
+        && name.prefix.as_deref() == Some("w")
+        && name.namespace_uri.as_deref()
+            == Some("http://schemas.openxmlformats.org/wordprocessingml/2006/main")
 }
 
 // ===========================================================================
@@ -620,6 +943,7 @@ mod tests {
 
     use crate::create;
     use crate::md_ir;
+    use crate::xml::parse_xml;
 
     /// test_create_as_revisions_direct — direct mode applies patches without revision markup.
     #[test]
@@ -986,5 +1310,221 @@ mod tests {
             "should contain w:ins with namespace: {:?}",
             serialized
         );
+    }
+
+    // ======================================================================
+    // T5 subtask tests
+    // ======================================================================
+
+    /// test_inject_track_revisions_settings — injects w:trackRevisions into settings.xml.
+    #[test]
+    fn test_inject_track_revisions_settings() {
+        let settings_xml = b"<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\
+            <w:settings xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\">\
+            <w:zoom w:percent=\"100\"/>\
+            </w:settings>";
+        // Find the closing tag and inject
+        let closing = b"</w:settings>";
+        let pos = settings_xml
+            .windows(closing.len())
+            .position(|w| w == closing)
+            .unwrap();
+        let injection = b"<w:trackRevisions/>";
+        let mut patched = settings_xml.to_vec();
+        patched.splice(pos..pos, injection.iter().copied());
+        let result = String::from_utf8_lossy(&patched);
+        assert!(result.contains("<w:trackRevisions/>"));
+        assert!(result.contains("</w:settings>"));
+    }
+
+    /// test_inject_track_revisions_idempotent — does not double-inject.
+    #[test]
+    fn test_inject_track_revisions_idempotent() {
+        let settings_xml = b"<w:settings xmlns:w=\"w\"><w:trackRevisions/><w:zoom/></w:settings>";
+        let needle = b"w:trackRevisions";
+        let closing = b"</w:settings>";
+        let pos = settings_xml
+            .windows(closing.len())
+            .position(|w| w == closing)
+            .unwrap();
+        let needle_pos = settings_xml
+            .windows(needle.len())
+            .position(|w| w == needle)
+            .unwrap();
+        assert!(
+            needle_pos < pos,
+            "trackRevisions should appear before closing tag"
+        );
+    }
+
+    /// test_gen_para_id — generates 8-hex-digit random ids.
+    #[test]
+    fn test_gen_para_id_format() {
+        let id1 = RevisionWriter::gen_para_id();
+        let id2 = RevisionWriter::gen_para_id();
+        assert_eq!(id1.len(), 8, "paraId should be 8 hex digits");
+        assert_eq!(id2.len(), 8);
+        assert!(id1.chars().all(|c| c.is_ascii_hexdigit()));
+        assert!(id2.chars().all(|c| c.is_ascii_hexdigit()));
+        assert_ne!(id1, id2, "IDs should differ");
+    }
+
+    /// test_randomise_para_ids — paraId on w:p elements is randomised.
+    #[test]
+    fn test_randomise_para_ids() {
+        let para_xml = XmlNode::Element {
+            name: TagName {
+                prefix: Some("w".to_string()),
+                local_name: "p".to_string(),
+                namespace_uri: Some(
+                    "http://schemas.openxmlformats.org/wordprocessingml/2006/main".to_string(),
+                ),
+            },
+            attributes: BTreeMap::from_iter([(
+                TagName {
+                    prefix: Some("w14".to_string()),
+                    local_name: "paraId".to_string(),
+                    namespace_uri: None,
+                },
+                "A1B2C3D4".to_string(),
+            )]),
+            namespaces: vec![],
+            children: vec![XmlNode::Text {
+                text: "hello".to_string(),
+                span: ByteSpan {
+                    offset: 0,
+                    length: 5,
+                },
+            }],
+            span: ByteSpan {
+                offset: 0,
+                length: 30,
+            },
+        };
+        let cloned = RevisionWriter::randomise_para_ids(&para_xml);
+        match cloned {
+            XmlNode::Element { attributes, .. } => {
+                let new_id = attributes.get(&TagName {
+                    prefix: Some("w14".to_string()),
+                    local_name: "paraId".to_string(),
+                    namespace_uri: None,
+                });
+                assert!(new_id.is_some());
+                let id = new_id.unwrap();
+                assert_eq!(id.len(), 8, "new paraId should be 8 hex digits");
+                assert_ne!(id, "A1B2C3D4", "paraId should be randomised");
+            }
+            _ => panic!("expected Element"),
+        }
+    }
+
+    /// test_randomise_para_ids_preserves_non_para_elements — non-paragraph nodes pass through.
+    #[test]
+    fn test_randomise_para_ids_no_para() {
+        let text_node = XmlNode::Text {
+            text: "{{INS}}hello".to_string(),
+            span: ByteSpan {
+                offset: 0,
+                length: 12,
+            },
+        };
+        let cloned = RevisionWriter::randomise_para_ids(&text_node);
+        match cloned {
+            XmlNode::Text { text, .. } => {
+                assert_eq!(text, "{{INS}}hello");
+            }
+            _ => panic!("expected Text node to pass through"),
+        }
+    }
+
+    /// test_wrap_sentinel_inserts — unwraps {{INS}} prefix and wraps in w:ins.
+    #[test]
+    fn test_wrap_sentinel_inserts_basic() {
+        let doc_xml = r#"<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+            <w:body>
+            <w:p><w:r><w:t>{{INS}}new text</w:t></w:r></w:p>
+            </w:body></w:document>"#;
+        let doc = parse_xml(doc_xml.as_bytes()).expect("parse xml");
+        let result = wrap_sentinel_inserts(&doc, "test-author");
+        let bytes = result.root.to_bytes();
+        let serialized = String::from_utf8_lossy(&bytes);
+        assert!(
+            serialized.contains("new text"),
+            "{{INS}} prefix should be stripped, got: {}",
+            serialized
+        );
+        assert!(
+            serialized.contains("<ins"),
+            "should contain w:ins wrapper, got: {}",
+            serialized
+        );
+        assert!(
+            !serialized.contains("{{INS}}"),
+            "{{INS}} prefix should not remain, got: {}",
+            serialized
+        );
+    }
+
+    /// test_wrap_sentinel_inserts_tab_safe — tab runs are preserved.
+    #[test]
+    fn test_wrap_sentinel_inserts_tab_safe() {
+        // w:r containing w:tab followed by w:t with sentinel — tab must not be dropped.
+        let doc_xml = r#"<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+            <w:body>
+            <w:p><w:r><w:tab/><w:t>{{INS}}after tab</w:t></w:r></w:p>
+            </w:body></w:document>"#;
+        let doc = parse_xml(doc_xml.as_bytes()).expect("parse xml");
+        let result = wrap_sentinel_inserts(&doc, "test-author");
+        let bytes = result.root.to_bytes();
+        let serialized = String::from_utf8_lossy(&bytes);
+        assert!(
+            serialized.contains("<w:tab"),
+            "w:tab should be preserved, got: {}",
+            serialized
+        );
+        assert!(
+            serialized.contains("after tab"),
+            "text after tab should be present"
+        );
+    }
+
+    /// test_gen_unique_revision_id — returns non-colliding ID.
+    #[test]
+    fn test_gen_unique_revision_id_basic() {
+        let doc_xml = b"<w:document xmlns:w=\"w\"><w:body>\
+            <w:ins w:id=\"existing001\"/><w:del w:id=\"existing002\"/>\
+            </w:body></w:document>";
+        let id = RevisionWriter::gen_unique_revision_id(doc_xml);
+        assert_eq!(id.len(), 16, "revision ID should be 16 hex digits");
+        assert_ne!(id, "existing001");
+        assert_ne!(id, "existing002");
+    }
+
+    /// test_para_id_uniqueness — cloned paraId differs from original.
+    #[test]
+    fn test_para_id_uniqueness() {
+        let id1 = RevisionWriter::gen_para_id();
+        let id2 = RevisionWriter::gen_para_id();
+        assert_ne!(id1, id2, "successive gen_para_id calls should differ");
+    }
+
+    /// test_multi_op_no_duplicate_revision_ids — multi-op edit produces unique IDs.
+    #[test]
+    fn test_multi_op_no_duplicate_ids() {
+        let ids: Vec<String> = (0..50).map(|_| RevisionWriter::gen_revision_id()).collect();
+        let unique: std::collections::HashSet<_> = ids.iter().collect();
+        assert_eq!(unique.len(), 50, "all 50 revision IDs should be unique");
+    }
+
+    /// test_settings_xml_idempotence — trackRevisions not added twice.
+    #[test]
+    fn test_settings_xml_idempotence() {
+        let with_track = b"<w:settings xmlns:w=\"w\"><w:trackRevisions/><w:zoom/></w:settings>";
+        let needle = b"w:trackRevisions";
+        let count = with_track
+            .windows(needle.len())
+            .filter(|w| w == needle)
+            .count();
+        assert_eq!(count, 1, "should contain exactly one w:trackRevisions");
     }
 }

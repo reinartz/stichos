@@ -1394,6 +1394,84 @@ impl DiagnosticRegistry {
             },
         );
 
+        // OOX (adapters-ooxml) OPC package integrity codes
+        entries.insert(
+            "OOX-E-022",
+            CodeEntry {
+                code: "OOX-E-022",
+                severity: Severity::Error,
+                category: "validation",
+                description: "Dangling relationship target '{}' in '{}' — no such part exists",
+            },
+        );
+        entries.insert(
+            "OOX-E-023",
+            CodeEntry {
+                code: "OOX-E-023",
+                severity: Severity::Error,
+                category: "validation",
+                description: "Orphan part '{}' has no incoming relationship",
+            },
+        );
+        entries.insert(
+            "OOX-E-024",
+            CodeEntry {
+                code: "OOX-E-024",
+                severity: Severity::Error,
+                category: "validation",
+                description: "Missing content-type override for part '{}'",
+            },
+        );
+        entries.insert(
+            "OOX-E-025",
+            CodeEntry {
+                code: "OOX-E-025",
+                severity: Severity::Error,
+                category: "validation",
+                description: "Presentation has zero slides (empty sldIdLst)",
+            },
+        );
+        entries.insert(
+            "OOX-W-026",
+            CodeEntry {
+                code: "OOX-W-026",
+                severity: Severity::Warning,
+                category: "validation",
+                description:
+                    "[Content_Types].xml is not the first ZIP entry (found at position {})",
+            },
+        );
+        entries.insert(
+            "OOX-W-027",
+            CodeEntry {
+                code: "OOX-W-027",
+                severity: Severity::Warning,
+                category: "validation",
+                description:
+                    "Part '{}' uses fallback content type '{}' instead of explicit override",
+            },
+        );
+        // OOX-E-026: Rich text parse error
+        entries.insert(
+            "OOX-E-026",
+            CodeEntry {
+                code: "OOX-E-026",
+                severity: Severity::Error,
+                category: "oox",
+                description: "Rich text parse error: {}",
+            },
+        );
+        // OOX-W-029: Cell rich text — unsupported formatting
+        entries.insert(
+            "OOX-W-029",
+            CodeEntry {
+                code: "OOX-W-029",
+                severity: Severity::Warning,
+                category: "oox",
+                description: "Cell rich text contains unsupported formatting: {}",
+            },
+        );
+
         // PDF (adapters-pdf) codes — qpdf informational
         entries.insert(
             "PDF-I-001",
@@ -1959,6 +2037,14 @@ mod tests {
             "OOX-W-151",
             "OOX-W-200",
             "OOX-W-201",
+            "OOX-E-022",
+            "OOX-E-023",
+            "OOX-E-024",
+            "OOX-E-025",
+            "OOX-W-026",
+            "OOX-W-027",
+            "OOX-E-026",
+            "OOX-W-029",
             "ODF-E-001",
             "ODF-E-002",
             "ODF-E-003",

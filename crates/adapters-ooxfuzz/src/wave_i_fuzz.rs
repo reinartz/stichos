@@ -61,6 +61,7 @@ pub fn sheet_inspect_100k_rows() -> Spreadsheet {
                 cached_value: None,
                 style_name: None,
                 number_format: None,
+                rich: None,
             }],
         })
         .collect();
@@ -90,6 +91,7 @@ pub fn sheet_inspect_1m_char_cell() -> Spreadsheet {
         cached_value: None,
         style_name: None,
         number_format: None,
+        rich: None,
     };
     let row = SheetRow {
         id: ElementId::content_anchored("row", &["r0"], ""),
@@ -121,6 +123,7 @@ pub fn sheet_inspect_malformed_cell_refs() -> Spreadsheet {
         cached_value: None,
         style_name: None,
         number_format: None,
+        rich: None,
     };
     let cell_b = SheetCell {
         id: ElementId::content_anchored("cell", &["c1"], "b"),
@@ -131,6 +134,7 @@ pub fn sheet_inspect_malformed_cell_refs() -> Spreadsheet {
         cached_value: None,
         style_name: None,
         number_format: None,
+        rich: None,
     };
     let row = SheetRow {
         id: ElementId::content_anchored("row", &["r0"], ""),
@@ -162,6 +166,7 @@ pub fn sheet_inspect_huge_merged_ranges() -> Spreadsheet {
         cached_value: None,
         style_name: None,
         number_format: None,
+        rich: None,
     };
     let row = SheetRow {
         id: ElementId::content_anchored("row", &["r0"], ""),
@@ -201,6 +206,7 @@ pub fn sheet_inspect_c15_deep_nesting_formula() -> Spreadsheet {
         cached_value: None,
         style_name: None,
         number_format: None,
+        rich: None,
     };
     let row = SheetRow {
         id: ElementId::content_anchored("row", &["r0"], ""),
@@ -660,6 +666,7 @@ pub fn sheet_inspect_10_sheets() -> Spreadsheet {
                     },
                     style_name: None,
                     number_format: None,
+                    rich: None,
                 })
                 .collect();
             let row = SheetRow {

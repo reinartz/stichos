@@ -247,10 +247,221 @@ pub fn ms_office_available() -> bool {
     MsOfficeEngine::probe().any_available()
 }
 
+// ===========================================================================
+// T4 COM operations: POTX finish & slide export
+// ===========================================================================
+
+/// Result of deleting the first N slides from a presentation.
+#[derive(Debug, Clone)]
+pub struct DeleteSlidesResult {
+    /// Path to the saved PPTX (samples deleted).
+    pub saved_path: String,
+    /// Number of slides deleted.
+    pub deleted_count: u32,
+    /// Remaining slide count.
+    pub remaining_slides: u32,
+}
+
+/// Result of exporting all slides as PNGs.
+#[derive(Debug, Clone)]
+pub struct ExportSlidePngsResult {
+    /// Directory containing the exported PNG files.
+    pub out_dir: String,
+    /// Number of slides exported.
+    pub exported_count: u32,
+}
+
+/// Result of validating a document via Word/PowerPoint COM open.
+#[derive(Debug, Clone)]
+pub struct ValidateOpenResult {
+    /// Whether the document opened successfully.
+    pub ok: bool,
+    /// Which application opened it: "word", "excel", or "powerpoint".
+    pub app: String,
+    /// Application version string (if available).
+    pub app_version: Option<String>,
+    /// Detail message: for Word = paragraph/revision count, for PowerPoint = slide count, for Excel = sheet count.
+    pub detail: String,
+}
+
+/// Delete the first N slides from a presentation via PowerPoint COM.
+///
+/// Workflow:
+/// 1. Open the presentation **non-readonly** (PowerPoint won't let you save otherwise).
+/// 2. Delete slides back-to-front (index N-1 down to 0) to preserve indices.
+/// 3. `SaveAs(path, 24)` — 24 = ppFormatPPTX.
+/// 4. `SaveAs(pdf_path, 32)` — 32 = ppFormatPDF (optional, caller-supplied path).
+/// 5. Close **without** saving (PowerPoint already saved via SaveAs).
+/// 6. `Quit()` always, even on failure (no orphan POWERPNT).
+///
+/// This **must** go through COM — stripping ZIP entries leaves orphan parts,
+/// dangling relationships, and the zero-slide pitfall (T1 OOX-E-025).
+///
+/// # Arguments
+/// * `path` — Path to the .pptx file.
+/// * `n` — Number of leading slides to delete.
+/// * `pdf_path` — Optional path for PDF export (pass `None` to skip).
+///
+/// # Feature gate
+/// `ms-office` feature on Windows. On non-Windows or without the feature,
+/// returns an error diagnostic.
+#[allow(unreachable_code)]
+pub fn delete_slides_first_n(
+    path: &str,
+    n: u32,
+    pdf_path: Option<&str>,
+) -> Result<DeleteSlidesResult, Vec<Diagnostic>> {
+    #[cfg(all(feature = "ms-office", target_os = "windows"))]
+    {
+        let _ = path;
+        let _ = n;
+        let _ = pdf_path;
+        // TODO (T4.2): COM implementation via Stickey/Windows crate.
+        // This is a stub — the real implementation spawns a stichos-com-worker
+        // process that uses PowerPoint COM APIs.
+        Err(vec![Diagnostic::new(
+            "ENG-E-010",
+            gp_core::diagnostics::Severity::Error,
+            "delete_slides_first_n: COM implementation requires Windows + `ms-office` feature (stub)",
+        )])
+    }
+    #[cfg(not(all(feature = "ms-office", target_os = "windows")))]
+    {
+        let _ = path;
+        let _ = n;
+        let _ = pdf_path;
+        Err(vec![Diagnostic::new(
+            "ENG-E-010",
+            gp_core::diagnostics::Severity::Error,
+            "delete_slides_first_n: requires Windows + `ms-office` feature (stub)",
+        )])
+    }
+}
+
+/// Export all slides from a presentation as PNG images via PowerPoint COM.
+///
+/// Uses `Slide.Export()` (not `SaveCopyAs`) — this is the reliable per-slide
+/// PNG export method. Each slide is rendered at the requested width × height.
+///
+/// # Arguments
+/// * `path` — Path to the .pptx file.
+/// * `out_dir` — Directory to write PNG files into (created if absent).
+/// * `w` — Width in pixels.
+/// * `h` — Height in pixels.
+///
+/// # Feature gate
+/// `ms-office` feature on Windows. On non-Windows or without the feature,
+/// returns an error diagnostic.
+#[allow(unreachable_code)]
+pub fn export_slide_pngs(
+    path: &str,
+    out_dir: &str,
+    w: u32,
+    h: u32,
+) -> Result<ExportSlidePngsResult, Vec<Diagnostic>> {
+    #[cfg(all(feature = "ms-office", target_os = "windows"))]
+    {
+        let _ = path;
+        let _ = out_dir;
+        let _ = w;
+        let _ = h;
+        // TODO (T4.2): COM implementation via Stickey/Windows crate.
+        Err(vec![Diagnostic::new(
+            "ENG-E-011",
+            gp_core::diagnostics::Severity::Error,
+            "export_slide_pngs: COM implementation requires Windows + `ms-office` feature (stub)",
+        )])
+    }
+    #[cfg(not(all(feature = "ms-office", target_os = "windows")))]
+    {
+        let _ = path;
+        let _ = out_dir;
+        let _ = w;
+        let _ = h;
+        Err(vec![Diagnostic::new(
+            "ENG-E-011",
+            gp_core::diagnostics::Severity::Error,
+            "export_slide_pngs: requires Windows + `ms-office` feature (stub)",
+        )])
+    }
+}
+
+/// Validate a Word/Excel/PowerPoint document by opening it read-only via COM,
+/// reading metadata, then closing without saving.
+///
+/// This is the runtime authority complement to static OPC validation (T1).
+/// Word/PowerPoint can detect issues that static ZIP/XML analysis misses:
+/// - Corrupt internal relationships
+/// - Missing required parts (e.g. master slides, theme parts)
+/// - Invalid XML that only the app's parser catches
+///
+/// # Workflow
+/// 1. Detect file format from extension (.docx, .xlsx, .pptx).
+/// 2. Open the file **read-only** (never Save — avoid proofing/autocorrect side effects).
+/// 3. Read counts: Word = paragraphs + revision count (grouped, report but don't equate to w:ins),
+///    PowerPoint = slide count, Excel = worksheet count.
+/// 4. Close the document **without saving**.
+/// 5. `Quit()` + `ReleaseComObject` always, even on failure.
+///
+/// # Arguments
+/// * `path` — Path to the document file (.docx, .xlsx, or .pptx).
+///
+/// # Returns
+/// `Ok(ValidateOpenResult)` with validity info, or `Err(Vec<Diagnostic>)` on failure.
+///
+/// # Feature gate
+/// `ms-office` feature on Windows. On non-Windows or without the feature,
+/// returns an error diagnostic.
+#[allow(unreachable_code)]
+pub fn validate_open(path: &str) -> Result<ValidateOpenResult, Vec<Diagnostic>> {
+    #[cfg(all(feature = "ms-office", target_os = "windows"))]
+    {
+        let _ = path;
+        // TODO (T7.1): COM implementation via Stickey/Windows crate.
+        // This is a stub — the real implementation spawns a stichos-com-worker
+        // process that uses Word/Excel/PowerPoint COM APIs.
+        // The stub mirrors the pattern used by delete_slides_first_n and export_slide_pngs.
+        Err(vec![Diagnostic::new(
+            "ENG-E-012",
+            gp_core::diagnostics::Severity::Error,
+            "validate_open: COM implementation requires Windows + `ms-office` feature (stub)",
+        )])
+    }
+    #[cfg(not(all(feature = "ms-office", target_os = "windows")))]
+    {
+        let _ = path;
+        Err(vec![Diagnostic::new(
+            "ENG-E-012",
+            gp_core::diagnostics::Severity::Error,
+            "validate_open: requires Windows + `ms-office` feature (stub)",
+        )])
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use gp_core::traits::Engine;
+
+    /// test_delete_slides_stub_errors_non_windows: delete_slides_first_n returns error on non-Windows.
+    #[test]
+    fn test_delete_slides_stub_errors_non_windows() {
+        let result = delete_slides_first_n("test.pptx", 1, None);
+        assert!(result.is_err());
+        let diags = result.unwrap_err();
+        assert_eq!(diags.len(), 1);
+        assert_eq!(diags[0].code, "ENG-E-010");
+    }
+
+    /// test_export_pngs_stub_errors_non_windows: export_slide_pngs returns error on non-Windows.
+    #[test]
+    fn test_export_pngs_stub_errors_non_windows() {
+        let result = export_slide_pngs("test.pptx", "/tmp/out", 1920, 1080);
+        assert!(result.is_err());
+        let diags = result.unwrap_err();
+        assert_eq!(diags.len(), 1);
+        assert_eq!(diags[0].code, "ENG-E-011");
+    }
 
     /// test_engine_id: engine identifier is "ms-office".
     #[test]
@@ -262,6 +473,7 @@ mod tests {
 
     /// test_not_available_on_linux: engine is unavailable on non-Windows.
     #[test]
+    #[allow(unused_variables)]
     fn test_not_available_on_linux() {
         let engine = MsOfficeEngine::new();
         #[cfg(not(target_os = "windows"))]
@@ -378,5 +590,15 @@ mod tests {
         assert!(result.word_version.is_none());
         assert!(result.excel_version.is_none());
         assert!(result.powerpoint_version.is_none());
+    }
+
+    /// test_validate_open_stub_errors_non_windows: validate_open returns error on non-Windows.
+    #[test]
+    fn test_validate_open_stub_errors_non_windows() {
+        let result = validate_open("test.docx");
+        assert!(result.is_err());
+        let diags = result.unwrap_err();
+        assert_eq!(diags.len(), 1);
+        assert_eq!(diags[0].code, "ENG-E-012");
     }
 }

@@ -522,7 +522,8 @@ impl SurgicalPatchExecutor {
                 PatchOp::Delete { .. } | PatchOp::TrackDelete { .. } => &DeniedAction::DeletePart,
                 PatchOp::ReplaceText { .. }
                 | PatchOp::SetRunProps { .. }
-                | PatchOp::SetCellValue { .. } => &DeniedAction::MacroPartWrite,
+                | PatchOp::SetCellValue { .. }
+                | PatchOp::SetCellRich { .. } => &DeniedAction::MacroPartWrite,
                 PatchOp::Insert { .. } | PatchOp::TrackInsert { .. } => {
                     &DeniedAction::UnknownAction
                 }

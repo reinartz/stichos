@@ -257,7 +257,33 @@ pub fn system_info() -> SystemInfo {
 }
 
 /// Get LibreOffice version from `soffice --version`.
+///
+/// On Windows, prefers `soffice.bin` (headless) over `soffice.exe` (GUI launcher).
 fn lo_version() -> Option<String> {
+    #[cfg(windows)]
+    {
+        // Try soffice.bin (headless binary) first
+        if let Ok(out) = std::process::Command::new("soffice.bin")
+            .args(["--version"])
+            .output()
+        {
+            if out.status.success() {
+                let text = String::from_utf8_lossy(&out.stdout);
+                if let Some(line) = text.lines().find(|l| l.starts_with("LibreOffice")) {
+                    let rest = line.strip_prefix("LibreOffice")?;
+                    let rest = rest
+                        .strip_prefix('/')
+                        .or_else(|| rest.strip_prefix(|c: char| c.is_whitespace()))?;
+                    if let Some(version) = rest.split_whitespace().find(|w| {
+                        !w.is_empty()
+                            && (w.chars().next().unwrap().is_ascii_digit() || w.starts_with('v'))
+                    }) {
+                        return Some(version.to_string());
+                    }
+                }
+            }
+        }
+    }
     let output = std::process::Command::new("soffice")
         .args(["--version"])
         .output();

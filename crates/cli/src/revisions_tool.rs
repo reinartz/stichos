@@ -9,6 +9,7 @@
 //! Options: `--id`, `--author`, `--all`, `--dry-run`, `--json`
 
 use clap::Subcommand;
+use gp_core::file_access::read_document_bytes;
 use gp_core::ir::*;
 use gp_core::policy::EditPolicy;
 use serde_json::json;
@@ -280,7 +281,7 @@ pub fn list_revisions_for_mcp(
     path: &str,
     author_filter: Option<&str>,
 ) -> Result<serde_json::Value, anyhow::Error> {
-    let bytes = std::fs::read(path)
+    let bytes = read_document_bytes(path)
         .map_err(|e| anyhow::anyhow!("failed to read document: {}: {}", path, e))?;
 
     let ext = path.to_lowercase();
@@ -332,7 +333,7 @@ pub fn accept_revisions_for_mcp(
     dry_run: bool,
     _session_id: Option<&str>,
 ) -> Result<serde_json::Value, anyhow::Error> {
-    let bytes = std::fs::read(path)
+    let bytes = read_document_bytes(path)
         .map_err(|e| anyhow::anyhow!("failed to read document: {}: {}", path, e))?;
 
     let ext = path.to_lowercase();
@@ -377,7 +378,7 @@ pub fn reject_revisions_for_mcp(
     dry_run: bool,
     _session_id: Option<&str>,
 ) -> Result<serde_json::Value, anyhow::Error> {
-    let bytes = std::fs::read(path)
+    let bytes = read_document_bytes(path)
         .map_err(|e| anyhow::anyhow!("failed to read document: {}: {}", path, e))?;
 
     let ext = path.to_lowercase();

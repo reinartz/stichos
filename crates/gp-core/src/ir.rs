@@ -863,6 +863,32 @@ pub struct SheetCell {
     /// Maps to <numFmt> in styles.xml during xlsx creation.
     #[serde(default)]
     pub number_format: Option<String>,
+    /// Rich text runs for this cell (T2 — CellRichText).
+    /// When Some, the cell contains mixed formatting (e.g. CellRichText).
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub rich: Option<Vec<CellRun>>,
+}
+
+/// A single rich text run in a spreadsheet cell (T2 — CellRichText).
+///
+/// When `rich` is `Some`, it represents formatted runs inside an Excel `<is>`
+/// (inline string) element. Plain `value` stays authoritative when `rich` is `None`.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct CellRun {
+    /// The text content of this run.
+    pub text: String,
+    /// Font color as 6-digit hex RRGGBB (e.g. "FF0000" for red). Only the RGB portion.
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub color: Option<String>,
+    /// Strikethrough formatting.
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub strikethrough: Option<bool>,
+    /// Bold formatting.
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub bold: Option<bool>,
+    /// Font size in points.
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub size: Option<f64>,
 }
 
 /// A range of merged cells in a spreadsheet.

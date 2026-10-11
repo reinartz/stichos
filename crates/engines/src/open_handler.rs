@@ -46,7 +46,7 @@ pub fn probe_open_handler() -> DoctorHandoffRow {
     #[cfg(target_os = "linux")]
     {
         if which_binary("xdg-open").is_some() {
-            return DoctorHandoffRow::available(&platform, "xdg-open");
+            DoctorHandoffRow::available(&platform, "xdg-open");
         }
         DoctorHandoffRow::absent(
             &platform,
@@ -58,13 +58,13 @@ pub fn probe_open_handler() -> DoctorHandoffRow {
     #[cfg(target_os = "macos")]
     {
         // `open` is part of macOS — always available.
-        return DoctorHandoffRow::available(&platform, "open");
+        DoctorHandoffRow::available(&platform, "open");
     }
 
     #[cfg(target_os = "windows")]
     {
         // `cmd /C start` is part of Windows — always available.
-        return DoctorHandoffRow::available(&platform, "cmd /C start");
+        DoctorHandoffRow::available(&platform, "cmd /C start")
     }
 
     #[cfg(not(any(target_os = "linux", target_os = "macos", target_os = "windows")))]
@@ -81,6 +81,7 @@ pub fn probe_open_handler() -> DoctorHandoffRow {
 }
 
 /// Check if a binary exists on PATH.
+#[allow(dead_code)]
 fn which_binary(name: &str) -> Option<String> {
     if let Ok(paths) = std::env::var("PATH") {
         for dir in paths.split(':') {
@@ -142,7 +143,7 @@ fn open_platform(path: &std::path::Path) -> OpenResult {
     #[cfg(target_os = "windows")]
     {
         match std::process::Command::new("cmd")
-            .args(&["/C", "start", "", &path_str])
+            .args(["/C", "start", "", &path_str])
             .spawn()
         {
             Ok(child) => OpenResult::launched(&path_str, Some(child.id())),

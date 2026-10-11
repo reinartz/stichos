@@ -304,6 +304,10 @@ impl OdfPatchExecutor {
                 }
                 mutations
             }
+            PatchOp::SetCellRich { .. } => {
+                // Spreadsheet rich text — not applicable to ODF.
+                vec![]
+            }
         }
     }
 

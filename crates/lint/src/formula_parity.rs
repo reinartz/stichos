@@ -280,6 +280,7 @@ mod tests {
                             cached_value: None,
                             style_name: None,
                             number_format: None,
+                            rich: None,
                         },
                         SheetCell {
                             id: ElementId::content_anchored("cell", &["cell:B1"], "1.0"),
@@ -290,6 +291,7 @@ mod tests {
                             cached_value: None,
                             style_name: None,
                             number_format: None,
+                            rich: None,
                         },
                         SheetCell {
                             id: ElementId::content_anchored("cell", &["cell:C1"], "1.0"),
@@ -300,6 +302,7 @@ mod tests {
                             cached_value: None,
                             style_name: None,
                             number_format: None,
+                            rich: None,
                         },
                     ],
                 }],

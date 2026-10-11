@@ -124,6 +124,8 @@ fn common_lo_paths() -> Vec<&'static str> {
     #[cfg(windows)]
     {
         vec![
+            "C:\\Program Files\\LibreOffice\\program\\soffice.bin",
+            "C:\\Program Files (x86)\\LibreOffice\\program\\soffice.bin",
             "C:\\Program Files\\LibreOffice\\program\\soffice.exe",
             "C:\\Program Files (x86)\\LibreOffice\\program\\soffice.exe",
         ]
@@ -153,6 +155,14 @@ fn find_lo_binary() -> Option<String> {
     let path_sep = if cfg!(windows) { ';' } else { ':' };
     if let Ok(paths) = std::env::var("PATH") {
         for dir in paths.split(path_sep) {
+            #[cfg(windows)]
+            {
+                // Prefer soffice.bin (headless) over soffice.exe (GUI launcher)
+                let p = std::path::Path::new(dir).join("soffice.bin");
+                if p.exists() {
+                    return Some(p.to_string_lossy().to_string());
+                }
+            }
             let p = std::path::Path::new(dir).join("soffice");
             let p = if cfg!(windows) {
                 p.with_extension("exe")
@@ -412,11 +422,11 @@ impl LibreOfficeEngine {
         // Spawn threads to read stdout/stderr concurrently
         let stdout_handle = match stdout_reader {
             Some(h) => spawn_reader(SubprocessReader::Stdout(h)),
-            None => thread::spawn(|| Vec::new()),
+            None => thread::spawn(Vec::new),
         };
         let stderr_handle = match stderr_reader {
             Some(h) => spawn_reader(SubprocessReader::Stderr(h)),
-            None => thread::spawn(|| Vec::new()),
+            None => thread::spawn(Vec::new),
         };
 
         // Wait with timeout using try_wait()
@@ -621,18 +631,21 @@ impl Engine for LibreOfficeEngine {
         };
 
         let mut cmd = Command::new(&self.path);
-        cmd.arg(format!("-env:UserInstallation=file://{}", self.temp_dir))
-            .args([
-                "--headless",
-                "--invisible",
-                "--nocrashreport",
-                "--nodefault",
-            ])
-            .arg("--convert-to")
-            .arg(&filter_arg)
-            .arg("--outdir")
-            .arg(&work_dir)
-            .arg(&input_path_str);
+        cmd.arg(format!(
+            "-env:UserInstallation={}",
+            path_to_file_uri(&self.temp_dir)
+        ))
+        .args([
+            "--headless",
+            "--invisible",
+            "--nocrashreport",
+            "--nodefault",
+        ])
+        .arg("--convert-to")
+        .arg(&filter_arg)
+        .arg("--outdir")
+        .arg(&work_dir)
+        .arg(&input_path_str);
 
         let result = Self::run_subprocess(&mut cmd);
 
@@ -723,6 +736,54 @@ impl Default for LibreOfficeEngine {
     }
 }
 
+/// Convert a filesystem path to a valid `file://` URI.
+///
+/// On Windows, `C:\foo\bar` → `file:///C:/foo/bar` (with percent-encoding
+/// for spaces and other reserved characters). On Unix paths are simply
+/// prefixed with `file:///`.
+fn path_to_file_uri(path: &str) -> String {
+    use std::fmt::Write;
+    let normalized = path.replace('\\', "/");
+    // Percent-encode reserved characters per RFC 3986, preserving the
+    // drive-letter colon in Windows paths (e.g. C:/... → file:///C:/...).
+    let mut encoded = String::with_capacity(normalized.len() * 3);
+    let mut chars = normalized.chars().peekable();
+    while let Some(ch) = chars.next() {
+        // On Windows paths, preserve the drive-letter colon (e.g. C: after
+        // the initial file:/// prefix).
+        if cfg!(windows) && encoded.ends_with("file:///") && chars.peek() == Some(&':') {
+            encoded.push(':');
+            chars.next();
+        } else {
+            match ch {
+                'A'..='Z' | 'a'..='z' | '0'..='9' | '-' | '_' | '.' | '~' | '/' => {
+                    encoded.push(ch);
+                }
+                ':' if cfg!(windows)
+                    && normalized.len() >= 2
+                    && normalized.as_bytes()[0] >= b'A' =>
+                {
+                    // Preserve colon in drive letter (e.g. C:/)
+                    encoded.push(ch);
+                }
+                _ => {
+                    let bytes = ch.to_string().into_bytes();
+                    for b in bytes {
+                        let _ = write!(encoded, "%{:02X}", b);
+                    }
+                }
+            }
+        }
+    }
+    // Unix paths already start with / → file:/// + /path = file:////path (correct)
+    // Windows paths start with drive letter → file:/// + C:/path = file:///C:/path
+    if cfg!(unix) {
+        format!("file://{}", encoded)
+    } else {
+        format!("file:///{}", encoded)
+    }
+}
+
 /// Compute a fontset hash by hashing fc-match output for common fonts.
 fn fontset_hash_impl() -> Option<String> {
     let fonts = [
@@ -766,7 +827,11 @@ mod tests {
 
     #[test]
     fn test_libreoffice_engine_creation() {
-        let result = LibreOfficeEngine::new("/usr/bin/soffice");
+        #[cfg(windows)]
+        let path = r"C:\Program Files\LibreOffice\program\soffice.bin";
+        #[cfg(not(windows))]
+        let path = "/usr/bin/soffice";
+        let result = LibreOfficeEngine::new(path);
         assert!(
             result.is_ok(),
             "engine creation should succeed for valid path"
@@ -856,7 +921,11 @@ mod tests {
 
     #[test]
     fn test_can_convert() {
-        let engine = lo_engine("/usr/bin/soffice");
+        #[cfg(windows)]
+        let path = r"C:\Program Files\LibreOffice\program\soffice.bin";
+        #[cfg(not(windows))]
+        let path = "/usr/bin/soffice";
+        let engine = lo_engine(path);
         assert!(engine.can_convert("docx", "pdf"));
         assert!(engine.can_convert("xlsx", "pdf"));
         assert!(engine.can_convert("pptx", "pdf"));
@@ -867,7 +936,11 @@ mod tests {
 
     #[test]
     fn test_supported_conversions() {
-        let engine = lo_engine("/usr/bin/soffice");
+        #[cfg(windows)]
+        let path = r"C:\Program Files\LibreOffice\program\soffice.bin";
+        #[cfg(not(windows))]
+        let path = "/usr/bin/soffice";
+        let engine = lo_engine(path);
         let conversions = engine.supported_conversions();
         assert!(!conversions.is_empty());
         assert!(conversions.contains(&("docx".to_string(), "pdf".to_string())));
@@ -875,7 +948,11 @@ mod tests {
 
     #[test]
     fn test_engine_id() {
-        let engine = lo_engine("/usr/bin/soffice");
+        #[cfg(windows)]
+        let path = r"C:\Program Files\LibreOffice\program\soffice.bin";
+        #[cfg(not(windows))]
+        let path = "/usr/bin/soffice";
+        let engine = lo_engine(path);
         assert_eq!(engine.engine_id(), "libreoffice");
     }
 
@@ -890,7 +967,11 @@ mod tests {
 
     #[test]
     fn test_is_available() {
-        let engine = lo_engine("/usr/bin/soffice");
+        #[cfg(windows)]
+        let path = r"C:\Program Files\LibreOffice\program\soffice.bin";
+        #[cfg(not(windows))]
+        let path = "/usr/bin/soffice";
+        let engine = lo_engine(path);
         assert!(engine.is_available());
     }
 
@@ -901,7 +982,11 @@ mod tests {
 
     #[test]
     fn test_engine_info() {
-        let engine = lo_engine("/usr/bin/soffice");
+        #[cfg(windows)]
+        let path = r"C:\Program Files\LibreOffice\program\soffice.bin";
+        #[cfg(not(windows))]
+        let path = "/usr/bin/soffice";
+        let engine = lo_engine(path);
         let info = engine.info();
         assert_eq!(info.engine_id, "libreoffice");
         assert!(info.is_available);
@@ -1023,5 +1108,35 @@ mod tests {
             NoCloseFile::from_raw(-1).is_none(),
             "invalid fd should return None"
         );
+    }
+
+    #[test]
+    fn test_path_to_file_uri_unix() {
+        #[cfg(unix)]
+        {
+            assert_eq!(
+                path_to_file_uri("/tmp/stichos-lo-abc"),
+                "file:///tmp/stichos-lo-abc"
+            );
+            assert_eq!(
+                path_to_file_uri("/tmp/my profile/stichos"),
+                "file:///tmp/my%20profile/stichos"
+            );
+        }
+    }
+
+    #[test]
+    fn test_path_to_file_uri_windows() {
+        #[cfg(windows)]
+        {
+            assert_eq!(
+                path_to_file_uri(r"C:\Users\test\stichos"),
+                "file:///C:/Users/test/stichos"
+            );
+            assert_eq!(
+                path_to_file_uri(r"C:\Program Files\LibreOffice\program"),
+                "file:///C:/Program%20Files/LibreOffice/program"
+            );
+        }
     }
 }

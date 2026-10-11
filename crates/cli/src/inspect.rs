@@ -9,6 +9,7 @@
 //! - Fidelity budget (C4 contract)
 
 use gp_core::fidelity::FidelityBudget;
+use gp_core::file_access::read_document_bytes;
 use gp_core::ir::*;
 use gp_core::ir_convert;
 use gp_core::traits::Codec;
@@ -17,7 +18,7 @@ use std::collections::BTreeMap;
 
 /// Inspect a document and return its IR, element IDs, coordinate manifest, and fidelity budget.
 pub fn inspect_document(path: &str) -> Result<serde_json::Value, anyhow::Error> {
-    let bytes = std::fs::read(path)
+    let bytes = read_document_bytes(path)
         .map_err(|e| anyhow::anyhow!("failed to read document: {}: {}", path, e))?;
 
     let ir = parse_document(&bytes, path)?;

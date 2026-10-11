@@ -685,6 +685,7 @@ mod tests {
                                 cached_value: None,
                                 style_name: None,
                                 number_format: None,
+                                rich: None,
                             },
                             SheetCell {
                                 id: make_id("cell", &["cell:B1"], "B1"),
@@ -695,6 +696,7 @@ mod tests {
                                 cached_value: None,
                                 style_name: None,
                                 number_format: None,
+                                rich: None,
                             },
                         ],
                     },
@@ -710,6 +712,7 @@ mod tests {
                                 cached_value: None,
                                 style_name: None,
                                 number_format: None,
+                                rich: None,
                             },
                             SheetCell {
                                 id: make_id("cell", &["cell:B2"], "B2"),
@@ -720,11 +723,12 @@ mod tests {
                                 cached_value: Some("42".to_string()),
                                 style_name: None,
                                 number_format: None,
+                                rich: None,
                             },
                         ],
                     },
                     SheetRow {
-                        id: make_id("row", &["row:2"], "row:2"),
+                        id: make_id("row", &["row:1"], "row:1"),
                         cells: vec![
                             SheetCell {
                                 id: make_id("cell", &["cell:A3"], "A3"),
@@ -735,6 +739,7 @@ mod tests {
                                 cached_value: None,
                                 style_name: None,
                                 number_format: None,
+                                rich: None,
                             },
                             SheetCell {
                                 id: make_id("cell", &["cell:B3"], "B3"),
@@ -745,6 +750,7 @@ mod tests {
                                 cached_value: Some("100".to_string()),
                                 style_name: None,
                                 number_format: None,
+                                rich: None,
                             },
                         ],
                     },
@@ -776,6 +782,7 @@ mod tests {
                             cached_value: None,
                             style_name: None,
                             number_format: None,
+                            rich: None,
                         }],
                     }],
                     merged_ranges: vec![],
@@ -796,6 +803,7 @@ mod tests {
                             cached_value: None,
                             style_name: None,
                             number_format: None,
+                            rich: None,
                         }],
                     }],
                     merged_ranges: vec![],
@@ -826,6 +834,7 @@ mod tests {
                                 cached_value: None,
                                 style_name: None,
                                 number_format: None,
+                                rich: None,
                             },
                             SheetCell {
                                 id: make_id("cell", &["cell:B1"], "B1"),
@@ -836,6 +845,7 @@ mod tests {
                                 cached_value: None,
                                 style_name: None,
                                 number_format: None,
+                                rich: None,
                             },
                         ],
                     },
@@ -850,6 +860,7 @@ mod tests {
                             cached_value: Some("30".to_string()),
                             style_name: None,
                             number_format: None,
+                            rich: None,
                         }],
                     },
                 ],
@@ -878,6 +889,7 @@ mod tests {
                         cached_value: None,
                         style_name: None,
                         number_format: None,
+                        rich: None,
                     }],
                 }],
                 merged_ranges: vec![
@@ -921,6 +933,7 @@ mod tests {
                             cached_value: None,
                             style_name: Some("bold".to_string()),
                             number_format: None,
+                            rich: None,
                         },
                         SheetCell {
                             id: make_id("cell", &["cell:B1"], "B1"),
@@ -931,6 +944,7 @@ mod tests {
                             cached_value: None,
                             style_name: Some("currency".to_string()),
                             number_format: None,
+                            rich: None,
                         },
                     ],
                 }],

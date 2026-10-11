@@ -13,6 +13,7 @@ pub mod edit_stability;
 pub mod envelope;
 pub mod executor;
 pub mod fidelity;
+pub mod file_access;
 pub mod formula;
 pub mod ir;
 pub mod ir_convert;

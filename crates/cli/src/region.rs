@@ -21,6 +21,7 @@ use engines::negotiate::{negotiate_renderer, RendererPreference};
 use engines::pandoc::PandocEngine;
 use engines::raster;
 use engines::typst::TypstEngine;
+use gp_core::file_access::read_document_bytes;
 use gp_core::traits::Engine;
 use lint::coords::DETAIL_DPI;
 use lint::cropper::{crop_region, validate_crop_request, CropRequest};
@@ -97,7 +98,7 @@ pub fn inspect_region(
 /// Returns (PNG bytes, rendered_by string) on success.
 fn read_master_page(path: &str, page: usize) -> Result<(Vec<u8>, String), anyhow::Error> {
     let bytes =
-        std::fs::read(path).with_context(|| format!("failed to read document: {}", path))?;
+        read_document_bytes(path).with_context(|| format!("failed to read document: {}", path))?;
     let source_ext = path.rsplit('.').next().unwrap_or("").to_lowercase();
 
     // Build cache key

@@ -841,6 +841,7 @@ mod tests {
             cached_value: Some("42".into()),
             style_name: None,
             number_format: None,
+            rich: None,
         };
         let cell2 = SheetCell {
             id: ElementId::content_anchored("cell", &["B1"], "B1"),
@@ -851,6 +852,7 @@ mod tests {
             cached_value: Some("42".into()),
             style_name: None,
             number_format: None,
+            rich: None,
         };
         let sheet = Sheet {
             id: ElementId::content_anchored("sheet", &["Sheet1"], "Sheet1"),
@@ -896,6 +898,7 @@ mod tests {
                 cached_value: None,
                 style_name: None,
                 number_format: None,
+                rich: None,
             }
         };
         let sheet1 = Sheet {
@@ -924,6 +927,7 @@ mod tests {
                         cached_value: None,
                         style_name: None,
                         number_format: None,
+                        rich: None,
                     }],
                 },
                 SheetRow {
@@ -937,6 +941,7 @@ mod tests {
                         cached_value: None,
                         style_name: None,
                         number_format: None,
+                        rich: None,
                     }],
                 },
             ],
@@ -1314,6 +1319,7 @@ mod tests {
                         cached_value: None,
                         style_name: None,
                         number_format: None,
+                        rich: None,
                     }],
                 }],
                 merged_ranges: vec![],

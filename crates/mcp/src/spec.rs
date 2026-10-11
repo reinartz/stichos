@@ -318,8 +318,14 @@ pub const TOOLS: &[ToolSpec] = &[
             ParamDef {
                 name: "value",
                 param_type: ParamType::String,
-                required: true,
-                description: "New cell value",
+                required: false,
+                description: "New cell value (plain text; use 'runs' for rich text)",
+            },
+            ParamDef {
+                name: "runs",
+                param_type: ParamType::String,
+                required: false,
+                description: "Rich text runs as JSON array [{\"text\":\"...\", \"color\":\"FF0000\", \"strike\":true, \"bold\":true, \"size\":12}]",
             },
             ParamDef {
                 name: "dry_run",
@@ -831,6 +837,23 @@ pub const TOOLS: &[ToolSpec] = &[
         deprecation_notice: None,
         schema_version: "1.5.0",
     },
+    // T1.4: validate_package tool (C7 v1.6.0 additive — OPC package integrity)
+    ToolSpec {
+        name: "validate_package",
+        description: "Validate OPC package integrity: dangling relationships, orphan parts, content-type coverage, zero-slide presentations.",
+        params: &[
+            ParamDef {
+                name: "path",
+                param_type: ParamType::String,
+                required: true,
+                description: "Path to the OOXML document file (.docx, .xlsx, .pptx)",
+            },
+        ],
+        idempotent: true,
+        deprecated: false,
+        deprecation_notice: None,
+        schema_version: "1.6.0",
+    },
 ];
 
 /// Check if a tool name is valid per C7.
@@ -863,12 +886,12 @@ pub fn verify_c7_compliance() -> Result<Vec<&'static str>, String> {
                     errors.push(format!("tool '{}' (1.0.0) is not idempotent", tool.name));
                 }
             }
-            "1.1.0" | "1.2.0" | "1.2.1" | "1.3.0" | "1.4.0" | "1.5.0" | "1.6.0" => {
-                // v1.1/v1.2/v1.2.1/v1.3/v1.4/v1.5/v1.6 additive: non-idempotent tools allowed
+            "1.1.0" | "1.2.0" | "1.2.1" | "1.3.0" | "1.4.0" | "1.5.0" | "1.6.0" | "1.7.0" => {
+                // v1.1/v1.2/v1.2.1/v1.3/v1.4/v1.5/v1.6/v1.7 additive: non-idempotent tools allowed
             }
             ver => {
                 errors.push(format!(
-                    "tool '{}' has unexpected version '{}', expected '1.0.0', '1.1.0', '1.2.0', '1.2.1', '1.3.0', '1.4.0', '1.5.0', or '1.6.0'",
+                    "tool '{}' has unexpected version '{}', expected '1.0.0', '1.1.0', '1.2.0', '1.2.1', '1.3.0', '1.4.0', '1.5.0', '1.6.0', or '1.7.0'",
                     tool.name, ver
                 ));
             }
@@ -888,10 +911,10 @@ mod tests {
     //! Breaking changes require a minor version bump.
     use super::*;
 
-    // test_all_tools_defined — all 23 tools present (20 original + list_annotations + resolve_annotations + sign_document)
+    // test_all_tools_defined — all 24 tools present
     #[test]
     fn test_all_tools_defined() {
-        assert_eq!(TOOLS.len(), 23, "expected exactly 23 tools");
+        assert_eq!(TOOLS.len(), 24, "expected exactly 24 tools");
         let names: Vec<_> = TOOLS.iter().map(|t| t.name).collect();
         assert!(names.contains(&"inspect_document"));
         assert!(names.contains(&"render_document"));
@@ -916,6 +939,7 @@ mod tests {
         assert!(names.contains(&"list_annotations"));
         assert!(names.contains(&"resolve_annotations"));
         assert!(names.contains(&"sign_document"));
+        assert!(names.contains(&"validate_package"));
     }
 
     // test_all_tools_idempotent — read-only tools are idempotent (apply_patch is not)
@@ -944,6 +968,7 @@ mod tests {
                 }
                 "list_annotations" | "resolve_annotations" => "1.4.0",
                 "sign_document" => "1.5.0",
+                "validate_package" => "1.6.0",
                 _ => "1.0.0",
             };
             assert_eq!(
@@ -980,6 +1005,7 @@ mod tests {
         assert!(is_valid_tool("list_annotations"));
         assert!(is_valid_tool("resolve_annotations"));
         assert!(is_valid_tool("sign_document"));
+        assert!(is_valid_tool("validate_package"));
     }
 
     // test_invalid_tool_name — unknown tool returns false
@@ -1018,6 +1044,7 @@ mod tests {
         assert!(get_tool("list_annotations").is_some());
         assert!(get_tool("resolve_annotations").is_some());
         assert!(get_tool("sign_document").is_some());
+        assert!(get_tool("validate_package").is_some());
     }
 
     // test_get_tool_not_found — unknown name returns None
@@ -1034,8 +1061,8 @@ mod tests {
         let active = active_tool_names();
         assert_eq!(
             active.len(),
-            23,
-            "all 23 tools should be active (none deprecated)"
+            24,
+            "all 24 tools should be active (none deprecated)"
         );
         for name in &active {
             assert!(
@@ -1058,8 +1085,8 @@ mod tests {
         let names = result.unwrap();
         assert_eq!(
             names.len(),
-            23,
-            "all 23 tools should be active after compliance check"
+            24,
+            "all 24 tools should be active after compliance check"
         );
     }
 

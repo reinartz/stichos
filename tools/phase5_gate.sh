@@ -622,9 +622,9 @@ fi
 echo ""
 
 # ---------------------------------------------------------------------------
-# Gate 7: C7 v1.5.0 frozen additive
+# Gate 7: C7 v1.7.0 frozen additive
 # ---------------------------------------------------------------------------
-echo "=== 7. C7 v1.5.0 frozen additive ==="
+echo "=== 7. C7 v1.7.0 frozen additive ==="
 
 # 7a. Run C7 compliance tests
 echo "  Running: cargo test -p mcp --lib tests -- c7"
@@ -654,10 +654,10 @@ if [ -f "docs/contracts/C7.md" ]; then
         C7_VERSION=$(grep -oP 'Version \| ([0-9]+\.[0-9]+\.[0-9]+)' docs/contracts/C7.md | grep -oP '[0-9]+\.[0-9]+\.[0-9]+' | head -1 || true)
     fi
     if [ -n "$C7_VERSION" ]; then
-        if echo "$C7_VERSION" | grep -q "1\.5\.0"; then
+        if echo "$C7_VERSION" | grep -q "1\.7\.0"; then
             pass "C7: version is ${C7_VERSION}"
         else
-            fail "C7: version is ${C7_VERSION}, expected 1.5.0"
+            fail "C7: version is ${C7_VERSION}, expected 1.7.0"
         fi
     else
         fail "C7: version header not found in docs/contracts/C7.md"
@@ -684,14 +684,12 @@ elif [ -f "docs/CHANGELOG.md" ]; then
     fi
 fi
 
-# 7e. Check spec.rs has 23 tools
+# 7e. Check spec.rs has 24 tools
 if [ -f "crates/mcp/src/spec.rs" ]; then
-    # Look for TOOLS.len() assertion or similar count
-    if grep -q "TOOLS\.len()\|23" crates/mcp/src/spec.rs 2>/dev/null; then
-        TOOL_COUNT=$(grep -oP '\|\s*23\s*\|' crates/mcp/src/spec.rs 2>/dev/null | wc -l || echo 0)
-        pass "crates/mcp/src/spec.rs references 23 tools"
+    if grep -q "TOOLS\.len(), 24" crates/mcp/src/spec.rs 2>/dev/null; then
+        pass "crates/mcp/src/spec.rs references 24 tools"
     else
-        fail "crates/mcp/src/spec.rs missing 23 tools count"
+        fail "crates/mcp/src/spec.rs missing 24 tools count"
     fi
 else
     fail "crates/mcp/src/spec.rs missing"

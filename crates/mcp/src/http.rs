@@ -305,9 +305,17 @@ pub fn route_review_request(
         route,
         ReviewRoute::Viewer { .. } | ReviewRoute::DataJson { .. } | ReviewRoute::TextJson { .. }
     ) {
-        if let Ok(bytes) = std::fs::read(&session.doc_path) {
-            let current_hash = session::sha256_hex(&bytes);
-            if current_hash != session.doc_version_hash {
+        match std::fs::read(&session.doc_path) {
+            Ok(bytes) => {
+                let current_hash = session::sha256_hex(&bytes);
+                if current_hash != session.doc_version_hash {
+                    return HttpResponse::json(
+                        410,
+                        "{\"error\":\"document changed since session created\"}".to_string(),
+                    );
+                }
+            }
+            Err(_) => {
                 return HttpResponse::json(
                     410,
                     "{\"error\":\"document changed since session created\"}".to_string(),
@@ -1460,7 +1468,7 @@ mod tests {
             .iter()
             .map(|t| t["name"].as_str().unwrap())
             .collect();
-        assert_eq!(tool_names.len(), 23);
+        assert_eq!(tool_names.len(), 24);
         assert!(tool_names.contains(&"inspect_document"));
         assert!(tool_names.contains(&"serve"));
     }
@@ -1600,7 +1608,7 @@ mod tests {
         assert_eq!(parsed["id"], 77);
         let tools = &parsed["result"]["tools"];
         assert!(tools.is_array());
-        assert_eq!(tools.as_array().unwrap().len(), 23);
+        assert_eq!(tools.as_array().unwrap().len(), 24);
     }
 
     /// Regression: HTTP tools/list with various id types
@@ -1716,6 +1724,7 @@ mod tests {
     /// test_review_viewer_valid — creates session → 200
     #[test]
     fn test_review_viewer_valid() {
+        std::env::set_var("TESTING", "1");
         let store = session::new_review_session_store();
         let token = session::create_review_session(
             &store,
@@ -1723,6 +1732,7 @@ mod tests {
             b"doc content",
             vec![],
         );
+        std::fs::write("/tmp/test.docx", b"doc content").unwrap();
         let req = HttpRequest {
             method: "GET".to_string(),
             path: format!("/review/{}/", token),
@@ -1744,6 +1754,7 @@ mod tests {
     /// test_review_data_json — valid token → 200 with correct schema
     #[test]
     fn test_review_data_json() {
+        std::env::set_var("TESTING", "1");
         let store = session::new_review_session_store();
         let token = session::create_review_session(
             &store,
@@ -1751,6 +1762,7 @@ mod tests {
             b"doc content",
             vec![],
         );
+        std::fs::write("/tmp/test.docx", b"doc content").unwrap();
         let req = HttpRequest {
             method: "GET".to_string(),
             path: format!("/review/{}/data.json", token),
@@ -1772,6 +1784,7 @@ mod tests {
     /// test_review_action_accept — valid action → 200
     #[test]
     fn test_review_action_accept() {
+        std::env::set_var("TESTING", "1");
         let store = session::new_review_session_store();
         let token = session::create_review_session(
             &store,
@@ -1779,6 +1792,7 @@ mod tests {
             b"doc content",
             vec![],
         );
+        std::fs::write("/tmp/test.docx", b"doc content").unwrap();
         let mut headers = HashMap::new();
         headers.insert("content-type".to_string(), "application/json".to_string());
         let req = HttpRequest {
@@ -1799,6 +1813,7 @@ mod tests {
     /// test_review_action_reject — valid reject action → 200
     #[test]
     fn test_review_action_reject() {
+        std::env::set_var("TESTING", "1");
         let store = session::new_review_session_store();
         let token = session::create_review_session(
             &store,
@@ -1806,6 +1821,7 @@ mod tests {
             b"doc content",
             vec![],
         );
+        std::fs::write("/tmp/test.docx", b"doc content").unwrap();
         let mut headers = HashMap::new();
         headers.insert("content-type".to_string(), "application/json".to_string());
         let req = HttpRequest {
@@ -1824,6 +1840,7 @@ mod tests {
     /// test_review_action_bad — invalid action → 400
     #[test]
     fn test_review_action_bad() {
+        std::env::set_var("TESTING", "1");
         let store = session::new_review_session_store();
         let token = session::create_review_session(
             &store,
@@ -1831,6 +1848,7 @@ mod tests {
             b"doc content",
             vec![],
         );
+        std::fs::write("/tmp/test.docx", b"doc content").unwrap();
         let mut headers = HashMap::new();
         headers.insert("content-type".to_string(), "application/json".to_string());
         let req = HttpRequest {
@@ -1849,6 +1867,7 @@ mod tests {
     /// test_review_action_missing_revision_id — returns 400
     #[test]
     fn test_review_action_missing_revision_id() {
+        std::env::set_var("TESTING", "1");
         let store = session::new_review_session_store();
         let token = session::create_review_session(
             &store,
@@ -1856,6 +1875,7 @@ mod tests {
             b"doc content",
             vec![],
         );
+        std::fs::write("/tmp/test.docx", b"doc content").unwrap();
         let mut headers = HashMap::new();
         headers.insert("content-type".to_string(), "application/json".to_string());
         let req = HttpRequest {
@@ -1874,6 +1894,7 @@ mod tests {
     /// test_review_traversal_prevention — token containing .. → 400
     #[test]
     fn test_review_traversal_prevention() {
+        std::env::set_var("TESTING", "1");
         let store = session::new_review_session_store();
         // Use a path where the token segment itself contains ".."
         // The token "abc..def" will be extracted from the path and rejected
@@ -1894,6 +1915,7 @@ mod tests {
     /// test_review_csp_headers — CSP header present on all review responses
     #[test]
     fn test_review_csp_headers() {
+        std::env::set_var("TESTING", "1");
         let store = session::new_review_session_store();
         let token = session::create_review_session(
             &store,
@@ -2017,6 +2039,7 @@ startxref
     /// test_review_audit_trail — action records audit entry
     #[test]
     fn test_review_audit_trail() {
+        std::env::set_var("TESTING", "1");
         let store = session::new_review_session_store();
         let token = session::create_review_session(
             &store,
@@ -2024,6 +2047,7 @@ startxref
             b"doc content",
             vec![],
         );
+        std::fs::write("/tmp/test.docx", b"doc content").unwrap();
         let mut headers = HashMap::new();
         headers.insert("content-type".to_string(), "application/json".to_string());
 
@@ -2063,6 +2087,7 @@ startxref
     /// test_review_version_hash_invalidated — returns 410 when document changes
     #[test]
     fn test_review_version_hash_invalidated() {
+        std::env::set_var("TESTING", "1");
         let store = session::new_review_session_store();
         let token = session::create_review_session(
             &store,
@@ -2184,6 +2209,7 @@ startxref
     /// test_review_token_from_header — header token is used when path has no embedded token
     #[test]
     fn test_review_token_from_header() {
+        std::env::set_var("TESTING", "1");
         let store = session::new_review_session_store();
         let token = session::create_review_session(
             &store,
@@ -2191,6 +2217,7 @@ startxref
             b"doc content",
             vec![],
         );
+        std::fs::write("/tmp/test.docx", b"doc content").unwrap();
         let mut headers = HashMap::new();
         headers.insert("x-review-token".to_string(), token.clone());
         // Use the actual token in the path so the route parses correctly
@@ -2255,6 +2282,7 @@ startxref
     /// test_review_text_json_denied_without_text_layer
     #[test]
     fn test_review_text_json_denied_without_text_layer() {
+        std::env::set_var("TESTING", "1");
         let store = session::new_review_session_store();
         // Create session without text_layer (default)
         let token = session::create_review_session(
@@ -2263,6 +2291,7 @@ startxref
             b"doc content",
             vec![],
         );
+        std::fs::write("/tmp/test_text.docx", b"doc content").unwrap();
         let req = HttpRequest {
             method: "GET".to_string(),
             path: format!("/review/{}/text/1.json", token),
@@ -2279,6 +2308,7 @@ startxref
     /// test_review_text_json_disabled_session
     #[test]
     fn test_review_text_json_disabled_session() {
+        std::env::set_var("TESTING", "1");
         let store = session::new_review_session_store();
         // Create session with text_layer disabled explicitly
         let token = session::create_review_session_with_text_layer(
@@ -2288,6 +2318,7 @@ startxref
             vec![],
             false,
         );
+        std::fs::write("/tmp/test_text2.docx", b"doc content").unwrap();
         let req = HttpRequest {
             method: "GET".to_string(),
             path: format!("/review/{}/text/1.json", token),
@@ -2342,6 +2373,7 @@ startxref
     /// test_review_data_json_includes_text_layer — data.json returns text_layer field
     #[test]
     fn test_review_data_json_includes_text_layer() {
+        std::env::set_var("TESTING", "1");
         let store = session::new_review_session_store();
 
         // Session without text_layer (default)
@@ -2351,6 +2383,7 @@ startxref
             b"doc content",
             vec![],
         );
+        std::fs::write("/tmp/test_dl.docx", b"doc content").unwrap();
         let req = HttpRequest {
             method: "GET".to_string(),
             path: format!("/review/{}/data.json", token),
@@ -2371,6 +2404,7 @@ startxref
             vec![],
             true,
         );
+        std::fs::write("/tmp/test_dl2.docx", b"doc content").unwrap();
         let req2 = HttpRequest {
             method: "GET".to_string(),
             path: format!("/review/{}/data.json", token2),

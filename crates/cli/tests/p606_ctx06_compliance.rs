@@ -243,7 +243,7 @@ fn ctx06_wave_c_schema_freeze_1_6_0() {
     }
     assert_eq!(
         mcp::spec::TOOLS.len(),
-        23,
+        24,
         "Wave C adds params, never tools"
     );
 }

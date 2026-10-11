@@ -12,6 +12,10 @@ pub mod doctor;
 pub mod libreoffice;
 pub mod mock;
 pub mod ms_office;
+pub use ms_office::{
+    delete_slides_first_n, export_slide_pngs, validate_open, DeleteSlidesResult,
+    ExportSlidePngsResult, ValidateOpenResult,
+};
 pub mod negotiate;
 pub mod open_handler;
 pub mod pandoc;

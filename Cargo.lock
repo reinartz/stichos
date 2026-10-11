@@ -1204,6 +1204,7 @@ checksum = "e4eba85ea1d0a966a983acd07deee566e67395d2d96b6fb39e62b5a833f1eb0b"
 name = "gp-core"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "base64 0.22.1",
  "chrono",
  "const-oid 0.9.6",
@@ -1234,6 +1235,7 @@ dependencies = [
  "tracing",
  "url",
  "uuid",
+ "winapi",
  "x509-cert",
  "x509-parser",
  "zeroize",
