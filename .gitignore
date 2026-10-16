@@ -13,3 +13,6 @@ baseline/out/
 
 # tool scratch
 .tools/
+.pytest_cache/
+*.tmp
+*.DS_Store
