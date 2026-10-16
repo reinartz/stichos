@@ -232,7 +232,7 @@ Subcommands: `inspect`, `region`, `render`, `diff`, `doctor`, `serve`, `schema`,
 
 ### adapters-ooxfuzz
 
-Fuzzing harness for OOXML + write paths. Dev-only, not shipped.
+Fuzzing harness for OOXML + write paths. Dev-only, not part of distribution.
 
 | Module | Purpose |
 |--------|---------|

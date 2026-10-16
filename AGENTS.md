@@ -24,7 +24,7 @@ harness and supporting material.
   picks Inter via fc-match). `*-outline.svg` files are generated: re-run the inkscape text-to-path
   loop in `wordmark.py`'s docstring after editing any wordmark/lockup SVG.
 - `bash build-icons.sh` regenerates everything under `dist/icons/` (needs ImageMagick `magick`).
-  Never hand-edit `dist/icons/`. `out/` is design-review scratch output — regenerable, not shipped.
+  Never hand-edit `dist/icons/`. `out/` is design-review scratch output — regenerable, not committed.
 - `.icns` needs `iconutil` on macOS; not available on this Linux box.
 
 ## Brand rules agents break
