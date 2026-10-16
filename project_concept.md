@@ -10,10 +10,10 @@ shipped 2026-09-23** — 35/35 steps, `phase6_gate.sh --ci` green pre-tag, tag `
 **re-anchored to HEAD af40e44** (E4 complete 2026-10-15; Track A′ closeout round 2 complete — gate 92/93
 at tag time, `p606` 6/6; `docs/m6-acceptance.md` §11 records the
 2026-09-23 audit corrections (all resolved in closeout rounds 1–2, committed in `ff80f8e` +
-follow-ups). Phase-7 Tracks B/C/D complete (except P7-3 tranche C/D + P7-9 launch 👤);
-remaining work = Tracks E/F/G + **Track H (proposed; H0 adoption declined 2026-10-01)** + owner
-items in [`docs/remaining-work.md`](docs/remaining-work.md) rev 6 — Track H code on branch
-`track-h-proposed` (Phase U unblock); main is clean.
+follow-ups). Phase-7 Tracks B/C/D complete (only P7-9 launch 👤 remains); Tracks E/F/G
+complete (2026-10-15), **Track H shelved (D0 Path B; H0 declined 2026-10-01)**; remaining
+work = owner launch items only — a local-only remaining-work doc (rev 6) holds the task map;
+Track H code on branch `track-h-proposed` (Phase U unblock); main is clean.
 Decision **D27**, contract [`docs/contracts/C14-context-budget.md`](docs/contracts/C14-context-budget.md) +
 guide [`docs/implementation-guide-context-budget.md`](docs/implementation-guide-context-budget.md).
 **Last updated:** 2026-10-15 (OQ2 resolved as D28 — Word tier = honest-absent; m6 re-anchored; 2292/0 tests; Phase-7 C/D complete; remaining work restructured; surface at HEAD: **24 verbs** / **24 tools**, C7 v1.7.0)
@@ -526,5 +526,5 @@ Crate layout: `core` (IR + patch engine, dep-free) · `adapters-ooxml` · `adapt
    summary/URL/cap/`dry_run`-true defaults flipped (committed `ff80f8e`),
    C7 v1.6.0 bump in `spec.rs`. **Closeout rounds 1–2 (Track A′) complete** — gate 90/90;
    **Tracks C (engine completion) + D (CI green) complete** (2026-09-28).
-    **Remaining open:** Tracks E/F/G + Track H (proposed, H0 declined 2026-10-01) + owner items —
-    see `docs/remaining-work.md` rev 6 §1.
+    **Remaining open (2026-10-16):** owner launch items only (P7-9) — Tracks E/F/G complete
+    (2026-10-15); Track H shelved per D0 Path B — see `docs/remaining-work.md` rev 6 §1.

@@ -48,17 +48,18 @@ signature integrity + PAdES-B-B sign-later, launch prep only) is complete** (tag
 **Phase 6 / M6 (context budget C14 + COM/formula/revisions intake) shipped 2026-09-23**
 (35/35 steps, `phase6_gate.sh --ci` green pre-tag, tag `m6`; `main` + `m6` **pushed**).
 The M6 closeout rounds (§11–§13) are recorded in a local-only acceptance doc; Phase-7 Tracks
-A′/B/C/D are complete except P7-3 tranches C/D and the owner-timed launch (P7-9).
-A local-only remaining-work doc (rev 6) holds the remaining-track breakdown (Tracks E/F/G +
-Track H (proposed) + owner items). Track-H work (generic Office handling; H0
-adoption declined 2026-10-01) is preserved on branch `track-h-proposed`; `main` is clean.
+A′/B/C/D are complete (P7-3 tranches C/D landed 2026-10-15) except the owner-timed launch
+(P7-9). A local-only remaining-work doc (rev 6) holds the task map; Tracks E/F/G completed
+2026-10-15 and Track H was shelved (D0 Path B), so only owner launch items remain. Track-H
+work (generic Office handling; H0 adoption declined 2026-10-01) is preserved on branch
+`track-h-proposed`; `main` is clean.
 See [`docs/support-matrix.md`](docs/support-matrix.md).
 
 ## Doc map
 
 | Path | What it is |
 |---|---|
-| [`project_concept.md`](project_concept.md) | concept + decision record (D1–D27; §16 decision log is source of truth) |
+| [`project_concept.md`](project_concept.md) | concept + decision record (D1–D29; §16 decision log is source of truth) |
 | [`CODEBASE.md`](CODEBASE.md) | Rust crate structure, dependency DAG, module details, test coverage summary |
 | [`docs/creation-measurement.md`](docs/creation-measurement.md) | M3 creation-path measurement matrix (C9) |
 | [`docs/threat-model.md`](docs/threat-model.md) | threat model + SEC-06 review checklists (M1–M3) |

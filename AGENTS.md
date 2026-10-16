@@ -7,7 +7,7 @@ harness and supporting material.
 
 ## Source of truth
 
-- `project_concept.md` — decisions D1–D27, architecture, verification log.  Claims there are
+- `project_concept.md` — decisions D1–D29, architecture, verification log.  Claims there are
   marked measured/verified; do not add unverified claims.  If a decision changes, update the
   decision log (16) too.
 - `brand.md` — identity rules; `assets/` holds the mark, wordmarks, lockups, generated rasters.
