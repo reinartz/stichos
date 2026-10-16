@@ -1332,6 +1332,16 @@ fn test_handler() -> BoxedHandler {
 mod tests {
     use super::*;
 
+    fn review_test_doc(test_name: &str) -> String {
+        let path = std::env::temp_dir().join(format!(
+            "stichos-review-{}-{}.docx",
+            test_name,
+            std::process::id()
+        ));
+        std::fs::write(&path, b"doc content").unwrap();
+        path.to_string_lossy().into_owned()
+    }
+
     /// test_create_session — generates unique session ID
     #[test]
     fn test_create_session() {
@@ -1728,11 +1738,10 @@ mod tests {
         let store = session::new_review_session_store();
         let token = session::create_review_session(
             &store,
-            "/tmp/test.docx".to_string(),
+            review_test_doc("viewer_valid"),
             b"doc content",
             vec![],
         );
-        std::fs::write("/tmp/test.docx", b"doc content").unwrap();
         let req = HttpRequest {
             method: "GET".to_string(),
             path: format!("/review/{}/", token),
@@ -1756,13 +1765,9 @@ mod tests {
     fn test_review_data_json() {
         std::env::set_var("TESTING", "1");
         let store = session::new_review_session_store();
-        let token = session::create_review_session(
-            &store,
-            "/tmp/test.docx".to_string(),
-            b"doc content",
-            vec![],
-        );
-        std::fs::write("/tmp/test.docx", b"doc content").unwrap();
+        let doc_path = review_test_doc("data_json");
+        let token =
+            session::create_review_session(&store, doc_path.clone(), b"doc content", vec![]);
         let req = HttpRequest {
             method: "GET".to_string(),
             path: format!("/review/{}/data.json", token),
@@ -1774,7 +1779,7 @@ mod tests {
         let body_str = String::from_utf8_lossy(&resp.body);
         let parsed: Value = serde_json::from_str(&body_str).expect("valid json");
         assert_eq!(parsed["session"]["token"], token);
-        assert_eq!(parsed["session"]["doc_path"], "/tmp/test.docx");
+        assert_eq!(parsed["session"]["doc_path"], doc_path);
         assert!(parsed["document_version"].is_string());
         assert!(parsed["revisions"].is_array());
         assert!(parsed["comments"].is_array());
@@ -1788,11 +1793,10 @@ mod tests {
         let store = session::new_review_session_store();
         let token = session::create_review_session(
             &store,
-            "/tmp/test.docx".to_string(),
+            review_test_doc("action_accept"),
             b"doc content",
             vec![],
         );
-        std::fs::write("/tmp/test.docx", b"doc content").unwrap();
         let mut headers = HashMap::new();
         headers.insert("content-type".to_string(), "application/json".to_string());
         let req = HttpRequest {
@@ -1817,11 +1821,10 @@ mod tests {
         let store = session::new_review_session_store();
         let token = session::create_review_session(
             &store,
-            "/tmp/test.docx".to_string(),
+            review_test_doc("action_reject"),
             b"doc content",
             vec![],
         );
-        std::fs::write("/tmp/test.docx", b"doc content").unwrap();
         let mut headers = HashMap::new();
         headers.insert("content-type".to_string(), "application/json".to_string());
         let req = HttpRequest {
@@ -1844,11 +1847,10 @@ mod tests {
         let store = session::new_review_session_store();
         let token = session::create_review_session(
             &store,
-            "/tmp/test.docx".to_string(),
+            review_test_doc("action_bad"),
             b"doc content",
             vec![],
         );
-        std::fs::write("/tmp/test.docx", b"doc content").unwrap();
         let mut headers = HashMap::new();
         headers.insert("content-type".to_string(), "application/json".to_string());
         let req = HttpRequest {
@@ -1871,11 +1873,10 @@ mod tests {
         let store = session::new_review_session_store();
         let token = session::create_review_session(
             &store,
-            "/tmp/test.docx".to_string(),
+            review_test_doc("action_missing_revision_id"),
             b"doc content",
             vec![],
         );
-        std::fs::write("/tmp/test.docx", b"doc content").unwrap();
         let mut headers = HashMap::new();
         headers.insert("content-type".to_string(), "application/json".to_string());
         let req = HttpRequest {
@@ -1919,7 +1920,7 @@ mod tests {
         let store = session::new_review_session_store();
         let token = session::create_review_session(
             &store,
-            "/tmp/test.docx".to_string(),
+            review_test_doc("csp_headers"),
             b"doc content",
             vec![],
         );
@@ -2043,11 +2044,10 @@ startxref
         let store = session::new_review_session_store();
         let token = session::create_review_session(
             &store,
-            "/tmp/test.docx".to_string(),
+            review_test_doc("audit_trail"),
             b"doc content",
             vec![],
         );
-        std::fs::write("/tmp/test.docx", b"doc content").unwrap();
         let mut headers = HashMap::new();
         headers.insert("content-type".to_string(), "application/json".to_string());
 
@@ -2213,11 +2213,10 @@ startxref
         let store = session::new_review_session_store();
         let token = session::create_review_session(
             &store,
-            "/tmp/test.docx".to_string(),
+            review_test_doc("token_from_header"),
             b"doc content",
             vec![],
         );
-        std::fs::write("/tmp/test.docx", b"doc content").unwrap();
         let mut headers = HashMap::new();
         headers.insert("x-review-token".to_string(), token.clone());
         // Use the actual token in the path so the route parses correctly

@@ -273,8 +273,7 @@ fi
 
 # 0d. cargo test -p mcp --lib review
 echo "  Running: cargo test -p mcp --lib review"
-run_check "test-mcp-review" 0 cargo test -p mcp --lib review
-if [ $? -eq 0 ]; then
+if run_check "test-mcp-review" 0 cargo test -p mcp --lib review; then
     pass "cargo test -p mcp --lib review passes"
 else
     fail "cargo test -p mcp --lib review failed"
@@ -282,8 +281,7 @@ fi
 
 # 0e. cargo test -p mcp --lib http::tests
 echo "  Running: cargo test -p mcp --lib http::tests"
-run_check "test-mcp-http" 0 cargo test -p mcp --lib http::tests
-if [ $? -eq 0 ]; then
+if run_check "test-mcp-http" 0 cargo test -p mcp --lib http::tests; then
     pass "cargo test -p mcp --lib http::tests passes"
 else
     fail "cargo test -p mcp --lib http::tests failed"
