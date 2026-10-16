@@ -202,8 +202,7 @@ echo "=== 1. Lossless accept/reject (OOXML) ==="
 
 # 1a. cargo test -p adapters-ooxml lossless_suite
 echo "  Running: cargo test -p adapters-ooxml lossless_suite"
-run_check "test-lossless" 0 cargo test -p adapters-ooxml lossless_suite
-if [ $? -eq 0 ]; then
+if run_check "test-lossless" 0 cargo test -p adapters-ooxml lossless_suite; then
     pass "cargo test -p adapters-ooxml lossless_suite passes"
 else
     fail "cargo test -p adapters-ooxml lossless_suite failed"
@@ -242,8 +241,7 @@ echo "=== 2. ODF revisions ==="
 
 # 2a. cargo test -p adapters-odf --lib revision_reader
 echo "  Running: cargo test -p adapters-odf --lib revision_reader"
-run_check "test-odf-rev-reader" 0 cargo test -p adapters-odf --lib revision_reader
-if [ $? -eq 0 ]; then
+if run_check "test-odf-rev-reader" 0 cargo test -p adapters-odf --lib revision_reader; then
     pass "cargo test -p adapters-odf --lib revision_reader passes"
 else
     fail "cargo test -p adapters-odf --lib revision_reader failed"
@@ -251,8 +249,7 @@ fi
 
 # 2b. cargo test -p adapters-odf --lib revision_executor
 echo "  Running: cargo test -p adapters-odf --lib revision_executor"
-run_check "test-odf-rev-exec" 0 cargo test -p adapters-odf --lib revision_executor
-if [ $? -eq 0 ]; then
+if run_check "test-odf-rev-exec" 0 cargo test -p adapters-odf --lib revision_executor; then
     pass "cargo test -p adapters-odf --lib revision_executor passes"
 else
     fail "cargo test -p adapters-odf --lib revision_executor failed"
@@ -260,8 +257,7 @@ fi
 
 # 2c. cargo test -p adapters-odf --lib lossless_suite
 echo "  Running: cargo test -p adapters-odf --lib lossless_suite"
-run_check "test-odf-lossless" 0 cargo test -p adapters-odf --lib lossless_suite
-if [ $? -eq 0 ]; then
+if run_check "test-odf-lossless" 0 cargo test -p adapters-odf --lib lossless_suite; then
     pass "cargo test -p adapters-odf --lib lossless_suite passes"
 else
     fail "cargo test -p adapters-odf --lib lossless_suite failed"
@@ -276,8 +272,7 @@ echo "=== 3. Review session e2e (headless HTTP) ==="
 
 # 3a. cargo test -p mcp --lib review
 echo "  Running: cargo test -p mcp --lib review"
-run_check "test-mcp-review" 0 cargo test -p mcp --lib review
-if [ $? -eq 0 ]; then
+if run_check "test-mcp-review" 0 cargo test -p mcp --lib review; then
     pass "cargo test -p mcp --lib review passes"
 else
     fail "cargo test -p mcp --lib review failed"
@@ -285,8 +280,7 @@ fi
 
 # 3b. cargo test -p mcp --lib http::tests
 echo "  Running: cargo test -p mcp --lib http::tests"
-run_check "test-mcp-http" 0 cargo test -p mcp --lib http::tests
-if [ $? -eq 0 ]; then
+if run_check "test-mcp-http" 0 cargo test -p mcp --lib http::tests; then
     pass "cargo test -p mcp --lib http::tests passes"
 else
     fail "cargo test -p mcp --lib http::tests failed"
@@ -294,8 +288,7 @@ fi
 
 # 3c. cargo test -p mcp --lib session::tests
 echo "  Running: cargo test -p mcp --lib session::tests"
-run_check "test-mcp-session" 0 cargo test -p mcp --lib session::tests
-if [ $? -eq 0 ]; then
+if run_check "test-mcp-session" 0 cargo test -p mcp --lib session::tests; then
     pass "cargo test -p mcp --lib session::tests passes"
 else
     fail "cargo test -p mcp --lib session::tests failed"
@@ -310,8 +303,7 @@ echo "=== 4. Comment write-back ==="
 
 # 4a. cargo test -p adapters-ooxml --lib comment_writer
 echo "  Running: cargo test -p adapters-ooxml --lib comment_writer"
-run_check "test-ooxml-comment" 0 cargo test -p adapters-ooxml --lib comment_writer
-if [ $? -eq 0 ]; then
+if run_check "test-ooxml-comment" 0 cargo test -p adapters-ooxml --lib comment_writer; then
     pass "cargo test -p adapters-ooxml --lib comment_writer passes"
 else
     fail "cargo test -p adapters-ooxml --lib comment_writer failed"
@@ -319,8 +311,7 @@ fi
 
 # 4b. cargo test -p adapters-odf --lib comment_writer
 echo "  Running: cargo test -p adapters-odf --lib comment_writer"
-run_check "test-odf-comment" 0 cargo test -p adapters-odf --lib comment_writer
-if [ $? -eq 0 ]; then
+if run_check "test-odf-comment" 0 cargo test -p adapters-odf --lib comment_writer; then
     pass "cargo test -p adapters-odf --lib comment_writer passes"
 else
     fail "cargo test -p adapters-odf --lib comment_writer failed"
@@ -335,8 +326,7 @@ echo "=== 5. Fuzz round 3 + SEC-06 ==="
 
 # 5a. cargo test -p adapters-ooxfuzz (all fuzz regressions)
 echo "  Running: cargo test -p adapters-ooxfuzz"
-run_check "test-fuzz" 0 cargo test -p adapters-ooxfuzz -- --test-threads=2
-if [ $? -eq 0 ]; then
+if run_check "test-fuzz" 0 cargo test -p adapters-ooxfuzz -- --test-threads=2; then
     pass "cargo test -p adapters-ooxfuzz: all fuzz regressions pass"
 else
     fail "cargo test -p adapters-ooxfuzz failed"
@@ -407,8 +397,7 @@ fi
 
 # 6d. cargo check -p engines --features ms-office (compile-only skeleton)
 echo "  Running: cargo check -p engines --features ms-office"
-run_check "check-ms-office" 0 cargo check -p engines --features ms-office
-if [ $? -eq 0 ]; then
+if run_check "check-ms-office" 0 cargo check -p engines --features ms-office; then
     pass "cargo check --features ms-office compiles"
 else
     fail "cargo check --features ms-office failed"
@@ -486,8 +475,7 @@ echo "=== 8. Hygiene + gate ==="
 
 # 8a. cargo clippy --workspace --lib -- -D warnings
 echo "  Running: cargo clippy --workspace --lib -- -D warnings"
-run_check "clippy" 0 cargo clippy --workspace --lib -- -D warnings
-if [ $? -eq 0 ]; then
+if run_check "clippy" 0 cargo clippy --workspace --lib -- -D warnings; then
     pass "cargo clippy --workspace --all-targets clean"
 else
     fail "cargo clippy has errors"
@@ -495,8 +483,7 @@ fi
 
 # 8b. cargo fmt --all --check
 echo "  Running: cargo fmt --all --check"
-run_check "fmt" 0 cargo fmt --all --check
-if [ $? -eq 0 ]; then
+if run_check "fmt" 0 cargo fmt --all --check; then
     pass "cargo fmt --all --check clean"
 else
     fail "cargo fmt check failed"

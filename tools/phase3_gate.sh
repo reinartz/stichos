@@ -199,8 +199,7 @@ fi
 
 # 1c. cargo clippy --workspace --all-targets -- -D warnings
 echo "  Running: cargo clippy --workspace --all-targets -- -D warnings"
-run_check "clippy" 0 cargo clippy --workspace --all-targets -- -D warnings
-if [ $? -eq 0 ]; then
+if run_check "clippy" 0 cargo clippy --workspace --all-targets -- -D warnings; then
     pass "cargo clippy --workspace --all-targets clean"
 else
     fail "cargo clippy has errors"
@@ -208,8 +207,7 @@ fi
 
 # 1d. cargo fmt --all --check
 echo "  Running: cargo fmt --all --check"
-run_check "fmt" 0 cargo fmt --all --check
-if [ $? -eq 0 ]; then
+if run_check "fmt" 0 cargo fmt --all --check; then
     pass "cargo fmt --all --check clean"
 else
     fail "cargo fmt check failed"
@@ -223,7 +221,7 @@ set +e
 cargo test --workspace --lib -- --test-threads=4 > "$LOG" 2>&1
 WS_RC=$?
 set -e
-TEST_COUNT=$(grep -oP '\d+ passed' "$LOG" | awk '{s+=$1} END {print s+0}')
+TEST_COUNT=$(grep -oP '\d+ passed' "$LOG" | awk '{s+=$1} END {print s+0}' || true)
 if [ "$TEST_COUNT" -ge 1400 ] 2>/dev/null; then
     if [ "$WS_RC" -eq 0 ]; then
         pass "cargo test --workspace --lib: ${TEST_COUNT} tests ≥ 1400 all pass"
@@ -263,8 +261,7 @@ echo "=== 2. INV-1 across three families ==="
 
 # 2a. ODF: cargo test -p adapters-odf (zero-patch ×69 gate)
 echo "  Running: cargo test -p adapters-odf"
-run_check "test-adapters-odf" 0 cargo test -p adapters-odf
-if [ $? -eq 0 ]; then
+if run_check "test-adapters-odf" 0 cargo test -p adapters-odf; then
     pass "cargo test -p adapters-odf (zero-patch ×69 gate)"
 else
     fail "cargo test -p adapters-odf failed"
@@ -272,8 +269,7 @@ fi
 
 # 2b. OOXML: cargo test -p adapters-ooxml
 echo "  Running: cargo test -p adapters-ooxml"
-run_check "test-adapters-ooxml" 0 cargo test -p adapters-ooxml
-if [ $? -eq 0 ]; then
+if run_check "test-adapters-ooxml" 0 cargo test -p adapters-ooxml; then
     pass "cargo test -p adapters-ooxml"
 else
     fail "cargo test -p adapters-ooxml failed"
@@ -281,8 +277,7 @@ fi
 
 # 2c. PDF: cargo test -p adapters-pdf (prefix invariant)
 echo "  Running: cargo test -p adapters-pdf"
-run_check "test-adapters-pdf" 0 cargo test -p adapters-pdf
-if [ $? -eq 0 ]; then
+if run_check "test-adapters-pdf" 0 cargo test -p adapters-pdf; then
     pass "cargo test -p adapters-pdf (prefix invariant)"
 else
     fail "cargo test -p adapters-pdf failed"
@@ -297,8 +292,7 @@ echo "=== 3. Create-as-revisions read-back ==="
 
 # 3a. cargo test -p adapters-ooxml create_as_revisions
 echo "  Running: cargo test -p adapters-ooxml create_as_revisions"
-run_check "test-create-as-revisions" 0 cargo test -p adapters-ooxml create_as_revisions
-if [ $? -eq 0 ]; then
+if run_check "test-create-as-revisions" 0 cargo test -p adapters-ooxml create_as_revisions; then
     pass "cargo test create_as_revisions passes"
 else
     fail "cargo test create_as_revisions failed"
@@ -306,8 +300,7 @@ fi
 
 # 3b. cargo test -p adapters-ooxml revision
 echo "  Running: cargo test -p adapters-ooxml revision"
-run_check "test-revision" 0 cargo test -p adapters-ooxml revision
-if [ $? -eq 0 ]; then
+if run_check "test-revision" 0 cargo test -p adapters-ooxml revision; then
     pass "cargo test revision passes"
 else
     fail "cargo test revision failed"
@@ -322,8 +315,7 @@ echo "=== 4. Sandbox proof ==="
 
 # 4a. cargo test -p gp-core script (Rhai escape suite)
 echo "  Running: cargo test -p gp-core script"
-run_check "test-script" 0 cargo test -p gp-core script
-if [ $? -eq 0 ]; then
+if run_check "test-script" 0 cargo test -p gp-core script; then
     pass "cargo test -p gp-core script (Rhai escape suite)"
 else
     fail "cargo test -p gp-core script failed"
@@ -349,8 +341,7 @@ echo "=== 5. Write-path fuzz round 2 + SEC-06 ==="
 
 # 5a. cargo test -p adapters-ooxfuzz (fuzz regressions as tests)
 echo "  Running: cargo test -p adapters-ooxfuzz"
-run_check "test-fuzz" 0 cargo test -p adapters-ooxfuzz -- --test-threads=2
-if [ $? -eq 0 ]; then
+if run_check "test-fuzz" 0 cargo test -p adapters-ooxfuzz -- --test-threads=2; then
     pass "cargo test -p adapters-ooxfuzz: fuzz regressions"
 else
     fail "cargo test -p adapters-ooxfuzz failed"

@@ -212,8 +212,7 @@ fi
 
 # 1b. Run annotation tests
 echo "  Running: cargo test -p adapters-pdf annot"
-run_check "test-adapters-pdf-annot" 0 cargo test -p adapters-pdf annot
-if [ $? -eq 0 ]; then
+if run_check "test-adapters-pdf-annot" 0 cargo test -p adapters-pdf annot; then
     pass "cargo test -p adapters-pdf annot passes"
 else
     fail "cargo test -p adapters-pdf annot failed"
@@ -221,8 +220,7 @@ fi
 
 # 1c. Run fuzz annotation tests
 echo "  Running: cargo test -p adapters-ooxfuzz --lib tests -- hostile_annot"
-run_check "test-fuzz-hostile-annot" 0 cargo test -p adapters-ooxfuzz --lib tests -- hostile_annot -- --test-threads=2
-if [ $? -eq 0 ]; then
+if run_check "test-fuzz-hostile-annot" 0 cargo test -p adapters-ooxfuzz --lib tests -- hostile_annot -- --test-threads=2; then
     pass "cargo test -p adapters-ooxfuzz hostile_annot passes"
 else
     fail "cargo test -p adapters-ooxfuzz hostile_annot failed"
@@ -236,8 +234,8 @@ set +e
 cargo test -p gp-core --lib > "$LOG" 2>&1
 GP_RC=$?
 set -e
-GP_COUNT=$(grep -oP '\d+ passed' "$LOG" | awk '{s+=$1} END {print s+0}')
-GP_FAIL_COUNT=$(grep -oP '\d+ failed' "$LOG" | awk '{s+=$1} END {print s+0}')
+GP_COUNT=$(grep -oP '\d+ passed' "$LOG" | awk '{s+=$1} END {print s+0}' || true)
+GP_FAIL_COUNT=$(grep -oP '\d+ failed' "$LOG" | awk '{s+=$1} END {print s+0}' || true)
 if [ "$GP_COUNT" -ge 500 ] 2>/dev/null; then
     if [ "$GP_RC" -eq 0 ]; then
         pass "cargo test -p gp-core --lib: ${GP_COUNT} tests all pass"
@@ -292,8 +290,7 @@ fi
 
 # 2b. Run MCP review tests
 echo "  Running: cargo test -p mcp --lib review"
-run_check "test-mcp-review" 0 cargo test -p mcp --lib review
-if [ $? -eq 0 ]; then
+if run_check "test-mcp-review" 0 cargo test -p mcp --lib review; then
     pass "cargo test -p mcp --lib review passes"
 else
     fail "cargo test -p mcp --lib review failed"
@@ -301,8 +298,7 @@ fi
 
 # 2c. Run MCP HTTP route tests
 echo "  Running: cargo test -p mcp --lib http::tests"
-run_check "test-mcp-http" 0 cargo test -p mcp --lib http::tests
-if [ $? -eq 0 ]; then
+if run_check "test-mcp-http" 0 cargo test -p mcp --lib http::tests; then
     pass "cargo test -p mcp --lib http::tests passes"
 else
     fail "cargo test -p mcp --lib http::tests failed"
@@ -311,8 +307,7 @@ fi
 # 2d. Run hash verification
 echo "  Running: bash tools/p5_08_verify_hashes.sh"
 if $CI_MODE; then
-    run_check "verify-hashes" 0 bash tools/p5_08_verify_hashes.sh
-    if [ $? -eq 0 ]; then
+    if run_check "verify-hashes" 0 bash tools/p5_08_verify_hashes.sh; then
         pass "bash tools/p5_08_verify_hashes.sh passes (4/4 hashes)"
     else
         fail "bash tools/p5_08_verify_hashes.sh failed"
@@ -425,8 +420,8 @@ set +e
 cargo test -p gp-core --lib sig > "$LOG" 2>&1
 SIG_RC=$?
 set -e
-SIG_COUNT=$(grep -oP '\d+ passed' "$LOG" | awk '{s+=$1} END {print s+0}')
-SIG_FAIL_COUNT=$(grep -oP '\d+ failed' "$LOG" | awk '{s+=$1} END {print s+0}')
+SIG_COUNT=$(grep -oP '\d+ passed' "$LOG" | awk '{s+=$1} END {print s+0}' || true)
+SIG_FAIL_COUNT=$(grep -oP '\d+ failed' "$LOG" | awk '{s+=$1} END {print s+0}' || true)
 if [ "$SIG_COUNT" -ge 10 ] 2>/dev/null; then
     if [ "$SIG_RC" -eq 0 ]; then
         pass "cargo test -p gp-core --lib sig: ${SIG_COUNT} tests all pass"
@@ -446,8 +441,7 @@ fi
 
 # 4c. Run signature fuzz tests
 echo "  Running: cargo test -p adapters-ooxfuzz --lib tests -- sig"
-run_check "test-fuzz-sig" 0 cargo test -p adapters-ooxfuzz --lib tests -- sig -- --test-threads=2
-if [ $? -eq 0 ]; then
+if run_check "test-fuzz-sig" 0 cargo test -p adapters-ooxfuzz --lib tests -- sig -- --test-threads=2; then
     pass "cargo test -p adapters-ooxfuzz signature fuzz passes"
 else
     fail "cargo test -p adapters-ooxfuzz signature fuzz failed"
@@ -494,8 +488,7 @@ fi
 
 # 5b. Run all fuzz regressions
 echo "  Running: cargo test -p adapters-ooxfuzz"
-run_check "test-fuzz-all" 0 cargo test -p adapters-ooxfuzz -- --test-threads=2
-if [ $? -eq 0 ]; then
+if run_check "test-fuzz-all" 0 cargo test -p adapters-ooxfuzz -- --test-threads=2; then
     pass "cargo test -p adapters-ooxfuzz: all fuzz regressions pass"
 else
     fail "cargo test -p adapters-ooxfuzz failed"
@@ -514,8 +507,7 @@ fi
 
 # 5d. Run Phase-5 specific fuzz tests
 echo "  Running: cargo test -p adapters-ooxfuzz --lib tests -- phase5"
-run_check "test-fuzz-phase5" 0 cargo test -p adapters-ooxfuzz --lib tests -- phase5 -- --test-threads=2
-if [ $? -eq 0 ]; then
+if run_check "test-fuzz-phase5" 0 cargo test -p adapters-ooxfuzz --lib tests -- phase5 -- --test-threads=2; then
     pass "cargo test -p adapters-ooxfuzz Phase-5 fuzz passes"
 else
     fail "cargo test -p adapters-ooxfuzz Phase-5 fuzz failed"
@@ -544,8 +536,7 @@ fi
 # 6b. Run hygiene pack verification
 echo "  Running: bash tools/p5_15_verify.sh"
 if $CI_MODE; then
-    run_check "verify-hygiene" 0 bash tools/p5_15_verify.sh
-    if [ $? -eq 0 ]; then
+    if run_check "verify-hygiene" 0 bash tools/p5_15_verify.sh; then
         pass "bash tools/p5_15_verify.sh passes"
     else
         fail "bash tools/p5_15_verify.sh failed"
@@ -563,8 +554,7 @@ fi
 # 6c. Run publish dry-run verification
 echo "  Running: bash tools/p5_16_verify.sh"
 if $CI_MODE; then
-    run_check "verify-publish" 0 bash tools/p5_16_verify.sh
-    if [ $? -eq 0 ]; then
+    if run_check "verify-publish" 0 bash tools/p5_16_verify.sh; then
         pass "bash tools/p5_16_verify.sh passes"
     else
         fail "bash tools/p5_16_verify.sh failed"
@@ -631,8 +621,7 @@ echo "=== 7. C7 v1.7.0 frozen additive ==="
 
 # 7a. Run C7 compliance tests
 echo "  Running: cargo test -p mcp --lib tests -- c7"
-run_check "test-mcp-c7" 0 cargo test -p mcp --lib tests -- c7
-if [ $? -eq 0 ]; then
+if run_check "test-mcp-c7" 0 cargo test -p mcp --lib tests -- c7; then
     pass "cargo test -p mcp C7 compliance passes"
 else
     fail "cargo test -p mcp C7 compliance failed"
@@ -640,8 +629,7 @@ fi
 
 # 7b. Run all_tools count test
 echo "  Running: cargo test -p mcp --lib tests -- all_tools"
-run_check "test-mcp-alltools" 0 cargo test -p mcp --lib tests -- all_tools
-if [ $? -eq 0 ]; then
+if run_check "test-mcp-alltools" 0 cargo test -p mcp --lib tests -- all_tools; then
     pass "cargo test -p mcp all_tools count passes"
 else
     fail "cargo test -p mcp all_tools count failed"
@@ -707,8 +695,7 @@ echo "=== 8. Hygiene + headless gate + tag rule ==="
 
 # 8a. cargo clippy
 echo "  Running: cargo clippy --workspace --lib -- -D warnings"
-run_check "clippy" 0 cargo clippy --workspace --lib -- -D warnings
-if [ $? -eq 0 ]; then
+if run_check "clippy" 0 cargo clippy --workspace --lib -- -D warnings; then
     pass "cargo clippy --workspace --lib clean"
 else
     fail "cargo clippy has errors"
@@ -716,8 +703,7 @@ fi
 
 # 8b. cargo fmt
 echo "  Running: cargo fmt --all --check"
-run_check "fmt" 0 cargo fmt --all --check
-if [ $? -eq 0 ]; then
+if run_check "fmt" 0 cargo fmt --all --check; then
     pass "cargo fmt --all --check clean"
 else
     fail "cargo fmt check failed"
@@ -733,8 +719,7 @@ fi
 
 # 8d. Full workspace tests
 echo "  Running: cargo test --workspace --lib"
-run_check "test-workspace" 0 cargo test --workspace --lib
-if [ $? -eq 0 ]; then
+if run_check "test-workspace" 0 cargo test --workspace --lib; then
     TEST_COUNT=$(grep -oP '\d+ test' "$LOG" | head -1 || echo "0 test")
     pass "cargo test --workspace --lib passes (${TEST_COUNT})"
 else
@@ -744,8 +729,7 @@ fi
 # 8e. Step 0 verification
 echo "  Running: bash tools/p5_01_verify.sh"
 if $CI_MODE; then
-    run_check "verify-intake" 0 bash tools/p5_01_verify.sh
-    if [ $? -eq 0 ]; then
+    if run_check "verify-intake" 0 bash tools/p5_01_verify.sh; then
         pass "bash tools/p5_01_verify.sh passes"
     else
         fail "bash tools/p5_01_verify.sh failed"
@@ -763,8 +747,7 @@ fi
 # 8f. Fixture verification
 echo "  Running: bash tools/p5_02_verify.sh"
 if $CI_MODE; then
-    run_check "verify-fixtures" 0 bash tools/p5_02_verify.sh
-    if [ $? -eq 0 ]; then
+    if run_check "verify-fixtures" 0 bash tools/p5_02_verify.sh; then
         pass "bash tools/p5_02_verify.sh passes"
     else
         fail "bash tools/p5_02_verify.sh failed"

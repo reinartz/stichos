@@ -67,8 +67,10 @@ echo ""
 # ---------------------------------------------------------------------------
 echo "=== INV-1: Corpus test suite ==="
 LOG=$(mktemp)
+set +e
 cargo test --workspace -- --test-threads=4 > "$LOG" 2>&1
 TESTS_PASS=$(grep "test result:" "$LOG" | grep -oP '\d+ passed' | awk '{s+=$1} END {print s+0}')
+set -e
 echo "INV-1: ${TESTS_PASS} tests pass"
 if [ "$TESTS_PASS" -gt 0 ] 2>/dev/null; then
     pass "INV-1 corpus suite (${TESTS_PASS} tests)"
