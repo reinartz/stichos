@@ -118,7 +118,7 @@ Resolved in 2026-09-27 (Track C-C1.1): markdown-source probe fixture added to `s
 
 ## KI-05: `render_document` output directory uses relative path
 
-**Status:** active
+**Status:** resolved 2026-10-16 — `output_dir` included in render JSON
 **Crate:** `cli` — `crates/cli/src/render.rs`
 
 **What happens:** The `render_document` MCP tool accepts an absolute file path, but writes
@@ -127,10 +127,11 @@ the caller's expectation, output may be written to an unexpected location. The C
 render` command uses the same logic, but since it runs in the caller's CWD, it works as
 expected.
 
-**Impact:** The MCP `render_document` tool currently does not report the output directory
+**Impact (resolved):** The MCP `render_document` tool did not report the output directory
 path back to the caller, making it impossible to locate the rendered images without
-inspecting the JSON response for `page_count` and guessing. A future enhancement should
-return the output path or content hashes.
+inspecting the JSON response for `page_count` and guessing. `output_dir` is now included in
+the JSON manifest (`crates/cli/src/render.rs`, both success and unavailable paths); returning
+content hashes remains a possible future enhancement.
 
 ---
 
@@ -204,7 +205,8 @@ Fixed: R-D1 added `cargo build -p stichos` at the beginning of the gate script. 
 
 ---
 
-*Last updated: 2026-10-15 (KI-02 downgraded to wontfix with explicit soffice limitation in doc comment;
+*Last updated: 2026-10-16 (KI-05 resolved — `output_dir` returned in render JSON; KI-02
+downgraded to wontfix with explicit soffice limitation in doc comment;
 KI-06/07/08/09/10/11 resolved/fixed; former 4 OPC zip-bomb known-fails no longer reproduce —
 workspace known-fails now 9, all gp-core date-hardcoded)*
 

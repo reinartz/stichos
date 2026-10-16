@@ -7,13 +7,13 @@ breaking changes require a minor bump per `docs/contracts/C7.md`.
 
 ## [Unreleased] — M4 + M5 + M6 (tags `m4`, `m5`, `m6`)
 
-**2026-10-01 completion audit:** measured dirty-tree state recorded in `docs/remaining-work.md`
-rev 6 — working tree carried uncommitted proposed Track-H code (60 porcelain entries); the
-2026-09-29 clean-HEAD `76a98cb` figures above remain the baseline.
-**Track H (generic Office handling, `docs/track-h-generic-office-handling.md`):** proposed
+**2026-10-01 completion audit:** measured dirty-tree state recorded in the local-only
+remaining-work doc (rev 6) — working tree carried uncommitted proposed Track-H code (60 porcelain
+entries); the 2026-09-29 clean-HEAD `76a98cb` figures above remain the baseline.
+**Track H (generic Office handling):** proposed
 2026-09-29; H0 adoption declined by owner 2026-10-01 — code moved to branch `track-h-proposed`
 by Phase U (2026-10-01), closeout H9 not performed; `main` returned to clean state.
-**Doc sweep (Track G G3) complete:** `AGENTS.md`, `CODEBASE.md`, `README.md`, `project_plan.md`,
+**Doc sweep (Track G G3) complete:** `AGENTS.md`, `CODEBASE.md`, `README.md`,
 `project_concept.md` headers synced to the Phase U clean-HEAD state (verb/tool counts, Track H
 status).
 
@@ -40,8 +40,7 @@ status).
   `--dry-run` kept as deprecated no-op); `__budget` envelope types in `gp-core` (`envelope.rs`,
   `tempfiles.rs`). 10 Wave-C tools bumped to `schema_version` 1.6.0. **Closeout complete:**
   `__budget`+`rendered_by` stamped on 100 % of CLI verb + MCP serve-boundary responses (T-B),
-  C7 v1.6 spec-test freeze + C7.md/C14.md frozen (T-A), gate hardened (T-C) — Track A′ complete,
-  see `docs/m6-acceptance.md` §12–§13.
+  C7 v1.6 spec-test freeze + C7.md/C14.md frozen (T-A), gate hardened (T-C) — Track A′ complete.
 - **Formula evaluation (M6, C15/ADR-0011):** own evaluator for the xlsx subset (12 functions:
   SUM, AVERAGE/AVG, COUNT, MIN, MAX, AND, OR, NOT, IF, CONCATENATE, IFERROR), cached-value
   semantics, GP-F-001..004/010/020 refuse codes, parity lint (LIN-B-010) for stale caches;
@@ -89,7 +88,7 @@ status).
 - **Track D gate hardening (D5):** Phase3 gate uses `--lib` + known-failures tolerance (13 pre-existing). Phase5 gate uses `--lib` + known-failures tolerance for gp-core date-hardcoded tests + Marvin advisory accepted in deny. PDF-annot fixture names updated. `gen build` bootstrap in all gates.
 - **Dead dependency cleanup (B0.6):** Removed unused `pkcs7 = "0.4"` from `gp-core/Cargo.toml`
   (deprecated crate, never imported). Zero new dependencies vs D25/ADR-0010.
-- Post-acceptance correction (`docs/m5-acceptance.md` §9, 2026-09-20): `tools/check-deps.sh`
+- Post-acceptance correction (2026-09-20): `tools/check-deps.sh`
   fails at the `m5` tree on the `mcp -> adapters-pdf` edge (P5-09 text-layer route); repaired by
   dependency inversion in Phase 6 Wave 0 (`gp-core::traits::PdfTextSource`) — `check-deps.sh`
   exits 0 at the `m6` tree. No schema change.
@@ -124,6 +123,5 @@ First packaged release (milestones M1–M3 shipped; tags `m1-closeout`, `m2`, `m
 ## 0.0.x — pre-release development (2026-09-07 … 2026-09-16)
 
 Phase 0 fidelity harness + 151-fixture corpus, Phase 1 read ship, Phase 2 surgical edit, Phase 3
-creation + ODF/PDF write completion. See `docs/phase*-plan.md` / `docs/*-acceptance.md` for the
-full step-level record. (The transient `0.1.1`/`0.1.0` bump entries previously listed here were
-artifacts of a `tools/version_bump.sh` dry-run test, not releases.)
+creation + ODF/PDF write completion. (The transient `0.1.1`/`0.1.0` bump entries previously
+listed here were artifacts of a `tools/version_bump.sh` dry-run test, not releases.)
