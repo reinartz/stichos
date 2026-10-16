@@ -132,13 +132,11 @@ mod tests {
     }
 
     #[test]
-    fn test_classify_refused_vlookup() {
-        match classify_formula("=VLOOKUP(A1, B1:C10, 2, FALSE)") {
-            FormulaCategory::Refused(code) => {
-                assert_eq!(code, GpFCode::UnsupportedFunction);
-            }
-            other => panic!("Expected Refused, got {:?}", other),
-        }
+    fn test_classify_supported_vlookup() {
+        assert_eq!(
+            classify_formula("=VLOOKUP(A1, B1:C10, 2, FALSE)"),
+            FormulaCategory::Supported
+        );
     }
 
     #[test]
@@ -315,10 +313,7 @@ mod tests {
         let results = inventory_from_spreadsheet("test_fixture", &spreadsheet);
         assert_eq!(results.len(), 3);
         assert_eq!(results[0].category, FormulaCategory::Supported);
-        assert_eq!(
-            results[1].category,
-            FormulaCategory::Refused(GpFCode::UnsupportedFunction)
-        );
+        assert_eq!(results[1].category, FormulaCategory::Supported);
         assert_eq!(results[2].category, FormulaCategory::ParseError);
     }
 }

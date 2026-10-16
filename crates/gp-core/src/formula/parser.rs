@@ -14,6 +14,22 @@ pub enum FormulaNode {
     CellRef(String),
     /// A range reference (e.g., `A1:B5`) — stored as string.
     Range(String),
+    /// A 3-D cell reference (e.g., `Sheet1:Sheet3!A1`).
+    CellRef3D {
+        /// Starting sheet name.
+        sheet_start: String,
+        /// Ending sheet name.
+        sheet_end: String,
+        /// Cell address.
+        cell: String,
+    },
+    /// A structured table reference (e.g., `[ColumnName]`, `[Table1[ColumnName]]`).
+    StructuredRef {
+        /// Table name (empty if simple `[ColumnName]`).
+        table: String,
+        /// Column name.
+        column: String,
+    },
     /// Binary operator.
     BinaryOp {
         /// The operator.
@@ -112,6 +128,9 @@ enum Token {
     Caret,
     Percent,
     Dollar,
+    Bang,
+    LBracket,
+    RBracket,
     Eof,
 }
 
@@ -264,6 +283,18 @@ impl Tokenizer {
                 Some('$') => {
                     self.next_char();
                     tokens.push(Token::Dollar);
+                }
+                Some('!') => {
+                    self.next_char();
+                    tokens.push(Token::Bang);
+                }
+                Some('[') => {
+                    self.next_char();
+                    tokens.push(Token::LBracket);
+                }
+                Some(']') => {
+                    self.next_char();
+                    tokens.push(Token::RBracket);
                 }
                 Some(c) if c.is_ascii_digit() || c == '.' => {
                     let start = self.pos;
@@ -552,6 +583,10 @@ impl Parser {
             }
             Token::Ident(_) => self.parse_ident_or_range(),
             Token::Dollar => self.parse_ident_or_range(),
+            Token::LBracket => {
+                self.next();
+                self.parse_structured_ref()
+            }
             Token::LParen => {
                 self.next();
                 let expr = self.parse_expr()?;
@@ -606,7 +641,7 @@ impl Parser {
         let ref_name: String = ref_str.chars().filter(|c| *c != '$').collect();
         let ref_upper = ref_name.to_uppercase();
 
-        // Check for range: A1:B5
+        // Check for range or 3-D reference: A1:B5 or Sheet1:Sheet3!A1
         if self.peek() == &Token::Colon {
             self.next();
             let end = match self.next() {
@@ -617,6 +652,46 @@ impl Parser {
                     });
                 }
             };
+            // Check for 3-D reference: Sheet1:Sheet3!CellRef
+            if self.peek() == &Token::Bang {
+                self.next(); // consume '!'
+                             // Parse the cell reference after '!'
+                let cell = match self.next() {
+                    Token::Ident(s) => s,
+                    Token::Dollar => {
+                        let mut cs = String::from("$");
+                        if let Token::Ident(id) = self.next() {
+                            cs.push_str(&id);
+                            if let Token::Dollar = self.peek() {
+                                self.next();
+                                if let Token::Number(n) = self.peek() {
+                                    cs.push('$');
+                                    cs.push_str(n);
+                                    self.next();
+                                }
+                            }
+                        } else {
+                            return Err(ParseError {
+                                message: "expected cell reference after '!' in 3-D ref".to_string(),
+                            });
+                        }
+                        cs
+                    }
+                    other => {
+                        return Err(ParseError {
+                            message: format!(
+                                "expected cell reference after '!', found {:?}",
+                                other
+                            ),
+                        });
+                    }
+                };
+                return Ok(FormulaNode::CellRef3D {
+                    sheet_start: ref_name,
+                    sheet_end: end,
+                    cell,
+                });
+            }
             return Ok(FormulaNode::Range(format!("{}:{}", ref_name, end)));
         }
 
@@ -640,6 +715,82 @@ impl Parser {
 
         // Cell reference
         Ok(FormulaNode::CellRef(ref_name))
+    }
+
+    /// Parse structured table reference: [ColumnName] or [TableName[ColumnName]]
+    fn parse_structured_ref(&mut self) -> Result<FormulaNode, ParseError> {
+        // Peek ahead to see if this is TableName[ColumnName] or just [ColumnName]
+        let _start_pos = self.pos;
+
+        // Read content inside brackets
+        let content = match self.next() {
+            Token::Ident(s) => s,
+            Token::RBracket => {
+                return Err(ParseError {
+                    message: "empty structured reference".to_string(),
+                });
+            }
+            other => {
+                return Err(ParseError {
+                    message: format!("expected identifier in structured ref, found {:?}", other),
+                });
+            }
+        };
+
+        // Check if this is TableName[ColumnName] by looking for another '['
+        if self.peek() == &Token::LBracket {
+            // tableName[columnName] pattern
+            let table_name = content;
+            self.next(); // consume inner '['
+                         // Read the column name (may contain spaces as separate identifiers)
+            let mut column = String::new();
+            loop {
+                match self.peek() {
+                    Token::Ident(s) => {
+                        if !column.is_empty() {
+                            column.push(' ');
+                        }
+                        column.push_str(s);
+                        self.next();
+                    }
+                    Token::RBracket => break,
+                    other => {
+                        return Err(ParseError {
+                            message: format!("expected column name or ']', found {:?}", other),
+                        });
+                    }
+                }
+            }
+            self.expect(Token::RBracket)?; // consume inner ']'
+            self.expect(Token::RBracket)?; // consume outer ']'
+            return Ok(FormulaNode::StructuredRef {
+                table: table_name,
+                column,
+            });
+        }
+
+        // [ColumnName] pattern - may contain spaces as separate identifiers
+        let mut column = content.clone();
+        loop {
+            match self.peek() {
+                Token::Ident(s) => {
+                    column.push(' ');
+                    column.push_str(s);
+                    self.next();
+                }
+                Token::RBracket => break,
+                other => {
+                    return Err(ParseError {
+                        message: format!("expected ']' or identifier, found {:?}", other),
+                    });
+                }
+            }
+        }
+        self.expect(Token::RBracket)?;
+        Ok(FormulaNode::StructuredRef {
+            table: String::new(),
+            column,
+        })
     }
 }
 
@@ -922,5 +1073,79 @@ mod tests {
         } else {
             panic!("expected BinaryOp");
         }
+    }
+
+    // ========================================================================
+    // F6: 3-D reference parsing tests
+    // ========================================================================
+
+    #[test]
+    fn test_parse_3d_ref_basic() {
+        let result = parse_formula("Sheet1:Sheet3!A1").unwrap();
+        assert!(matches!(
+            result,
+            FormulaNode::CellRef3D {
+                sheet_start: ref_start,
+                sheet_end: ref_end,
+                cell: ref_cell
+            } if ref_start == "Sheet1" && ref_end == "Sheet3" && ref_cell == "A1"
+        ));
+    }
+
+    #[test]
+    fn test_parse_3d_ref_with_dollar() {
+        let result = parse_formula("Q1:Q3!$A$1").unwrap();
+        assert!(matches!(
+            result,
+            FormulaNode::CellRef3D {
+                sheet_start: ref_start,
+                sheet_end: ref_end,
+                cell: ref_cell
+            } if ref_start == "Q1" && ref_end == "Q3" && ref_cell == "$A$1"
+        ));
+    }
+
+    #[test]
+    fn test_parse_3d_ref_with_dollar_col_only() {
+        let result = parse_formula("Sheet1:Sheet2!$A1").unwrap();
+        assert!(matches!(
+            result,
+            FormulaNode::CellRef3D {
+                sheet_start: ref_start,
+                sheet_end: ref_end,
+                cell: ref_cell
+            } if ref_start == "Sheet1" && ref_end == "Sheet2" && ref_cell == "$A1"
+        ));
+    }
+
+    // ========================================================================
+    // F7: Structured table reference parsing tests
+    // ========================================================================
+
+    #[test]
+    fn test_parse_structured_ref_simple() {
+        let result = parse_formula("[Revenue]").unwrap();
+        assert!(matches!(
+            result,
+            FormulaNode::StructuredRef { table, column } if table.is_empty() && column == "Revenue"
+        ));
+    }
+
+    #[test]
+    fn test_parse_structured_ref_table_column() {
+        let result = parse_formula("[SalesData[Revenue]]").unwrap();
+        assert!(matches!(
+            result,
+            FormulaNode::StructuredRef { table, column } if table == "SalesData" && column == "Revenue"
+        ));
+    }
+
+    #[test]
+    fn test_parse_structured_ref_multiple_words() {
+        let result = parse_formula("[Total Sales Amount]").unwrap();
+        assert!(matches!(
+            result,
+            FormulaNode::StructuredRef { table, column } if table.is_empty() && column == "Total Sales Amount"
+        ));
     }
 }

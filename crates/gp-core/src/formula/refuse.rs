@@ -19,6 +19,12 @@ pub enum GpFCode {
     DeepNesting,
     /// GP-F-020: Unsupported function name.
     UnsupportedFunction,
+    /// GP-F-021: Unknown named range.
+    UnknownNamedRange,
+    /// GP-F-022: 3-D reference not supported.
+    Unsupported3DRef,
+    /// GP-F-023: Structured table reference not supported.
+    UnsupportedStructuredRef,
 }
 
 /// Check if a formula string matches any refusal criteria.
@@ -90,6 +96,9 @@ pub fn all_refuse_codes() -> &'static [GpFCode] {
         GpFCode::DdeOleReference,
         GpFCode::DeepNesting,
         GpFCode::UnsupportedFunction,
+        GpFCode::UnknownNamedRange,
+        GpFCode::Unsupported3DRef,
+        GpFCode::UnsupportedStructuredRef,
     ]
 }
 
@@ -102,6 +111,9 @@ pub fn gp_f_code_str(code: GpFCode) -> &'static str {
         GpFCode::DdeOleReference => "GP-F-004",
         GpFCode::DeepNesting => "GP-F-010",
         GpFCode::UnsupportedFunction => "GP-F-020",
+        GpFCode::UnknownNamedRange => "GP-F-021",
+        GpFCode::Unsupported3DRef => "GP-F-022",
+        GpFCode::UnsupportedStructuredRef => "GP-F-023",
     }
 }
 
@@ -165,6 +177,33 @@ pub fn supported_functions() -> &'static [&'static str] {
         "LEFT",
         "RIGHT",
         "MID",
+        // Financial functions (F1)
+        "NPV",
+        "IRR",
+        "PMT",
+        "PV",
+        "FV",
+        "RATE",
+        "NPER",
+        // Advanced date/time functions (F2)
+        "WORKDAY",
+        "NETWORKDAYS",
+        "WEEKNUM",
+        "DATEVALUE",
+        // Advanced text functions (F3)
+        "TEXT",
+        "TEXTJOIN",
+        "SEARCH",
+        "FIND",
+        // Extended logical functions (F4)
+        "XOR",
+        "IFS",
+        "SWITCH",
+        // Lookup functions (P7-3 Tranche B)
+        "VLOOKUP",
+        "HLOOKUP",
+        "MATCH",
+        "INDEX",
     ]
 }
 
@@ -253,22 +292,26 @@ mod tests {
 
     #[test]
     fn test_unsupported_function() {
-        assert!(!is_supported_function("VLOOKUP"));
-        assert!(!is_supported_function("INDEX"));
-        assert!(!is_supported_function("MATCH"));
+        assert!(is_supported_function("VLOOKUP"));
+        assert!(is_supported_function("INDEX"));
+        assert!(is_supported_function("MATCH"));
+        assert!(is_supported_function("HLOOKUP"));
         assert!(!is_supported_function("RANDBETWEEN"));
     }
 
     #[test]
     fn test_all_refuse_codes() {
         let codes = all_refuse_codes();
-        assert_eq!(codes.len(), 6);
+        assert_eq!(codes.len(), 9);
         assert!(codes.contains(&GpFCode::ExternalWorkbook));
         assert!(codes.contains(&GpFCode::ArrayMatrixFunction));
         assert!(codes.contains(&GpFCode::MacroReference));
         assert!(codes.contains(&GpFCode::DdeOleReference));
         assert!(codes.contains(&GpFCode::DeepNesting));
         assert!(codes.contains(&GpFCode::UnsupportedFunction));
+        assert!(codes.contains(&GpFCode::UnknownNamedRange));
+        assert!(codes.contains(&GpFCode::Unsupported3DRef));
+        assert!(codes.contains(&GpFCode::UnsupportedStructuredRef));
     }
 
     #[test]
@@ -279,5 +322,8 @@ mod tests {
         assert_eq!(gp_f_code_str(GpFCode::DdeOleReference), "GP-F-004");
         assert_eq!(gp_f_code_str(GpFCode::DeepNesting), "GP-F-010");
         assert_eq!(gp_f_code_str(GpFCode::UnsupportedFunction), "GP-F-020");
+        assert_eq!(gp_f_code_str(GpFCode::UnknownNamedRange), "GP-F-021");
+        assert_eq!(gp_f_code_str(GpFCode::Unsupported3DRef), "GP-F-022");
+        assert_eq!(gp_f_code_str(GpFCode::UnsupportedStructuredRef), "GP-F-023");
     }
 }

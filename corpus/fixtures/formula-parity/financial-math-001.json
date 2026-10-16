@@ -1,0 +1,31 @@
+{
+  "id": "formula-parity-financial-math-001",
+  "description": "Financial functions: NPV, IRR, PMT, PV, FV, NPER",
+  "formulas": [
+    {
+      "formula": "NPV(0.1, 100, 200, 300)",
+      "expected": 481.59,
+      "tolerance": 0.01
+    },
+    {
+      "formula": "PMT(0.05/12, 360, 100000)",
+      "expected": -599.55,
+      "tolerance": 0.01
+    },
+    {
+      "formula": "PV(0.05, 10, 1000)",
+      "expected": -7721.73,
+      "tolerance": 0.01
+    },
+    {
+      "formula": "FV(0.05, 10, -100)",
+      "expected": 1257.80,
+      "tolerance": 0.01
+    },
+    {
+      "formula": "NPER(0.05, -100, 1000)",
+      "expected": 12.53,
+      "tolerance": 0.01
+    }
+  ]
+}

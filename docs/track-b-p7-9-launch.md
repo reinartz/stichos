@@ -22,13 +22,15 @@ D18/D26 flip: **registry publishes, visibility.**
 | Item | Status |
 |------|--------|
 | Phases M0–M6 | All shipped and tagged (`m1-closeout` through `m6`) |
-| `phase6_gate.sh --ci` | Green (86/88 — expected `m6`-tag-exists artifact) |
-| `check-deps.sh` | Green (Wave 0 DAG edge removed) |
-| `main` branch | 8 commits, **local only — not pushed** |
-| `m6` tag | **local only — not pushed** |
+| `phase6_gate.sh --ci` | Green (90/90 at m6 tag time) |
+| `check-deps.sh` | Green |
+| `main` branch | Pushed to origin |
+| `m6` tag | **Pushed to origin** (`ff80f8e`) |
 | Version | `0.1.0` (workspace `Cargo.toml`) |
-| Track A (M6 closeout) | **Incomplete** — T-A (C7 v1.6 freeze), T-B (C14 envelope on 100% of responses), T-C (gate hardening), T-D (commit/re-tag/push) not yet done |
-| Track B (Phase-7 backlog) | Pending — P7-9 depends on Track A |
+| Track A′ (M6 closeout round 2) | **COMPLETE** — T-A/T-B/T-C/T-D all done |
+| Track C (engine completion) | **COMPLETE** |
+| Track D (CI green) | **COMPLETE** |
+| Track B (Phase-7 backlog) | P7-1/2/4/5/6/8 complete; P7-3 C/D deferred; **P7-9 (launch) remaining** |
 
 ---
 
@@ -51,38 +53,42 @@ The full owner-gated launch checklist is in **`docs/release-playbook.md`**. This
 
 ## Prerequisites
 
-**Track A closeout must be complete before P7-9 can proceed:**
+**All prerequisites for P7-9 launch are met:**
 
-| Step | Description | Size | Gate |
-|------|-------------|------|------|
-| **T-A** | C7 v1.6 freeze consistency — update `spec.rs` ceilings, `C7.md`, `C14.md` | S+M+S | Green `cargo test -p mcp --lib` |
-| **T-B** | C14 envelope wiring — `__budget` + `rendered_by` on 100% of CLI + MCP responses | L+L+M+S | Envelope smoke script passes |
-| **T-C** | Gate hardening — fix toothless `phase6_gate.sh` checks (1b/1d/1e/1f) | M+M+S | `--planted-violation` mode proves detection |
-| **T-D1** | Re-verify full tree — build, test, clippy, fmt, deps, gate | M | All green |
-| **T-D2** | **Commit + re-anchor `m6` tag** — human-gated, tag moves to gate-green tree 👤 | S | Owner executes |
-| **T-D3** | **Push** `main` + `m6` to origin — human-gated, D26 approval 👤 | S | Owner executes |
+| Step | Description | Size | Gate | Status |
+|------|-------------|------|------|--------|
+| **T-A** | C7 v1.6 freeze consistency — update `spec.rs` ceilings, `C7.md`, `C14.md` | S+M+S | Green `cargo test -p mcp --lib` | ✅ Done (Track A′) |
+| **T-B** | C14 envelope wiring — `__budget` + `rendered_by` on 100% of CLI + MCP responses | L+L+M+S | Envelope smoke script passes | ✅ Done (Track A′) |
+| **T-C** | Gate hardening — fix toothless `phase6_gate.sh` checks (1b/1d/1e/1f) | M+M+S | `--planted-violation` mode proves detection | ✅ Done (Track A′) |
+| **T-D1** | Re-verify full tree — build, test, clippy, fmt, deps, gate | M | All green | ✅ Done (Track A′) |
+| **T-D2** | **Commit + re-anchor `m6` tag** — human-gated, tag moves to gate-green tree 👤 | S | Owner executes | ✅ Done (Track A′) |
+| **T-D3** | **Push** `main` + `m6` to origin — human-gated, D26 approval 👤 | S | Owner executes | ✅ Done (Track A′) |
 
 Track-A execution order: T-A1 → T-C3 → T-B1 → T-B3/T-B2 (parallel) → T-A2/T-A3 → T-C1/C2 → T-B4 → T-E → T-D1 → T-D2 → T-D3.
 
+**Other prerequisites:**
+
+| Prerequisite | Status |
+|--------------|--------|
+| Track C (engine completion) | ✅ Complete |
+| Track D (CI green) | ✅ Complete |
+| Phase U (finalization) | ✅ Complete |
+| D0 ruling (Path B chosen) | ✅ Complete |
+
 ---
 
-## Pre-launch items
+## Launch items
 
-Once Track A is complete and `main` + `m6` are pushed:
+`main` + `m6` are already pushed (T-D3 complete). Remaining launch actions:
 
-### 1. Push `main` and `m6` to origin
-
-- **T-D3** executes `git push origin main` + `git push origin m6`
-- Verify via `git ls-remote origin`
-
-### 2. Registry publish preparation
+### 1. Registry publish preparation
 
 - **crates.io** — The name `stichos` is free on crates.io (confirmed in D18 measurement, `project_concept.md` §12). Register the org/package before first publish.
 - **Package name** — `stichos` (no `@scope/` prefix needed, no `-rs` suffix).
 - **Publish command** — `cargo publish -p <crate>` for each crate (`gp-core`, `adapters-ooxml`, `adapters-odf`, `adapters-pdf`, `engines`, `lint`, `mcp`, `cli`) after version bump.
 - **Yanked releases** — If needed, `cargo yank <crate> --vers <version>`.
 
-### 3. Visibility actions
+### 2. Visibility actions
 
 - **README** — Ensure `README.md` is present at repo root with clear description, install instructions, and `stichos doctor` getting-started flow.
 - **Install instructions** — Cross-platform: `curl` tarball install (Linux), Homebrew (`brew install`), Winget (`winget install stichos.stichos`), GitHub Releases page.
@@ -95,13 +101,12 @@ Once Track A is complete and `main` + `m6` are pushed:
 
 ## Status
 
-**UNBLOCKED — awaiting Track A closeout (T-D1 through T-D3).**
+**READY — all prerequisites met, pending owner action.**
 
-P7-9 is a single-owner action item. Once Track A completes (T-D3 pushes `main` + `m6`), the owner executes the release playbook (`docs/release-playbook.md`) in full:
+P7-9 is a single-owner action item. All pre-requisites for launch are satisfied (Track A′ closeout complete, Tracks C and D complete, CI green, `main` + `m6` pushed). The owner executes the release playbook (`docs/release-playbook.md`) in full:
 
 ```
-Track A T-D3 complete
-    → Release playbook §1 (pre-flight + version bump)
+Release playbook §1 (pre-flight + version bump)
     → Release playbook §2 (verify artifacts)
     → Release playbook §3 (publish)
     → Release playbook §4 (Winget)
@@ -115,10 +120,12 @@ Track A T-D3 complete
 
 | Dependency | Status | Blocks P7-9? |
 |------------|--------|-------------|
-| **T-D2** (tag re-anchor) | Not done | Yes — tag must point to gate-green tree |
-| **T-D3** (push `main` + `m6`) | Not done | Yes — owner-gated, D26 approval required |
-| Track A T-A/T-B/T-C | Not done | Yes — must be gate-green before release tag |
-| T-E (dependabot triage, housekeeping) | Not done | No — can be deferred to post-launch |
+| **T-D2** (tag re-anchor) | ✅ Done (`m6` on `ff80f8e`) | No |
+| **T-D3** (push `main` + `m6`) | ✅ Done (pushed to origin) | No |
+| Track A′ T-A/T-B/T-C | ✅ Complete | No — gate-green achieved |
+| Track C (engine completion) | ✅ Complete | No |
+| Track D (CI green) | ✅ Complete | No |
+| T-E (dependabot triage, housekeeping) | Done (pre-launch) | No — can be deferred to post-launch |
 | D18 (registry squatting) | Measured; `stichos` free on crates.io/npm/PyPI | No — already satisfied |
 | D26 (launch timing) | Owner decision pending | No — by definition, owner decides when to flip |
 | Domain `stichos.dev` | Free (RDAP 404) | No — optional, not required for launch |
@@ -127,6 +134,6 @@ Track A T-D3 complete
 
 ## Summary
 
-P7-9 is the **owner-timed launch flip**: push `main` + `m6`, publish to crates.io, register the GitHub Release, and submit to Winget/Homebrew. The complete step-by-step checklist is in `docs/release-playbook.md`. The only hard blockers are Track A closeout (T-D2 tag re-anchor and T-D3 push), both of which require owner action.
+P7-9 is the **owner-timed launch flip**: publish to crates.io, register the GitHub Release, and submit to Winget/Homebrew. The complete step-by-step checklist is in `docs/release-playbook.md`. All pre-requisites are met (Track A′ closeout complete, Tracks C and D complete, `main` + `m6` pushed). No blockers remain — launch is ready pending owner execution of the playbook.
 
-**Status: UNBLOCKED — awaiting Track A closeout.**
+**Status: READY — pending owner action.**

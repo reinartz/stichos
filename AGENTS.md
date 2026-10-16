@@ -1,14 +1,14 @@
 # stichos
 
 Phases 0–6 complete and gated (tags `m1-closeout`..`m6`). Phase-7 Tracks A′/B/C/D complete
-(A′ closeout, B except P7-3 C/D + P7-9, C engine completion, D CI green). **Measured at clean HEAD:**
-`cargo test --workspace --lib` **2244 pass / 9 known fails**
-(9 date-hardcoded gp-core formula), `cargo test -p mcp --lib` **93/93**, fmt + clippy
+(A′ closeout, B except P7-9, C engine completion, D CI green). **Measured at clean HEAD:**
+`cargo test --workspace --lib` **2292 pass / 0 fails**, `cargo test -p mcp --lib` **93/93**, fmt + clippy
 (all-targets, `-D warnings`) + `check-deps.sh` green. p606_ctx06_compliance **6/6**.
-Remaining work = **Tracks E/F/G + owner items** in `docs/remaining-work.md`. P7-7 CMS signing
+Remaining work = **owner items** in `docs/remaining-work.md`. P7-7 CMS signing
 committed (`7d56af5`, `fe266cd`), OQ-C12 confirmed (`6c1ba86`), P7-5 committed (`3b4a396`);
 ADR-0012/0013 accepted. **Track H** (generic Office handling) **proposed but not adopted** (owner
 declined H0 2026-10-01); proposed code preserved on branch `track-h-proposed`.
+**m6 tag re-anchored to HEAD (2026-10-15, E4 complete).**
 Rust workspace lives in `crates/`; `harness/`, `corpus/`, `docker/`, `baseline/`, `.github/` hold
 the M0 Python fidelity harness and supporting material.
 

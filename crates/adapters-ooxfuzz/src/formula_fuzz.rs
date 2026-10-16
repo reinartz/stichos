@@ -484,9 +484,9 @@ mod tests {
     }
 
     #[test]
-    fn test_unsupported_vlookup() {
+    fn test_vlookup_now_supported() {
         let _formula = formula_unsupported_vlookup();
-        assert!(!gp_core::formula::is_supported_function("VLOOKUP"));
+        assert!(gp_core::formula::is_supported_function("VLOOKUP"));
     }
 
     #[test]

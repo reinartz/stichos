@@ -49,11 +49,11 @@ delegable to a subagent.
 | Track C (engines) | **C-A..C-K ALL COMPLETE** (committed `04d88e5`/`bd29637`, pushed) |
 | Track D (CI green) | **ALL COMPLETE** (`bd29637` + follow-ups `8172582`..`76a98cb`, pushed) |
 | P7-9 (launch) | 👤 owner-only — not started |
-| Open decisions | G3/OQ2 Word tier for non-Windows users (owner); P7-9 D18/D26 flip (owner) |
+| Open decisions | P7-9 D18/D26 flip (owner); OQ2 resolved as D28 (2026-10-15) |
 
 Audit trail: `docs/m6-acceptance.md` §11 (2026-09-23) / §12 (round-1) / §13 (round-2);
-`docs/KNOWN_ISSUES.md` KI-06 (resolved) / KI-08 (fixed) / KI-09 (fixed) / KI-10 (fixed) /
-KI-11 (fixed); **KI-02 mitigated, KI-04 resolved, KI-05 active** (see Track G).
+`docs/KNOWN_ISSUES.md` KI-02 (wontfix) / KI-06 (resolved) / KI-08 (fixed) / KI-09 (fixed) /
+KI-10 (fixed) / KI-11 (fixed); **KI-04 resolved, KI-05 resolved** (see Track G).
 
 ---
 
@@ -156,7 +156,7 @@ Each of F1–F4 is independently a full subagent session; F8 runs last.
 | ID | Scope | Gate |
 |---|---|---|
 | P7-9 / P9-a | **Launch** — D18/D26 flip: registry publishes, visibility, v* tags; checklist in `docs/track-b-p7-9-launch.md`, procedure in `docs/release-playbook.md` | Owner call; reversible until flip |
-| G3 / OQ2 | **Word tier for non-Windows users** (Aspose/Syncfusion vs hosted worker vs none) — concept §18-2 still open; COM-2..6 now ship on Windows but the non-Windows tier question is unanswered | Blocks COM-5 scope for non-Windows + any marketing claims |
+| G3 / OQ2 | ✅ **RESOLVED (2026-10-15, D28)** — Word tier = honest-absent (Option D). Non-Windows uses LibreOffice fallback; no commercial Word library. Marketing: "Windows = MS Office COM (high-fidelity); non-Windows = LibreOffice (best-effort)" | Completed 2026-10-15 |
 | E2/E4 | git ops for Track E (commit + `m6` re-anchor) | Owner-approved precedent; hand back patch if a subagent prepares it |
 
 ---

@@ -332,19 +332,19 @@ assets/
   vendor/pdfjs/           # vendored pdf.js 3.11.174 (text layer only) + HASHES.toml (ADR-0009, D24)
 ```
 
-## Test coverage summary (measured 2026-09-29 at clean HEAD `76a98cb`, `cargo test --workspace --lib --no-fail-fast`; 2026-10-01 dirty tree build fixed by Phase U — code moved to branch `track-h-proposed`; main is clean again)
+## Test coverage summary (measured 2026-10-15 after finalization: all 9 known formula fails fixed, F1-F8 implemented)
 
 | Crate | Passed | Failed | Ignored | Notes |
 |-------|--------|--------|---------|-------|
-| gp-core | 567 | 9 | 0 | incl. script sandbox + selfupdate + C12/C13 + P7-5 LTV suites; 9 fails = pre-existing date-hardcoded `formula::evaluator` tests (time-dependent) |
-| adapters-ooxml | 356 | 0 | 0 | read + surgical write + creation + revisions (C11); **former 4 OPC zip-bomb fails no longer reproduce** |
-| adapters-odf | 226 | 0 | 0 | zero-patch in-suite + revision write |
+| gp-core | 642 | 0 | 0 | incl. script sandbox + selfupdate + C12/C13 + P7-5 LTV suites; 0 fails (Track I fixed) |
+| adapters-ooxml | 226 | 0 | 0 | read + surgical write + creation + revisions (C11) |
+| adapters-odf | 382 | 0 | 0 | zero-patch in-suite + revision write + P7-3 formula parity |
 | adapters-pdf | 149 | 0 | 2 | prefix invariant in-suite + annot enumeration/write-back + redaction |
-| engines | 327 | 0 | 0 | chromium/typst/pandoc (Track C), COM workers, pdfium rung |
-| lint | 300 | 0 | 0 | |
+| engines | 332 | 0 | 0 | chromium/typst/pandoc (Track C), COM workers, pdfium rung |
+| lint | 300 | 0 | 0 | incl. P7-3 formula parity module |
 | mcp | 93 | 0 | 0 | incl. session/review + text-layer route tests |
-| adapters-ooxfuzz | 226 | 0 | 0 | fuzz regressions locked as tests (rounds 1–4) |
-| **Total (lib)** | **2 244** | **9** | **2** | 9 = date-hardcoded gp-core formula::evaluator (all pre-existing) |
+| adapters-ooxfuzz | 226 | 0 | 0 | fuzz regressions locked as tests (rounds 1–4); VLOOKUP now supported |
+| **Total (lib)** | **2 292** | **0** | **2** | 0 fails (previously 9 date-hardcoded gp-core formula → all fixed) |
 
 (CLI bin + integration + doctest suites from the m3-era table are exercised via the phase gates;
 see `docs/m5-acceptance.md` §3 for the gate transcript.)

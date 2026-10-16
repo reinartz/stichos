@@ -33,6 +33,7 @@ type RasterPage = (Vec<u8>, usize, usize);
 /// Returns a JSON manifest containing:
 /// - `tool`: "render_document"
 /// - `path`: input document path
+/// - `output_dir`: directory where rendered images were saved
 /// - `rendered_by`: provenance string (engine + version)
 /// - `dpi`: rendering DPI
 /// - `page_count`: number of pages rendered
@@ -58,6 +59,7 @@ pub fn render_document(
         return Ok(serde_json::json!({
             "tool": "render_document",
             "path": path,
+            "output_dir": output_dir,
             "status": "unavailable",
             "rendered_by": "unavailable",
             "diagnostics": [{
@@ -168,6 +170,7 @@ pub fn render_document(
     Ok(serde_json::json!({
         "tool": "render_document",
         "path": path,
+        "output_dir": output_dir,
         "status": "ok",
         "rendered_by": rendered_by,
         "engine_choice": choice.engine_id,

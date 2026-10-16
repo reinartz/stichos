@@ -317,13 +317,16 @@ fn rasterize_with_mutool(
 
 /// Run soffice headless to convert PDF → PNG.
 ///
-/// Note: soffice doesn't support single-page PDF-to-PNG conversion,
-/// so we convert the full PDF and read the output.  This is only used
-/// as a fallback when pdftoppm/gs/mutool are unavailable.
+/// `page` and `dpi` are ignored: soffice's `--convert-to png` converts
+/// every page of the input PDF and writes all output PNGs to disk with
+/// auto-incrementing filenames (e.g. `input.png`, `input-1.png`).
+/// There is no CLI flag to restrict the conversion to a single page
+/// or to control output DPI.  This is only used as a fallback when
+/// pdftoppm/gs/mutool are unavailable.
 fn rasterize_with_soffice(
     pdf_bytes: &[u8],
-    _page: usize,
-    _dpi: u32,
+    #[allow(unused_variables)] _page: usize,
+    #[allow(unused_variables)] _dpi: u32,
 ) -> Result<Vec<u8>, Vec<Diagnostic>> {
     let tmpdir = std::env::temp_dir().join(format!(
         "stichos-soffice-{}",

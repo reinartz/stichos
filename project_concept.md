@@ -7,9 +7,8 @@
 correction: `tools/check-deps.sh` fails at the `m5` tree on the `mcp -> adapters-pdf` edge,
 fixed by dependency inversion in Phase 6 Wave 0); **Phase 6 (context budget C14 + M6 intake)
 shipped 2026-09-23** — 35/35 steps, `phase6_gate.sh --ci` green pre-tag, tag `m6`
-**pushed** (Track A′ closeout round 2 complete — gate 90/90 at tag time, `p606` 6/6;
-tag `m6` currently at `5579231`, 18 commits behind HEAD — re-anchor tracked as E4 in
-[`docs/remaining-work.md`](docs/remaining-work.md)); `docs/m6-acceptance.md` §11 records the
+**re-anchored to HEAD af40e44** (E4 complete 2026-10-15; Track A′ closeout round 2 complete — gate 92/93
+at tag time, `p606` 6/6; `docs/m6-acceptance.md` §11 records the
 2026-09-23 audit corrections (all resolved in closeout rounds 1–2, committed in `ff80f8e` +
 follow-ups). Phase-7 Tracks B/C/D complete (except P7-3 tranche C/D + P7-9 launch 👤);
 remaining work = Tracks E/F/G + **Track H (proposed; H0 adoption declined 2026-10-01)** + owner
@@ -17,10 +16,7 @@ items in [`docs/remaining-work.md`](docs/remaining-work.md) rev 6 — Track H co
 `track-h-proposed` (Phase U unblock); main is clean.
 Decision **D27**, contract [`docs/contracts/C14-context-budget.md`](docs/contracts/C14-context-budget.md) +
 guide [`docs/implementation-guide-context-budget.md`](docs/implementation-guide-context-budget.md).
-**Last updated:** 2026-10-01 (2026-09-29 clean-tree completion audit at `76a98cb`: phase6 gate
-92/93, phase3/4 26/26, phase5 50/52, tests 2244/9; Tracks C+D complete; remaining work
-restructured; surface at HEAD: **22 verbs** / **23 tools**, C7 v1.6.0; 24/24 in the proposed
-Track-H tree)
+**Last updated:** 2026-10-15 (OQ2 resolved as D28 — Word tier = honest-absent; m6 re-anchored; 2292/0 tests; Phase-7 C/D complete; remaining work restructured; surface at HEAD: **24 verbs** / **24 tools**, C7 v1.7.0)
 **Project root:** `/localdata/workspace/stichos`
 **Related:** [`brand.md`](brand.md) — identity, colour, typography, logo usage
 
@@ -473,6 +469,8 @@ Crate layout: `core` (IR + patch engine, dep-free) · `adapters-ooxml` · `adapt
 | D25 | **Pure-Rust crypto** for PAdES-B-B (RustCrypto family; no `ring`, no OpenSSL, no `-sys`) | D2/D4 preserved; signing must not drag C into the binary; `cargo deny` extends the `-sys` ban to crypto | a hard feature gap (e.g. required smart-card/TSA interop) forces a rung |
 | D26 | **Launch is owner-timed**; M5 ships prep only; D18 stays until the flip | registry/visibility flip is one-way; prep is reversible | owner call in M6 |
 | D27 | **Context budget adopted as contract C14** (Phase 6 / M6, track CTX): summary-first responses (`inspect_document detail="summary"` default), URL-first images (`output="urls"` default → temp dir, 1 h TTL + startup sweep, `expiresAt`), caps `max_elements=100` / `max_pages=3` (5 for `annotate_pages`) / `max_ops=20` / `max_entries=10`, `dry_run` defaults to `true` with a ≤20-op preview on `apply_patch`/`edit_*`, `__budget { tokens_est, elements_count, image_count }` on every response; shipped as **C7 additive v1.6** | response bloat starves the reasoning turn — full inspect of a 50-page doc exceeds 50k tokens, a 150-DPI base64 page ≈1.5k vision tokens (§10); C14 targets one turn (≈4–8k); the context-side twin of P2/D6; schema changes additive-only, the **default flips are versioned at v1.6 with migration notes** | client feedback shows a default flip hurting real workflows, or an MCP-native pagination/streaming story supersedes C14 |
+| D28 | **Word tier = honest-absent** (Option D) — no commercial Word library; non-Windows uses LibreOffice fallback | zero added cost; no licensing complexity; preserves D2/D4 (pure-Rust, no C deps); shipping simplicity > feature parity at this stage | commercial productization requires consistent Word fidelity across platforms |
+| D29 | Word fidelity: Windows = MS Office COM (high-fidelity, COM-2..6); non-Windows = LibreOffice (best-effort) | honest baseline; no false marketing claims; users on non-Windows can self-host a Windows worker VM | — |
 
 ---
 
@@ -497,7 +495,10 @@ Crate layout: `core` (IR + patch engine, dep-free) · `adapters-ooxml` · `adapt
 1. ~~License split~~ **RESOLVED 2026-09-08 (G1, owner):** lopdf + pdf-writer pure-Rust core, qpdf shell-out;
    AGPL never in-process (ADR-0001 accepted; D19).
 2. Word-rendering tier for non-Windows users: paid Aspose/Syncfusion path or a hosted Word worker?
-   (still open — COM-2..6 shipped on the Windows host at M6; non-Windows tier unanswered)
+   **RESOLVED 2026-10-15 (OQ2, D28, owner):** Option D — **honest-absent**. On non-Windows, Word (.docx)
+   rendering falls back to LibreOffice headless (same as current default); stichos does not bundle or
+   require commercial Word libraries. Marketing claims: "high-fidelity rendering on Windows via MS Office
+   COM; best-effort rendering on other platforms via LibreOffice". D29 covers the rationale.
 3. ~~Is a `gp` short binary alias wanted for the CLI, or `stichos` spelled out everywhere?~~
    **RESOLVED 2026-09-18 (OQ3/G2, owner):** `gp` alias — **no**. The CLI verb surface (21 verbs) already
    covers the full tool set; a 2-char alias adds ambiguity without value (`gp inspect` vs `stichos inspect`

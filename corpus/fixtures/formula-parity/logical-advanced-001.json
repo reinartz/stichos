@@ -1,0 +1,22 @@
+{
+  "id": "formula-parity-logical-advanced-001",
+  "description": "Advanced logical functions: XOR, IFS, SWITCH",
+  "formulas": [
+    {
+      "formula": "XOR(TRUE, FALSE)",
+      "expected": true
+    },
+    {
+      "formula": "XOR(TRUE, TRUE)",
+      "expected": false
+    },
+    {
+      "formula": "IFS(FALSE, \"a\", TRUE, \"b\")",
+      "expected": "b"
+    },
+    {
+      "formula": "SWITCH(2, 1, \"one\", 2, \"two\", \"other\")",
+      "expected": "two"
+    }
+  ]
+}

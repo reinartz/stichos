@@ -1,0 +1,30 @@
+{
+  "id": "formula-parity-text-advanced-001",
+  "description": "Advanced text functions: TEXT, TEXTJOIN, SEARCH, FIND",
+  "formulas": [
+    {
+      "formula": "TEXT(1234.5, \"0.00\")",
+      "expected": "1234.50"
+    },
+    {
+      "formula": "TEXT(0.5, \"0%\")",
+      "expected": "50%"
+    },
+    {
+      "formula": "TEXTJOIN(\",\", TRUE, \"A\", \"\", \"B\")",
+      "expected": "A,B"
+    },
+    {
+      "formula": "SEARCH(\"a\", \"ABCabc\")",
+      "expected": 1
+    },
+    {
+      "formula": "FIND(\"A\", \"ABCabc\")",
+      "expected": 1
+    },
+    {
+      "formula": "FIND(\"a\", \"ABCabc\")",
+      "expected": 4
+    }
+  ]
+}

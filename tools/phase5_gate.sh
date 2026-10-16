@@ -579,12 +579,15 @@ else
     fi
 fi
 
-# 6d. Assert no version tags pushed
-TAG_COUNT=$(git tag 2>/dev/null | grep -c '^m5') || TAG_COUNT=0
+# 6d. m5 tag state — either no tag pushed, or HEAD == m5^{commit} (post-ship-state)
+TAG_COUNT=$(git tag 2>/dev/null | { grep '^m5' || true; } | wc -l)
+TAG_COUNT=$((TAG_COUNT + 0))
 if [ "$TAG_COUNT" -eq 0 ]; then
     pass "No m5 version tags pushed (tag count: ${TAG_COUNT})"
+elif [ "$(git rev-parse m5^{commit} 2>/dev/null)" = "$(git rev-parse HEAD 2>/dev/null)" ]; then
+    pass "m5 tag exists and points at HEAD (post-tag tree)"
 else
-    fail "Found ${TAG_COUNT} m5 version tag(s) — should be 0 at gate time"
+    fail "Found ${TAG_COUNT} m5 tag(s) and HEAD != m5^{commit} — tag not re-anchored"
 fi
 
 # 6e. Check LICENSE files exist

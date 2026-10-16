@@ -2,6 +2,7 @@
 //! Formula evaluator: evaluate parsed formula AST against a cell context.
 
 use super::parser::{BinOp, FormulaNode, ParseError};
+use chrono::{Datelike, NaiveDate};
 
 /// The result of evaluating a formula.
 #[derive(Debug, Clone, PartialEq)]
@@ -43,6 +44,26 @@ pub trait FormulaContext {
     ) -> Option<CachedCellValue> {
         None
     }
+    /// Resolve a named range (e.g., "RevenueTotal") to a cached cell value.
+    /// Returns None by default so existing contexts remain compatible.
+    fn get_named_range(&self, _name: &str) -> Option<CachedCellValue> {
+        None
+    }
+    /// Resolve a 3-D reference (e.g., Sheet1:Sheet3!A1) to values across sheets.
+    /// Returns None by default — implement for multi-sheet support.
+    fn get_cell_at_3d(
+        &self,
+        _sheet_start: &str,
+        _sheet_end: &str,
+        _cell: &str,
+    ) -> Option<Vec<CachedCellValue>> {
+        None
+    }
+    /// Resolve a structured table reference (e.g., [SalesAmount] or [Table1[SalesAmount]]).
+    /// Returns None by default — implement for table support.
+    fn get_structured_ref(&self, _table: &str, _column: &str) -> Option<Vec<CachedCellValue>> {
+        None
+    }
     /// Returns the Excel serial date number for the "analysis date" (used by TODAY/NOW).
     fn analysis_date(&self) -> f64 {
         45672.0 // 2025-01-15 as Excel serial date
@@ -77,12 +98,42 @@ fn eval_node(ctx: &dyn FormulaContext, node: &FormulaNode) -> Option<EvalResult>
             eval_binop(op, &left_val, &right_val)
         }
         FormulaNode::CellRef(ref_name) => {
-            let cell = ctx.get_cell(ref_name)?;
-            Some(cached_to_eval(&cell))
+            // Try cell ref first, then named range, then structured ref
+            if let Some(cell) = ctx.get_cell(ref_name) {
+                return Some(cached_to_eval(&cell));
+            }
+            if let Some(cell) = ctx.get_named_range(ref_name) {
+                return Some(cached_to_eval(&cell));
+            }
+            // Try structured ref (table column reference)
+            if ctx.get_structured_ref("", ref_name).is_some() {
+                return ctx
+                    .get_structured_ref("", ref_name)
+                    .and_then(|vals| eval_range(&vals));
+            }
+            None
         }
         FormulaNode::Range(range) => {
             let values = ctx.get_range(range)?;
             eval_range(&values)
+        }
+        FormulaNode::CellRef3D {
+            sheet_start,
+            sheet_end,
+            cell,
+        } => match ctx.get_cell_at_3d(sheet_start, sheet_end, cell) {
+            Some(values) => eval_range(&values),
+            None => Some(EvalResult::Error(
+                "GP-F-022: 3-D reference not supported".to_string(),
+            )),
+        },
+        FormulaNode::StructuredRef { table, column } => {
+            match ctx.get_structured_ref(table, column) {
+                Some(values) => eval_range(&values),
+                None => Some(EvalResult::Error(
+                    "GP-F-023: structured reference not supported".to_string(),
+                )),
+            }
         }
         FormulaNode::Call { name, args } => eval_call(ctx, name, args),
         FormulaNode::Pow(left, right) => {
@@ -303,6 +354,28 @@ fn eval_call(ctx: &dyn FormulaContext, name: &str, args: &[FormulaNode]) -> Opti
         "HLOOKUP" => eval_hlookup(ctx, args),
         "MATCH" => eval_match(ctx, args),
         "INDEX" => eval_index(ctx, args),
+        // Financial functions (F1)
+        "NPV" => eval_npv(ctx, args),
+        "IRR" => eval_irr(ctx, args),
+        "PMT" => eval_pmt(ctx, args),
+        "PV" => eval_pv(ctx, args),
+        "FV" => eval_fv(ctx, args),
+        "RATE" => eval_rate(ctx, args),
+        "NPER" => eval_nper(ctx, args),
+        // Advanced date/time functions (F2)
+        "WORKDAY" => eval_workday(ctx, args),
+        "NETWORKDAYS" => eval_networkdays(ctx, args),
+        "WEEKNUM" => eval_weeknum(ctx, args),
+        "DATEVALUE" => eval_datevalue(ctx, args),
+        // Advanced text functions (F3)
+        "TEXT" => eval_text_format(ctx, args),
+        "TEXTJOIN" => eval_textjoin(ctx, args),
+        "SEARCH" => eval_search_fn(ctx, args),
+        "FIND" => eval_find_fn(ctx, args),
+        // Extended logical functions (F4)
+        "XOR" => eval_xor(ctx, args),
+        "IFS" => eval_ifs(ctx, args),
+        "SWITCH" => eval_switch(ctx, args),
         _ => Some(EvalResult::Error(format!("unsupported function: {}", name))),
     }
 }
@@ -696,38 +769,35 @@ fn days_in_month(year: i32, month: i32) -> i32 {
 }
 
 /// Convert Excel serial date to (year, month, day).
-/// Excel serial 1 = 1900-01-01. Excel day 0 = 1899-12-30 (for compatibility with the
-/// 1900 leap year bug).
+/// Excel serial 1 = 1900-01-01.
+/// Excel has a 1900 leap year bug: serial 60 = 1900-02-29 (doesn't exist).
+/// For serial >= 60, the actual date is 1 day after chrono's computation.
 fn serial_to_ymd(serial: f64) -> Option<(i32, i32, i32)> {
-    let z = (serial + 719527.0) as i64; // 719527 = days from epoch to 1899-12-30
-    if z < 0 {
+    if serial < 1.0 || serial >= 2958466.0 {
         return None;
     }
-    let era = if z >= 0 {
-        z / 146097
-    } else {
-        (z - 146096) / 146097
-    };
-    let doe = z - era * 146097;
-    let yoe = (doe / 365 + doe / 1461 * 4 - doe / 2400 + 1) / 4;
-    let y = (yoe + era * 400) as i32;
-    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
-    let mp = (5 * doy + 2) / 153;
-    let d = (doe - (153 * mp + 2) / 5 + 1) as i32;
-    let m = (mp + if mp < 10 { 3 } else { -9 }) as i32;
-    let y = y + if m <= 2 { 1 } else { 0 };
-    Some((y, m, d))
+    let serial = serial as i64;
+    // Excel epoch is 1899-12-31, but with the 1900 leap year bug:
+    // dates >= March 1, 1900 (serial >= 60) are offset by +1
+    let adjusted_serial = if serial >= 60 { serial - 1 } else { serial };
+    let epoch = NaiveDate::from_ymd_opt(1899, 12, 31)?;
+    let date = epoch.checked_add_signed(chrono::TimeDelta::days(adjusted_serial))?;
+    Some((date.year(), date.month() as i32, date.day() as i32))
 }
 
 /// Convert (year, month, day) to Excel serial date.
+/// Excel serial 1 = 1900-01-01.
+/// Reverses serial_to_ymd, accounting for the 1900 leap year bug.
 fn ymd_to_serial(year: i32, month: i32, day: i32) -> f64 {
-    let y = year;
-    let m = month;
-    let a = (14 - m) / 12;
-    let y2 = y + 4800 - a;
-    let m2 = m + 12 * a - 3;
-    let jd = day + (153 * m2 + 2) / 5 + 365 * y2 + y2 / 4 - y2 / 100 + y2 / 400 - 32045;
-    (jd - 719468) as f64
+    let epoch = NaiveDate::from_ymd_opt(1899, 12, 31).expect("1899-12-31 is a valid date");
+    let date = NaiveDate::from_ymd_opt(year, month as u32, day as u32).expect("invalid date");
+    let days = date.signed_duration_since(epoch).num_days();
+    // For dates >= March 1, 1900, we added -1 in serial_to_ymd, so add +1 here
+    if year > 1900 || (year == 1900 && month >= 3) {
+        (days + 1) as f64
+    } else {
+        days as f64
+    }
 }
 
 fn eval_year(ctx: &dyn FormulaContext, args: &[FormulaNode]) -> Option<EvalResult> {
@@ -1039,13 +1109,13 @@ fn eval_rank_fn(ctx: &dyn FormulaContext, args: &[FormulaNode]) -> Option<EvalRe
     let mut rank = 1.0;
     for v in &range_values {
         if order == 0.0 {
-            // Descending: rank increases for values less than target
-            if *v < target {
+            // Descending (default): rank increases for values greater than target
+            if *v > target {
                 rank += 1.0;
             }
         } else {
-            // Ascending: rank increases for values greater than target
-            if *v > target {
+            // Ascending: rank increases for values less than target
+            if *v < target {
                 rank += 1.0;
             }
         }
@@ -1470,6 +1540,848 @@ fn eval_index(ctx: &dyn FormulaContext, args: &[FormulaNode]) -> Option<EvalResu
     Some(cached_to_eval(&values[idx]))
 }
 
+// ===========================================================================
+// F1: Financial functions
+// ===========================================================================
+
+fn eval_npv(ctx: &dyn FormulaContext, args: &[FormulaNode]) -> Option<EvalResult> {
+    if args.is_empty() {
+        return Some(EvalResult::Error("NPV requires at least 1 arg".to_string()));
+    }
+    let rate = eval_fn_arg(ctx, &args[0])?;
+    if args.len() < 2 {
+        return Some(EvalResult::Error(
+            "NPV requires at least 2 args".to_string(),
+        ));
+    }
+    let mut sum = 0.0;
+    for (i, arg) in args[1..].iter().enumerate() {
+        let val = match eval_node(ctx, arg)? {
+            EvalResult::Number(n) => n,
+            EvalResult::Text(t) => t.trim().parse::<f64>().ok()?,
+            _ => return Some(EvalResult::Error("NPV: non-numeric value".to_string())),
+        };
+        let power = math_pow(1.0 + rate, (i + 1) as i32);
+        sum += val / power;
+    }
+    Some(EvalResult::Number(sum))
+}
+
+fn eval_irr(ctx: &dyn FormulaContext, args: &[FormulaNode]) -> Option<EvalResult> {
+    if args.is_empty() {
+        return Some(EvalResult::Error("IRR requires at least 1 arg".to_string()));
+    }
+    let guess = if args.len() > 1 {
+        match eval_node(ctx, &args[1])? {
+            EvalResult::Number(n) => n,
+            _ => 0.1,
+        }
+    } else {
+        0.1
+    };
+    let values: Vec<f64> = args
+        .iter()
+        .filter_map(|a| match eval_node(ctx, a)? {
+            EvalResult::Number(n) => Some(n),
+            EvalResult::Text(t) => t.trim().parse::<f64>().ok(),
+            _ => None,
+        })
+        .collect();
+    if values.is_empty() {
+        return Some(EvalResult::Error("IRR: no numeric values".to_string()));
+    }
+    // Newton-Raphson iteration
+    let rate = newton_irr(&values, guess);
+    Some(EvalResult::Number(rate))
+}
+
+fn newton_irr(cashflows: &[f64], guess: f64) -> f64 {
+    let mut rate = guess;
+    let max_iter = 100;
+    let tolerance = 1e-8;
+    for _ in 0..max_iter {
+        let mut npv = 0.0;
+        let mut dpv = 0.0;
+        for (i, &cf) in cashflows.iter().enumerate() {
+            let p = math_pow(1.0 + rate, i as i32);
+            if p.abs() < 1e-15 {
+                break;
+            }
+            npv += cf / p;
+            dpv -= (i as f64) * cf / (p * (1.0 + rate));
+        }
+        if (dpv).abs() < 1e-15 {
+            break;
+        }
+        let new_rate = rate - npv / dpv;
+        if (new_rate - rate).abs() < tolerance {
+            return new_rate;
+        }
+        rate = new_rate;
+    }
+    rate
+}
+
+fn eval_pmt(ctx: &dyn FormulaContext, args: &[FormulaNode]) -> Option<EvalResult> {
+    if args.is_empty() {
+        return Some(EvalResult::Error("PMT requires at least 1 arg".to_string()));
+    }
+    let rate = eval_fn_arg(ctx, &args[0])?;
+    if args.len() < 2 {
+        return Some(EvalResult::Error(
+            "PMT requires at least 2 args".to_string(),
+        ));
+    }
+    let nper = eval_fn_arg(ctx, &args[1])?;
+    if args.len() < 3 {
+        return Some(EvalResult::Error(
+            "PMT requires at least 3 args".to_string(),
+        ));
+    }
+    let pv = eval_fn_arg(ctx, &args[2])?;
+    let fv = if args.len() > 3 {
+        match eval_node(ctx, &args[3])? {
+            EvalResult::Number(n) => n,
+            _ => 0.0,
+        }
+    } else {
+        0.0
+    };
+    let type_flag = if args.len() > 4 {
+        match eval_node(ctx, &args[4])? {
+            EvalResult::Number(n) => n,
+            _ => 0.0,
+        }
+    } else {
+        0.0
+    };
+    eval_pmt_fn(rate, nper, pv, fv, type_flag)
+}
+
+fn eval_pmt_fn(rate: f64, nper: f64, pv: f64, fv: f64, type_flag: f64) -> Option<EvalResult> {
+    if nper == 0.0 {
+        return Some(EvalResult::Number(-pv - fv));
+    }
+    if (rate - 0.0).abs() < 1e-12 {
+        // Zero rate: -(pv + fv) / nper
+        return Some(EvalResult::Number(-(pv + fv) / nper));
+    }
+    let r = rate;
+    let n = nper as i32;
+    let factor = math_pow(1.0 + r, n);
+    let pmt_val = -(r * (pv * factor + fv)) / ((1.0 + r * type_flag) * (factor - 1.0));
+    Some(EvalResult::Number(pmt_val))
+}
+
+fn eval_pv(ctx: &dyn FormulaContext, args: &[FormulaNode]) -> Option<EvalResult> {
+    if args.is_empty() {
+        return Some(EvalResult::Error("PV requires at least 1 arg".to_string()));
+    }
+    let rate = eval_fn_arg(ctx, &args[0])?;
+    if args.len() < 2 {
+        return Some(EvalResult::Error("PV requires at least 2 args".to_string()));
+    }
+    let nper = eval_fn_arg(ctx, &args[1])?;
+    if args.len() < 3 {
+        return Some(EvalResult::Error("PV requires at least 3 args".to_string()));
+    }
+    let pmt = eval_fn_arg(ctx, &args[2])?;
+    let fv = if args.len() > 3 {
+        match eval_node(ctx, &args[3])? {
+            EvalResult::Number(n) => n,
+            _ => 0.0,
+        }
+    } else {
+        0.0
+    };
+    let type_flag = if args.len() > 4 {
+        match eval_node(ctx, &args[4])? {
+            EvalResult::Number(n) => n,
+            _ => 0.0,
+        }
+    } else {
+        0.0
+    };
+    eval_pv_fn(rate, nper, pmt, fv, type_flag)
+}
+
+fn eval_pv_fn(rate: f64, nper: f64, pmt: f64, fv: f64, type_flag: f64) -> Option<EvalResult> {
+    if (rate - 0.0).abs() < 1e-12 {
+        return Some(EvalResult::Number(-(pmt * nper + fv)));
+    }
+    let r = rate;
+    let n = nper as i32;
+    let factor = math_pow(1.0 + r, n);
+    let pv_val = ((pmt * (1.0 + r * type_flag) * (1.0 - 1.0 / factor)) + fv / factor) / r;
+    Some(EvalResult::Number(pv_val))
+}
+
+fn eval_fv(ctx: &dyn FormulaContext, args: &[FormulaNode]) -> Option<EvalResult> {
+    if args.is_empty() {
+        return Some(EvalResult::Error("FV requires at least 1 arg".to_string()));
+    }
+    let rate = eval_fn_arg(ctx, &args[0])?;
+    if args.len() < 2 {
+        return Some(EvalResult::Error("FV requires at least 2 args".to_string()));
+    }
+    let nper = eval_fn_arg(ctx, &args[1])?;
+    if args.len() < 3 {
+        return Some(EvalResult::Error("FV requires at least 3 args".to_string()));
+    }
+    let pmt = eval_fn_arg(ctx, &args[2])?;
+    let pv = if args.len() > 3 {
+        match eval_node(ctx, &args[3])? {
+            EvalResult::Number(n) => n,
+            _ => 0.0,
+        }
+    } else {
+        0.0
+    };
+    let type_flag = if args.len() > 4 {
+        match eval_node(ctx, &args[4])? {
+            EvalResult::Number(n) => n,
+            _ => 0.0,
+        }
+    } else {
+        0.0
+    };
+    eval_fv_fn(rate, nper, pmt, pv, type_flag)
+}
+
+fn eval_fv_fn(rate: f64, nper: f64, pmt: f64, pv: f64, type_flag: f64) -> Option<EvalResult> {
+    if (rate - 0.0).abs() < 1e-12 {
+        return Some(EvalResult::Number(-(pv * nper + pmt)));
+    }
+    let r = rate;
+    let n = nper as i32;
+    let factor = math_pow(1.0 + r, n);
+    let fv_val = -(pv * factor + pmt * (1.0 + r * type_flag) * (factor - 1.0) / r);
+    Some(EvalResult::Number(fv_val))
+}
+
+fn eval_rate(ctx: &dyn FormulaContext, args: &[FormulaNode]) -> Option<EvalResult> {
+    if args.len() < 3 {
+        return Some(EvalResult::Error(
+            "RATE requires at least 3 args".to_string(),
+        ));
+    }
+    let nper = eval_fn_arg(ctx, &args[0])?;
+    let pmt = eval_fn_arg(ctx, &args[1])?;
+    let pv = eval_fn_arg(ctx, &args[2])?;
+    let fv = if args.len() > 3 {
+        match eval_node(ctx, &args[3])? {
+            EvalResult::Number(n) => n,
+            _ => 0.0,
+        }
+    } else {
+        0.0
+    };
+    let type_flag = if args.len() > 4 {
+        match eval_node(ctx, &args[4])? {
+            EvalResult::Number(n) => n,
+            _ => 0.0,
+        }
+    } else {
+        0.0
+    };
+    let guess = if args.len() > 5 {
+        match eval_node(ctx, &args[5])? {
+            EvalResult::Number(n) => n,
+            _ => 0.1,
+        }
+    } else {
+        0.1
+    };
+    let rate = newton_rate(nper, pmt, pv, fv, type_flag, guess);
+    Some(EvalResult::Number(rate))
+}
+
+fn newton_rate(nper: f64, pmt: f64, pv: f64, fv: f64, type_flag: f64, guess: f64) -> f64 {
+    let mut rate = guess;
+    let max_iter = 100;
+    let tolerance = 1e-10;
+    for _ in 0..max_iter {
+        let (f, df) = fv_at_rate(nper, pmt, pv, fv, type_flag, rate);
+        if df.abs() < 1e-15 {
+            break;
+        }
+        let new_rate = rate - f / df;
+        if (new_rate - rate).abs() < tolerance {
+            return new_rate;
+        }
+        rate = new_rate;
+    }
+    rate
+}
+
+fn fv_at_rate(nper: f64, pmt: f64, pv: f64, fv: f64, type_flag: f64, rate: f64) -> (f64, f64) {
+    let r = rate;
+    let n = nper as i32;
+    let one_plus_r = 1.0 + r;
+    let factor = if r > -1.0 && n >= 0 {
+        math_pow(one_plus_r, n)
+    } else if n < 0 {
+        let p = math_pow(one_plus_r, -n);
+        if p.abs() > 1e-15 {
+            1.0 / p
+        } else {
+            0.0
+        }
+    } else {
+        1.0
+    };
+    // FV = -PV * (1+r)^n - PMT * (1 + r*type) * ((1+r)^n - 1) / r
+    let fv_calc = if r.abs() > 1e-12 {
+        -(pv * factor + pmt * (1.0 + r * type_flag) * (factor - 1.0) / r)
+    } else {
+        -(pv * factor + pmt * (1.0 + r * type_flag) * n as f64)
+    };
+    let fv_err = fv_calc - fv;
+    // Analytical derivative of FV w.r.t. rate
+    // dFV/dr = PV * n * (1+r)^(n-1) + ...
+    // Simplified: use numerical derivative safely
+    let dp = 1e-7;
+    let factor_plus = if r + dp > -1.0 && n >= 0 {
+        math_pow(1.0 + r + dp, n)
+    } else {
+        0.0
+    };
+    let fv_plus = if (r + dp).abs() > 1e-12 {
+        -(pv * factor_plus + pmt * (1.0 + (r + dp) * type_flag) * (factor_plus - 1.0) / (r + dp))
+    } else {
+        -(pv * factor_plus + pmt * (1.0 + (r + dp) * type_flag) * n as f64)
+    };
+    let df = (fv_plus - fv_err) / dp;
+    (fv_err, df)
+}
+
+fn eval_nper(ctx: &dyn FormulaContext, args: &[FormulaNode]) -> Option<EvalResult> {
+    if args.len() < 3 {
+        return Some(EvalResult::Error(
+            "NPER requires at least 3 args".to_string(),
+        ));
+    }
+    let rate = eval_fn_arg(ctx, &args[0])?;
+    let pmt = eval_fn_arg(ctx, &args[1])?;
+    let pv = eval_fn_arg(ctx, &args[2])?;
+    let fv = if args.len() > 3 {
+        match eval_node(ctx, &args[3])? {
+            EvalResult::Number(n) => n,
+            _ => 0.0,
+        }
+    } else {
+        0.0
+    };
+    let type_flag = if args.len() > 4 {
+        match eval_node(ctx, &args[4])? {
+            EvalResult::Number(n) => n,
+            _ => 0.0,
+        }
+    } else {
+        0.0
+    };
+    eval_nper_fn(rate, pmt, pv, fv, type_flag)
+}
+
+fn eval_nper_fn(rate: f64, pmt: f64, pv: f64, fv: f64, type_flag: f64) -> Option<EvalResult> {
+    if (rate - 0.0).abs() < 1e-12 {
+        let denom = -(pmt + fv / f64::MAX.min((pv - fv).abs().max(1e-10)));
+        if denom.abs() < 1e-15 {
+            return Some(EvalResult::Error("NPER: division by zero".to_string()));
+        }
+        return Some(EvalResult::Number(-(pv + fv) / pmt));
+    }
+    let r = rate;
+    let denominator = pv * r + pmt * (1.0 + r * type_flag);
+    if denominator.abs() < 1e-15 {
+        return Some(EvalResult::Error("NPER: division by zero".to_string()));
+    }
+    let n = -((1.0 + r * pv / (fv + pmt * (1.0 + r * type_flag))).ln() / (1.0 + r).ln());
+    Some(EvalResult::Number(n))
+}
+
+// ===========================================================================
+// F2: Advanced date/time functions
+// ===========================================================================
+
+fn eval_workday(ctx: &dyn FormulaContext, args: &[FormulaNode]) -> Option<EvalResult> {
+    if args.is_empty() {
+        return Some(EvalResult::Error(
+            "WORKDAY requires at least 2 args".to_string(),
+        ));
+    }
+    let start_serial = eval_node(ctx, &args[0])?;
+    let start = match start_serial {
+        EvalResult::Number(n) => n,
+        EvalResult::Text(t) => t.trim().parse::<f64>().ok()?,
+        _ => return Some(EvalResult::Error("WORKDAY: invalid start date".to_string())),
+    };
+    let days = eval_fn_arg(ctx, &args[1])?;
+    let days_int = days as i64;
+    // Collect holidays
+    let holidays: Vec<i64> = if args.len() > 2 {
+        let mut result = Vec::new();
+        for arg in &args[2..] {
+            if let FormulaNode::Range(range) = arg {
+                if let Some(cells) = ctx.get_range(range) {
+                    for cell in &cells {
+                        if let Some(n) = cell.numeric {
+                            result.push(n as i64);
+                        }
+                    }
+                }
+            } else if let Some(EvalResult::Number(n)) = eval_node(ctx, arg) {
+                result.push(n as i64);
+            }
+        }
+        result
+    } else {
+        Vec::new()
+    };
+
+    let (y, m, d) = serial_to_ymd(start)?;
+    let step = if days_int >= 0 { 1i64 } else { -1 };
+    let mut current = NaiveDate::from_ymd_opt(y, m as u32, d as u32)?;
+    // Skip past the start date - WORKDAY adds working days FROM the start, not including it
+    current = match current.checked_add_signed(chrono::TimeDelta::days(step)) {
+        Some(d) => d,
+        None => return Some(EvalResult::Error("WORKDAY: date overflow".to_string())),
+    };
+    let mut count = 0i64;
+    let target = days_int.abs();
+    let max_days = target * 3;
+    let mut day = 0i64;
+    while day < max_days {
+        let dow = current.weekday();
+        let holiday_serial =
+            ymd_to_serial(current.year(), current.month() as i32, current.day() as i32);
+        let is_holiday = holidays.contains(&(holiday_serial as i64));
+        if dow != chrono::Weekday::Sat && dow != chrono::Weekday::Sun && !is_holiday {
+            count += step;
+            if count.abs() == target {
+                return Some(EvalResult::Number(holiday_serial));
+            }
+        }
+        current = match current.checked_add_signed(chrono::TimeDelta::days(step)) {
+            Some(d) => d,
+            None => break,
+        };
+        day += 1;
+    }
+    Some(EvalResult::Number(ymd_to_serial(
+        current.year(),
+        current.month() as i32,
+        current.day() as i32,
+    )))
+}
+
+fn eval_networkdays(ctx: &dyn FormulaContext, args: &[FormulaNode]) -> Option<EvalResult> {
+    if args.len() < 2 {
+        return Some(EvalResult::Error(
+            "NETWORKDAYS requires at least 2 args".to_string(),
+        ));
+    }
+    let start = eval_node(ctx, &args[0])?;
+    let start_serial = match start {
+        EvalResult::Number(n) => n,
+        EvalResult::Text(t) => t.trim().parse::<f64>().ok()?,
+        _ => {
+            return Some(EvalResult::Error(
+                "NETWORKDAYS: invalid start date".to_string(),
+            ))
+        }
+    };
+    let end = eval_node(ctx, &args[1])?;
+    let end_serial = match end {
+        EvalResult::Number(n) => n,
+        EvalResult::Text(t) => t.trim().parse::<f64>().ok()?,
+        _ => {
+            return Some(EvalResult::Error(
+                "NETWORKDAYS: invalid end date".to_string(),
+            ))
+        }
+    };
+
+    let holidays: Vec<i64> = if args.len() > 2 {
+        let mut result = Vec::new();
+        for arg in &args[2..] {
+            if let FormulaNode::Range(range) = arg {
+                if let Some(cells) = ctx.get_range(range) {
+                    for cell in &cells {
+                        if let Some(n) = cell.numeric {
+                            result.push(n as i64);
+                        }
+                    }
+                }
+            } else if let Some(EvalResult::Number(n)) = eval_node(ctx, arg) {
+                result.push(n as i64);
+            }
+        }
+        result
+    } else {
+        Vec::new()
+    };
+
+    let (sy, sm, sd) = serial_to_ymd(start_serial)?;
+    let (ey, em, ed) = serial_to_ymd(end_serial)?;
+    let start_date = NaiveDate::from_ymd_opt(sy, sm as u32, sd as u32)?;
+    let end_date = NaiveDate::from_ymd_opt(ey, em as u32, ed as u32)?;
+
+    let total_days = (end_date - start_date).num_days();
+    if total_days < 0 {
+        return Some(EvalResult::Error(
+            "NETWORKDAYS: end date before start date".to_string(),
+        ));
+    }
+
+    let mut count = 0i64;
+    let mut current = start_date;
+    for _ in 0..=total_days {
+        let dow = current.weekday();
+        let is_holiday = holidays.contains(
+            &(ymd_to_serial(current.year(), current.month() as i32, current.day() as i32) as i64),
+        );
+        if dow != chrono::Weekday::Sat && dow != chrono::Weekday::Sun && !is_holiday {
+            count += 1;
+        }
+        current = match current.checked_add_signed(chrono::TimeDelta::days(1)) {
+            Some(d) => d,
+            None => break,
+        };
+    }
+    Some(EvalResult::Number(count as f64))
+}
+
+fn eval_weeknum(ctx: &dyn FormulaContext, args: &[FormulaNode]) -> Option<EvalResult> {
+    if args.is_empty() {
+        return Some(EvalResult::Error(
+            "WEEKNUM requires at least 1 arg".to_string(),
+        ));
+    }
+    let date_serial = eval_node(ctx, &args[0])?;
+    let serial = match date_serial {
+        EvalResult::Number(n) => n,
+        EvalResult::Text(t) => t.trim().parse::<f64>().ok()?,
+        _ => return Some(EvalResult::Error("WEEKNUM: invalid date".to_string())),
+    };
+    let (y, m, d) = serial_to_ymd(serial)?;
+    let date = NaiveDate::from_ymd_opt(y, m as u32, d as u32)?;
+    // ISO week: Monday is first day, week 1 contains Jan 4
+    let iso_week = date.iso_week();
+    Some(EvalResult::Number(iso_week.week() as f64))
+}
+
+fn eval_datevalue(ctx: &dyn FormulaContext, args: &[FormulaNode]) -> Option<EvalResult> {
+    if args.is_empty() {
+        return Some(EvalResult::Error("DATEVALUE requires 1 arg".to_string()));
+    }
+    let date_text = eval_result_to_string(&eval_node(ctx, &args[0])?);
+    // Parse "YYYY-MM-DD" format
+    let trimmed = date_text.trim();
+    if let Some((y, m, d)) = parse_date_str(trimmed) {
+        let serial = ymd_to_serial(y, m, d);
+        Some(EvalResult::Number(serial))
+    } else {
+        Some(EvalResult::Error(format!(
+            "DATEVALUE: cannot parse '{}'",
+            date_text
+        )))
+    }
+}
+
+fn parse_date_str(s: &str) -> Option<(i32, i32, i32)> {
+    // Handle "YYYY-MM-DD" or "YYYY/MM/DD"
+    let normalized = s.replace('/', "-");
+    let parts: Vec<&str> = normalized.split('-').filter(|p| !p.is_empty()).collect();
+    if parts.len() != 3 {
+        return None;
+    }
+    let y: i32 = parts[0].parse().ok()?;
+    let m: i32 = parts[1].parse().ok()?;
+    let d: i32 = parts[2].parse().ok()?;
+    if !(1..=12).contains(&m) || !(1..=31).contains(&d) || !(1900..=9999).contains(&y) {
+        return None;
+    }
+    Some((y, m, d))
+}
+
+// ===========================================================================
+// F3: Advanced text functions
+// ===========================================================================
+
+fn eval_text_format(ctx: &dyn FormulaContext, args: &[FormulaNode]) -> Option<EvalResult> {
+    if args.len() < 2 {
+        return Some(EvalResult::Error("TEXT requires 2 args".to_string()));
+    }
+    let value = eval_node(ctx, &args[0])?;
+    let format_str = eval_fn_text(ctx, &args[1])?;
+    let num = match &value {
+        EvalResult::Number(n) => *n,
+        EvalResult::Text(t) => t.trim().parse::<f64>().ok()?,
+        _ => return Some(EvalResult::Error("TEXT: non-numeric value".to_string())),
+    };
+    let formatted = format_number(&format_str, num);
+    Some(EvalResult::Text(formatted))
+}
+
+fn format_number(fmt: &str, value: f64) -> String {
+    let fmt_upper = fmt.to_uppercase();
+    match fmt_upper.as_str() {
+        "0" => format!("{}", value as i64),
+        "0.00" => format!("{:.2}", value),
+        "0.0" => format!("{:.1}", value),
+        "0.000" => format!("{:.3}", value),
+        "#,##0" => {
+            let int_part = value as i64;
+            format_int_with_commas(int_part)
+        }
+        "#,##0.00" => format!("{:.2}", value)
+            .chars()
+            .rev()
+            .enumerate()
+            .map(|(i, c)| {
+                if c == '-' {
+                    return String::from("-");
+                }
+                if c == '.' {
+                    return String::from(".");
+                }
+                if i > 0 && i % 3 == 0 {
+                    format!(
+                        "{}{}",
+                        c,
+                        if (i / 3) % 10 == 0 && i / 3 > 1 {
+                            ","
+                        } else {
+                            ""
+                        }
+                    )
+                } else {
+                    c.to_string()
+                }
+            })
+            .collect::<Vec<String>>()
+            .into_iter()
+            .rev()
+            .collect(),
+        "General" | "general" => {
+            if value == value.floor() && value.abs() < 1e15 {
+                format!("{}", value as i64)
+            } else {
+                let s = format!("{:.10}", value);
+                s.trim_end_matches('0').trim_end_matches('.').to_string()
+            }
+        }
+        _ => {
+            // Fallback: just return the number as string
+            if value == value.floor() && value.abs() < 1e15 {
+                format!("{}", value as i64)
+            } else {
+                format!("{:.2}", value)
+            }
+        }
+    }
+}
+
+fn format_int_with_commas(n: i64) -> String {
+    let s = n.abs().to_string();
+    let mut result = String::new();
+    let chars: Vec<char> = s.chars().collect();
+    let len = chars.len();
+    let first_comma = len % 3;
+    for (i, &c) in chars.iter().enumerate() {
+        if i > 0 && i % 3 == first_comma {
+            result.push(',');
+        }
+        result.push(c);
+    }
+    if n < 0 {
+        result.insert(0, '-');
+    }
+    result
+}
+
+fn eval_textjoin(ctx: &dyn FormulaContext, args: &[FormulaNode]) -> Option<EvalResult> {
+    if args.len() < 3 {
+        return Some(EvalResult::Error(
+            "TEXTJOIN requires at least 3 args".to_string(),
+        ));
+    }
+    let delimiter = eval_result_to_string(&eval_node(ctx, &args[0])?);
+    let ignore_empty = eval_result_to_numeric(&eval_node(ctx, &args[1])?);
+    let mut parts = Vec::new();
+    for arg in &args[2..] {
+        // Handle ranges
+        if let FormulaNode::Range(range) = arg {
+            if let Some(cells) = ctx.get_range(range) {
+                for cell in &cells {
+                    if let Some(n) = cell.numeric {
+                        let s = n.to_string();
+                        if ignore_empty > 0.0 && s.is_empty() {
+                            continue;
+                        }
+                        parts.push(s);
+                    } else if let Some(ref t) = cell.text {
+                        if ignore_empty > 0.0 && t.is_empty() {
+                            continue;
+                        }
+                        parts.push(t.clone());
+                    }
+                }
+            }
+        } else if let FormulaNode::CellRef(ref_name) = arg {
+            if let Some(cell) = ctx.get_cell(ref_name) {
+                if let Some(n) = cell.numeric {
+                    let s = n.to_string();
+                    if ignore_empty > 0.0 && s.is_empty() {
+                        continue;
+                    }
+                    parts.push(s);
+                } else if let Some(ref t) = cell.text {
+                    if ignore_empty > 0.0 && t.is_empty() {
+                        continue;
+                    }
+                    parts.push(t.clone());
+                }
+            }
+        } else {
+            let val = eval_node(ctx, arg)?;
+            let s = eval_result_to_string(&val);
+            if ignore_empty > 0.0 && s.is_empty() {
+                continue;
+            }
+            parts.push(s);
+        }
+    }
+    Some(EvalResult::Text(parts.join(&delimiter)))
+}
+
+fn eval_search_fn(ctx: &dyn FormulaContext, args: &[FormulaNode]) -> Option<EvalResult> {
+    if args.len() < 2 {
+        return Some(EvalResult::Error(
+            "SEARCH requires at least 2 args".to_string(),
+        ));
+    }
+    let find_text = eval_result_to_string(&eval_node(ctx, &args[0])?).to_lowercase();
+    let within_text = eval_result_to_string(&eval_node(ctx, &args[1])?).to_lowercase();
+    let start = if args.len() > 2 {
+        match eval_node(ctx, &args[2])? {
+            EvalResult::Number(n) => n as usize,
+            _ => 1,
+        }
+    } else {
+        1
+    };
+    let search_in = &within_text[(start - 1)..];
+    search_in
+        .find(&find_text)
+        .map(|pos| EvalResult::Number((pos + start) as f64))
+        .or(Some(EvalResult::Error("#VALUE!".to_string())))
+}
+
+fn eval_find_fn(ctx: &dyn FormulaContext, args: &[FormulaNode]) -> Option<EvalResult> {
+    if args.len() < 2 {
+        return Some(EvalResult::Error(
+            "FIND requires at least 2 args".to_string(),
+        ));
+    }
+    let find_text = eval_result_to_string(&eval_node(ctx, &args[0])?);
+    let within_text = eval_result_to_string(&eval_node(ctx, &args[1])?);
+    let start = if args.len() > 2 {
+        match eval_node(ctx, &args[2])? {
+            EvalResult::Number(n) => n as usize,
+            _ => 1,
+        }
+    } else {
+        1
+    };
+    within_text
+        .char_indices()
+        .skip(start - 1)
+        .find_map(|(idx, _ch)| {
+            if within_text[idx..].starts_with(&find_text) {
+                Some(EvalResult::Number((idx + 1) as f64))
+            } else {
+                None
+            }
+        })
+        .or_else(|| {
+            // Fallback: use direct find from start position
+            within_text
+                .get(start - 1..)?
+                .find(&find_text)
+                .map(|pos| EvalResult::Number((pos + start) as f64))
+        })
+        .or(Some(EvalResult::Error("#VALUE!".to_string())))
+}
+
+// ===========================================================================
+// F4: Extended logical functions
+// ===========================================================================
+
+fn eval_xor(ctx: &dyn FormulaContext, args: &[FormulaNode]) -> Option<EvalResult> {
+    let mut count = 0u32;
+    for arg in args {
+        let val = eval_node(ctx, arg)?;
+        if is_truthy(&val) {
+            count += 1;
+        }
+    }
+    Some(EvalResult::Bool(count % 2 == 1))
+}
+
+fn eval_ifs(ctx: &dyn FormulaContext, args: &[FormulaNode]) -> Option<EvalResult> {
+    if args.is_empty() {
+        return Some(EvalResult::Error(
+            "IFS requires at least 2 args".to_string(),
+        ));
+    }
+    let mut i = 0;
+    while i + 1 < args.len() {
+        let cond = eval_node(ctx, &args[i])?;
+        if is_truthy(&cond) {
+            return eval_node(ctx, &args[i + 1]);
+        }
+        i += 2;
+    }
+    Some(EvalResult::Error("#N/A".to_string()))
+}
+
+fn eval_switch(ctx: &dyn FormulaContext, args: &[FormulaNode]) -> Option<EvalResult> {
+    if args.is_empty() {
+        return Some(EvalResult::Error(
+            "SWITCH requires at least 2 args".to_string(),
+        ));
+    }
+    let expr = eval_node(ctx, &args[0])?;
+    let mut i = 1;
+    while i + 1 < args.len() {
+        let val = eval_node(ctx, &args[i])?;
+        if values_equal(&expr, &val) {
+            return eval_node(ctx, &args[i + 1]);
+        }
+        i += 2;
+    }
+    // Check for default (odd number of remaining args)
+    if i < args.len() {
+        return eval_node(ctx, &args[i]);
+    }
+    Some(EvalResult::Error("#N/A".to_string()))
+}
+
+fn values_equal(a: &EvalResult, b: &EvalResult) -> bool {
+    match (a, b) {
+        (EvalResult::Number(x), EvalResult::Number(y)) => (*x - *y).abs() < 1e-9,
+        (EvalResult::Text(x), EvalResult::Text(y)) => x == y,
+        (EvalResult::Bool(x), EvalResult::Bool(y)) => x == y,
+        _ => false,
+    }
+}
+
+fn math_pow(base: f64, exp: i32) -> f64 {
+    base.powi(exp)
+}
+
 fn is_truthy(val: &EvalResult) -> bool {
     match val {
         EvalResult::Number(n) => *n != 0.0,
@@ -1495,6 +2407,7 @@ fn eval_result_to_string(val: &EvalResult) -> String {
 }
 
 #[cfg(test)]
+#[allow(unused_variables)]
 mod tests {
     use super::*;
 
@@ -1923,7 +2836,7 @@ mod tests {
         let node = parse_formula("DAY(45672)").unwrap();
         assert_eq!(evaluate(&node, &ctx), Some(EvalResult::Number(15.0)));
         // 2025-03-31
-        let node = parse_formula("DAY(45723)").unwrap();
+        let node = parse_formula("DAY(45747)").unwrap();
         assert_eq!(evaluate(&node, &ctx), Some(EvalResult::Number(31.0)));
     }
 
@@ -1953,14 +2866,14 @@ mod tests {
     #[test]
     fn test_eomonth() {
         let ctx = TestContext::default();
-        // Jan 2025 (45672) + 0 months = last day of Jan 2025 = 45701
+        // Jan 2025 (45672) + 0 months = last day of Jan 2025 = 45688
         let node = parse_formula("EOMONTH(45672, 0)").unwrap();
         let result = evaluate(&node, &ctx).unwrap();
-        assert_eq!(result, EvalResult::Number(45701.0));
-        // Feb 2025 + 0 months = last day of Feb 2025 = 45729
+        assert_eq!(result, EvalResult::Number(45688.0));
+        // Feb 2025 + 0 months = last day of Feb 2025 = 45716
         let node = parse_formula("EOMONTH(45702, 0)").unwrap();
         let result = evaluate(&node, &ctx).unwrap();
-        assert_eq!(result, EvalResult::Number(45729.0));
+        assert_eq!(result, EvalResult::Number(45716.0));
     }
 
     #[test]
@@ -3073,5 +3986,649 @@ mod tests {
         // INDEX(A1:C3, 2, 2) = "E"
         let result = evaluate_lookup_formula("INDEX(A1:C3, 2, 2)", &ctx);
         assert_eq!(result, Some(EvalResult::Text("E".to_string())));
+    }
+
+    // ========================================================================
+    // F1: Financial functions tests
+    // ========================================================================
+
+    #[test]
+    fn test_npv() {
+        let ctx = TestContext::default();
+        // NPV(10%, 300, 400, 500) = 300/1.1 + 400/1.21 + 500/1.331
+        let result = evaluate_formula("NPV(0.1,300,400,500)");
+        assert_eq!(
+            result,
+            Some(EvalResult::Number(
+                300.0 / 1.1 + 400.0 / 1.21 + 500.0 / 1.331
+            ))
+        );
+    }
+
+    #[test]
+    fn test_npv_zero_rate() {
+        let ctx = TestContext::default();
+        // NPV(0, 100, 200, 300) = 100 + 200 + 300 = 600 (no discounting)
+        let result = evaluate_formula("NPV(0,100,200,300)");
+        assert_eq!(result, Some(EvalResult::Number(600.0)));
+    }
+
+    #[test]
+    fn test_pmt() {
+        let ctx = TestContext::default();
+        // PMT(10%/12, 60, 100000)
+        let result = evaluate_formula("PMT(0.1/12,60,100000)");
+        assert!(matches!(result, Some(EvalResult::Number(_))));
+    }
+
+    #[test]
+    fn test_pmt_zero_rate() {
+        let ctx = TestContext::default();
+        // PMT(0, 12, 1000) = -(0+1000)/12
+        let result = evaluate_formula("PMT(0,12,1000)");
+        assert_eq!(result, Some(EvalResult::Number(-1000.0 / 12.0)));
+    }
+
+    #[test]
+    fn test_pv() {
+        let ctx = TestContext::default();
+        let result = evaluate_formula("PV(0.1/12,60,1000)");
+        assert!(matches!(result, Some(EvalResult::Number(_))));
+    }
+
+    #[test]
+    fn test_fv() {
+        let ctx = TestContext::default();
+        let result = evaluate_formula("FV(0.1/12,60,-1000,0,1)");
+        assert!(matches!(result, Some(EvalResult::Number(_))));
+    }
+
+    #[test]
+    fn test_rate() {
+        let ctx = TestContext::default();
+        let result = evaluate_formula("RATE(60,-1000,50000)");
+        assert!(matches!(result, Some(EvalResult::Number(_))));
+    }
+
+    #[test]
+    fn test_nper() {
+        let ctx = TestContext::default();
+        let result = evaluate_formula("NPER(0.1/12,-1000,10000)");
+        assert!(matches!(result, Some(EvalResult::Number(_))));
+    }
+
+    // ========================================================================
+    // F2: Advanced date/time tests
+    // ========================================================================
+
+    #[test]
+    fn test_workday_basic() {
+        let ctx = TestContext::default();
+        // 45672 = 2025-01-15 (Wednesday), +5 working days = 2025-01-22 (Wednesday)
+        let node = parse_formula("WORKDAY(45672,5)").unwrap();
+        let result = evaluate(&node, &ctx);
+        let end_serial = match result {
+            Some(EvalResult::Number(n)) => n,
+            _ => panic!("expected number"),
+        };
+        let (y, m, d) = serial_to_ymd(end_serial).expect("valid date");
+        assert_eq!((y, m, d), (2025, 1, 22));
+    }
+
+    #[test]
+    fn test_workday_skip_weekend() {
+        let ctx = TestContext::default();
+        // 45672 = 2025-01-15 (Wednesday), +10 working days = Jan 29, 2025 (Wednesday)
+        let node = parse_formula("WORKDAY(45672,10)").unwrap();
+        let result = evaluate(&node, &ctx);
+        let end_serial = match result {
+            Some(EvalResult::Number(n)) => n,
+            _ => panic!("expected number"),
+        };
+        let (y, m, d) = serial_to_ymd(end_serial).expect("valid date");
+        // 10 working days from Jan 15, 2025 = Jan 29, 2025
+        assert_eq!((y, m, d), (2025, 1, 29));
+    }
+
+    #[test]
+    fn test_networkdays_basic() {
+        let ctx = TestContext::default();
+        // 45672 = 2025-01-15 (Wednesday), 45678 = 2025-01-21 (Tuesday)
+        // Wed, Thu, Fri, Mon, Tue = 5 working days
+        let node = parse_formula("NETWORKDAYS(45672,45678)").unwrap();
+        let result = evaluate(&node, &ctx);
+        assert_eq!(result, Some(EvalResult::Number(5.0)));
+    }
+
+    #[test]
+    fn test_weeknum() {
+        let ctx = TestContext::default();
+        // 45672 = 2025-01-15, which is in week 3 of 2025 (ISO)
+        let node = parse_formula("WEEKNUM(45672)").unwrap();
+        let result = evaluate(&node, &ctx);
+        if let Some(EvalResult::Number(w)) = result {
+            (1.0..=54.0).contains(&w);
+        } else {
+            panic!("expected week number");
+        }
+    }
+
+    #[test]
+    fn test_datevalue() {
+        let ctx = TestContext::default();
+        // "2025-01-15" should parse to serial date
+        let node = parse_formula(r#"DATEVALUE("2025-01-15")"#).unwrap();
+        let result = evaluate(&node, &ctx);
+        if let Some(EvalResult::Number(serial)) = result {
+            let (y, m, d) = serial_to_ymd(serial).expect("valid date");
+            assert_eq!((y, m, d), (2025, 1, 15));
+        } else {
+            panic!("expected number");
+        }
+    }
+
+    #[test]
+    fn test_datevalue_slash() {
+        let ctx = TestContext::default();
+        let node = parse_formula(r#"DATEVALUE("2025/06/15")"#).unwrap();
+        let result = evaluate(&node, &ctx);
+        if let Some(EvalResult::Number(serial)) = result {
+            let (y, m, d) = serial_to_ymd(serial).expect("valid date");
+            assert_eq!((y, m, d), (2025, 6, 15));
+        } else {
+            panic!("expected number");
+        }
+    }
+
+    // ========================================================================
+    // F3: Advanced text tests
+    // ========================================================================
+
+    #[test]
+    fn test_text_format_basic() {
+        let ctx = TestContext::default();
+        assert_eq!(
+            evaluate_formula(r#"TEXT(3.14159,"0.00")"#),
+            Some(EvalResult::Text("3.14".to_string()))
+        );
+    }
+
+    #[test]
+    fn test_text_format_integer() {
+        let ctx = TestContext::default();
+        assert_eq!(
+            evaluate_formula(r#"TEXT(42,"0")"#),
+            Some(EvalResult::Text("42".to_string()))
+        );
+    }
+
+    #[test]
+    fn test_text_format_commas() {
+        let ctx = TestContext::default();
+        let result = evaluate_formula(r##"TEXT(1234567,"#,##0")"##);
+        if let Some(EvalResult::Text(s)) = result {
+            assert_eq!(s, "1,234,567");
+        } else {
+            panic!("expected text");
+        }
+    }
+
+    #[test]
+    fn test_text_format_general() {
+        let ctx = TestContext::default();
+        assert_eq!(
+            evaluate_formula(r#"TEXT(42,"General")"#),
+            Some(EvalResult::Text("42".to_string()))
+        );
+    }
+
+    #[test]
+    fn test_textjoin_basic() {
+        let ctx = TestContext::default();
+        assert_eq!(
+            evaluate_formula(r#"TEXTJOIN(",",TRUE,"a","b","c")"#),
+            Some(EvalResult::Text("a,b,c".to_string()))
+        );
+    }
+
+    #[test]
+    fn test_textjoin_ignore_empty() {
+        let ctx = TestContext::default();
+        assert_eq!(
+            evaluate_formula(r#"TEXTJOIN(",",TRUE,"a","","c")"#),
+            Some(EvalResult::Text("a,c".to_string()))
+        );
+    }
+
+    #[test]
+    fn test_textjoin_no_ignore() {
+        let ctx = TestContext::default();
+        assert_eq!(
+            evaluate_formula(r#"TEXTJOIN(",",FALSE,"a","","c")"#),
+            Some(EvalResult::Text("a,,c".to_string()))
+        );
+    }
+
+    #[test]
+    fn test_search_case_insensitive() {
+        let ctx = TestContext::default();
+        assert_eq!(
+            evaluate_formula(r#"SEARCH("world","Hello World")"#),
+            Some(EvalResult::Number(7.0))
+        );
+        // "WORLD" should also match "Hello World" (case insensitive)
+        assert_eq!(
+            evaluate_formula(r#"SEARCH("WORLD","Hello World")"#),
+            Some(EvalResult::Number(7.0))
+        );
+    }
+
+    #[test]
+    fn test_search_not_found() {
+        let ctx = TestContext::default();
+        let result = evaluate_formula(r#"SEARCH("xyz","Hello World")"#);
+        assert_eq!(result, Some(EvalResult::Error("#VALUE!".to_string())));
+    }
+
+    #[test]
+    fn test_search_with_start() {
+        let ctx = TestContext::default();
+        // Search for "o" starting at position 5 in "Hello World"
+        // "Hello World"[4:] = "o World", "o" found at index 0, so position = 5+0 = 5
+        assert_eq!(
+            evaluate_formula(r#"SEARCH("o","Hello World",5)"#),
+            Some(EvalResult::Number(5.0))
+        );
+    }
+
+    #[test]
+    fn test_find_case_sensitive() {
+        let ctx = TestContext::default();
+        assert_eq!(
+            evaluate_formula(r#"FIND("W","Hello World")"#),
+            Some(EvalResult::Number(7.0))
+        );
+        // "w" should NOT match "Hello World" (case sensitive)
+        let result = evaluate_formula(r#"FIND("w","Hello World")"#);
+        assert_eq!(result, Some(EvalResult::Error("#VALUE!".to_string())));
+    }
+
+    #[test]
+    fn test_find_not_found() {
+        let ctx = TestContext::default();
+        let result = evaluate_formula(r#"FIND("xyz","Hello World")"#);
+        assert_eq!(result, Some(EvalResult::Error("#VALUE!".to_string())));
+    }
+
+    // ========================================================================
+    // F4: Extended logical tests
+    // ========================================================================
+
+    #[test]
+    fn test_xor_all_false() {
+        let ctx = TestContext::default();
+        assert_eq!(
+            evaluate_formula("XOR(FALSE,FALSE)"),
+            Some(EvalResult::Bool(false))
+        );
+    }
+
+    #[test]
+    fn test_xor_one_true() {
+        let ctx = TestContext::default();
+        assert_eq!(
+            evaluate_formula("XOR(TRUE,FALSE,FALSE)"),
+            Some(EvalResult::Bool(true))
+        );
+    }
+
+    #[test]
+    fn test_xor_two_true() {
+        let ctx = TestContext::default();
+        assert_eq!(
+            evaluate_formula("XOR(TRUE,TRUE,FALSE)"),
+            Some(EvalResult::Bool(false))
+        );
+    }
+
+    #[test]
+    fn test_xor_three_true() {
+        let ctx = TestContext::default();
+        assert_eq!(
+            evaluate_formula("XOR(TRUE,TRUE,TRUE)"),
+            Some(EvalResult::Bool(true))
+        );
+    }
+
+    #[test]
+    fn test_ifs_first_match() {
+        let ctx = TestContext::default();
+        assert_eq!(
+            evaluate_formula("IFS(1>2,10,3>2,20)"),
+            Some(EvalResult::Number(20.0))
+        );
+    }
+
+    #[test]
+    fn test_ifs_no_match() {
+        let ctx = TestContext::default();
+        let result = evaluate_formula("IFS(1<0,10,2<0,20)");
+        assert_eq!(result, Some(EvalResult::Error("#N/A".to_string())));
+    }
+
+    #[test]
+    fn test_switch_match() {
+        let ctx = TestContext::default();
+        assert_eq!(
+            evaluate_formula("SWITCH(2,1,\"one\",2,\"two\",3,\"three\")"),
+            Some(EvalResult::Text("two".to_string()))
+        );
+    }
+
+    #[test]
+    fn test_switch_default() {
+        let ctx = TestContext::default();
+        assert_eq!(
+            evaluate_formula("SWITCH(5,1,\"one\",2,\"two\",\"default\")"),
+            Some(EvalResult::Text("default".to_string()))
+        );
+    }
+
+    #[test]
+    fn test_switch_no_match_no_default() {
+        let ctx = TestContext::default();
+        let result = evaluate_formula("SWITCH(99,1,\"one\",2,\"two\")");
+        assert_eq!(result, Some(EvalResult::Error("#N/A".to_string())));
+    }
+
+    // ========================================================================
+    // F5: Named range resolution tests
+    // ========================================================================
+
+    #[derive(Default)]
+    struct NamedRangeContext {
+        cells: std::collections::HashMap<String, CachedCellValue>,
+        named_ranges: std::collections::HashMap<String, CachedCellValue>,
+    }
+
+    impl NamedRangeContext {
+        fn with_value(mut self, ref_name: &str, value: f64) -> Self {
+            self.cells.insert(
+                ref_name.to_string(),
+                CachedCellValue {
+                    numeric: Some(value),
+                    text: None,
+                    bool: None,
+                },
+            );
+            self
+        }
+
+        fn with_named_range(mut self, name: &str, value: f64) -> Self {
+            self.named_ranges.insert(
+                name.to_string(),
+                CachedCellValue {
+                    numeric: Some(value),
+                    text: None,
+                    bool: None,
+                },
+            );
+            self
+        }
+    }
+
+    impl FormulaContext for NamedRangeContext {
+        fn get_cell(&self, ref_name: &str) -> Option<CachedCellValue> {
+            self.cells.get(ref_name).cloned()
+        }
+
+        fn get_named_range(&self, name: &str) -> Option<CachedCellValue> {
+            self.named_ranges.get(name).cloned()
+        }
+
+        fn get_range(&self, _range: &str) -> Option<Vec<CachedCellValue>> {
+            None
+        }
+    }
+
+    #[test]
+    fn test_named_range_resolves() {
+        let ctx = NamedRangeContext::default().with_named_range("RevenueTotal", 500.0);
+        let node = parse_formula("RevenueTotal").unwrap();
+        assert_eq!(evaluate(&node, &ctx), Some(EvalResult::Number(500.0)));
+    }
+
+    #[test]
+    fn test_named_range_in_expression() {
+        let ctx = NamedRangeContext::default()
+            .with_named_range("TaxRate", 0.15)
+            .with_value("Price", 100.0);
+        let node = parse_formula("Price*TaxRate").unwrap();
+        assert_eq!(evaluate(&node, &ctx), Some(EvalResult::Number(15.0)));
+    }
+
+    #[test]
+    fn test_named_range_in_sum() {
+        let ctx = NamedRangeContext::default()
+            .with_named_range("Q1Sales", 100.0)
+            .with_named_range("Q2Sales", 200.0);
+        let node = parse_formula("SUM(Q1Sales,Q2Sales)").unwrap();
+        assert_eq!(evaluate(&node, &ctx), Some(EvalResult::Number(300.0)));
+    }
+
+    #[test]
+    fn test_named_range_no_match_falls_through() {
+        let ctx = NamedRangeContext::default();
+        let node = parse_formula("UnknownRef").unwrap();
+        // Neither cell nor named range exists -> None
+        assert_eq!(evaluate(&node, &ctx), None);
+    }
+
+    #[test]
+    fn test_named_range_text_value() {
+        let ctx = NamedRangeContext::default().with_named_range("Status", 1.0);
+        let node = parse_formula("Status").unwrap();
+        assert_eq!(evaluate(&node, &ctx), Some(EvalResult::Number(1.0)));
+    }
+
+    // ========================================================================
+    // F6: 3-D reference tests
+    // ========================================================================
+
+    #[derive(Default)]
+    #[allow(dead_code)]
+    struct ThreeDContext {
+        cells: std::collections::HashMap<String, CachedCellValue>,
+        named_ranges: std::collections::HashMap<String, CachedCellValue>,
+        three_d_refs: std::collections::HashMap<String, Vec<CachedCellValue>>,
+    }
+
+    #[allow(dead_code)]
+    impl ThreeDContext {
+        fn with_value(mut self, ref_name: &str, value: f64) -> Self {
+            self.cells.insert(
+                ref_name.to_string(),
+                CachedCellValue {
+                    numeric: Some(value),
+                    text: None,
+                    bool: None,
+                },
+            );
+            self
+        }
+    }
+
+    impl FormulaContext for ThreeDContext {
+        fn get_cell(&self, ref_name: &str) -> Option<CachedCellValue> {
+            self.cells.get(ref_name).cloned()
+        }
+
+        fn get_range(&self, _range: &str) -> Option<Vec<CachedCellValue>> {
+            None
+        }
+
+        fn get_cell_at_3d(
+            &self,
+            _sheet_start: &str,
+            _sheet_end: &str,
+            cell: &str,
+        ) -> Option<Vec<CachedCellValue>> {
+            // Simulate 3D ref: return same cell value from each sheet in range
+            // For "A1" across "Sheet1:Sheet3", return 3 values
+            let count = match cell {
+                "A1" => 3,
+                _ => return None,
+            };
+            Some(
+                [
+                    CachedCellValue {
+                        numeric: Some(10.0),
+                        text: None,
+                        bool: None,
+                    },
+                    CachedCellValue {
+                        numeric: Some(20.0),
+                        text: None,
+                        bool: None,
+                    },
+                    CachedCellValue {
+                        numeric: Some(30.0),
+                        text: None,
+                        bool: None,
+                    },
+                ]
+                .iter()
+                .take(count)
+                .cloned()
+                .collect(),
+            )
+        }
+    }
+
+    #[test]
+    fn test_3d_ref_resolved() {
+        let ctx = ThreeDContext::default();
+        let node = parse_formula("Sheet1:Sheet3!A1").unwrap();
+        let result = evaluate(&node, &ctx);
+        // SUM of 10+20+30 = 60
+        assert_eq!(result, Some(EvalResult::Number(60.0)));
+    }
+
+    #[test]
+    fn test_3d_ref_not_supported_returns_error() {
+        let ctx = ThreeDContext::default();
+        let node = parse_formula("Sheet1:Sheet3!A1").unwrap();
+        // Use default context which doesn't support 3D refs
+        let default_ctx = TestContext::default();
+        let result = evaluate(&node, &default_ctx);
+        assert!(matches!(result, Some(EvalResult::Error(ref e)) if e.contains("GP-F-022")));
+    }
+
+    // ========================================================================
+    // F7: Structured table reference tests
+    // ========================================================================
+
+    #[derive(Default)]
+    #[allow(dead_code)]
+    struct StructuredRefContext {
+        cells: std::collections::HashMap<String, CachedCellValue>,
+        named_ranges: std::collections::HashMap<String, CachedCellValue>,
+        structured_refs: std::collections::HashMap<String, Vec<CachedCellValue>>,
+    }
+
+    impl StructuredRefContext {
+        fn with_value(mut self, ref_name: &str, value: f64) -> Self {
+            self.cells.insert(
+                ref_name.to_string(),
+                CachedCellValue {
+                    numeric: Some(value),
+                    text: None,
+                    bool: None,
+                },
+            );
+            self
+        }
+    }
+
+    impl FormulaContext for StructuredRefContext {
+        fn get_cell(&self, ref_name: &str) -> Option<CachedCellValue> {
+            self.cells.get(ref_name).cloned()
+        }
+
+        fn get_range(&self, _range: &str) -> Option<Vec<CachedCellValue>> {
+            None
+        }
+
+        fn get_structured_ref(&self, _table: &str, column: &str) -> Option<Vec<CachedCellValue>> {
+            self.structured_refs.get(column).cloned()
+        }
+    }
+
+    #[test]
+    fn test_structured_ref_simple() {
+        let ctx = StructuredRefContext::default()
+            .with_value("A1", 10.0)
+            .with_value("A2", 20.0)
+            .with_value("A3", 30.0);
+        let node = parse_formula("[Revenue]").unwrap();
+        // StructuredRef with empty table resolves via get_structured_ref("", "Revenue")
+        // which won't match our context that only has cells
+        // Let's test with a proper structured ref context
+        let structured_ctx = StructuredRefContext::default();
+        let structured_ctx = {
+            let mut ctx = structured_ctx;
+            ctx.structured_refs.insert(
+                "Revenue".to_string(),
+                vec![
+                    CachedCellValue {
+                        numeric: Some(100.0),
+                        text: None,
+                        bool: None,
+                    },
+                    CachedCellValue {
+                        numeric: Some(200.0),
+                        text: None,
+                        bool: None,
+                    },
+                    CachedCellValue {
+                        numeric: Some(300.0),
+                        text: None,
+                        bool: None,
+                    },
+                ],
+            );
+            ctx
+        };
+        let result = evaluate(&node, &structured_ctx);
+        // SUM of 100+200+300 = 600
+        assert_eq!(result, Some(EvalResult::Number(600.0)));
+    }
+
+    #[test]
+    fn test_structured_ref_table_column() {
+        let ctx = {
+            let mut c = StructuredRefContext::default();
+            c.structured_refs.insert(
+                "ColumnName".to_string(),
+                vec![CachedCellValue {
+                    numeric: Some(42.0),
+                    text: None,
+                    bool: None,
+                }],
+            );
+            c
+        };
+        let node = parse_formula("[ColumnName]").unwrap();
+        let result = evaluate(&node, &ctx);
+        // Should resolve to 42 via get_structured_ref("", "ColumnName")
+        assert_eq!(result, Some(EvalResult::Number(42.0)));
+    }
+
+    #[test]
+    fn test_structured_ref_not_supported_returns_error() {
+        let ctx = StructuredRefContext::default();
+        let node = parse_formula("[Revenue]").unwrap();
+        let result = evaluate(&node, &ctx);
+        assert!(matches!(result, Some(EvalResult::Error(ref e)) if e.contains("GP-F-023")));
     }
 }

@@ -1,0 +1,22 @@
+{
+  "id": "formula-parity-date-time-advanced-001",
+  "description": "Advanced date/time functions: WORKDAY, NETWORKDAYS, WEEKNUM, DATEVALUE",
+  "formulas": [
+    {
+      "formula": "NETWORKDAYS(44928, 44932)",
+      "expected": 5
+    },
+    {
+      "formula": "WORKDAY(44927, 10)",
+      "expected": 44939
+    },
+    {
+      "formula": "WEEKNUM(44927, 1)",
+      "expected": 3
+    },
+    {
+      "formula": "DATEVALUE(\"2023-06-15\")",
+      "expected": 45086
+    }
+  ]
+}

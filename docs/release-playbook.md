@@ -62,13 +62,14 @@ git push origin v0.2.0
 
 Pushing the `v*` tag triggers the Release workflow on GitHub Actions. It:
 
-1. Builds for **6 targets**:
+1. Builds for **7 targets**:
    - `x86_64-unknown-linux-gnu`
    - `aarch64-unknown-linux-gnu`
    - `x86_64-unknown-linux-musl`
    - `aarch64-apple-darwin`
    - `x86_64-apple-darwin`
    - `x86_64-pc-windows-msvc`
+   - `aarch64-pc-windows-msvc`
 2. Creates a **GitHub Release draft** with all artifacts
 3. Generates **Winget manifest** and **Homebrew formula** as downloadable artifacts
 

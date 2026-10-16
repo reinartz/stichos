@@ -55,12 +55,17 @@ Full `adapters-pdf` suite: 67 tests green.
 
 ## KI-02: `rasterize_with_soffice` ignores the page argument
 
-**Status:** mitigated (duplicate-output guard + page-count cap)
-**Crate:** `engines` — `crates/engines/src/raster.rs:288`
+**Status:** wontfix — soffice has no single-page conversion flag
+**Crate:** `engines` — `crates/engines/src/raster.rs:323`
 
 **Impact:** When soffice is the only raster tool available, calling `rasterize(pdf, N, dpi)`
 for any page N returns the first page of the PDF (soffice converts the entire PDF, ignoring
 the `page` parameter). Without mitigation this produces 100 identical copies of page 1.
+
+**Why this is wontfix:** LibreOffice soffice's `--convert-to png` command has no CLI option
+to restrict conversion to a single page or to control output DPI. This is a fundamental
+limitation of the tool, not a bug in stichos. The `page` and `dpi` parameters are accepted
+only for API compatibility with the other raster rungs but are silently ignored.
 
 **Mitigations applied:**
 1. `rasterize_all_pages` now caps the loop at `expected_pages` when known (from `pdfinfo`),
@@ -199,7 +204,7 @@ Fixed: R-D1 added `cargo build -p stichos` at the beginning of the gate script. 
 
 ---
 
-*Last updated: 2026-09-29 (completion audit: KI-02 mitigated, KI-04 resolved, KI-05 active;
+*Last updated: 2026-10-15 (KI-02 downgraded to wontfix with explicit soffice limitation in doc comment;
 KI-06/07/08/09/10/11 resolved/fixed; former 4 OPC zip-bomb known-fails no longer reproduce —
 workspace known-fails now 9, all gp-core date-hardcoded)*
 
