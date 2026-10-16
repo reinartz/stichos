@@ -1,16 +1,6 @@
 # stichos — Codebase Structure
 
-> **Note:** This document reflects the current state of the Rust codebase (synced 2026-09-29 at
-> clean HEAD `76a98cb`, `main` == `origin/main`; 2026-10-01 re-audit: working tree had 60 porcelain
-> entries incl. **proposed Track-H** code — moved to branch `track-h-proposed` by Phase U; `main`
-> is clean again).
-> It is maintained by contributors; `project_plan.md` §3 is the
-> authoritative plan reference. Where reality and the plan DAG differ, §"Known DAG deviations"
-> below records it. Track A′ (M6 closeout round 2) is **complete**; Phase-7 Tracks B (except
-> P7-3 tranche C/D + P7-9), C (engine completion) and D (CI green) are **complete** — remaining
-> work = Tracks E/F/G + Track H (proposed, preserved on branch `track-h-proposed`) + owner items
-> in `docs/remaining-work.md` (rev 6);
-> audit trail in `docs/m6-acceptance.md` §11–§13.
+> Reflects the current tree. Maintained by contributors.
 
 ## Workspace layout
 
@@ -22,29 +12,28 @@ deny.toml                     # cargo-deny config (license allow-list, ban rules
 crates/
   gp-core/                    # core types, IR, diagnostics, traits, store, journal, patch,
                               #   executor, policy, Rhai sandbox, selfupdate, testkit;
-                              #   M6: envelope.rs (C14 __budget), tempfiles.rs (URL/TTL),
-                              #   formula/ (C15 evaluator+parser+parity+refuse), ir_convert
+                              #   formula/ (C15 evaluator+parser+parity+refuse), ir_convert,
+                              #   envelope.rs (C14 __budget), tempfiles.rs (URL/TTL)
   adapters-ooxml/             # OOXML (docx, xlsx, pptx): OPC, readers, surgical writers,
                               #   creation writers, revision writer, census, validation
   adapters-odf/               # ODF (odt, ods, odp): manifest, readers, surgical writer,
-                              #   patch primitives, census, RelaxNG gate; M6: ODS/ODP revisions
+                              #   patch primitives, census, RelaxNG gate, ODS/ODP revisions
   adapters-pdf/               # PDF: parser, text/bboxes, forms, annotations, outline,
                               #   metadata, qpdf glue, incremental (append-only) writer
   engines/                    # render engines as subprocesses: libreoffice, pandoc,
-                              #   chromium, typst; probe, negotiate, doctor, cache, raster;
-                              #   M6: ms_office COM workers (feature `ms-office`), msi.rs,
-                              #   scheduler.rs (logon-agent model)
+                              #   chromium, typst; probe, negotiate, doctor, cache, raster,
+                              #   creation dispatcher, capability matrix, mock engine;
+                              #   ms_office COM workers on Windows host (logon-agent model)
   lint/                       # fidelity linting: layout, budget, ssim, contrast, font,
                               #   diff, annotator, a11y (veraPDF), perf, coords, cropper
   mcp/                        # MCP protocol: spec, tool registry, dispatch, jsonrpc,
                               #   server, transport, http (protocol layer only; Wave 0
                               #   removed the adapters-pdf edge via gp-core::traits)
-  cli/                        # the `stichos` binary — 22 verbs at HEAD (24 in proposed
-                               #   Track-H tree on branch `track-h-proposed`), wires everything together
+  cli/                        # the stichos binary — 24 verbs, wires everything together
   adapters-ooxfuzz/           # fuzzing harness (dev-only): read + write-path fuzz corpora
 ```
 
-## Crate dependency graph (measured from Cargo.toml, 2026-09-16)
+## Crate dependency graph
 
 ```
 gp-core                              (traits + types; no workspace deps)
@@ -60,16 +49,7 @@ gp-core                              (traits + types; no workspace deps)
   +-- adapters-ooxfuzz -- (gp-core, adapters-ooxml, adapters-pdf, lint)
 ```
 
-All edges are ratified in `project_plan.md` §3.2 as the canonical DAG.
-`tools/check-deps.sh` enforces cross-crate edge constraints (P4-02).
-
-## Known DAG deviations (measured 2026-09-23)
-
-- **None open.** The former `mcp -> adapters-pdf` edge (`crates/mcp/src/http.rs` text-layer route)
-  was removed in Phase 6 Wave 0 by dependency inversion: text extraction moved behind
-  `gp-core::traits::PdfTextSource` with the impl in `adapters-pdf` and wiring in `cli`.
-  `tools/check-deps.sh` now exits 0 (the `m5`-tree failure recorded in `docs/m5-acceptance.md` §9
-  is resolved).
+All edges are enforced by `tools/check-deps.sh`.
 
 ## Crate details
 
@@ -92,12 +72,13 @@ selfupdate. No workspace crate dependencies.
 | `script` | Sandboxed Rhai escape hatch (D17, ADR-0005) | `ScriptConfig`, `ScriptResult`, `run_script`, `has_sandbox_violations` |
 | `selfupdate` | Verify-before-swap update primitive (ADR-0006) | `UpdateChannel`, `UpdateManifest`, `UpdateResult` |
 | `traits` | Core trait definitions | `Codec`, `PatchExecutor`, `Engine`, `Probe`, `Linter`, `EngineInfo` |
-| `signature` | PAdES-B-B sign-later (D25, pure-Rust crypto): keygen, real manual-DER PKCS#7/CMS builder (P7-7 committed `7d56af5`/`fe266cd`), byte-range, `/Sig` detection | `sign_pdf()`, `detect_signatures()`, `detect_signatures_raw()` |
+| `signature` | PAdES-B-B sign-later (D25, pure-Rust crypto): keygen, real manual-DER PKCS#7/CMS builder (P7-7), byte-range, `/Sig` detection | `sign_pdf()`, `detect_signatures()`, `detect_signatures_raw()` |
 | `timestamp_client` / `ocsp_client` / `crl_client` / `ltv` / `pkcs12` / `cert_chain` | PAdES-T/LTV (P7-5, feature `pades-ltv`): RFC 3161 TSA, OCSP/CRL fetch, LTV embed, PKCS#12 + chain (GP-S-020..025) | `SigningIdentity`, `cert_chain` validation |
 | `edit_stability` | Element-ID stability property tests (C2) | — |
 | `macro_check` | Macro expansion checks | — |
 | `testkit` | Shared test utilities | — |
-| `file_access` | *(branch `track-h-proposed`, Track H — proposed; not adopted)* locked-file copy-aside + OneDrive placeholder hydration (`read_document_bytes`) | — |
+| `file_access` | Locked-file copy-aside + placeholder hydration (`read_document_bytes`) | — |
+| `formula` | Formula evaluation (C15): `evaluator.rs`, `parser.rs`, `parity.rs`, `refuse.rs` | — |
 
 Constants: `IR_VERSION = "1.0.0"`, `ELEMENT_ID_PATTERN = "^id-[0-9a-f]{12,}$"`
 
@@ -120,8 +101,8 @@ Open XML (OOXML) adapters: read, surgical write, create, revisions.
 | `revision_reader` / `revision_executor` / `revision_ops` / `comment_writer` | Revision + comment read/write (C11, M4) |
 | `census` | Feature census → fidelity budget |
 | `validate` | Schema/structural validation gate |
-| `opc_validate` | *(branch `track-h-proposed`, Track H — proposed; not adopted)* OPC package integrity validation (rel targets, orphan parts, content-type coverage, slide counts, ZIP entry order) |
-| `potx` | *(branch `track-h-proposed`, Track H — proposed; not adopted)* POTX → PPTX template conversion (content-type override rewrite) |
+| `opc_validate` | OPC package integrity validation (rel targets, orphan parts, content-type coverage, slide counts, ZIP entry order) |
+| `potx` | POTX → PPTX template conversion (content-type override rewrite) |
 
 ### adapters-odf
 
@@ -170,15 +151,15 @@ Render engines as spawned subprocesses, never linked (D3).
 | `creation` | Unified creation dispatcher (pandoc/chromium/typst/native/revisions) |
 | `probe` | Engine discovery + fixture-conversion capability probes (D8) |
 | `negotiate` | Renderer negotiation incl. `authoring_order()` per conversion |
-| `doctor` | Doctor probe matrix (engines × fixtures + PDF/A revalidation row); SystemInfo + CLI doctor carry chromium/pandoc/typst version fields (Track C C1.3 complete) |
+| `doctor` | Doctor probe matrix (engines × fixtures + PDF/A revalidation row); SystemInfo + CLI doctor carry chromium/pandoc/typst version fields |
 | `raster` | Rasterization ladder (poppler → gs → mutool → soffice) |
 | `cache` | Render master cache (key per INV-4) |
 | `capability` | Capability matrix (C5) |
 | `mock` | Mock engine for testing |
-| `ms_office` | COM worker implementation (COM-2..6) on the Windows host; cfg stubs on non-Windows |
-| `open_handler` | Platform handoff resolver for `stichos open` (M4) |
+| `ms_office` | COM worker implementation on the Windows host; cfg stubs on non-Windows |
+| `open_handler` | Platform handoff resolver for `stichos open` |
 
-Engine identifiers: `libreoffice`, `pandoc`, `chromium`, `typst` (live); `ms-office` (Windows host; COM-2..6 implemented, D10 logon-agent model).
+Engine identifiers: `libreoffice`, `pandoc`, `chromium`, `typst` (live); `ms-office` (Windows host; D10 logon-agent model).
 
 ### lint
 
@@ -214,17 +195,16 @@ MCP (Model Context Protocol) server. Protocol layer only — wiring lives in `cl
 | `dispatch` | Tool handler trait + closure adapter |
 | `jsonrpc` | JSON-RPC protocol |
 | `server` | MCP server implementation |
-| `session` | Review sessions incl. PDF-annot mode + text-layer opt-in (M5) |
+| `session` | Review sessions incl. PDF-annot mode + text-layer opt-in |
 | `transport` | Transport modes (stdio) |
 | `http` | HTTP transport (session store, `POST /` routing, `/viewer/pdf/*` + `/review/<token>/text/<N>.json` routes) |
 
-MCP tool surface (C7 v1.7.0, 24 specs): `doctor`, `serve` (v1.0.0); `revert_document` (v1.1.0);
-`create_document`, `script_tool`, `check_update` (v1.2.0); `list_revisions`, `accept_revisions`,
-`reject_revisions`, `add_comment` (v1.3.0); `list_annotations`, `resolve_annotations` (v1.4.0);
-`sign_document` (v1.5.0); `inspect_document`, `render_document`, `inspect_region`,
-`diff_documents`, `apply_patch`, `edit_text`, `edit_cell`, `edit_structure`, `annotate_pages`,
-`journal` (v1.6.0). Proposed Track-H tree (branch `track-h-proposed`): 24 tools / 24 verbs
-(schema still 1.6.0).
+MCP tool surface (C7 v1.7.0, 24 tools): `doctor`, `serve`, `revert_document`,
+`create_document`, `script_tool`, `check_update`, `list_revisions`, `accept_revisions`,
+`reject_revisions`, `add_comment`, `list_annotations`, `resolve_annotations`,
+`sign_document`, `inspect_document`, `render_document`, `inspect_region`,
+`diff_documents`, `apply_patch`, `edit_text`, `edit_cell`, `edit_structure`,
+`annotate_pages`, `journal`, `validate_package`.
 
 ### cli
 
@@ -232,12 +212,12 @@ The `stichos` binary. Entry point, clap parsing, subcommand dispatch, engine/ada
 
 | Module | Purpose |
 |--------|---------|
-| `main` | CLI entry, 22-verb dispatch (24 in proposed Track-H tree on branch `track-h-proposed`) |
+| `main` | CLI entry, 24-verb dispatch |
 | `inspect` / `region` / `render` / `diff_tool` / `doctor_tool` | Read-side verbs (doctor incl. PDF/A revalidation row) |
 | `apply_tool` / `sugar_edits` | `apply`, `edit` — surgical edits + sugar (tracked revisions default) |
 | `journal_tool` | `journal` / `revert` |
 | `annots` | `annots list` / `annots resolve` — PDF annotation enumeration and write-back |
-| `sign` | `sign` — PAdES-B-B sign-later (M5) |
+| `sign` | `sign` — PAdES-B-B sign-later |
 | `revisions_tool` | `revisions` — accept/reject on tracked changes (OOXML + ODF, C11) |
 | `review_tool` | `review` — review sessions incl. PDF-annot mode + `--text-layer` opt-in |
 | `open_tool` | `open` — platform handoff resolver |
@@ -246,10 +226,9 @@ The `stichos` binary. Entry point, clap parsing, subcommand dispatch, engine/ada
 | `budget_enforcer` | INV-2 / C8 payload budget enforcement |
 | (verbs in `main.rs`) | `serve`, `schema`, `create`, `update` |
 
-Subcommands (22 at HEAD; `verify` from P7-7/B0.4): `inspect`, `region`, `render`, `diff`, `doctor`,
-`serve`, `schema`, `apply`, `edit`, `annotate`, `revert`, `journal`, `perf`, `create`, `script`,
-`update`, `revisions`, `annots`, `review`, `open`, `sign`, `verify`. Proposed Track-H tree (branch
-`track-h-proposed`) adds `validate` + `finish` (24).
+Subcommands: `inspect`, `region`, `render`, `diff`, `doctor`, `serve`, `schema`, `apply`,
+`edit`, `annotate`, `revert`, `journal`, `perf`, `create`, `script`, `update`, `revisions`,
+`annots`, `review`, `open`, `sign`, `verify`, `validate`, `finish`.
 
 ### adapters-ooxfuzz
 
@@ -289,8 +268,6 @@ harness/
 
 ```
 corpus/
-  PLAN.md                 # fixture generation plan
-  GENERATION_REPORT.md    # generation results
   # manifests, blobs, reference text; 169 fixtures (157 M0–M4 + 12 PDF-annot/signed/PDF-A from P5-02), pr-subset.txt (27)
 ```
 
@@ -298,56 +275,45 @@ corpus/
 
 ```
 docs/
-  contracts/              # C1–C15 interface specs (C7 v1.6.0 in spec.rs AND C7.md matrix — T-A2
-                          #   landed ff80f8e; C12/C13 frozen at M5; C14 frozen at M6 (C7 v1.6.0);
-                          #   C15 frozen at M6)
+  contracts/              # C1–C15 interface specs
   adr/                    # ADR-0001..0013 (0009 pdf.js vendoring, 0010 crypto stack ACCEPTED,
                           #   0011 formula evaluation, 0012 PAdES-T/LTV ACCEPTED, 0013 PDF redaction
                           #   ACCEPTED) + legacy pre-convention files (see README index)
   gov/                    # name hygiene, registration
   harness/                # harness-specific docs
   implementation-guide-context-budget.md  # C14 implementation detail (M6 input)
-  phase0-execution.md     # M0 runbook
-  phase1-concept/plan/status · phase2-… · phase3-… · phase4-… · phase5-…   # per-phase artifacts
-  phase6-concept/plan/status · m6-acceptance.md  # Phase 6 (M6, shipped; closeout complete)
-  track-b-p7-{1,2,3,4,7,8,9}-*.md  # Phase-7 intake specs (tracked; P7-1 xlsx create, P7-2 pptx
-                          #   create, P7-3 formula coverage, P7-4 lint encode/ssim, P7-7 CMS
-                          #   signing, P7-8 pdfium spike, P7-9 launch)
-  m2-acceptance.md · m3-acceptance.md · m4-acceptance.md · m5-acceptance.md  # milestone acceptance reports (m3 §7, m4 Git-State, m5 §9 = post-acceptance corrections)
-  creation-measurement.md/.csv                       # M3 creation-path matrix (C9)
-  threat-model.md         # threat model incl. SEC-06 reviews (M1–M6)
+  creation-measurement.md/.csv                # M3 creation-path matrix (C9)
+  threat-model.md         # threat model incl. SEC-06 reviews
   KNOWN_ISSUES.md         # KI-01..09
   release-playbook.md     # DIS-08 release procedure
-  track-h-generic-office-handling.md   # generic Office handling — PROPOSED (H0 adoption
-                           #   declined 2026-10-01); code on branch `track-h-proposed`
-  remaining-work.md       # post-M6 task map (rev 6): remaining Tracks E/F/G + Track H (proposed
-                           #   on branch `track-h-proposed`) + owner items; Tracks A′/B/C/D complete
+  font-bundle-audit.md
+  addin-spike.md
+  support-matrix.md
 ```
 
 ## Reviewer + vendored assets
 
 ```
 assets/
-  reviewer/index.html     # review overlay UI (raster-over-masters default + opt-in text layer, M5)
+  reviewer/index.html     # review overlay UI (raster-over-masters default + opt-in text layer)
   vendor/pdfjs/           # vendored pdf.js 3.11.174 (text layer only) + HASHES.toml (ADR-0009, D24)
 ```
 
-## Test coverage summary (measured 2026-10-15 after finalization: all 9 known formula fails fixed, F1-F8 implemented)
+## Test coverage summary
 
 | Crate | Passed | Failed | Ignored | Notes |
 |-------|--------|--------|---------|-------|
-| gp-core | 642 | 0 | 0 | incl. script sandbox + selfupdate + C12/C13 + P7-5 LTV suites; 0 fails (Track I fixed) |
+| gp-core | 642 | 0 | 0 | script sandbox + selfupdate + C12/C13 + P7-5 LTV suites |
 | adapters-ooxml | 226 | 0 | 0 | read + surgical write + creation + revisions (C11) |
 | adapters-odf | 382 | 0 | 0 | zero-patch in-suite + revision write + P7-3 formula parity |
 | adapters-pdf | 149 | 0 | 2 | prefix invariant in-suite + annot enumeration/write-back + redaction |
-| engines | 332 | 0 | 0 | chromium/typst/pandoc (Track C), COM workers, pdfium rung |
-| lint | 300 | 0 | 0 | incl. P7-3 formula parity module |
-| mcp | 93 | 0 | 0 | incl. session/review + text-layer route tests |
+| engines | 332 | 0 | 0 | chromium/typst/pandoc, COM workers, pdfium rung |
+| lint | 300 | 0 | 0 | P7-3 formula parity module |
+| mcp | 93 | 0 | 0 | session/review + text-layer route tests |
 | adapters-ooxfuzz | 226 | 0 | 0 | fuzz regressions locked as tests (rounds 1–4); VLOOKUP now supported |
-| **Total (lib)** | **2 292** | **0** | **2** | 0 fails (previously 9 date-hardcoded gp-core formula → all fixed) |
+| **Total (lib)** | **2 350** | **0** | **2** | |
 
-(CLI bin + integration + doctest suites from the m3-era table are exercised via the phase gates;
-see `docs/m5-acceptance.md` §3 for the gate transcript.)
+(CLI bin + integration + doctest suites are exercised via the phase gates.)
 
 ## Naming conventions
 
