@@ -23,6 +23,13 @@ ignore = [
     "RUSTSEC-2024-0436",
     # Transitive dep via rhai (P3-24 script sandbox); unmaintained, no safe upgrade
     "RUSTSEC-2026-0249",
+    # zip symlink permission escalation (GHSA-4684-h2q9-2vcp). Ours: archive code
+    # reads/writes ODF entries via ZipReader/ZipWriter APIs; .extract() and
+    # ZipStreamReader are never used (grep 2026-10-17 crates/adapters-odf:0 calls).
+    # No 2.x patched release; upgrade to 9.x tracked as packaging follow-up.
+    "RUSTSEC-2026-0369",
+    "RUSTSEC-2026-0367",
+    "RUSTSEC-2026-0368",
 ]
 
 [licenses]

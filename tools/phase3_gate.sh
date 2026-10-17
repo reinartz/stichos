@@ -218,7 +218,7 @@ echo "  Running: cargo test --workspace --lib -- --test-threads=4 (accepting kno
 LOG=$(mktemp)
 LOGS+=("$LOG")
 set +e
-cargo test --workspace --lib -- --test-threads=4 > "$LOG" 2>&1
+cargo test --workspace --lib --no-fail-fast -- --test-threads=4 > "$LOG" 2>&1
 WS_RC=$?
 set -e
 TEST_COUNT=$(grep -oP '\d+ passed' "$LOG" | awk '{s+=$1} END {print s+0}' || true)
