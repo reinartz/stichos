@@ -1,6 +1,8 @@
 [package]
 name = "stichos"
 description = "stichos — proof-before-publish toolchain for office documents (inspect, render, diff, surgically edit)"
+readme = "../README.md"
+include = ["src/**/*", "Cargo.toml", "../README.md"]
 repository = "https://github.com/reinartz/stichos"
 version.workspace = true
 edition.workspace = true

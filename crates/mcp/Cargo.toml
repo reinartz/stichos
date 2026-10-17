@@ -1,6 +1,8 @@
 [package]
 name = "stichos-mcp"
 description = "MCP server for stichos — JSON-RPC transport, tool dispatch and review sessions"
+readme = "../README.md"
+include = ["src/**/*", "Cargo.toml", "../README.md"]
 repository = "https://github.com/reinartz/stichos"
 version.workspace = true
 edition.workspace = true
