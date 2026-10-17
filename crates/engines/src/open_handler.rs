@@ -46,7 +46,7 @@ pub fn probe_open_handler() -> DoctorHandoffRow {
     #[cfg(target_os = "linux")]
     {
         if which_binary("xdg-open").is_some() {
-            DoctorHandoffRow::available(&platform, "xdg-open");
+            return DoctorHandoffRow::available(&platform, "xdg-open");
         }
         DoctorHandoffRow::absent(
             &platform,
@@ -58,7 +58,7 @@ pub fn probe_open_handler() -> DoctorHandoffRow {
     #[cfg(target_os = "macos")]
     {
         // `open` is part of macOS — always available.
-        DoctorHandoffRow::available(&platform, "open");
+        DoctorHandoffRow::available(&platform, "open")
     }
 
     #[cfg(target_os = "windows")]
