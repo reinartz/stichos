@@ -9,7 +9,7 @@ rust-version.workspace = true
 workspace = true
 
 [dependencies]
-gp-core = { path = "../gp-core", version = "0.1.0" }
+gp-core = { path = "../gp-core", version = "0.2.0" }
 serde = { workspace = true }
 serde_json = { workspace = true }
 tokio = { workspace = true }

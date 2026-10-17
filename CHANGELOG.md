@@ -5,7 +5,11 @@ All notable changes to stichos. The format follows
 crates and the `stichos` binary. Tool-surface (C7) versioning is additive-only within a minor;
 breaking changes require a minor bump per `docs/contracts/C7.md`.
 
-## [Unreleased] — M4 + M5 + M6 (tags `m4`, `m5`, `m6`)
+## [0.2.0] — 2026-10-17 (first public release; M4 + M5 + M6, tags `m4`, `m5`, `m6`)
+
+First public release (P7-9 launch): publishes to crates.io, GitHub Release, and package-manager
+manifests per `docs/release-playbook.md`. This section covers everything shipped since the
+(unpublished) `0.1.0` milestone packaging of M1–M3.
 
 **2026-10-01 completion audit:** measured dirty-tree state recorded in the local-only
 remaining-work doc (rev 6) — working tree carried uncommitted proposed Track-H code (60 porcelain
@@ -97,6 +101,14 @@ status).
 - Doc-rot sweep (P6-34): stale ms-office / "deferred to Phase 5" / "compile-only skeleton"
   references removed from `CODEBASE.md`, `CHANGELOG.md`, `AGENTS.md`, `support-matrix.md`,
   `engines/Cargo.toml`, `formula/mod.rs`.
+- Pre-launch fix sweep (2026-10-17): isolated MCP review-test temp files so parallel runs do not
+  collide; phase gates no longer abort on a failed check under `set -e`; stray `page-1.png` render
+  artifacts removed; stale status claims refreshed and links to excluded docs dropped (KI-05);
+  publish/doctor docs section added.
+
+### Dependencies
+- Workspace version bumped 0.1.0 → 0.2.0 for the first public release; workspace-internal
+  dependency pins (path + version) bumped in lockstep and `Cargo.lock` regenerated.
 
 ## [0.1.0] — 2026-09-16
 

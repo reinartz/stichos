@@ -4,7 +4,7 @@ version = 4
 
 [[package]]
 name = "adapters-odf"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "gp-core",
  "serde",
@@ -15,7 +15,7 @@ dependencies = [
 
 [[package]]
 name = "adapters-ooxfuzz"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "adapters-odf",
  "adapters-ooxml",
@@ -31,7 +31,7 @@ dependencies = [
 
 [[package]]
 name = "adapters-ooxml"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "gp-core",
  "hex",
@@ -48,7 +48,7 @@ dependencies = [
 
 [[package]]
 name = "adapters-pdf"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "gp-core",
  "lopdf",
@@ -957,7 +957,7 @@ dependencies = [
 
 [[package]]
 name = "engines"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "adapters-ooxml",
  "anyhow",
@@ -1202,7 +1202,7 @@ checksum = "e4eba85ea1d0a966a983acd07deee566e67395d2d96b6fb39e62b5a833f1eb0b"
 
 [[package]]
 name = "gp-core"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "base64 0.22.1",
@@ -1714,7 +1714,7 @@ checksum = "b6d2cec3eae94f9f509c767b45932f1ada8350c4bdb85af2fcab4a3c14807981"
 
 [[package]]
 name = "lint"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "base64 0.22.1",
@@ -1824,7 +1824,7 @@ dependencies = [
 
 [[package]]
 name = "mcp"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -3170,7 +3170,7 @@ checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 
 [[package]]
 name = "stichos"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "adapters-odf",
  "adapters-ooxml",
