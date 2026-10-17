@@ -271,20 +271,20 @@ else
     fail "grep adapters-pdf crates/mcp/Cargo.toml → found (edge should be removed)"
 fi
 
-# 0d. cargo test -p mcp --lib review
-echo "  Running: cargo test -p mcp --lib review"
-if run_check "test-mcp-review" 0 cargo test -p mcp --lib review; then
-    pass "cargo test -p mcp --lib review passes"
+# 0d. cargo test -p stichos-mcp --lib review
+echo "  Running: cargo test -p stichos-mcp --lib review"
+if run_check "test-mcp-review" 0 cargo test -p stichos-mcp --lib review; then
+    pass "cargo test -p stichos-mcp --lib review passes"
 else
-    fail "cargo test -p mcp --lib review failed"
+    fail "cargo test -p stichos-mcp --lib review failed"
 fi
 
-# 0e. cargo test -p mcp --lib http::tests
-echo "  Running: cargo test -p mcp --lib http::tests"
-if run_check "test-mcp-http" 0 cargo test -p mcp --lib http::tests; then
-    pass "cargo test -p mcp --lib http::tests passes"
+# 0e. cargo test -p stichos-mcp --lib http::tests
+echo "  Running: cargo test -p stichos-mcp --lib http::tests"
+if run_check "test-mcp-http" 0 cargo test -p stichos-mcp --lib http::tests; then
+    pass "cargo test -p stichos-mcp --lib http::tests passes"
 else
-    fail "cargo test -p mcp --lib http::tests failed"
+    fail "cargo test -p stichos-mcp --lib http::tests failed"
 fi
 
 # 0f. Text-layer parity: run P5-02 fixture through trait route, compare JSON byte-identical
@@ -537,17 +537,17 @@ else
     fail "P6-06: surface freeze not verified"
 fi
 
-# 3a. cargo test -p mcp --lib (full suite — ceiling tests must not hide)
-echo "  Running: cargo test -p mcp --lib"
+# 3a. cargo test -p stichos-mcp --lib (full suite — ceiling tests must not hide)
+echo "  Running: cargo test -p stichos-mcp --lib"
 set +e
-cargo test -p mcp --lib > "$LOG" 2>&1
+cargo test -p stichos-mcp --lib > "$LOG" 2>&1
 CTX06_RC=$?
 set -e
 if [ "$CTX06_RC" -eq 0 ]; then
     CTX06_COUNT=$(grep -c 'test ' "$LOG" 2>/dev/null || echo "0")
-    pass "cargo test -p mcp --lib passes (${CTX06_COUNT} tests)"
+    pass "cargo test -p stichos-mcp --lib passes (${CTX06_COUNT} tests)"
 else
-    fail "cargo test -p mcp --lib failed (ceiling tests exposed)"
+    fail "cargo test -p stichos-mcp --lib failed (ceiling tests exposed)"
 fi
 
 # 3b. cargo test -p stichos --test p606_ctx06_compliance

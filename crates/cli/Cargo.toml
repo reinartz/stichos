@@ -21,13 +21,13 @@ zip = { workspace = true }
 tempfile = { workspace = true }
 
 [dependencies]
-gp-core = { path = "../gp-core", version = "0.2.0" }
+gp-core = { package = "stichos-core", path = "../gp-core", version = "0.2.0" }
 adapters-ooxml = { path = "../adapters-ooxml", version = "0.2.0" }
 adapters-odf = { path = "../adapters-odf", version = "0.2.0" }
 adapters-pdf = { path = "../adapters-pdf", version = "0.2.0" }
 engines = { path = "../engines", version = "0.2.0" }
-lint = { path = "../lint", version = "0.2.0" }
-mcp = { path = "../mcp", version = "0.2.0" }
+lint = { package = "stichos-lint", path = "../lint", version = "0.2.0" }
+mcp = { package = "stichos-mcp", path = "../mcp", version = "0.2.0" }
 clap = { version = "4", features = ["derive"] }
 serde = { workspace = true }
 serde_json = { workspace = true }

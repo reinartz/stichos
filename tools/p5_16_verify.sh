@@ -22,8 +22,8 @@ echo "=== P5-16 verify: publish dry-runs ==="
 
 # 1. Cargo publish --dry-run: gp-core (standalone, no workspace deps)
 echo ""
-echo "--- cargo publish --dry-run --package gp-core ---"
-if cargo publish --dry-run --package gp-core 2>&1; then
+echo "--- cargo publish --dry-run --package stichos-core ---"
+if cargo publish --dry-run --package stichos-core 2>&1; then
     echo "  PASS: gp-core dry-run"
     PASS=$((PASS + 1))
 else

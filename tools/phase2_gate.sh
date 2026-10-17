@@ -115,7 +115,7 @@ echo ""
 # ---------------------------------------------------------------------------
 echo "=== INV-3: Revert byte-identical ==="
 LOG=$(mktemp)
-if cargo test --package gp-core revert -- --test-threads=1 > "$LOG" 2>&1; then
+if cargo test --package stichos-core revert -- --test-threads=1 > "$LOG" 2>&1; then
     pass "INV-3 revert byte-identical"
 else
     fail "INV-3 revert byte-identical FAILED"
@@ -127,7 +127,7 @@ echo ""
 # ---------------------------------------------------------------------------
 echo "=== INV-1: ODF/PDF refusal ==="
 LOG=$(mktemp)
-if cargo test --package gp-core refusal -- --test-threads=1 > "$LOG" 2>&1; then
+if cargo test --package stichos-core refusal -- --test-threads=1 > "$LOG" 2>&1; then
     pass "INV-1 refusal (gp-core)"
 else
     fail "INV-1 refusal (gp-core) FAILED"
@@ -146,7 +146,7 @@ echo ""
 # ---------------------------------------------------------------------------
 echo "=== OPS-02: Loop P95 <= 2s ==="
 LOG=$(mktemp)
-if cargo test --package lint perf -- --test-threads=1 > "$LOG" 2>&1; then
+if cargo test --package stichos-lint perf -- --test-threads=1 > "$LOG" 2>&1; then
     pass "OPS-02 perf tests pass"
 else
     fail "OPS-02 perf tests FAILED"
@@ -204,7 +204,7 @@ echo ""
 # ---------------------------------------------------------------------------
 echo "=== Budget: Fidelity budget on 100% ==="
 LOG=$(mktemp)
-if cargo test --package lint budget -- --test-threads=1 > "$LOG" 2>&1; then
+if cargo test --package stichos-lint budget -- --test-threads=1 > "$LOG" 2>&1; then
     pass "REN-03 budget gate: 100% enforced"
 else
     fail "REN-03 budget gate FAILED"
@@ -216,7 +216,7 @@ echo ""
 # ---------------------------------------------------------------------------
 echo "=== Schema gate: P2-31 ==="
 LOG=$(mktemp)
-if cargo test --package lint validate -- --test-threads=1 > "$LOG" 2>&1; then
+if cargo test --package stichos-lint validate -- --test-threads=1 > "$LOG" 2>&1; then
     pass "P2-31 schema gate: PASS"
 else
     fail "P2-31 schema gate FAILED"
@@ -228,7 +228,7 @@ echo ""
 # ---------------------------------------------------------------------------
 echo "=== Planted violation: silenced budget ==="
 LOG=$(mktemp)
-if cargo test --package lint budget -- --test-threads=1 > "$LOG" 2>&1; then
+if cargo test --package stichos-lint budget -- --test-threads=1 > "$LOG" 2>&1; then
     pass "Planted violation: budget gate working (expected pass)"
 else
     fail "Planted violation: budget gate unexpectedly failed"
@@ -237,7 +237,7 @@ fi
 echo "=== Planted violation: weakened INV-1 ==="
 # Verify that PDF refusal test exists (ODF refusal retired P3-10)
 LOG=$(mktemp)
-cargo test --package gp-core -- --list > "$LOG" 2>&1 || true
+cargo test --package stichos-core -- --list > "$LOG" 2>&1 || true
 HAS_PDF=$(grep -cE "test_pdf_refusal|test_refuse_pdf" "$LOG" || true)
 if [ "$HAS_PDF" -ge 1 ]; then
     pass "Planted violation: refusal tests exist (expected pass)"

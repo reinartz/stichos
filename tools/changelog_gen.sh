@@ -93,7 +93,7 @@ classify() {
 
     # gp-core (core, kernel, ir, patch, executor, journal, diff, policy)
     if echo "$lower" | grep -qE '(core| kernel |ir |patch |executor|journal|diff |policy|ir\.)'; then
-        echo "gp-core"
+        echo "stichos-core"
         return
     fi
 
@@ -152,7 +152,7 @@ fi
 echo ""
 
 # Print by area in order
-for area in "CLI" "gp-core" "adapters-ooxml" "adapters-odf" "adapters-pdf" "engines" "lint" "mcp" "docs" "tools" "CI" "other"; do
+for area in "CLI" "stichos-core (gp-core)" "adapters-ooxml" "adapters-odf" "adapters-pdf" "engines" "lint" "mcp" "docs" "tools" "CI" "other"; do
     file="$TMPDIR_WORK/$area"
     if [ -f "$file" ]; then
         echo "## $area"

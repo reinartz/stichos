@@ -11,7 +11,7 @@ rust-version.workspace = true
 workspace = true
 
 [dependencies]
-gp-core = { path = "../gp-core", version = "0.2.0" }
+gp-core = { package = "stichos-core", path = "../gp-core", version = "0.2.0" }
 lopdf = "0.45"
 pdf-writer = "0.6"
 serde = { workspace = true }

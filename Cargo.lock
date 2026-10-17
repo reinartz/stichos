@@ -6,9 +6,9 @@ version = 4
 name = "adapters-odf"
 version = "0.2.0"
 dependencies = [
- "gp-core",
  "serde",
  "serde_json",
+ "stichos-core",
  "tracing",
  "zip",
 ]
@@ -21,11 +21,11 @@ dependencies = [
  "adapters-ooxml",
  "adapters-pdf",
  "base64 0.22.1",
- "gp-core",
- "lint",
  "lopdf",
- "mcp",
  "serde_json",
+ "stichos-core",
+ "stichos-lint",
+ "stichos-mcp",
  "zip",
 ]
 
@@ -33,13 +33,13 @@ dependencies = [
 name = "adapters-ooxml"
 version = "0.2.0"
 dependencies = [
- "gp-core",
  "hex",
- "lint",
  "proptest",
  "serde",
  "serde_json",
  "sha2 0.10.9",
+ "stichos-core",
+ "stichos-lint",
  "tempfile",
  "tracing",
  "uuid",
@@ -50,11 +50,11 @@ dependencies = [
 name = "adapters-pdf"
 version = "0.2.0"
 dependencies = [
- "gp-core",
  "lopdf",
  "pdf-writer",
  "serde",
  "serde_json",
+ "stichos-core",
  "tracing",
  "which 8.0.6",
 ]
@@ -963,7 +963,6 @@ dependencies = [
  "anyhow",
  "fastrand",
  "glob",
- "gp-core",
  "hex",
  "image",
  "libc",
@@ -971,6 +970,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2 0.10.9",
+ "stichos-core",
  "tempfile",
  "thiserror 2.0.20",
  "tokio",
@@ -1199,47 +1199,6 @@ name = "glob"
 version = "0.3.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e4eba85ea1d0a966a983acd07deee566e67395d2d96b6fb39e62b5a833f1eb0b"
-
-[[package]]
-name = "gp-core"
-version = "0.2.0"
-dependencies = [
- "anyhow",
- "base64 0.22.1",
- "chrono",
- "const-oid 0.9.6",
- "der",
- "ecdsa",
- "hex",
- "lopdf",
- "minisign-verify",
- "num-bigint-dig",
- "p384",
- "pem",
- "pkcs8",
- "proptest",
- "rand 0.8.8",
- "rand_core 0.6.4",
- "rcgen",
- "reqwest",
- "rhai",
- "rsa",
- "sec1",
- "serde",
- "serde_json",
- "sha2 0.10.9",
- "spki",
- "tempfile",
- "thiserror 2.0.20",
- "time",
- "tracing",
- "url",
- "uuid",
- "winapi",
- "x509-cert",
- "x509-parser",
- "zeroize",
-]
 
 [[package]]
 name = "group"
@@ -1713,20 +1672,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b6d2cec3eae94f9f509c767b45932f1ada8350c4bdb85af2fcab4a3c14807981"
 
 [[package]]
-name = "lint"
-version = "0.2.0"
-dependencies = [
- "anyhow",
- "base64 0.22.1",
- "gp-core",
- "image",
- "serde",
- "serde_json",
- "sha2 0.10.9",
- "tracing",
-]
-
-[[package]]
 name = "linux-raw-sys"
 version = "0.4.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1820,24 +1765,6 @@ checksum = "8ea1f30cedd69f0a2954655f7188c6a834246d2bcf1e315e2ac40c4b24dc9519"
 dependencies = [
  "cfg-if",
  "rayon",
-]
-
-[[package]]
-name = "mcp"
-version = "0.2.0"
-dependencies = [
- "anyhow",
- "async-trait",
- "bytes",
- "gp-core",
- "hex",
- "rand 0.8.8",
- "serde",
- "serde_json",
- "sha2 0.10.9",
- "thiserror 2.0.20",
- "tokio",
- "tracing",
 ]
 
 [[package]]
@@ -3180,12 +3107,12 @@ dependencies = [
  "chrono",
  "clap",
  "engines",
- "gp-core",
- "lint",
- "mcp",
  "serde",
  "serde_json",
  "sha2 0.10.9",
+ "stichos-core",
+ "stichos-lint",
+ "stichos-mcp",
  "tempfile",
  "thiserror 2.0.20",
  "tokio",
@@ -3194,6 +3121,79 @@ dependencies = [
  "uuid",
  "which 6.0.3",
  "zip",
+]
+
+[[package]]
+name = "stichos-core"
+version = "0.2.0"
+dependencies = [
+ "anyhow",
+ "base64 0.22.1",
+ "chrono",
+ "const-oid 0.9.6",
+ "der",
+ "ecdsa",
+ "hex",
+ "lopdf",
+ "minisign-verify",
+ "num-bigint-dig",
+ "p384",
+ "pem",
+ "pkcs8",
+ "proptest",
+ "rand 0.8.8",
+ "rand_core 0.6.4",
+ "rcgen",
+ "reqwest",
+ "rhai",
+ "rsa",
+ "sec1",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "spki",
+ "tempfile",
+ "thiserror 2.0.20",
+ "time",
+ "tracing",
+ "url",
+ "uuid",
+ "winapi",
+ "x509-cert",
+ "x509-parser",
+ "zeroize",
+]
+
+[[package]]
+name = "stichos-lint"
+version = "0.2.0"
+dependencies = [
+ "anyhow",
+ "base64 0.22.1",
+ "image",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "stichos-core",
+ "tracing",
+]
+
+[[package]]
+name = "stichos-mcp"
+version = "0.2.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "bytes",
+ "hex",
+ "rand 0.8.8",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "stichos-core",
+ "thiserror 2.0.20",
+ "tokio",
+ "tracing",
 ]
 
 [[package]]

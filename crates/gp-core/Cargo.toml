@@ -1,5 +1,5 @@
 [package]
-name = "gp-core"
+name = "stichos-core"
 description = "Core types, IR, diagnostics, content store, revision model and response envelopes for the stichos document-fidelity toolchain"
 repository = "https://github.com/reinartz/stichos"
 version.workspace = true

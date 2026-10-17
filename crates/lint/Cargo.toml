@@ -1,5 +1,5 @@
 [package]
-name = "lint"
+name = "stichos-lint"
 description = "Fidelity linting for stichos — budget, SSIM, contrast, font, diff and crop metrics"
 repository = "https://github.com/reinartz/stichos"
 version.workspace = true
@@ -11,7 +11,7 @@ rust-version.workspace = true
 workspace = true
 
 [dependencies]
-gp-core = { path = "../gp-core", version = "0.2.0" }
+gp-core = { package = "stichos-core", path = "../gp-core", version = "0.2.0" }
 serde = { workspace = true }
 serde_json = { workspace = true }
 sha2 = { workspace = true }

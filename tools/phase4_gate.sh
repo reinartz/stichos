@@ -270,28 +270,28 @@ echo ""
 # ---------------------------------------------------------------------------
 echo "=== 3. Review session e2e (headless HTTP) ==="
 
-# 3a. cargo test -p mcp --lib review
-echo "  Running: cargo test -p mcp --lib review"
-if run_check "test-mcp-review" 0 cargo test -p mcp --lib review; then
-    pass "cargo test -p mcp --lib review passes"
+# 3a. cargo test -p stichos-mcp --lib review
+echo "  Running: cargo test -p stichos-mcp --lib review"
+if run_check "test-mcp-review" 0 cargo test -p stichos-mcp --lib review; then
+    pass "cargo test -p stichos-mcp --lib review passes"
 else
-    fail "cargo test -p mcp --lib review failed"
+    fail "cargo test -p stichos-mcp --lib review failed"
 fi
 
-# 3b. cargo test -p mcp --lib http::tests
-echo "  Running: cargo test -p mcp --lib http::tests"
-if run_check "test-mcp-http" 0 cargo test -p mcp --lib http::tests; then
-    pass "cargo test -p mcp --lib http::tests passes"
+# 3b. cargo test -p stichos-mcp --lib http::tests
+echo "  Running: cargo test -p stichos-mcp --lib http::tests"
+if run_check "test-mcp-http" 0 cargo test -p stichos-mcp --lib http::tests; then
+    pass "cargo test -p stichos-mcp --lib http::tests passes"
 else
-    fail "cargo test -p mcp --lib http::tests failed"
+    fail "cargo test -p stichos-mcp --lib http::tests failed"
 fi
 
-# 3c. cargo test -p mcp --lib session::tests
-echo "  Running: cargo test -p mcp --lib session::tests"
-if run_check "test-mcp-session" 0 cargo test -p mcp --lib session::tests; then
-    pass "cargo test -p mcp --lib session::tests passes"
+# 3c. cargo test -p stichos-mcp --lib session::tests
+echo "  Running: cargo test -p stichos-mcp --lib session::tests"
+if run_check "test-mcp-session" 0 cargo test -p stichos-mcp --lib session::tests; then
+    pass "cargo test -p stichos-mcp --lib session::tests passes"
 else
-    fail "cargo test -p mcp --lib session::tests failed"
+    fail "cargo test -p stichos-mcp --lib session::tests failed"
 fi
 
 echo ""

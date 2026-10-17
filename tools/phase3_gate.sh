@@ -315,12 +315,12 @@ echo ""
 # ---------------------------------------------------------------------------
 echo "=== 4. Sandbox proof ==="
 
-# 4a. cargo test -p gp-core script (Rhai escape suite)
-echo "  Running: cargo test -p gp-core script"
-if run_check "test-script" 0 cargo test -p gp-core script; then
-    pass "cargo test -p gp-core script (Rhai escape suite)"
+# 4a. cargo test -p stichos-core script (Rhai escape suite)
+echo "  Running: cargo test -p stichos-core script"
+if run_check "test-script" 0 cargo test -p stichos-core script; then
+    pass "cargo test -p stichos-core script (Rhai escape suite)"
 else
-    fail "cargo test -p gp-core script failed"
+    fail "cargo test -p stichos-core script failed"
 fi
 
 # 4b. ADR-0005 exists and status is "accepted"

@@ -227,25 +227,25 @@ else
 fi
 
 # 1d. Run C12 model tests (accept known 9 date-hardcoded formula fails)
-echo "  Running: cargo test -p gp-core --lib (accepting known date-hardcoded fails)"
+echo "  Running: cargo test -p stichos-core --lib (accepting known date-hardcoded fails)"
 LOG=$(mktemp)
 LOGS+=("$LOG")
 set +e
-cargo test -p gp-core --lib > "$LOG" 2>&1
+cargo test -p stichos-core --lib > "$LOG" 2>&1
 GP_RC=$?
 set -e
 GP_COUNT=$(grep -oP '\d+ passed' "$LOG" | awk '{s+=$1} END {print s+0}' || true)
 GP_FAIL_COUNT=$(grep -oP '\d+ failed' "$LOG" | awk '{s+=$1} END {print s+0}' || true)
 if [ "$GP_COUNT" -ge 500 ] 2>/dev/null; then
     if [ "$GP_RC" -eq 0 ]; then
-        pass "cargo test -p gp-core --lib: ${GP_COUNT} tests all pass"
+        pass "cargo test -p stichos-core --lib: ${GP_COUNT} tests all pass"
     elif [ "${GP_FAIL_COUNT:-0}" -le 10 ] 2>/dev/null; then
-        pass "cargo test -p gp-core --lib: ${GP_COUNT} pass, ${GP_FAIL_COUNT} known fails (date-hardcoded, accepted)"
+        pass "cargo test -p stichos-core --lib: ${GP_COUNT} pass, ${GP_FAIL_COUNT} known fails (date-hardcoded, accepted)"
     else
-        fail "cargo test -p gp-core --lib: ${GP_COUNT} pass, ${GP_FAIL_COUNT} fails (>10 unexpected)"
+        fail "cargo test -p stichos-core --lib: ${GP_COUNT} pass, ${GP_FAIL_COUNT} fails (>10 unexpected)"
     fi
 else
-    fail "cargo test -p gp-core --lib: only ${GP_COUNT} tests (need ≥ 500)"
+    fail "cargo test -p stichos-core --lib: only ${GP_COUNT} tests (need ≥ 500)"
 fi
 
 # 1e. Check contract doc exists
@@ -289,19 +289,19 @@ else
 fi
 
 # 2b. Run MCP review tests
-echo "  Running: cargo test -p mcp --lib review"
-if run_check "test-mcp-review" 0 cargo test -p mcp --lib review; then
-    pass "cargo test -p mcp --lib review passes"
+echo "  Running: cargo test -p stichos-mcp --lib review"
+if run_check "test-mcp-review" 0 cargo test -p stichos-mcp --lib review; then
+    pass "cargo test -p stichos-mcp --lib review passes"
 else
-    fail "cargo test -p mcp --lib review failed"
+    fail "cargo test -p stichos-mcp --lib review failed"
 fi
 
 # 2c. Run MCP HTTP route tests
-echo "  Running: cargo test -p mcp --lib http::tests"
-if run_check "test-mcp-http" 0 cargo test -p mcp --lib http::tests; then
-    pass "cargo test -p mcp --lib http::tests passes"
+echo "  Running: cargo test -p stichos-mcp --lib http::tests"
+if run_check "test-mcp-http" 0 cargo test -p stichos-mcp --lib http::tests; then
+    pass "cargo test -p stichos-mcp --lib http::tests passes"
 else
-    fail "cargo test -p mcp --lib http::tests failed"
+    fail "cargo test -p stichos-mcp --lib http::tests failed"
 fi
 
 # 2d. Run hash verification
@@ -413,30 +413,30 @@ else
 fi
 
 # 4b. Run signature detection tests (accept known 9 date-hardcoded formula fails)
-echo "  Running: cargo test -p gp-core --lib sig (accepting known date-hardcoded fails)"
+echo "  Running: cargo test -p stichos-core --lib sig (accepting known date-hardcoded fails)"
 LOG=$(mktemp)
 LOGS+=("$LOG")
 set +e
-cargo test -p gp-core --lib sig > "$LOG" 2>&1
+cargo test -p stichos-core --lib sig > "$LOG" 2>&1
 SIG_RC=$?
 set -e
 SIG_COUNT=$(grep -oP '\d+ passed' "$LOG" | awk '{s+=$1} END {print s+0}' || true)
 SIG_FAIL_COUNT=$(grep -oP '\d+ failed' "$LOG" | awk '{s+=$1} END {print s+0}' || true)
 if [ "$SIG_COUNT" -ge 10 ] 2>/dev/null; then
     if [ "$SIG_RC" -eq 0 ]; then
-        pass "cargo test -p gp-core --lib sig: ${SIG_COUNT} tests all pass"
+        pass "cargo test -p stichos-core --lib sig: ${SIG_COUNT} tests all pass"
     elif [ "${SIG_FAIL_COUNT:-0}" -le 10 ] 2>/dev/null; then
-        pass "cargo test -p gp-core --lib sig: ${SIG_COUNT} pass, ${SIG_FAIL_COUNT} known fails (date-hardcoded, accepted)"
+        pass "cargo test -p stichos-core --lib sig: ${SIG_COUNT} pass, ${SIG_FAIL_COUNT} known fails (date-hardcoded, accepted)"
     else
-        fail "cargo test -p gp-core --lib sig: ${SIG_COUNT} pass, ${SIG_FAIL_COUNT} fails (>10 unexpected)"
+        fail "cargo test -p stichos-core --lib sig: ${SIG_COUNT} pass, ${SIG_FAIL_COUNT} fails (>10 unexpected)"
     fi
 else
-    fail "cargo test -p gp-core --lib sig: only ${SIG_COUNT} tests (need ≥ 10)"
+    fail "cargo test -p stichos-core --lib sig: only ${SIG_COUNT} tests (need ≥ 10)"
 fi
 if [ $? -eq 0 ]; then
-    pass "cargo test -p gp-core signature detection passes"
+    pass "cargo test -p stichos-core signature detection passes"
 else
-    fail "cargo test -p gp-core signature detection failed"
+    fail "cargo test -p stichos-core signature detection failed"
 fi
 
 # 4c. Run signature fuzz tests
@@ -620,19 +620,19 @@ echo ""
 echo "=== 7. C7 v1.7.0 frozen additive ==="
 
 # 7a. Run C7 compliance tests
-echo "  Running: cargo test -p mcp --lib tests -- c7"
-if run_check "test-mcp-c7" 0 cargo test -p mcp --lib tests -- c7; then
-    pass "cargo test -p mcp C7 compliance passes"
+echo "  Running: cargo test -p stichos-mcp --lib tests -- c7"
+if run_check "test-mcp-c7" 0 cargo test -p stichos-mcp --lib tests -- c7; then
+    pass "cargo test -p stichos-mcp C7 compliance passes"
 else
-    fail "cargo test -p mcp C7 compliance failed"
+    fail "cargo test -p stichos-mcp C7 compliance failed"
 fi
 
 # 7b. Run all_tools count test
-echo "  Running: cargo test -p mcp --lib tests -- all_tools"
-if run_check "test-mcp-alltools" 0 cargo test -p mcp --lib tests -- all_tools; then
-    pass "cargo test -p mcp all_tools count passes"
+echo "  Running: cargo test -p stichos-mcp --lib tests -- all_tools"
+if run_check "test-mcp-alltools" 0 cargo test -p stichos-mcp --lib tests -- all_tools; then
+    pass "cargo test -p stichos-mcp all_tools count passes"
 else
-    fail "cargo test -p mcp all_tools count failed"
+    fail "cargo test -p stichos-mcp all_tools count failed"
 fi
 
 # 7c. Check C7.md version is 1.5.0

@@ -168,7 +168,7 @@ fi
 # ---------------------------------------------------------------------------
 echo ""
 echo "--- 9. Doctor probe check ---"
-if cargo build --quiet --package mcp 2>&1; then
+if cargo build --quiet --package stichos-mcp 2>&1; then
     log "MCP server compiles"
     PASS=$((PASS + 1))
 else

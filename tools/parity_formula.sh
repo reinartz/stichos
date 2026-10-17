@@ -32,7 +32,7 @@ echo "Formula-parity fixtures: $FIXTURE_COUNT"
 echo "Formula-parity formulas in fixtures: $FIXTURE_SUM"
 
 # Run formula evaluator tests
-TEST_OUTPUT=$(cargo test -p gp-core --lib formula 2>&1 || true)
+TEST_OUTPUT=$(cargo test -p stichos-core --lib formula 2>&1 || true)
 TEST_COUNT=$(echo "$TEST_OUTPUT" | grep -oP '\d+ passed' | head -1 || echo "unknown")
 echo "Formula evaluator tests: ${TEST_COUNT:-unknown}"
 

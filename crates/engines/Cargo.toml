@@ -24,7 +24,7 @@ unix = ["dep:libc"]
 pdfium = ["dep:pdfium-render", "dep:image"]
 
 [dependencies]
-gp-core = { path = "../gp-core", version = "0.2.0" }
+gp-core = { package = "stichos-core", path = "../gp-core", version = "0.2.0" }
 adapters-ooxml = { path = "../adapters-ooxml", version = "0.2.0" }
 serde = { workspace = true }
 serde_json = { workspace = true }
