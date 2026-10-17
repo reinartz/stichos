@@ -15,8 +15,8 @@ macOS arm64/x86_64, and Windows x86_64 — each a `.tar.gz` (`.zip` on Windows) 
 checksum (target matrix in `.github/workflows/release.yml`; verify/rollback in
 [`docs/release-playbook.md`](docs/release-playbook.md)).
 
-- **winget:** `winget install stichos.stichos`
-- **Homebrew:** `brew install sticho`
+- **winget:** `winget install OleReinartz.stichos`
+- **Homebrew:** `brew install reinartz/formulae/sticho`
 
 Or build from source:
 
