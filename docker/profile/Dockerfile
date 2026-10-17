@@ -61,15 +61,15 @@ RUN set -eux; \
     curl -fL --retry 3 --retry-all-errors -o "/tmp/${tar_name}" "$url"; \
     echo "${LO_SHA256}  /tmp/${tar_name}" | sha256sum -c -; \
     mkdir -p /tmp/lo; \
-    tar -xzf "/tmp/${tar_name}" -C /tmp/lo --strip-components=1; \
     # Upstream tarball dir carries the micro version (e.g. LibreOffice_26.2.5.2_Linux_x86-64_deb)
-    lo_dir="$(find /tmp/lo -maxdepth 1 -type d -name 'LibreOffice_*_Linux_x86-64_deb' | head -1)"; \
-    [ -n "$lo_dir" ] && [ -d "$lo_dir/DEBS" ]; \
+    base="$(tar tzf "/tmp/${tar_name}" | head -1 | cut -d/ -f1)"; \
+    tar -xzf "/tmp/${tar_name}" -C /tmp/lo; \
+    [ -d "/tmp/lo/$base/DEBS" ] || { find /tmp/lo -maxdepth 2 -type d | head -20; exit 1; }; \
     apt-get update; \
-    dpkg -i "$lo_dir"/DEBS/*.deb; \
+    dpkg -i "/tmp/lo/$base"/DEBS/*.deb; \
     apt-get -f install -y -o Dpkg::Options::="--force-confnew"; \
     # Install English language pack if available
-    for d in "$lo_dir"/Langpack_en-US/*/DEBS/*.deb; do \
+    for d in "/tmp/lo/$base"/Langpack_en-US/*/DEBS/*.deb; do \
         [ -f "$d" ] && dpkg -i "$d" || true; \
     done; \
     # Symlink binaries
