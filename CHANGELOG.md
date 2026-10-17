@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## [0.2.1] — 2026-10-17
+
+- Version bump: 0.2.0 → 0.2.1
+- Generated: 2026-10-17T21:08:11+0200
+
+
+
 All notable changes to stichos. The format follows
 [keep-a-changelog](https://keepachangelog.com/); the workspace uses one unified version for all
 crates and the `stichos` binary. Tool-surface (C7) versioning is additive-only within a minor;
