@@ -11,6 +11,9 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
+  # aarch64 cross-linking: recent rustc defaults to bundled rust-lld with
+  # --fix-cortex-a53-843419, which fails outside a real aarch64 toolchain.
+  CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
 
 jobs:
   build:
@@ -36,7 +39,7 @@ jobs:
             archive: tar.gz
             artifact_name: stichos-x86_64-unknown-linux-musl
           - target: aarch64-apple-darwin
-            os: ubuntu-22.04
+            os: macos-14
             arch: aarch64
             archive: tar.gz
             artifact_name: stichos-aarch64-apple-darwin
@@ -46,7 +49,7 @@ jobs:
             archive: tar.gz
             artifact_name: stichos-x86_64-apple-darwin
           - target: x86_64-pc-windows-msvc
-            os: ubuntu-22.04
+            os: windows-2025
             arch: x86_64
             archive: zip
             artifact_name: stichos-x86_64-pc-windows-msvc
@@ -57,6 +60,7 @@ jobs:
 
       - name: Determine version
         id: version
+        shell: bash
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             VERSION="${{ github.event.inputs.version }}"
@@ -105,47 +109,42 @@ jobs:
           cargo build --release --target ${{ matrix.target }} -p stichos
           echo "Built successfully for ${{ matrix.target }}"
 
-      - name: Archive artifact
+      - name: Archive artifact (POSIX)
+        if: runner.os != 'Windows'
         run: |
           BIN_NAME="stichos"
           VERSION="${{ steps.version.outputs.version }}"
           TARGET="${{ matrix.target }}"
-          ARCH="${{ matrix.arch }}"
-          EXT="${{ matrix.archive }}"
 
-          if [ "$EXT" = "zip" ]; then
-            # Windows: the binary is stichos.exe
-            BIN_NAME="${BIN_NAME}.exe"
-          fi
-
-          # Determine binary path
-          if [ "$EXT" = "zip" ]; then
-            BIN_PATH="target/${TARGET}/release/${BIN_NAME}"
-          else
-            BIN_PATH="target/${TARGET}/release/${BIN_NAME}"
-          fi
-
+          BIN_PATH="target/${TARGET}/release/${BIN_NAME}"
           if [ ! -f "$BIN_PATH" ]; then
             echo "ERROR: Binary not found at $BIN_PATH"
             exit 1
           fi
 
           # Create archive
-          ARCHIVE="stichos-${VERSION}-${TARGET}.${EXT}"
-          if [ "$EXT" = "zip" ]; then
-            cd target/${TARGET}/release && zip "$REPO_ROOT/${ARCHIVE}" "${BIN_NAME}" && cd "$GITHUB_WORKSPACE"
-          else
-            tar -czf "$ARCHIVE" -C target/${TARGET}/release "${BIN_NAME}"
-          fi
+          ARCHIVE="stichos-${VERSION}-${TARGET}.tar.gz"
+          tar -czf "$ARCHIVE" -C "target/${TARGET}/release" "${BIN_NAME}"
 
-          # Compute checksums
-          if [ "$EXT" = "zip" ]; then
-            sha256sum "$ARCHIVE" | cut -d' ' -f1 > "${ARCHIVE}.sha256"
-          else
-            sha256sum "$ARCHIVE" | cut -d' ' -f1 > "${ARCHIVE}.sha256"
-          fi
+          # Compute checksum (sha256sum -c compatible)
+          sha256sum "$ARCHIVE" > "${ARCHIVE}.sha256"
 
-          echo "archive=$ARCHIVE" >> $GITHUB_OUTPUT
+      - name: Archive artifact (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $VERSION = "${{ steps.version.outputs.version }}"
+          $TARGET = "${{ matrix.target }}"
+
+          $BIN = "target/$TARGET/release/stichos.exe"
+          if (-not (Test-Path $BIN)) { Write-Error "Binary not found at $BIN"; exit 1 }
+
+          $ARCHIVE = "stichos-$VERSION-$TARGET.zip"
+          Compress-Archive -Path $BIN -DestinationPath $ARCHIVE
+
+          # Compute checksum (sha256sum -c compatible)
+          $hash = (Get-FileHash $ARCHIVE -Algorithm SHA256).Hash.ToLower()
+          "$hash  $ARCHIVE" | Out-File -NoNewline -Encoding ascii "$ARCHIVE.sha256"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v7
