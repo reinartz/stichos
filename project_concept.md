@@ -10,13 +10,13 @@ shipped 2026-09-23** — 35/35 steps, `phase6_gate.sh --ci` green pre-tag, tag `
 **re-anchored to HEAD af40e44** (E4 complete 2026-10-15; Track A′ closeout round 2 complete — gate 92/93
 at tag time, `p606` 6/6; `docs/m6-acceptance.md` §11 records the
 2026-09-23 audit corrections (all resolved in closeout rounds 1–2, committed in `ff80f8e` +
-follow-ups). Phase-7 Tracks B/C/D complete (only P7-9 launch 👤 remains); Tracks E/F/G
-complete (2026-10-15), **Track H shelved (D0 Path B; H0 declined 2026-10-01)**; remaining
-work = owner launch items only — a local-only remaining-work doc (rev 6) holds the task map;
-Track H code on branch `track-h-proposed` (Phase U unblock); main is clean.
+follow-ups). Phase-7 Tracks B/C/D complete (2026-10-15); Tracks E/F/G
+complete (2026-10-15), **Track H shelved (D0 Path B; H0 declined 2026-10-01)**; all
+pre-launch work done, P7-9 launch executed 2026-10-17 (v0.2.0). Track H code on
+branch `track-h-proposed` (Phase U unblock); main is clean.
 Decision **D27**, contract [`docs/contracts/C14-context-budget.md`](docs/contracts/C14-context-budget.md) +
 guide [`docs/implementation-guide-context-budget.md`](docs/implementation-guide-context-budget.md).
-**Last updated:** 2026-10-15 (OQ2 resolved as D28 — Word tier = honest-absent; m6 re-anchored; 2292/0 tests; Phase-7 C/D complete; remaining work restructured; surface at HEAD: **24 verbs** / **24 tools**, C7 v1.7.0)
+**Last updated:** 2026-10-17 (v0.2.0 released; D18/D26 executed; D18 repo public; D29 Word tier = honest-absent; m6 re-anchored; 2350/0 tests; Phase-7 B/C/D complete; surface at HEAD: **24 verbs** / **24 tools**, C7 v1.7.0)
 **Project root:** `/localdata/workspace/stichos`
 **Related:** [`brand.md`](brand.md) — identity, colour, typography, logo usage
 
@@ -459,7 +459,7 @@ Crate layout: `core` (IR + patch engine, dep-free) · `adapters-ooxml` · `adapt
 | D15 | Pinned engines, N and N-1 supported, golden corpus gates upgrades | LO releases change layout | — |
 | D16 | Three-tier mark + Inter/JetBrains Mono + vermilion accent | 16px survival measured, not assumed | — |
 | D17 | Rhai for the long-tail escape hatch | pure Rust keeps cross-compiling C-free | need for a JS sandbox |
-| D18 | GitHub presence = **private repo under owner's personal account** (`reinartz/stichos`); no org | owner call 2026-09-07; solo private phase needs no org; MCP namespace follows owner handle (`io.github.reinartz/stichos`) | public launch; or squat of the still-unclaimed `stichos` handle forces the call — **measured 2026-09-08: handle `Stichos` taken (dormant personal account), org path closed — D18 stands** |
+| D18 | GitHub presence = **private repo under owner's personal account** (`reinartz/stichos`); no org | owner call 2026-09-07; solo private phase needs no org; MCP namespace follows owner handle (`io.github.reinartz/stichos`) | public launch; or squat of the still-unclaimed `stichos` handle forces the call — **measured 2026-09-08: handle `Stichos` taken (dormant personal account), org path closed — D18 stands; repo flipped public 2026-10-17 (v0.2.0 release)** |
 | D19 | PDF stack: **lopdf + pdf-writer** pure-Rust core, qpdf shell-out rung, mutool/gs optional D11 rungs, pdfium deferred to G5 | G1 accepted by owner 2026-09-08 (ADR-0001); D2/D8 preserved, AGPL never in-process | G5 experiment (PDF-04 word-bbox) shows pure-Rust extraction insufficient for LIN-01 |
 | D20 | Web identity: **`stichos.dev` only**; no homepage planned; **skip `stichos.com`** | owner call 2026-09-08 (OQ5 domain part); `.com` parked at NameBright since 2016, no need to buy or monitor | a marketing site becomes a requirement |
 | D21 | **No trademark filing** — the open-source project ships unbranded-by-registration; squat-proofing is done via registries + repo (GOV-02), not TM | owner call 2026-09-08: OSS project, filing cost + thin distinctiveness (clearance-memo §3) not justified; risk accepted knowingly | commercial productization, or a confusingly-identical commercial competitor makes defensive filing worthwhile |
@@ -467,7 +467,7 @@ Crate layout: `core` (IR + patch engine, dep-free) · `adapters-ooxml` · `adapt
 | D23 | Office add-in **stays deferred** (ratifies the spike report's proposal row) | distribution blocker (side-load/AppSource) unchanged; browser review shipped | addin-spike triggers 1–4 |
 | D24 | **pdf.js text-layer wave** fires — vendored, hash-pinned, **text layer only, opt-in per session**; raster remains default | M4 intake accepted the PDF review loop; text-selection anchoring is D22's stated trigger; containment beats bundling a viewer | humans need native annot rendering or pdf.js as primary medium |
 | D25 | **Pure-Rust crypto** for PAdES-B-B (RustCrypto family; no `ring`, no OpenSSL, no `-sys`) | D2/D4 preserved; signing must not drag C into the binary; `cargo deny` extends the `-sys` ban to crypto | a hard feature gap (e.g. required smart-card/TSA interop) forces a rung |
-| D26 | **Launch is owner-timed**; M5 ships prep only; D18 stays until the flip | registry/visibility flip is one-way; prep is reversible | owner call in M6 |
+| D26 | **Launch is owner-timed**; M5 ships prep only; D18 stays until the flip | registry/visibility flip is one-way; prep is reversible | **executed 2026-10-17 (v0.2.0: crates.io published, GitHub releases created, winget PR #454769 open, homebrew tap formula submitted)** |
 | D27 | **Context budget adopted as contract C14** (Phase 6 / M6, track CTX): summary-first responses (`inspect_document detail="summary"` default), URL-first images (`output="urls"` default → temp dir, 1 h TTL + startup sweep, `expiresAt`), caps `max_elements=100` / `max_pages=3` (5 for `annotate_pages`) / `max_ops=20` / `max_entries=10`, `dry_run` defaults to `true` with a ≤20-op preview on `apply_patch`/`edit_*`, `__budget { tokens_est, elements_count, image_count }` on every response; shipped as **C7 additive v1.6** | response bloat starves the reasoning turn — full inspect of a 50-page doc exceeds 50k tokens, a 150-DPI base64 page ≈1.5k vision tokens (§10); C14 targets one turn (≈4–8k); the context-side twin of P2/D6; schema changes additive-only, the **default flips are versioned at v1.6 with migration notes** | client feedback shows a default flip hurting real workflows, or an MCP-native pagination/streaming story supersedes C14 |
 | D28 | **Word tier = honest-absent** (Option D) — no commercial Word library; non-Windows uses LibreOffice fallback | zero added cost; no licensing complexity; preserves D2/D4 (pure-Rust, no C deps); shipping simplicity > feature parity at this stage | commercial productization requires consistent Word fidelity across platforms |
 | D29 | Word fidelity: Windows = MS Office COM (high-fidelity, COM-2..6); non-Windows = LibreOffice (best-effort) | honest baseline; no false marketing claims; users on non-Windows can self-host a Windows worker VM | — |

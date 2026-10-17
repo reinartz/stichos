@@ -153,37 +153,36 @@ This makes the release and all artifacts publicly visible.
 
 After the release is published:
 
-1. Download the `winget-manifest` artifact from the GitHub Release
-2. Clone the [winget-pkgs](https://github.com/microsoft/winget-pkgs) repo
-3. Create a new PR with the updated manifest:
+1. Fork [microsoft/winget-pkgs](https://github.com/microsoft/winget-pkgs) if you haven't already.
+2. Create the manifest set in the fork at:
 
 ```
-Path:  packages/s/stichos.stichos/
-File:  0.2.0/stichos.stichos.yaml
+Path:  manifests/o/OleReinartz/stichos/0.2.0/
+Files: version.yaml, installer.yaml, locale.en-US.yaml
 ```
 
+3. Push a branch in the fork and open a PR to `microsoft/winget-pkgs`.
 4. Use this PR template:
 
 ```markdown
-## Package Information
+## New package: OleReinartz.stichos version 0.2.0
 
-- **PackageIdentifier:** stichos.stichos
-- **PackageVersion:** 0.2.0
-- **Validates:** SHA256 check passes
+- PackageIdentifier: OleReinartz.stichos
+- PackageVersion: 0.2.0
+- InstallerType: portable (zip)
+- Validates: SHA256 check passes
 
-## Release Notes
-
-See: https://github.com/reinartz/stichos/releases/tag/v0.2.0
+Release: https://github.com/reinartz/stichos/releases/tag/v0.2.0
 ```
 
-5. The Winget team will validate and merge the PR automatically.
+5. The Winget team will validate and merge the PR automatically. The wingetbot runs checks 01–10 (manifest validation, URL/domain validation, catalog content, installer scan). First-time package submissions typically require a maintainer merge after the installer pipeline completes.
 
 ### Manual installation (pre-Winget merge)
 
-Users can install manually:
+Users can install via the fork's PR:
 
 ```bash
-winget install --id stichos.stichos --source winget --manifest ./stichos.winget.yaml
+winget install --id OleReinartz.stichos --source winget
 ```
 
 ---
@@ -192,33 +191,27 @@ winget install --id stichos.stichos --source winget --manifest ./stichos.winget.
 
 After the release is published:
 
-1. Download the `homebrew-formula` artifact from the GitHub Release
-2. Clone [Homebrew/homebrew-core](https://github.com/Homebrew/homebrew-core)
-3. Create a new PR with the updated formula:
+1. Push the formula to the personal tap `reinartz/homebrew-formulae`:
 
 ```
-Path:  Formula/s/sticho.rb
+Path:  Formula/sticho.rb
 ```
-
-4. Use this PR template:
-
-```markdown
-## Formula Update: sticho 0.2.0
-
-- Update to version 0.2.0
-- Supports: macOS (ARM/x86_64), Linux (ARM/x86_64)
-- Binaries built from source via GitHub Release artifacts
-
-Release: https://github.com/reinartz/stichos/releases/tag/v0.2.0
-```
-
-5. Homebrew maintainers will run CI checks on the formula before merging.
-
-### Manual installation (pre-Homebrew merge)
 
 ```bash
-brew install --HEAD https://raw.githubusercontent.com/<user>/homebrew-core/<pr>/Formula/s/sticho.rb
+# (from stichos repo)
+cp dist/homebrew/sticho.rb .  # if not already staged
+git add Formula/sticho.rb
+git commit -m "chore: release sticho $(grep -m1 'version' Formula/sticho.rb | cut -d\" -f2)"
+git push origin main
 ```
+
+2. Homebrew users install via the tap:
+```bash
+brew tap reinartz/formulae
+brew install reinartz/formulae/sticho
+```
+
+3. To submit to Homebrew/homebrew-core for `brew install sticho` (unbrewed tap), file a PR to `Homebrew/homebrew-core` — note that homebrew-core generally accepts source-built formulas only, not prebuilt binaries. The personal tap is the canonical distribution route for binary-only releases.
 
 ---
 

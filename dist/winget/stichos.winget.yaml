@@ -1,9 +1,0 @@
-PackageIdentifier: stichos.stichos
-PackageVersion: VERSION
-ReleaseDate: DATE
-InstallerType: zip
-Installers:
-  - Architecture: x64
-    Url: https://github.com/reinartz/stichos/releases/download/vVERSION/stichos-x86_64-unknown-linux-gnu.tar.gz
-    Sha256: HASH
-ManifestType: singlePackageVersion
