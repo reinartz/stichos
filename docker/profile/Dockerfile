@@ -49,6 +49,14 @@ RUN apt-get update \
     && fc-cache -f \
     && rm -rf /var/lib/apt/lists/*
 
+# ── Runtime deps shared by engine binaries (headless LO needs X libs) ───────
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+           libxinerama1 libxcomposite1 libxdamage1 libxext6 libxfixes3 \
+           libxi6 libxrandr2 libxrender1 libxt6 libx11-xcb1 \
+           libcups2 libdbus-glib-1-2 libcairo2 libgl1 xz-utils \
+    && rm -rf /var/lib/apt/lists/*
+
 # ── LibreOffice 26.2.5 (pinned, from TDF) ───────────────────────────────────
 # LO_SHA256 is verified against upstream .sha256 file and the file itself.
 ARG LO_VERSION=26.2.5
@@ -93,15 +101,15 @@ RUN apt-get update \
 RUN curl -fL --retry 3 -o /tmp/pandoc.tar.gz \
         "https://github.com/jgm/pandoc/releases/download/3.7.0.2/pandoc-3.7.0.2-linux-amd64.tar.gz" \
     && tar xzf /tmp/pandoc.tar.gz -C /tmp \
-    && cp /tmp/pandoc-3.7.0.2/bin/amd64/linux/pandoc /usr/local/bin/ \
+    && cp /tmp/pandoc-3.7.0.2/bin/pandoc /usr/local/bin/ \
     && rm -rf /tmp/pandoc.tar.gz /tmp/pandoc-3.7.0.2
 
 # ── typst 0.13.1 ────────────────────────────────────────────────────────────
 RUN curl -fL --retry 3 -o /tmp/typst.tar.xz \
-        "https://github.com/typst/typst/releases/download/v0.13.1/typst-linux-x86_64-musl.tar.xz" \
+        "https://github.com/typst/typst/releases/download/v0.13.1/typst-x86_64-unknown-linux-musl.tar.xz" \
     && tar -xJf /tmp/typst.tar.xz -C /tmp \
-    && cp /tmp/typst-linux-x86_64-musl/typst /usr/local/bin/ \
-    && rm -rf /tmp/typst.tar.xz /tmp/typst-linux-x86_64-musl
+    && cp /tmp/typst-x86_64-unknown-linux-musl/typst /usr/local/bin/ \
+    && rm -rf /tmp/typst.tar.xz /tmp/typst-x86_64-unknown-linux-musl
 
 # ── Verify all tools in runtime stage ───────────────────────────────────────
 RUN soffice --headless --version \
