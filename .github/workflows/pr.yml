@@ -38,7 +38,13 @@ jobs:
           python3 - <<'PY'
           import json, re, sys
           from pathlib import Path
-          plan = Path("corpus/PLAN.md").read_text(encoding="utf-8")
+          plan = Path("corpus/PLAN.md")
+          # PLAN.md is local-only under the pre-launch doc exclusion (Option A) —
+          # skip this lint when it is not part of the public tree.
+          if not plan.exists():
+              print("skipped (corpus/PLAN.md is local-only, pre-launch doc exclusion)")
+              sys.exit(0)
+          plan = plan.read_text(encoding="utf-8")
           sec = plan.split("## 2. Category taxonomy")[1].split("## 3.")[0]
           taxonomy = set(re.findall(r"^\|\s*`([a-z0-9]+(?:-[a-z0-9]+)*)`\s*\|", sec, flags=re.M))
           if not taxonomy:
