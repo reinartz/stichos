@@ -9,10 +9,11 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 IMAGE="stichos/profile:latest"
 
 echo "==> Building ${IMAGE} ..."
-docker build --file "${SCRIPT_DIR}/Dockerfile" --tag "${IMAGE}" "${SCRIPT_DIR}/.."
+docker build --file "${SCRIPT_DIR}/Dockerfile" --tag "${IMAGE}" "$REPO_ROOT"
 
 echo "==> Running doctor inside container ..."
 DOCTOR_JSON=$(docker run --rm "${IMAGE}" stichos doctor --json)

@@ -45,7 +45,11 @@ check "support-matrix.md has '24 MCP tools'" bash -c "grep -q '24 MCP tools' '$R
 check "support-matrix.md does not say '19 tools'" bash -c "! grep -q '19 tools' '$ROOT/docs/support-matrix.md'"
 check "CODEBASE.md has '24 specs'" bash -c "grep -q '24 specs' '$ROOT/CODEBASE.md'"
 check "CODEBASE.md does not say '19 specs'" bash -c "! grep -q '19 specs' '$ROOT/CODEBASE.md'"
-check "m4-acceptance.md corrected to 24 tools" bash -c "grep -q '24 MCP tools' '$ROOT/docs/m4-acceptance.md'"
+# m*-acceptance.md is local-only (pre-launch doc exclusion, Option A); skip when
+# it is not part of the public tree (fresh checkout / CI).
+if [ -f "$ROOT/docs/m4-acceptance.md" ]; then
+    check "m4-acceptance.md corrected to 24 tools" bash -c "grep -q '24 MCP tools' '$ROOT/docs/m4-acceptance.md'"
+fi
 
 echo ""
 echo "=== P5-01 results: $PASS passed, $FAIL failed ==="
