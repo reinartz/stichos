@@ -1,5 +1,7 @@
 [package]
 name = "engines"
+description = "Render engine management for stichos — spawned LibreOffice/Chromium/Pandoc/Typst subprocesses, plus MS-Office COM on the Windows host"
+repository = "https://github.com/reinartz/stichos"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

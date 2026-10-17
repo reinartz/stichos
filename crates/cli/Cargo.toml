@@ -1,5 +1,7 @@
 [package]
 name = "stichos"
+description = "stichos — proof-before-publish toolchain for office documents (inspect, render, diff, surgically edit)"
+repository = "https://github.com/reinartz/stichos"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
