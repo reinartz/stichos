@@ -181,9 +181,12 @@ jobs:
 
           # Gather changelog entries or generate from git log
           if [ -f CHANGELOG.md ]; then
-            # Extract entry for this version from changelog
-            awk -v ver="[$VERSION]" '/^## \[/{found=($0 == "## " ver " " || $0 ~ "^## " ver "-")} found' \
-              CHANGELOG.md > release_body.md 2>/dev/null || true
+            # Extract the section for this version (stop at the next `## ` heading)
+            awk -v ver="[${VERSION}]" '
+              index($0, "## " ver) == 1 { print; section = 1; next }
+              section && /^## / { exit }
+              section { print }
+            ' CHANGELOG.md > release_body.md
           fi
 
           # Fallback: use git log for commit messages
@@ -192,8 +195,6 @@ jobs:
             echo "" >> release_body.md
             git log --pretty=format:'- %s' --no-merges 2>/dev/null >> release_body.md || true
           fi
-
-          echo "body=$(cat release_body.md)" >> $GITHUB_OUTPUT
 
       - name: Create Release Draft
         env:
