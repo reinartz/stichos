@@ -92,7 +92,7 @@ jobs:
           true
 
       - name: Cache cargo registry
-        uses: actions/cache@v7
+        uses: actions/cache@v6
         with:
           path: |
             ~/.cargo/registry
@@ -288,7 +288,9 @@ jobs:
 
           mkdir -p dist/homebrew
 
-          cat > dist/homebrew/stichos.rb << 'FORMULA_EOF'
+          # Playbook §5: homebrew-core path is Formula/s/sticho.rb (class Sticho) —
+          # generate under the matching filename.
+          cat > dist/homebrew/sticho.rb << 'FORMULA_EOF'
           class Sticho < Formula
             desc "Local proof/render fidelity toolchain for office documents"
             homepage "https://github.com/reinartz/stichos"
@@ -320,13 +322,13 @@ jobs:
           end
           FORMULA_EOF
 
-          sed -i "s/VERSION_PLACEHOLDER/$VERSION/g" dist/homebrew/stichos.rb
+          sed -i "s/VERSION_PLACEHOLDER/$VERSION/g" dist/homebrew/sticho.rb
 
-          echo "Generated Homebrew formula at dist/homebrew/stichos.rb"
-          cat dist/homebrew/stichos.rb
+          echo "Generated Homebrew formula at dist/homebrew/sticho.rb"
+          cat dist/homebrew/sticho.rb
 
       - name: Upload formula
         uses: actions/upload-artifact@v7
         with:
           name: homebrew-formula
-          path: dist/homebrew/stichos.rb
+          path: dist/homebrew/sticho.rb
