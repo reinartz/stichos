@@ -215,7 +215,7 @@ jobs:
           done
 
           # Create draft release (draft=true)
-          gh release create "$TAG" \
+          if gh release create "$TAG" \
             --draft \
             --title "v${VERSION}" \
             --notes-file release_body.md \
@@ -223,14 +223,21 @@ jobs:
               if [ -f "$f" ]; then
                 echo "$f"
               fi
-            done) 2>/dev/null || {
-            # If release already exists, edit it
+            done); then
+            echo "Draft release created"
+          else
+            # Release already exists for this tag: refresh notes + re-upload assets
+            # but NEVER change the published/draft state of the release.
             gh release edit "$TAG" \
-              --draft \
               --title "v${VERSION}" \
-              --notes-file release_body.md 2>/dev/null || \
-            echo "Could not create/edit release (may need personal access token for artifact upload)"
-          }
+              --notes-file release_body.md
+            gh release upload "$TAG" --clobber \
+              $(for f in artifacts/*/stichos-*.*; do
+                if [ -f "$f" ]; then
+                  echo "$f"
+                fi
+              done)
+          fi
 
   winget-manifest:
     name: Generate Winget Manifest
