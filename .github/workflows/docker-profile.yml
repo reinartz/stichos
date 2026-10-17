@@ -2,7 +2,7 @@
 #
 # Builds and verifies the stichos profile image containing:
 #   stichos binary + LibreOffice 26.2.5 + poppler + fonts + qpdf
-#   + typst + pandoc + veraPDF + minisign
+#   + typst + pandoc + minisign (veraPDF honest-absent: dead 404 pin)
 #
 # Reuses HAR-03 pinning (LO 26.2.5, font set) so fontset_hash is identical
 # to the harness image for golden reproducibility.

@@ -9,8 +9,13 @@
 # Reuses HAR-03 pinning (LO 26.2.5, font set) and the same font packages
 # as docker/harness/Dockerfile so fontset_hash is identical.
 
+# ── Shared build args (visible to all stages via stage-local redeclare) ─────
+ARG LO_VERSION=26.2.5
+
 # ── Stage: build ────────────────────────────────────────────────────────────
-FROM rust:1.98-slim AS build
+# Bookworm base matches the runtime/profile stages (glibc 2.36); a Trixie
+# build stage produces a binary that requires newer glibc and fails at runtime.
+FROM rust:1.98-slim-bookworm AS build
 
 WORKDIR /workspace
 
@@ -86,16 +91,11 @@ RUN set -eux; \
     rm -rf /tmp/lo "/tmp/${tar_name}"; \
     soffice --version
 
-# ── veraPDF 1.6.4 (Java-based PDF/A validator) ─────────────────────────────
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends \
-           default-jre-headless \
-    && rm -rf /var/lib/apt/lists/* \
-    && curl -fL --retry 3 -o /usr/local/bin/verapdf \
-           "https://raw.githubusercontent.com/veraPDF/verapdf-service-sh/refs/tags/verapdf-1.6.4/verapdf/src/main/scripts/verapdf" 2>/dev/null \
-           || curl -fL --retry 3 -o /usr/local/bin/verapdf \
-           "https://raw.githubusercontent.com/veraPDF/verapdf/refs/tags/1.6.4/verapdf/script/verapdf" 2>/dev/null || true \
-    && chmod +x /usr/local/bin/verapdf 2>/dev/null || true
+# ── veraPDF: honest-absent ──────────────────────────────────────────────────
+# The pinned 1.6.4 raw-script URLs publish 404 and the official distribution
+# needs an installer flow (Java + installer zip), so the profile image ships
+# without veraPDF. PDF/A revalidation falls back to qpdf (doctor reports
+# honest-absent otherwise).
 
 # ── pandoc 3.7.0.2 ──────────────────────────────────────────────────────────
 RUN curl -fL --retry 3 -o /tmp/pandoc.tar.gz \
@@ -134,11 +134,15 @@ EOF
 # ── Stage: profile (lean final image) ───────────────────────────────────────
 FROM debian:bookworm-slim AS profile
 
+# Re-declare so the runtime args of the parent stage are visible here
+ARG LO_VERSION
+
 ENV LANG=C.UTF-8 \
     LC_ALL=C.UTF-8 \
     DEBIAN_FRONTEND=noninteractive
 
-# Minimal deps: fontconfig + poppler + qpdf + minisign + fonts
+# Minimal deps: fontconfig + poppler + qpdf + minisign + fonts,
+# plus the headless LibreOffice X/dbus runtime shared by engine binaries
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
            ca-certificates \
@@ -146,6 +150,9 @@ RUN apt-get update \
            poppler-utils \
            qpdf \
            minisign \
+           libxinerama1 libxcomposite1 libxdamage1 libxext6 libxfixes3 \
+           libxi6 libxrandr2 libxrender1 libxt6 libx11-xcb1 \
+           libcups2 libdbus-glib-1-2 libcairo2 libgl1 \
            fonts-crosextra-carlito \
            fonts-crosextra-caladea \
            fonts-liberation \
@@ -155,18 +162,19 @@ RUN apt-get update \
     && fc-cache -f \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy LibreOffice from runtime stage
-COPY --from=runtime /opt/libreoffice /opt/libreoffice
-COPY --from=runtime /usr/local/bin/soffice /usr/local/bin/soffice
-COPY --from=runtime /usr/local/bin/unopkg /usr/local/bin/unopkg
+# Copy LibreOffice from runtime stage. The install dir carries the major
+# version (e.g. /opt/libreoffice26.2); the trailing slashes copy the matched
+# directory's CONTENTS into the same-named destination directory.
+COPY --from=runtime "/opt/libreoffice${LO_VERSION%.*}/" "/opt/libreoffice${LO_VERSION%.*}/"
 COPY --from=runtime /usr/share/fonts /usr/share/fonts
 COPY --from=runtime /etc/fonts /etc/fonts
-COPY --from=runtime /var/lib/fontconfig /var/lib/fontconfig 2>/dev/null || true
+
+# The LO wrapper executables resolve oosplash via their own symlink path and
+# COPY dereferences symlinks, so recreate the links instead of copying them.
+RUN ln -sf "/opt/libreoffice${LO_VERSION%.*}/program/soffice" /usr/local/bin/soffice \
+    && ln -sf "/opt/libreoffice${LO_VERSION%.*}/program/unopkg" /usr/local/bin/unopkg
 
 # Copy tools from runtime
-COPY --from=runtime /usr/bin/java /usr/bin/java
-COPY --from=runtime /usr/lib/jvm /usr/lib/jvm
-COPY --from=runtime /usr/local/bin/verapdf /usr/local/bin/verapdf
 COPY --from=runtime /usr/local/bin/pandoc /usr/local/bin/pandoc
 COPY --from=runtime /usr/local/bin/typst /usr/local/bin/typst
 COPY --from=runtime /opt/stichos /opt/stichos
