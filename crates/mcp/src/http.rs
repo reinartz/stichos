@@ -437,7 +437,7 @@ fn hex_digit(b: u8) -> Option<u8> {
 
 /// Handle GET /review/<token>/ — serve viewer HTML.
 fn handle_review_viewer(_session: &ReviewSession) -> HttpResponse {
-    let html = include_str!("../../../assets/reviewer/index.html").to_string();
+    let html = include_str!("../assets/reviewer/index.html").to_string();
     let mut headers = HashMap::new();
     headers.insert(
         "content-type".to_string(),

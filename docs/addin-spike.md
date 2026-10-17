@@ -20,7 +20,7 @@ The current review mechanism works as follows:
 1. `stichos review <document>` starts an HTTP server bound to `127.0.0.1` on a random port.
 2. A review session is created, yielding a **token** (stored in the session store).
 3. The browser opens `http://127.0.0.1:<port>/review/<token>/`.
-4. The reviewer sees a static HTML page (`assets/reviewer/index.html`) — a single-page app with ~1k LOC of hand-rolled JavaScript, no build step, no external dependencies.
+4. The reviewer sees a static HTML page (`crates/mcp/assets/reviewer/index.html`) — a single-page app with ~1k LOC of hand-rolled JavaScript, no build step, no external dependencies.
 5. The page polls `GET /review/<token>/data.json` every 3 seconds for revision state changes.
 6. Accept/reject actions are POSTed to `POST /review/<token>/action` with `{action, revision_id}`.
 7. Page images are served via `GET /pages/<N>.png` from the engine cache (currently returns 501).
@@ -72,7 +72,7 @@ A Word add-in manifest (`manifest.xml`) would contain:
 
 ### 3.2 Taskpane Implementation
 
-The taskpane would not require new JavaScript logic. The existing `assets/reviewer/index.html` (single-page app, no build step, ~1k LOC) can be served directly by the stichos HTTP server and displayed inside the taskpane iframe.
+The taskpane would not require new JavaScript logic. The existing `crates/mcp/assets/reviewer/index.html` (single-page app, no build step, ~1k LOC) can be served directly by the stichos HTTP server and displayed inside the taskpane iframe.
 
 **Architecture:**
 
@@ -82,7 +82,7 @@ The taskpane would not require new JavaScript logic. The existing `assets/review
 │  ┌────────────────────────────────────────┐  │
 │  │        Office Taskpane (iframe)        │  │
 │  │  ┌──────────────────────────────────┐  │  │
-│  │  │  assets/reviewer/index.html      │  │  │
+│  │  │  crates/mcp/assets/reviewer/index.html      │  │  │
 │  │  │  (existing viewer, served by     │  │  │
 │  │  │   stichos HTTP server)           │  │  │
 │  │  └──────────────────────────────────┘  │  │
@@ -122,7 +122,7 @@ The review token is the authentication mechanism for all review routes. Options 
 | **Post-message protocol** | Taskpane opens a WebSocket or polling endpoint on the stichos server to fetch the token | Token never appears in URLs | Adds complexity; requires new endpoint |
 | **Current approach (no change)** | User copies token from CLI output and pastes into browser | Simple, explicit | Fragile UX — doesn't translate to add-in well |
 
-**Recommendation:** Use `?token={token}` appended to the `SourceLocation` in the manifest. The taskpane is ephemeral (tied to the `stichos review` process lifetime), so token exposure is limited. The existing JS viewer already reads the token from the URL path (`assets/reviewer/index.html:114-121`).
+**Recommendation:** Use `?token={token}` appended to the `SourceLocation` in the manifest. The taskpane is ephemeral (tied to the `stichos review` process lifetime), so token exposure is limited. The existing JS viewer already reads the token from the URL path (`crates/mcp/assets/reviewer/index.html:114-121`).
 
 ### 3.4 API Endpoints Used
 
@@ -231,7 +231,7 @@ Continue with `stichos review` → browser approach as currently implemented.
 - **Taskpane API:** Office JS `Office.context.ui` for messaging between taskpane and host document
 - **LibreOffice add-in support:** LO 7.0+ supports Office Add-ins via the `extensibility` module
 - **Existing review server:** `crates/mcp/src/http.rs` — routes, token auth, CSP headers
-- **Existing reviewer UI:** `assets/reviewer/index.html` — ~1k LOC, no build step, hand-rolled JS
+- **Existing reviewer UI:** `crates/mcp/assets/reviewer/index.html` — ~1k LOC, no build step, hand-rolled JS
 
 ## Appendix B: Security Considerations
 

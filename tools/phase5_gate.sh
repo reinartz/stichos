@@ -322,14 +322,14 @@ else
 fi
 
 # 2e. Check reviewer has text layer code
-if [ -f "assets/reviewer/index.html" ]; then
-    if grep -q "textLayer\|renderTextLayer\|text_layer\|textLayer" assets/reviewer/index.html; then
-        pass "assets/reviewer/index.html has text layer code"
+if [ -f "crates/mcp/assets/reviewer/index.html" ]; then
+    if grep -q "textLayer\|renderTextLayer\|text_layer\|textLayer" crates/mcp/assets/reviewer/index.html; then
+        pass "crates/mcp/assets/reviewer/index.html has text layer code"
     else
-        fail "assets/reviewer/index.html missing text layer code"
+        fail "crates/mcp/assets/reviewer/index.html missing text layer code"
     fi
 else
-    fail "assets/reviewer/index.html missing"
+    fail "crates/mcp/assets/reviewer/index.html missing"
 fi
 
 echo ""
