@@ -30,6 +30,8 @@ jobs:
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
       - name: Install xmllint (OOXML/ODF schema gates shell out to it)
         run: sudo apt-get update && sudo apt-get install -y libxml2-utils
+      - name: Blob bootstrap (corpus is gitignored on fresh checkouts)
+        run: python3 -m gen build
       - name: "Gate 0: intake hygiene"
         run: bash tools/p5_01_verify.sh
       - name: "Gate 0: fixture corpus"

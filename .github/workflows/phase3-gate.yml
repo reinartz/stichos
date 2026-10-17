@@ -25,5 +25,7 @@ jobs:
           toolchain: 1.98
       - name: Install xmllint (OOXML/ODF schema gates shell out to it)
         run: sudo apt-get update && sudo apt-get install -y libxml2-utils
+      - name: Install cargo-deny (phase3 deny check)
+        run: cargo install cargo-deny --locked
       - name: Run phase3 gate
         run: bash tools/phase3_gate.sh --ci

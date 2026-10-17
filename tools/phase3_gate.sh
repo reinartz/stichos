@@ -230,6 +230,8 @@ if [ "$TEST_COUNT" -ge 1400 ] 2>/dev/null; then
     fi
 else
     fail "cargo test --workspace --lib: only ${TEST_COUNT} tests (need ≥ 1400)"
+    echo "  LOG (tail -40):"
+    tail -40 "$LOG"
 fi
 
 # 1f. cargo deny check (accept known Marvin advisory RUSTSEC-2023-0071)
