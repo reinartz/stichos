@@ -90,13 +90,14 @@ fn test_inspect_json() {
     assert_eq!(parsed["ir_version"].as_str().unwrap(), "1.0.0");
     assert!(parsed["document_type"].is_string());
     assert!(parsed["structure"].is_object());
-    assert!(parsed["element_ids"].is_array());
+    // C14 context budget: default summary inspect samples element IDs (element_ids_sample).
+    assert!(parsed["element_ids_sample"].is_array());
     assert!(parsed["total_elements"].is_number());
     assert!(parsed["coordinates"].is_array());
     assert!(parsed["fidelity_budget"].is_object());
 
     // C2 contract: element IDs must have kind/path/id
-    for entry in parsed["element_ids"].as_array().unwrap() {
+    for entry in parsed["element_ids_sample"].as_array().unwrap() {
         assert!(entry["kind"].is_string(), "Missing kind in: {}", entry);
         assert!(entry["path"].is_string(), "Missing path in: {}", entry);
         assert!(entry["id"].is_string(), "Missing id in: {}", entry);
@@ -189,7 +190,7 @@ fn test_diff_json() {
     assert!(parsed["path_b"].is_string());
     assert!(parsed["ir_diff"].is_object());
     assert!(parsed["ir_diff"]["identical"].as_bool().unwrap());
-    assert_eq!(parsed["ir_diff"]["total_ops"].as_u64().unwrap(), 0);
+    assert_eq!(parsed["ir_diff"]["totalOperations"].as_u64().unwrap(), 0);
 }
 
 /// `serve --transport stdio` starts the MCP server and exits on EOF.
