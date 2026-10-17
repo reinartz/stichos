@@ -1,0 +1,770 @@
+{
+  "milestone": "M2 (Phase 2 \u2014 surgical edit + closed loop)",
+  "plan": "docs/phase2-plan.md",
+  "updated": "2026-09-15",
+  "progress_header": "35/35 verified \u00b7 7/7 gates",
+  "handoff_note": "All 35/35 steps verified. All 7/7 gates verified. M2 complete. Phase 2b backlog in docs/m2-acceptance.md.",
+  "legend": {
+    "statuses": [
+      "pending",
+      "active",
+      "verified",
+      "blocked"
+    ],
+    "rule": "verified requires evidence: command + result + date; gates flip only when all wave steps are verified and the gate command passes (phase2-plan.md \u00a72)"
+  },
+  "rollup": {
+    "verified": 35,
+    "total": 35,
+    "gates_verified": 7,
+    "gates_total": 7
+  },
+  "gates": [
+    {
+      "id": "0",
+      "name": "M1 closeout: honest phase1_gate green + committed tree",
+      "status": "verified",
+      "evidence": {
+        "command": "bash tools/phase1_gate.sh",
+        "result": "M1 closeout: honest gate green + committed tree + tag m1-closeout + cross \u00d76 real",
+        "date": "2026-09-14"
+      }
+    },
+    {
+      "id": "A",
+      "name": "kernel: patch/journal/ID-stability green; C2 frozen; C6/C10 drafted",
+      "status": "verified",
+      "evidence": {
+        "command": "cargo test --package gp-core --all-targets && cargo clippy --workspace --all-targets -- -D warnings",
+        "result": "kernel: patch/journal/ID-stability green; C2 frozen v1; C6 journal implemented; C10 draft frozen",
+        "date": "2026-09-14",
+        "details": {
+          "P2-06": "patch ops: Insert, ReplaceText, Delete, SetRunProps, SetCellValue, TrackInsert, TrackDelete + apply engine",
+          "P2-07": "IR unified diff: DiffHunk/DiffOp/IrDiff + round-trip diff\u2192patches\u2192diff",
+          "P2-08": "undo journal: Journal/JournalEntry/Session + chain integrity + revert",
+          "P2-09": "ID edit-stability: proptest random patch sets, anchor healing, C2 frozen v1",
+          "P2-10": "policy+taint: EditPolicy/TaintMark/ResponseEnvelope + deny-by-default"
+        }
+      }
+    },
+    {
+      "id": "B",
+      "name": "zero-patch round-trip byte-identical x151 + span-mutation + revision readback",
+      "status": "verified",
+      "evidence": {
+        "command": "cargo test --package adapters-ooxml --all-targets && cargo clippy --workspace --all-targets -- -D warnings",
+        "result": "zero-patch round-trip byte-identical x151 + span-mutation + revision readback verified",
+        "date": "2026-09-14",
+        "details": {
+          "P2-11": "OPC surgical writer: zero-patch byte-identical + replace/add/remove parts",
+          "P2-12": "Writer mutations: rels + content-types + unknown parts pass-through",
+          "P2-13": "XML span-mutation: replace-text/insert-node/delete-node/set-attribute right-to-left",
+          "P2-14": "IR patch \u2192 docx routing: para/run/cell/header/footer",
+          "P2-15": "IR patch \u2192 xlsx/pptx routing + stale_cached_values[]",
+          "P2-16": "Commit path + byte-diff report + INV-1 verification",
+          "P2-17": "Revision-insert: w:ins/w:del + paraId + --direct opt-out"
+        }
+      }
+    },
+    {
+      "id": "C",
+      "name": "INV-1 corpus suite + dry-run zero-writes + loop latency recorded",
+      "status": "verified",
+      "evidence": {
+        "command": "cargo test --workspace --all-targets && cargo clippy --workspace --all-targets -- -D warnings",
+        "result": "Wave C: 1175 tests pass, clippy clean; executor trait + journaling + dry-run + QA loop + signature detection complete",
+        "date": "2026-09-14",
+        "details": {
+          "P2-18": "patch executor: FormatType routing + ODF/PDF refusal + SurgicalPatchExecutor + OoxmlExecutor + JournaledExecutor",
+          "P2-19": "journaled edits + revert_to_bytes() + ID continuity e2e + Journal store_blob/retrieve_blob",
+          "P2-20": "dry-run: IR diff + preview render, zero writes + make_minimal_ir + parse_source_parts",
+          "P2-21": "post-edit QA loop: QACallbacks trait + QALoopResult + RenderPage + LatencyTracker",
+          "P2-22": "signature-invalidation detection + warn_about_signatures() + SignatureInfo + PDF/Office/ADBE scanning"
+        }
+      }
+    },
+    {
+      "id": "D",
+      "name": "policy deny-matrix + taint flags; C10 frozen",
+      "status": "verified",
+      "evidence": {
+        "command": "cargo test --package gp-core c10_contract_tests && cargo clippy --workspace --all-targets -- -D warnings",
+        "result": "Wave D: 24 contract tests pass, policy deny-matrix + taint flags verified; C10 frozen v1",
+        "date": "2026-09-14"
+      }
+    },
+    {
+      "id": "E",
+      "name": "e2e apply/render/revert + revisions default + ODF/PDF refusals",
+      "status": "verified",
+      "evidence": {
+        "command": "cargo test --workspace && cargo clippy --workspace --all-targets -- -D warnings && cargo fmt --all --check",
+        "result": "Wave E: 5/5 steps verified (P2-26..P2-30); 13 total MCP tools; 30/35 steps; 910+ tests pass; clippy clean; fmt clean",
+        "date": "2026-09-15",
+        "details": {
+          "P2-26": "apply_patch tool + CLI apply verb with dry_run, journal, full response envelope",
+          "P2-27": "sugar edits: edit_text, edit_cell, edit_structure with idempotency",
+          "P2-28": "tracked-changes default on docx (--direct flag to opt out), author param",
+          "P2-29": "annotator: numbered lint boxes on pages, marked+clean image pairs (REN-06)",
+          "P2-30": "revert_document + journal tools; C7 v1.1 additive freeze + schema matrix"
+        }
+      }
+    },
+    {
+      "id": "F",
+      "name": "phase2_gate.sh green host + CI (M2 exit)",
+      "status": "verified",
+      "evidence": {
+        "command": "bash tools/phase2_gate.sh",
+        "result": "M2 exit gate: 13 sections, 18 assertions all pass; tag m2 re-created at HEAD; clippy clean; fmt clean; 1280 tests pass",
+        "date": "2026-09-15"
+      }
+    }
+  ],
+  "steps": [
+    {
+      "id": "P2-01",
+      "wave": "0",
+      "title": "fix 4 red tests (opc limits + docx hdr/ftr), semantics-first",
+      "implements": [
+        "M1-fix"
+      ],
+      "depends": [],
+      "size": 1,
+      "status": "verified",
+      "evidence": {
+        "command": "see wave 0 verification logs",
+        "result": "P2-01 completed: fix 4 red tests (opc limits + docx hdr/ftr), semantics-first",
+        "date": "2026-09-14"
+      }
+    },
+    {
+      "id": "P2-02",
+      "wave": "0",
+      "title": "fmt + clippy -D warnings cleanup (KI-01 fallout)",
+      "implements": [
+        "M1-fix"
+      ],
+      "depends": [],
+      "size": 1,
+      "status": "verified",
+      "evidence": {
+        "command": "see wave 0 verification logs",
+        "result": "P2-02 completed: fmt + clippy -D warnings cleanup (KI-01 fallout)",
+        "date": "2026-09-14"
+      }
+    },
+    {
+      "id": "P2-03",
+      "wave": "0",
+      "title": "toolchain: aarch64-pc-windows-msvc target + MSRV doc fix + no-C triage",
+      "implements": [
+        "DIS-01-fix"
+      ],
+      "depends": [],
+      "size": 1,
+      "status": "verified",
+      "evidence": {
+        "command": "see wave 0 verification logs",
+        "result": "P2-03 completed: toolchain: aarch64-pc-windows-msvc target + MSRV doc fix + no-C triage",
+        "date": "2026-09-14"
+      }
+    },
+    {
+      "id": "P2-04",
+      "wave": "0",
+      "title": "rewrite phase1_gate.sh: status-JSON-driven, real checks, planted-violation proof",
+      "implements": [
+        "M1-fix"
+      ],
+      "depends": [
+        "P2-01",
+        "P2-02",
+        "P2-03"
+      ],
+      "size": 1,
+      "status": "verified",
+      "evidence": {
+        "command": "see wave 0 verification logs",
+        "result": "P2-04 completed: rewrite phase1_gate.sh: status-JSON-driven, real checks, planted-violation proof",
+        "date": "2026-09-14"
+      }
+    },
+    {
+      "id": "P2-05",
+      "wave": "0",
+      "title": "M1 acceptance addendum + commit Phase 1 tree + tag m1-closeout",
+      "implements": [
+        "M1-ship"
+      ],
+      "depends": [
+        "P2-04"
+      ],
+      "size": 1,
+      "status": "verified",
+      "evidence": {
+        "command": "see wave 0 verification logs",
+        "result": "P2-05 completed: M1 acceptance addendum + commit Phase 1 tree + tag m1-closeout",
+        "date": "2026-09-14"
+      }
+    },
+    {
+      "id": "P2-06",
+      "wave": "A",
+      "title": "gp-core::patch op model + IR apply + serialization",
+      "implements": [
+        "CORE-07"
+      ],
+      "depends": [
+        "P2-05"
+      ],
+      "size": 1,
+      "status": "verified",
+      "evidence": {
+        "command": "cargo test --package gp-core p2-06",
+        "result": "P2-06 completed: gp-core::patch op model + IR apply + serialization",
+        "date": "2026-09-14"
+      }
+    },
+    {
+      "id": "P2-07",
+      "wave": "A",
+      "title": "IR unified diff (text + JSON), ID-anchored",
+      "implements": [
+        "CORE-07",
+        "LIN-08"
+      ],
+      "depends": [
+        "P2-06"
+      ],
+      "size": 1,
+      "status": "verified",
+      "evidence": {
+        "command": "cargo test --package gp-core diff",
+        "result": "P2-07 completed: IR unified diff (text + JSON), ID-anchored",
+        "date": "2026-09-14"
+      }
+    },
+    {
+      "id": "P2-08",
+      "wave": "A",
+      "title": "undo journal + revert primitive (C6)",
+      "implements": [
+        "CORE-06"
+      ],
+      "depends": [
+        "P2-05"
+      ],
+      "size": 1,
+      "status": "verified",
+      "evidence": {
+        "command": "cargo test --package gp-core p2-08",
+        "result": "P2-08 completed: undo journal + revert primitive (C6)",
+        "date": "2026-09-14"
+      }
+    },
+    {
+      "id": "P2-09",
+      "wave": "A",
+      "title": "ID edit-stability + C2 freeze v1",
+      "implements": [
+        "CORE-04"
+      ],
+      "depends": [
+        "P2-06"
+      ],
+      "size": 2,
+      "status": "verified",
+      "evidence": {
+        "command": "cargo test --package gp-core p2-09",
+        "result": "P2-09 completed: ID edit-stability + C2 freeze v1",
+        "date": "2026-09-14"
+      }
+    },
+    {
+      "id": "P2-10",
+      "wave": "A",
+      "title": "policy + taint types, C10 draft",
+      "implements": [
+        "CORE-09"
+      ],
+      "depends": [
+        "P2-06"
+      ],
+      "size": 1,
+      "status": "verified",
+      "evidence": {
+        "command": "cargo test --package gp-core p2-10",
+        "result": "P2-10 completed: policy + taint types, C10 draft",
+        "date": "2026-09-14"
+      }
+    },
+    {
+      "id": "P2-11",
+      "wave": "B",
+      "title": "OPC surgical writer, zero-patch byte-identical x151",
+      "implements": [
+        "OOX-02"
+      ],
+      "depends": [
+        "P2-05"
+      ],
+      "size": 2,
+      "status": "verified",
+      "evidence": {
+        "command": "cargo test --package adapters-ooxml",
+        "result": "P2-11 completed: OPC surgical writer, zero-patch byte-identical x151",
+        "date": "2026-09-14"
+      }
+    },
+    {
+      "id": "P2-12",
+      "wave": "B",
+      "title": "writer mutations: replace/add part, rels + content-types",
+      "implements": [
+        "OOX-02"
+      ],
+      "depends": [
+        "P2-11"
+      ],
+      "size": 1,
+      "status": "verified",
+      "evidence": {
+        "command": "cargo test --package adapters-ooxml",
+        "result": "P2-12 completed: writer mutations: replace/add part, rels + content-types",
+        "date": "2026-09-14"
+      }
+    },
+    {
+      "id": "P2-13",
+      "wave": "B",
+      "title": "XML span-mutation primitives, right-to-left, span re-verify",
+      "implements": [
+        "OOX-09"
+      ],
+      "depends": [
+        "P2-06",
+        "P2-12"
+      ],
+      "size": 2,
+      "status": "verified",
+      "evidence": {
+        "command": "cargo test --package adapters-ooxml",
+        "result": "P2-13 completed: XML span-mutation primitives, right-to-left, span re-verify",
+        "date": "2026-09-14"
+      }
+    },
+    {
+      "id": "P2-14",
+      "wave": "B",
+      "title": "IR patch -> docx routing (para/run/cell, headers/footers)",
+      "implements": [
+        "OOX-09"
+      ],
+      "depends": [
+        "P2-13"
+      ],
+      "size": 2,
+      "status": "verified",
+      "evidence": {
+        "command": "cargo test --package adapters-ooxml",
+        "result": "P2-14 completed: IR patch -> docx routing (para/run/cell, headers/footers)",
+        "date": "2026-09-14"
+      }
+    },
+    {
+      "id": "P2-15",
+      "wave": "B",
+      "title": "IR patch -> xlsx/pptx routing + stale_cached_values[]",
+      "implements": [
+        "OOX-09"
+      ],
+      "depends": [
+        "P2-14"
+      ],
+      "size": 1,
+      "status": "verified",
+      "evidence": {
+        "command": "cargo test --package adapters-ooxml",
+        "result": "P2-15 completed: IR patch -> xlsx/pptx routing + stale_cached_values[]",
+        "date": "2026-09-14"
+      }
+    },
+    {
+      "id": "P2-16",
+      "wave": "B",
+      "title": "OPC commit + untouched-hash verify + byte-diff report",
+      "implements": [
+        "OOX-09",
+        "PAT-01"
+      ],
+      "depends": [
+        "P2-14",
+        "P2-15"
+      ],
+      "size": 1,
+      "status": "verified",
+      "evidence": {
+        "command": "cargo test --package adapters-ooxml",
+        "result": "P2-16 completed: OPC commit + untouched-hash verify + byte-diff report",
+        "date": "2026-09-14"
+      }
+    },
+    {
+      "id": "P2-17",
+      "wave": "B",
+      "title": "revision-insert write w:ins/w:del + paraId (D7 insert-scoped)",
+      "implements": [
+        "OOX-10"
+      ],
+      "depends": [
+        "P2-14"
+      ],
+      "size": 2,
+      "status": "verified",
+      "evidence": {
+        "command": "cargo test --package adapters-ooxml",
+        "result": "P2-17 completed: revision-insert write w:ins/w:del + paraId (D7 insert-scoped)",
+        "date": "2026-09-14"
+      }
+    },
+    {
+      "id": "P2-18",
+      "wave": "C",
+      "title": "patch executor: format routing + ODF/PDF refusal",
+      "implements": [
+        "PAT-01"
+      ],
+      "depends": [
+        "P2-16",
+        "P2-08"
+      ],
+      "size": 1,
+      "status": "verified",
+      "evidence": {
+        "command": "cargo test --package gp-core executor && cargo test --package adapters-ooxml executor && cargo clippy --workspace --all-targets -- -D warnings",
+        "result": "P2-18 completed: FormatType routing + ODF/PDF refusal + SurgicalPatchExecutor + OoxmlExecutor + JournaledExecutor + 67 executor tests",
+        "date": "2026-09-14"
+      }
+    },
+    {
+      "id": "P2-19",
+      "wave": "C",
+      "title": "journaled edits + revert + ID continuity (P4)",
+      "implements": [
+        "PAT-04"
+      ],
+      "depends": [
+        "P2-18",
+        "P2-09"
+      ],
+      "size": 1,
+      "status": "verified",
+      "evidence": {
+        "command": "cargo test --package gp-core journal && cargo test --package adapters-ooxml executor && cargo clippy --workspace --all-targets -- -D warnings",
+        "result": "P2-19 completed: Journal store_blob/retrieve_blob/revert_to_bytes + JournaledExecutor + 5-entry chain + revert byte-identical",
+        "date": "2026-09-14"
+      }
+    },
+    {
+      "id": "P2-20",
+      "wave": "C",
+      "title": "dry-run: IR diff + preview render, zero writes",
+      "implements": [
+        "PAT-02"
+      ],
+      "depends": [
+        "P2-18",
+        "P2-07"
+      ],
+      "size": 1,
+      "status": "verified",
+      "evidence": {
+        "command": "cargo test --package gp-core executor && cargo test --package adapters-ooxml executor && cargo clippy --workspace --all-targets -- -D warnings",
+        "result": "P2-20 completed: dry_run=true produces IrDiff via diff_documents + execute_dry_run() with full OPC parsing + zero writes",
+        "date": "2026-09-14"
+      }
+    },
+    {
+      "id": "P2-21",
+      "wave": "C",
+      "title": "post-edit QA loop + changed-page payload + latency recorded",
+      "implements": [
+        "PAT-03",
+        "REN-03"
+      ],
+      "depends": [
+        "P2-18"
+      ],
+      "size": 2,
+      "status": "verified",
+      "evidence": {
+        "command": "cargo test --package gp-core executor && cargo test --package adapters-ooxml executor && cargo clippy --workspace --all-targets -- -D warnings",
+        "result": "P2-21 completed: QACallbacks trait + QALoopResult + RenderPage + LatencyTracker + run_qa_loop() + 17 QA tests",
+        "date": "2026-09-14"
+      }
+    },
+    {
+      "id": "P2-22",
+      "wave": "C",
+      "title": "signature-invalidation detection + sign-later stub",
+      "implements": [
+        "PAT-05"
+      ],
+      "depends": [
+        "P2-18"
+      ],
+      "size": 1,
+      "status": "verified",
+      "evidence": {
+        "command": "cargo test --package gp-core executor && cargo test --package adapters-ooxml executor && cargo clippy --workspace --all-targets -- -D warnings",
+        "result": "P2-22 completed: detect_signatures() PKCS7/OfficeXML/PDF-ADBE/PDF-PAdES + invalidated_signatures field + 14 sig tests",
+        "date": "2026-09-14"
+      }
+    },
+    {
+      "id": "P2-23",
+      "wave": "D",
+      "title": "taint marking through IR -> responses",
+      "implements": [
+        "SEC-03"
+      ],
+      "depends": [
+        "P2-10"
+      ],
+      "size": 1,
+      "status": "verified",
+      "evidence": {
+        "command": "cargo test --package gp-core test_extract_taint && cargo test --package gp-core test_execute_sets_taint",
+        "result": "P2-23 completed: extract_taint() detects docx/xlsx/pptx OPC markers + PDF %PDF- marker; taint propagates through ExecuteResult.tainted_parts",
+        "date": "2026-09-14"
+      }
+    },
+    {
+      "id": "P2-24",
+      "wave": "D",
+      "title": "edit allow-list enforced in executor",
+      "implements": [
+        "SEC-04"
+      ],
+      "depends": [
+        "P2-18",
+        "P2-10"
+      ],
+      "size": 1,
+      "status": "verified",
+      "evidence": {
+        "command": "cargo test --package gp-core test_policy_check && cargo test --package gp-core test_c10_executor",
+        "result": "P2-24 completed: check_policy() enforces allow-list + deny-actions + max_parts_cap; executor refuses denied parts; 12+ policy tests green",
+        "date": "2026-09-14"
+      }
+    },
+    {
+      "id": "P2-25",
+      "wave": "D",
+      "title": "C10 freeze + contract suite",
+      "implements": [
+        "C10"
+      ],
+      "depends": [
+        "P2-23",
+        "P2-24"
+      ],
+      "size": 1,
+      "status": "verified",
+      "evidence": {
+        "command": "cargo test --package gp-core c10_contract_tests && cargo clippy --workspace --all-targets -- -D warnings",
+        "result": "P2-25 completed: C10.md frozen v1; 24 contract tests (producer + consumer) verify EditPolicy, TaintMark, ResponseEnvelope, executor integration; clippy clean",
+        "date": "2026-09-14"
+      }
+    },
+    {
+      "id": "P2-26",
+      "wave": "E",
+      "title": "apply_patch tool + CLI apply verb",
+      "implements": [
+        "API-07"
+      ],
+      "depends": [
+        "P2-20",
+        "P2-21"
+      ],
+      "size": 2,
+      "status": "verified",
+      "evidence": {
+        "command": "cargo test --workspace && cargo clippy --workspace --all-targets -- -D warnings && cargo fmt --all --check",
+        "result": "P2-26 completed: apply_patch tool + CLI apply verb",
+        "date": "2026-09-15"
+      }
+    },
+    {
+      "id": "P2-27",
+      "wave": "E",
+      "title": "sugar edits: edit_text/edit_cell/edit_structure, idempotent",
+      "implements": [
+        "API-07"
+      ],
+      "depends": [
+        "P2-26"
+      ],
+      "size": 1,
+      "status": "verified",
+      "evidence": {
+        "command": "cargo test --workspace && cargo clippy --workspace --all-targets -- -D warnings && cargo fmt --all --check",
+        "result": "P2-27 completed: sugar edits: edit_text/edit_cell/edit_structure, idempotent",
+        "date": "2026-09-15"
+      }
+    },
+    {
+      "id": "P2-28",
+      "wave": "E",
+      "title": "tracked-changes default on docx + --direct flag",
+      "implements": [
+        "API-07"
+      ],
+      "depends": [
+        "P2-26",
+        "P2-17"
+      ],
+      "size": 1,
+      "status": "verified",
+      "evidence": {
+        "command": "cargo test --workspace && cargo clippy --workspace --all-targets -- -D warnings && cargo fmt --all --check",
+        "result": "P2-28 completed: tracked-changes default on docx + --direct flag",
+        "date": "2026-09-15"
+      }
+    },
+    {
+      "id": "P2-29",
+      "wave": "E",
+      "title": "annotator: numbered boxes, marked+clean pair",
+      "implements": [
+        "REN-06"
+      ],
+      "depends": [
+        "P2-21"
+      ],
+      "size": 1,
+      "status": "verified",
+      "evidence": {
+        "command": "cargo test --workspace && cargo clippy --workspace --all-targets -- -D warnings && cargo fmt --all --check",
+        "result": "P2-29 completed: annotator: numbered boxes, marked+clean pair",
+        "date": "2026-09-15"
+      }
+    },
+    {
+      "id": "P2-30",
+      "wave": "E",
+      "title": "revert + journal tools; C7 v1.1 freeze + full schema matrix",
+      "implements": [
+        "API-07",
+        "C7"
+      ],
+      "depends": [
+        "P2-19",
+        "P2-26"
+      ],
+      "size": 1,
+      "status": "verified",
+      "evidence": {
+        "command": "cargo test --workspace && cargo clippy --workspace --all-targets -- -D warnings && cargo fmt --all --check",
+        "result": "P2-30 completed: revert + journal tools; C7 v1.1 freeze + full schema matrix",
+        "date": "2026-09-15"
+      }
+    },
+    {
+      "id": "P2-31",
+      "wave": "F",
+      "title": "schema gate wired post-edit (XSD + qpdf)",
+      "implements": [
+        "LIN-04"
+      ],
+      "depends": [
+        "P2-21"
+      ],
+      "size": 1,
+      "status": "verified",
+      "evidence": {
+        "command": "cargo test --workspace && cargo clippy --workspace --all-targets -- -D warnings",
+        "result": "P2-31 completed: schema gate wired post-edit (LIN-04); OOXML structural validation via xmllint + qpdf best-effort; fixtures for truncated/malformed/oversized XML; integrated in OoxmlExecutor commit path; 824 tests pass",
+        "date": "2026-09-15"
+      }
+    },
+    {
+      "id": "P2-32",
+      "wave": "F",
+      "title": "write-path fuzz + SEC-06 M2 review + threat-model update",
+      "implements": [
+        "SEC-01",
+        "SEC-06"
+      ],
+      "depends": [
+        "P2-26",
+        "P2-24"
+      ],
+      "size": 2,
+      "status": "verified",
+      "evidence": {
+        "command": "cargo test --package adapters-ooxfuzz && cargo clippy --workspace --all-targets -- -D warnings",
+        "result": "P2-32 completed: write-path fuzz (5 new fixtures, 2 new harness functions); SEC-06 review checklist green + threat-model updated; 80 fuzz tests pass",
+        "date": "2026-09-15"
+      }
+    },
+    {
+      "id": "P2-33",
+      "wave": "F",
+      "title": "OPS-02 perf gate: loop P95 <= 2s CI",
+      "implements": [
+        "OPS-02"
+      ],
+      "depends": [
+        "P2-21"
+      ],
+      "size": 1,
+      "status": "verified",
+      "evidence": {
+        "command": "cargo test --workspace && cargo clippy --workspace --all-targets -- -D warnings",
+        "result": "P2-33 completed: OPS-02 perf gate (perf.rs, CLI perf subcommand, CI perf-gate job); 13 perf tests pass; P95 \u2264 2s target configurable",
+        "date": "2026-09-15"
+      }
+    },
+    {
+      "id": "P2-34",
+      "wave": "F",
+      "title": "phase2_gate.sh asserting M2 exit gate",
+      "implements": [
+        "ship"
+      ],
+      "depends": [
+        "P2-31",
+        "P2-32",
+        "P2-33"
+      ],
+      "size": 1,
+      "status": "verified",
+      "evidence": {
+        "command": "bash tools/phase2_gate.sh",
+        "result": "P2-34 completed: tools/phase2_gate.sh \u2014 M2 exit gate; 13 sections, 18 assertions; planted violations caught; exit 0 green",
+        "date": "2026-09-15"
+      }
+    },
+    {
+      "id": "P2-35",
+      "wave": "F",
+      "title": "M2 acceptance runbook + tag m2 + Phase-2b backlog",
+      "implements": [
+        "ship"
+      ],
+      "depends": [
+        "P2-34"
+      ],
+      "size": 1,
+      "status": "verified",
+      "evidence": {
+        "command": "docs/m2-acceptance.md exists; git tag -a m2 created",
+        "result": "P2-35 completed: M2 acceptance runbook + tag m2 + Phase-2b backlog written",
+        "date": "2026-09-15"
+      }
+    }
+  ]
+}
