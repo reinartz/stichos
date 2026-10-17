@@ -5,17 +5,26 @@ on:
   pull_request:
     branches: [ main ]
 
+env:
+  # phase gates bootstrap the fixture corpus (gen build) on fresh checkouts
+  PYTHONPATH: harness/generator
+
 jobs:
   phase5-gate:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: install harness dev deps (dev-only, never shipped — concept §6)
+        run: pip install -r harness/requirements-dev.txt
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@master
         with:
           toolchain: 1.98.0
       - name: Cache cargo registry
-        uses: actions/cache@v7
+        uses: actions/cache@v6
         with:
           path: ~/.cargo/registry
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}

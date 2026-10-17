@@ -5,11 +5,20 @@ on:
   pull_request:
   workflow_dispatch:
 
+env:
+  # phase gates bootstrap the fixture corpus (gen build) on fresh checkouts
+  PYTHONPATH: harness/generator
+
 jobs:
   gate:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: install harness dev deps (dev-only, never shipped — concept §6)
+        run: pip install -r harness/requirements-dev.txt
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@master
         with:
