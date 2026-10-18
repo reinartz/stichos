@@ -1,8 +1,7 @@
 [package]
 name = "stichos-lint"
 description = "Fidelity linting for stichos — budget, SSIM, contrast, font, diff and crop metrics"
-readme = "../README.md"
-include = ["src/**/*", "Cargo.toml", "../README.md"]
+readme = "../../README.md"
 repository = "https://github.com/reinartz/stichos"
 version.workspace = true
 edition.workspace = true

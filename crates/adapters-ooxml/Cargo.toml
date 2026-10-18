@@ -1,8 +1,7 @@
 [package]
 name = "adapters-ooxml"
 description = "OOXML (docx/xlsx/pptx) OPC packaging, XML parsing and read/write adapters for the stichos toolchain"
-readme = "../README.md"
-include = ["src/**/*", "Cargo.toml", "../README.md"]
+readme = "../../README.md"
 repository = "https://github.com/reinartz/stichos"
 version.workspace = true
 edition.workspace = true

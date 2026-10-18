@@ -1,8 +1,7 @@
 [package]
 name = "adapters-pdf"
 description = "PDF parser, text, forms, annotations, outlines and incremental writer for the stichos toolchain"
-readme = "../README.md"
-include = ["src/**/*", "Cargo.toml", "../README.md"]
+readme = "../../README.md"
 repository = "https://github.com/reinartz/stichos"
 version.workspace = true
 edition.workspace = true
