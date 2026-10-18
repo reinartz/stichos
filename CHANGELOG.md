@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## [0.2.2] — 2026-10-18
+
+- Add per-crate `README.md` for all 8 published crates (what it does, install, usage example,
+  when to use, limitations, related crates); each crate now ships its own README on crates.io
+  instead of the workspace root README.
+- Documentation only — no code or API changes.
+
+
 ## [0.2.1] — 2026-10-17
 
 - Version bump: 0.2.0 → 0.2.1
