@@ -4,7 +4,7 @@ version = 4
 
 [[package]]
 name = "adapters-odf"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "serde",
  "serde_json",
@@ -15,7 +15,7 @@ dependencies = [
 
 [[package]]
 name = "adapters-ooxfuzz"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "adapters-odf",
  "adapters-ooxml",
@@ -31,7 +31,7 @@ dependencies = [
 
 [[package]]
 name = "adapters-ooxml"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "hex",
  "proptest",
@@ -48,7 +48,7 @@ dependencies = [
 
 [[package]]
 name = "adapters-pdf"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "lopdf",
  "pdf-writer",
@@ -990,7 +990,7 @@ dependencies = [
 
 [[package]]
 name = "engines"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "adapters-ooxml",
  "anyhow",
@@ -3128,7 +3128,7 @@ checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 
 [[package]]
 name = "stichos"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "adapters-odf",
  "adapters-ooxml",
@@ -3156,7 +3156,7 @@ dependencies = [
 
 [[package]]
 name = "stichos-core"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "anyhow",
  "base64 0.22.1",
@@ -3197,7 +3197,7 @@ dependencies = [
 
 [[package]]
 name = "stichos-lint"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "anyhow",
  "base64 0.22.1",
@@ -3211,7 +3211,7 @@ dependencies = [
 
 [[package]]
 name = "stichos-mcp"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "anyhow",
  "async-trait",
