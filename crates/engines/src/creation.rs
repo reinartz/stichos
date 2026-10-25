@@ -1638,6 +1638,10 @@ mod tests {
     #[test]
     fn test_create_document_dry_run_returns_preview_bytes() {
         // dry_run=true should not write to store but return preview bytes
+        if !crate::pandoc::is_available() {
+            eprintln!("SKIP: pandoc not installed (required for markdown→docx)");
+            return;
+        }
         let result = create_document(
             b"# Hello", "markdown", "docx", None, true, None, "agent", false,
         );
@@ -1666,6 +1670,10 @@ mod tests {
     #[test]
     fn test_create_document_dry_run_false_no_preview_bytes() {
         // dry_run=false should NOT include preview_bytes (to avoid bloating responses)
+        if !crate::pandoc::is_available() {
+            eprintln!("SKIP: pandoc not installed (required for markdown→docx)");
+            return;
+        }
         let result = create_document(
             b"# Hello", "markdown", "docx", None, false, None, "agent", false,
         );
@@ -1686,6 +1694,10 @@ mod tests {
 
     #[test]
     fn test_create_document_returns_store_root_when_not_dry_run() {
+        if !crate::pandoc::is_available() {
+            eprintln!("SKIP: pandoc not installed (required for markdown→docx)");
+            return;
+        }
         let result = create_document(
             b"# Store Handback Test\n\nContent here.",
             "markdown",
@@ -1722,6 +1734,10 @@ mod tests {
 
     #[test]
     fn test_create_document_store_root_null_when_dry_run() {
+        if !crate::pandoc::is_available() {
+            eprintln!("SKIP: pandoc not installed (required for markdown→docx)");
+            return;
+        }
         let result = create_document(
             b"# Dry Run Store Test\n\nContent here.",
             "markdown",
@@ -1749,6 +1765,10 @@ mod tests {
 
     #[test]
     fn test_create_document_blob_exists_at_store_root() {
+        if !crate::pandoc::is_available() {
+            eprintln!("SKIP: pandoc not installed (required for markdown→docx)");
+            return;
+        }
         let result = create_document(
             b"# Blob Existence Test\n\nVerifying blob storage.",
             "markdown",
@@ -1810,6 +1830,10 @@ mod tests {
     fn test_create_document_markdown_to_pdf_no_latex_fallback_chromium() {
         // When no LaTeX is available but chromium is, fallback to chromium via html
         // This test validates the markdown→html→pdf fallback chain works
+        if !crate::pandoc::is_available() {
+            eprintln!("SKIP: pandoc not installed (markdown→html step requires it)");
+            return;
+        }
         let has_latex = crate::pandoc::is_latex_available();
         let has_chromium = ChromiumEngine::new_auto().is_ok();
 

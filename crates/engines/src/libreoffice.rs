@@ -825,17 +825,25 @@ fn fontset_hash_impl() -> Option<String> {
 mod tests {
     use super::*;
 
+    /// Resolve a soffice path from this host, or print a skip notice.
+    /// CI runners have no LibreOffice; these tests must not assume it exists.
+    fn lo_path_or_skip(test: &str) -> Option<String> {
+        match find_lo_binary() {
+            Some(p) => Some(p),
+            None => {
+                eprintln!("SKIP {test}: no soffice/libreoffice binary found");
+                None
+            }
+        }
+    }
+
     #[test]
     fn test_libreoffice_engine_creation() {
-        #[cfg(windows)]
-        let path = r"C:\Program Files\LibreOffice\program\soffice.bin";
-        #[cfg(not(windows))]
-        let path = "/usr/bin/soffice";
-        let result = LibreOfficeEngine::new(path);
-        assert!(
-            result.is_ok(),
-            "engine creation should succeed for valid path"
-        );
+        let Some(path) = lo_path_or_skip("test_libreoffice_engine_creation") else {
+            return;
+        };
+        let result = LibreOfficeEngine::new(&path);
+        assert!(result.is_ok(), "engine creation should succeed for {path}");
     }
 
     #[test]
@@ -958,20 +966,21 @@ mod tests {
 
     #[test]
     fn test_find_lo_binary() {
-        let result = find_lo_binary();
-        assert!(
-            result.is_some(),
-            "should find soffice binary on this system"
-        );
+        match find_lo_binary() {
+            Some(p) => assert!(
+                std::path::Path::new(&p).exists(),
+                "detected soffice path should exist: {p}"
+            ),
+            None => eprintln!("SKIP test_find_lo_binary: no soffice/libreoffice binary found"),
+        }
     }
 
     #[test]
     fn test_is_available() {
-        #[cfg(windows)]
-        let path = r"C:\Program Files\LibreOffice\program\soffice.bin";
-        #[cfg(not(windows))]
-        let path = "/usr/bin/soffice";
-        let engine = lo_engine(path);
+        let Some(path) = lo_path_or_skip("test_is_available") else {
+            return;
+        };
+        let engine = lo_engine(&path);
         assert!(engine.is_available());
     }
 
@@ -982,11 +991,10 @@ mod tests {
 
     #[test]
     fn test_engine_info() {
-        #[cfg(windows)]
-        let path = r"C:\Program Files\LibreOffice\program\soffice.bin";
-        #[cfg(not(windows))]
-        let path = "/usr/bin/soffice";
-        let engine = lo_engine(path);
+        let Some(path) = lo_path_or_skip("test_engine_info") else {
+            return;
+        };
+        let engine = lo_engine(&path);
         let info = engine.info();
         assert_eq!(info.engine_id, "libreoffice");
         assert!(info.is_available);

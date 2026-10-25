@@ -896,9 +896,16 @@ mod tests {
 
     #[test]
     fn test_which_binary_detects_known() {
-        // pandoc is available on this system (required by test suite)
-        let result = which_binary("pandoc");
-        assert!(result.is_some(), "pandoc should be on PATH for tests");
+        // Probe a binary every supported host has rather than assuming pandoc
+        // is installed (bare CI runners do not ship pandoc).
+        #[cfg(windows)]
+        let known = "cmd";
+        #[cfg(not(windows))]
+        let known = "sh";
+        assert!(
+            which_binary(known).is_some(),
+            "{known} should be on PATH for tests"
+        );
     }
 
     #[test]
