@@ -1,7 +1,8 @@
 # stichos
 
 Stichos is a document fidelity tool: inspect, render, diff, and surgically edit Office and PDF
-documents.  Feature-complete at version 0.2.0; first public release 2026-10-17.  The Rust workspace lives in
+documents.  Feature-complete since version 0.2.0; current release 0.2.2; first public release
+2026-10-17.  The Rust workspace lives in
 `crates/`; `harness/`, `corpus/`, `docker/`, `baseline/`, `.github/` hold the Python fidelity
 harness and supporting material.
 
@@ -67,4 +68,4 @@ Engines are spawned subprocesses, never linked; zero hard external deps.
 ## Current status
 
 - Test counts: **2 350 pass / 0 fails** (workspace lib), **93 / 0** (mcp)
-- Version 0.2.0; `v0.2.0` tag published; repo public (flipped 2026-10-17).
+- Version 0.2.2; `v0.2.2` tag published; repo public (flipped 2026-10-17).
