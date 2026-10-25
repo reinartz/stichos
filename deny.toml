@@ -30,6 +30,14 @@ ignore = [
     "RUSTSEC-2026-0369",
     "RUSTSEC-2026-0367",
     "RUSTSEC-2026-0368",
+    # RSA signing (PDF sign/verify) is local-only, never network-facing. The
+    # advisory itself notes local use on a non-compromised machine is fine; no
+    # safe upgrade exists (rsa 0.9.10 is latest stable; 0.10 is still RC).
+    "RUSTSEC-2023-0071",
+    # crypto-bigint 0.5.5 secret-dependent branches (via rsa -> elliptic-curve
+    # 0.13 -> p384). 0.5.5 is the newest 0.5.x; the fix needs elliptic-curve
+    # 0.14 / rsa 0.10 (RC). Same local-signing threat model as 2023-0071.
+    "RUSTSEC-2026-0387",
 ]
 
 [licenses]

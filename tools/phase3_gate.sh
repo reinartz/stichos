@@ -234,8 +234,8 @@ else
     tail -40 "$LOG"
 fi
 
-# 1f. cargo deny check (accept known Marvin advisory RUSTSEC-2023-0071)
-echo "  Running: cargo deny check (accepting known Marvin advisory)"
+# 1f. cargo deny check (accepted advisories are listed in deny.toml [advisories].ignore)
+echo "  Running: cargo deny check (accepted advisories in deny.toml)"
 LOG=$(mktemp)
 LOGS+=("$LOG")
 set +e
@@ -245,13 +245,9 @@ set -e
 if [ "$DENY_RC" -eq 0 ]; then
     pass "cargo deny check: clean"
 else
-    if grep -q "RUSTSEC-2023-0071" "$LOG" 2>/dev/null && grep -q "bans ok\|licenses ok\|sources ok" "$LOG" 2>/dev/null; then
-        pass "cargo deny check: exit ${DENY_RC} (known Marvin advisory RUSTSEC-2023-0071 accepted, bans/licenses/sources ok)"
-    else
-        fail "cargo deny check: exit ${DENY_RC} (unknown failures)"
-        echo "  LOG (tail -20):"
-        tail -20 "$LOG"
-    fi
+    fail "cargo deny check: exit ${DENY_RC}"
+    echo "  LOG (tail -30):"
+    tail -30 "$LOG"
 fi
 
 echo ""
