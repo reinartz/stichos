@@ -62,15 +62,18 @@ RUN apt-get update \
            libcups2 libdbus-glib-1-2 libcairo2 libgl1 xz-utils \
     && rm -rf /var/lib/apt/lists/*
 
-# ── LibreOffice 26.2.5 (pinned, from TDF) ───────────────────────────────────
-# LO_SHA256 is verified against upstream .sha256 file and the file itself.
+# ── LibreOffice 26.2.5 (pinned, from the TDF archive) ───────────────────────
+# TDF rotates point releases out of .../stable/; the official archive names files
+# by micro build (26.2.5.2) and publishes .asc rather than .sha256. LO_SHA256 is
+# the pinned trust anchor (captured from upstream .sha256 while 26.2.5 was stable).
 ARG LO_VERSION=26.2.5
+ARG LO_BUILD=26.2.5.2
 ARG LO_SHA256=2f03bfb2ac9f33ea7c77331b4b7a23300fb0ed7443566046bf8b5bc51c1bed1e
-ARG LO_BASE_URL=https://download.documentfoundation.org/libreoffice/stable
+ARG LO_BASE_URL=https://downloadarchive.documentfoundation.org/libreoffice/old
 
 RUN set -eux; \
-    tar_name="LibreOffice_${LO_VERSION}_Linux_x86-64_deb.tar.gz"; \
-    url="${LO_BASE_URL}/${LO_VERSION}/deb/x86_64/${tar_name}"; \
+    tar_name="LibreOffice_${LO_BUILD}_Linux_x86-64_deb.tar.gz"; \
+    url="${LO_BASE_URL}/${LO_BUILD}/deb/x86_64/${tar_name}"; \
     curl -fL --retry 3 --retry-all-errors -o "/tmp/${tar_name}" "$url"; \
     echo "${LO_SHA256}  /tmp/${tar_name}" | sha256sum -c -; \
     mkdir -p /tmp/lo; \

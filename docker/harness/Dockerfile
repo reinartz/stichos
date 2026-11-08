@@ -11,11 +11,15 @@ ARG BASE_REF=ubuntu@sha256:33ceb71981b602c1a7443a53469e4dba065f7503eab3078a2d7a5
 FROM ${BASE_REF}
 
 # Pinned per D15: LO releases change layout, so the exact build is immutable here.
-# LO_SHA256 is the value from the upstream file
-# https://download.documentfoundation.org/libreoffice/stable/26.2.5/deb/x86_64/LibreOffice_26.2.5_Linux_x86-64_deb.tar.gz.sha256
+# TDF rotates point releases out of .../stable/, so the bundle is fetched from the
+# official TDF archive. The archive names files by micro build (26.2.5.2) and ships
+# an .asc signature rather than a .sha256 sidecar; LO_SHA256 (captured from the
+# upstream .sha256 while 26.2.5 was in stable/) remains the trust anchor and is
+# verified against the downloaded bytes below.
 ARG LO_VERSION=26.2.5
+ARG LO_BUILD=26.2.5.2
 ARG LO_SHA256=2f03bfb2ac9f33ea7c77331b4b7a23300fb0ed7443566046bf8b5bc51c1bed1e
-ARG LO_BASE_URL=https://download.documentfoundation.org/libreoffice/stable
+ARG LO_BASE_URL=https://downloadarchive.documentfoundation.org/libreoffice/old
 ARG BASE_REF
 
 # Fixed font set (D14). Single source of truth: used by apt and baked into build-info.
@@ -38,16 +42,13 @@ RUN apt-get update \
  && fc-cache -f \
  && rm -rf /var/lib/apt/lists/*
 
-# LibreOffice from the official TDF stable deb bundle (not the distro build).
-# Verified twice: against the pinned ARG, then against the upstream .sha256 file.
+# LibreOffice from the official TDF deb bundle (not the distro build).
+# Verified against the pinned ARG (the TDF archive publishes .asc, not .sha256).
 RUN set -eux; \
-    tar_name="LibreOffice_${LO_VERSION}_Linux_x86-64_deb.tar.gz"; \
-    url="${LO_BASE_URL}/${LO_VERSION}/deb/x86_64/${tar_name}"; \
+    tar_name="LibreOffice_${LO_BUILD}_Linux_x86-64_deb.tar.gz"; \
+    url="${LO_BASE_URL}/${LO_BUILD}/deb/x86_64/${tar_name}"; \
     curl -fL --retry 3 -o "/tmp/${tar_name}" "$url"; \
     echo "${LO_SHA256}  /tmp/${tar_name}" | sha256sum -c -; \
-    curl -fsSL -o /tmp/lo.sha256 "${url}.sha256"; \
-    grep -q "^${LO_SHA256}  " /tmp/lo.sha256; \
-    ( cd /tmp && sha256sum -c lo.sha256 ); \
     mkdir -p /tmp/lo; \
     tar -xzf "/tmp/${tar_name}" -C /tmp/lo --strip-components=1; \
     apt-get update; \
@@ -56,7 +57,7 @@ RUN set -eux; \
     lo_dir="/opt/libreoffice${LO_VERSION%.*}"; \
     ln -sf "${lo_dir}/program/soffice" /usr/local/bin/soffice; \
     ln -sf "${lo_dir}/program/unopkg" /usr/local/bin/unopkg; \
-    rm -rf /tmp/lo "/tmp/${tar_name}" /tmp/lo.sha256 /var/lib/apt/lists/*; \
+    rm -rf /tmp/lo "/tmp/${tar_name}" /var/lib/apt/lists/*; \
     soffice --version
 
 # Non-root harvester: LO needs a writable HOME for -env:UserInstallation.

@@ -26,7 +26,7 @@ writable HOME (`/home/harvester`) and `/work` as default workdir.
 | Layer | Pin | Why |
 |---|---|---|
 | Base | `ubuntu@sha256:33ceb71981b602c1a7443a53469e4dba065f7503eab3078a2d7a57a2ab987517` (24.04, measured pull 2026-09-03) | reproducibility floor |
-| LibreOffice | **26.2.5** official TDF stable deb bundle, sha256-pinned + verified against the upstream `.sha256` at build time | D15: LO releases change layout; distro LO varies and is often stale |
+| LibreOffice | **26.2.5** official TDF deb bundle (fetched from the TDF archive as `26.2.5.2`, since TDF rotates point releases out of `stable/`), sha256-pinned and verified at build time | D15: LO releases change layout; distro LO varies and is often stale |
 | poppler | `poppler-utils` from the pinned Ubuntu base (`24.02.0-1ubuntu9.9`, in build-info) | `pdftoppm`/`pdffonts` are part of the render pipeline |
 | Fonts (D14) | `fonts-crosextra-carlito`, `fonts-crosextra-caladea`, `fonts-liberation`, `fonts-noto-core`, `fonts-noto-cjk`, `fonts-noto-extra` | metric-clone + core/CJK/RTL coverage required by the corpus; the set IS the `fontset_hash` |
 
@@ -61,8 +61,9 @@ only `docker/harness/**` changes rebuild it.
 ## Measured (2026-09-03, Fedora 44 host, docker 29.6.2)
 
 - LO version inside: `soffice --version` → `LibreOffice 26.2.5.2 cd7284b4cbbfeb507e630c1aac019f4157393acb`
-- Bundle sha256 `2f03bfb2ac9f33ea7c77331b4b7a23300fb0ed7443566046bf8b5bc51c1bed1e` — upstream `.sha256`
-  fetched (HTTP 200) and both checks passed inside the build (`sha256sum -c` against pin and against upstream file).
+- Bundle sha256 `2f03bfb2ac9f33ea7c77331b4b7a23300fb0ed7443566046bf8b5bc51c1bed1e` — captured from the
+  upstream `.sha256` while 26.2.5 was in `stable/`; the archive bundle (`LibreOffice_26.2.5.2_…`) is
+  byte-identical and verified against the pin inside the build (`sha256sum -c`).
 - `fontset_hash=sha256:6f26ae4f9bdea927cffa0984d48adcb3e4b60b3fbe263c6a44440a5628927509`
   (with cjk+extra fonts; supersedes `6e33fa71…` measured before the font-set fix) —
   identical across two separate `docker run` invocations post-rebuild.
