@@ -101,27 +101,42 @@ RUN set -eux; \
 # honest-absent otherwise).
 
 # ── pandoc 3.7.0.2 ──────────────────────────────────────────────────────────
-RUN curl -fL --retry 8 --retry-all-errors --retry-delay 15 --retry-max-time 300 \
+# The public releases/download/ URL 504s for this asset (observed 2026-11-08);
+# the REST asset endpoint mints a fresh redirect and serves the same bytes, so
+# it is used here. Asset 259081863 is pandoc-3.7.0.2-linux-amd64.tar.gz, and
+# the SHA256 pins the bytes (the tarball's binary is statically linked).
+ARG PANDOC_SHA256=8f8f67fdd540b6519326b0ac49d5c55c5d5d15e43920e80a086e02c8aff83268
+RUN set -eux; \
+    curl -fL --retry 8 --retry-all-errors --retry-delay 15 --retry-max-time 300 \
+        -H 'Accept: application/octet-stream' \
         -o /tmp/pandoc.tar.gz \
-        "https://github.com/jgm/pandoc/releases/download/3.7.0.2/pandoc-3.7.0.2-linux-amd64.tar.gz" \
-    && tar xzf /tmp/pandoc.tar.gz -C /tmp \
-    && cp /tmp/pandoc-3.7.0.2/bin/pandoc /usr/local/bin/ \
-    && rm -rf /tmp/pandoc.tar.gz /tmp/pandoc-3.7.0.2
+        "https://api.github.com/repos/jgm/pandoc/releases/assets/259081863"; \
+    echo "${PANDOC_SHA256}  /tmp/pandoc.tar.gz" | sha256sum -c -; \
+    tar xzf /tmp/pandoc.tar.gz -C /tmp; \
+    cp /tmp/pandoc-3.7.0.2/bin/pandoc /usr/local/bin/; \
+    rm -rf /tmp/pandoc.tar.gz /tmp/pandoc-3.7.0.2
 
 # ── typst 0.13.1 ────────────────────────────────────────────────────────────
-RUN curl -fL --retry 8 --retry-all-errors --retry-delay 15 --retry-max-time 300 \
+# Same rationale as pandoc; asset 235463347 is
+# typst-x86_64-unknown-linux-musl.tar.xz (musl-static). SHA256 pins the bytes.
+ARG TYPST_SHA256=7d214bfeffc2e585dc422d1a09d2b144969421281e8c7f5d784b65fc69b5673f
+RUN set -eux; \
+    curl -fL --retry 8 --retry-all-errors --retry-delay 15 --retry-max-time 300 \
+        -H 'Accept: application/octet-stream' \
         -o /tmp/typst.tar.xz \
-        "https://github.com/typst/typst/releases/download/v0.13.1/typst-x86_64-unknown-linux-musl.tar.xz" \
-    && tar -xJf /tmp/typst.tar.xz -C /tmp \
-    && cp /tmp/typst-x86_64-unknown-linux-musl/typst /usr/local/bin/ \
-    && rm -rf /tmp/typst.tar.xz /tmp/typst-x86_64-unknown-linux-musl
+        "https://api.github.com/repos/typst/typst/releases/assets/235463347"; \
+    echo "${TYPST_SHA256}  /tmp/typst.tar.xz" | sha256sum -c -; \
+    tar -xJf /tmp/typst.tar.xz -C /tmp; \
+    cp /tmp/typst-x86_64-unknown-linux-musl/typst /usr/local/bin/; \
+    rm -rf /tmp/typst.tar.xz /tmp/typst-x86_64-unknown-linux-musl
 
 # ── Verify all tools in runtime stage ───────────────────────────────────────
-RUN soffice --headless --version \
-    && pandoc --version | head -1 \
-    && typst --version \
-    && qpdf --version | head -1 \
-    && (verapdf --version 2>/dev/null || echo "verapdf: not available")
+RUN set -eux; \
+    soffice --headless --version; \
+    pandoc --version; \
+    typst --version; \
+    qpdf --version; \
+    verapdf --version 2>/dev/null || echo "verapdf: not available"
 
 # ── Build info ──────────────────────────────────────────────────────────────
 RUN mkdir -p /opt/stichos \
@@ -187,11 +202,12 @@ COPY --from=runtime /opt/stichos /opt/stichos
 # Copy stichos binary from build stage
 COPY --from=build /workspace/stichos /usr/local/bin/stichos
 
-# Verify tools in final image
-RUN soffice --headless --version \
-    && pandoc --version | head -1 \
-    && typst --version \
-    && qpdf --version | head -1
+# Verify tools in final image (no pipes: they would mask a missing binary)
+RUN set -eux; \
+    soffice --headless --version; \
+    pandoc --version; \
+    typst --version; \
+    qpdf --version
 
 # Non-root user for running the image
 RUN useradd --create-home --shell /bin/bash harvester
