@@ -30,6 +30,11 @@ ignore = [
     "RUSTSEC-2026-0369",
     "RUSTSEC-2026-0367",
     "RUSTSEC-2026-0368",
+    # zip extract() aborts on a symlink entry with a huge declared size
+    # (RUSTSEC-2026-0429). Ours: symlink entries are rejected before any data
+    # read (adapters-odf/ooxml) and .extract() is never called (grep 2026-11-08
+    # crates/: 0 calls). No 2.x patch; the 9.x upgrade is tracked above.
+    "RUSTSEC-2026-0429",
     # RSA signing (PDF sign/verify) is local-only, never network-facing. The
     # advisory itself notes local use on a non-compromised machine is fine; no
     # safe upgrade exists (rsa 0.9.10 is latest stable; 0.10 is still RC).
