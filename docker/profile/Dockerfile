@@ -101,14 +101,16 @@ RUN set -eux; \
 # honest-absent otherwise).
 
 # ── pandoc 3.7.0.2 ──────────────────────────────────────────────────────────
-RUN curl -fL --retry 3 -o /tmp/pandoc.tar.gz \
+RUN curl -fL --retry 8 --retry-all-errors --retry-delay 15 --retry-max-time 300 \
+        -o /tmp/pandoc.tar.gz \
         "https://github.com/jgm/pandoc/releases/download/3.7.0.2/pandoc-3.7.0.2-linux-amd64.tar.gz" \
     && tar xzf /tmp/pandoc.tar.gz -C /tmp \
     && cp /tmp/pandoc-3.7.0.2/bin/pandoc /usr/local/bin/ \
     && rm -rf /tmp/pandoc.tar.gz /tmp/pandoc-3.7.0.2
 
 # ── typst 0.13.1 ────────────────────────────────────────────────────────────
-RUN curl -fL --retry 3 -o /tmp/typst.tar.xz \
+RUN curl -fL --retry 8 --retry-all-errors --retry-delay 15 --retry-max-time 300 \
+        -o /tmp/typst.tar.xz \
         "https://github.com/typst/typst/releases/download/v0.13.1/typst-x86_64-unknown-linux-musl.tar.xz" \
     && tar -xJf /tmp/typst.tar.xz -C /tmp \
     && cp /tmp/typst-x86_64-unknown-linux-musl/typst /usr/local/bin/ \
