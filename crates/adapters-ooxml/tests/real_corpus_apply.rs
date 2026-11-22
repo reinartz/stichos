@@ -872,11 +872,15 @@ fn test_xlsx_cell_hyperlink_write() {
     };
     let writer = adapters_ooxml::xlsx_writer::XlsxPatchWriter::new(&pkg, vec![op]);
     let result = writer.write();
+    // Verify the patch actually modified the document
     match result {
         Ok(patch_result) => {
-            let out_pkg = adapters_ooxml::opc::parse_opc(&patch_result.output)
-                .expect("patch output should be valid opc");
-            assert!(!out_pkg.parts.is_empty(), "output should have parts");
+            assert_patch_applied(
+                &data,
+                &patch_result.output,
+                &patch_result.diagnostics,
+                "test_xlsx_cell_hyperlink_write",
+            );
         }
         Err(diags) => {
             let has_errors = diags
@@ -884,7 +888,7 @@ fn test_xlsx_cell_hyperlink_write() {
                 .any(|d| d.severity == gp_core::diagnostics::Severity::Error);
             assert!(
                 !has_errors,
-                "SetCellHyperlink should not produce errors: {:?}",
+                "test_xlsx_cell_hyperlink_write: SetCellHyperlink should not produce errors: {:?}",
                 diags
             );
         }
