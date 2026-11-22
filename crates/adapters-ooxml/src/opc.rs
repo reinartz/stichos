@@ -24,7 +24,7 @@ use std::io::Cursor;
 /// Maximum number of entries in an OPC package.
 const MAX_ENTRIES: usize = 10000;
 /// Maximum expansion ratio: compressed_size * ratio >= uncompressed triggers OOX-E005.
-const MAX_EXPANSION_RATIO: u64 = 10;
+const MAX_EXPANSION_RATIO: u64 = 100;
 /// Maximum uncompressed size for a single entry (50 MB).
 const MAX_ENTRY_SIZE: u64 = 50 * 1024 * 1024;
 

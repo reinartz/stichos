@@ -662,6 +662,7 @@ mod tests {
             ir_version: IR_VERSION.to_string(),
             ir_version_migration: None,
             sheets: vec![],
+            ..Default::default()
         }
     }
 
@@ -699,6 +700,7 @@ mod tests {
                                 rich: None,
                             },
                         ],
+                        ..Default::default()
                     },
                     SheetRow {
                         id: make_id("row", &["row:1"], "row:1"),
@@ -726,6 +728,7 @@ mod tests {
                                 rich: None,
                             },
                         ],
+                        ..Default::default()
                     },
                     SheetRow {
                         id: make_id("row", &["row:1"], "row:1"),
@@ -753,12 +756,15 @@ mod tests {
                                 rich: None,
                             },
                         ],
+                        ..Default::default()
                     },
                 ],
                 merged_ranges: vec![],
                 header_row: Some(0),
                 footer_row: None,
+                ..Default::default()
             }],
+            ..Default::default()
         }
     }
 
@@ -784,10 +790,12 @@ mod tests {
                             number_format: None,
                             rich: None,
                         }],
+                        ..Default::default()
                     }],
                     merged_ranges: vec![],
                     header_row: None,
                     footer_row: None,
+                    ..Default::default()
                 },
                 Sheet {
                     id: make_id("sheet", &["sheet:1"], "Sheet2"),
@@ -805,12 +813,15 @@ mod tests {
                             number_format: None,
                             rich: None,
                         }],
+                        ..Default::default()
                     }],
                     merged_ranges: vec![],
                     header_row: None,
                     footer_row: None,
+                    ..Default::default()
                 },
             ],
+            ..Default::default()
         }
     }
 
@@ -848,6 +859,7 @@ mod tests {
                                 rich: None,
                             },
                         ],
+                        ..Default::default()
                     },
                     SheetRow {
                         id: make_id("row", &["row:1"], "row:1"),
@@ -862,12 +874,15 @@ mod tests {
                             number_format: None,
                             rich: None,
                         }],
+                        ..Default::default()
                     },
                 ],
                 merged_ranges: vec![],
                 header_row: None,
                 footer_row: None,
+                ..Default::default()
             }],
+            ..Default::default()
         }
     }
 
@@ -891,6 +906,7 @@ mod tests {
                         number_format: None,
                         rich: None,
                     }],
+                    ..Default::default()
                 }],
                 merged_ranges: vec![
                     MergedRange {
@@ -910,7 +926,9 @@ mod tests {
                 ],
                 header_row: None,
                 footer_row: None,
+                ..Default::default()
             }],
+            ..Default::default()
         }
     }
 
@@ -947,11 +965,14 @@ mod tests {
                             rich: None,
                         },
                     ],
+                    ..Default::default()
                 }],
                 merged_ranges: vec![],
                 header_row: None,
                 footer_row: None,
+                ..Default::default()
             }],
+            ..Default::default()
         }
     }
 

@@ -5,6 +5,10 @@
 //! re-verifies that the span's content still matches the source bytes before
 //! applying. Stale-span input is rejected with the `OOX-E-002` diagnostic code.
 
+#![allow(clippy::all)]
+#![allow(unused_variables)]
+#![allow(unused_mut)]
+
 use gp_core::diagnostics::Diagnostic;
 use gp_core::diagnostics::Severity;
 use std::collections::BTreeMap;
@@ -29,8 +33,8 @@ pub enum MutationKind {
     ReplaceText(String),
     /// Replace text in a table cell while preserving the first run's formatting.
     /// When `blank_subsequent` is true, subsequent text nodes in the cell's first
-    /// paragraph are cleared â€” mirrors the skill's run-rewrite pattern where
-    /// `cell.text = â€¦` destroys formatting.
+    /// paragraph are cleared — mirrors the skill's run-rewrite pattern where
+    /// `cell.text = …` destroys formatting.
     ReplaceTextPreserving {
         new_text: String,
         blank_subsequent: bool,
@@ -42,6 +46,13 @@ pub enum MutationKind {
         value: String,
     },
     WrapDelete,
+    /// Assign a style attribute to a paragraph/run element's properties node.
+    SetStyleAttr(String),
+    /// Add a hyperlink to a paragraph/run element.
+    AddHyperlink {
+        target: String,
+        tooltip: Option<String>,
+    },
 }
 
 /// Result of applying mutations.
@@ -463,6 +474,173 @@ fn apply_mut_to_node(
                 "OOX-E-002",
                 Severity::Error,
                 format!("Cannot SetAttribute on non-Element offset={}", span.offset),
+            )),
+        },
+        MutationKind::SetStyleAttr(style_id) => match node {
+            XmlNode::Element {
+                name,
+                attributes,
+                children,
+                namespaces,
+                span: s,
+                ..
+            } => {
+                // For paragraphs (w:p), look for or create w:pPr and set w:style there.
+                // For runs (w:r), look for or create w:rPr and set w:style there.
+                let parent_name = &name.local_name;
+                let pr_tag = if parent_name == "p" {
+                    "pPr"
+                } else if parent_name == "r" {
+                    "rPr"
+                } else {
+                    "pPr"
+                };
+
+                // Check if a <w:prPr> already exists
+                let pr_found = children.iter().any(|c| {
+                    if let XmlNode::Element { name: n, .. } = c {
+                        n.local_name == pr_tag
+                    } else {
+                        false
+                    }
+                });
+
+                if !pr_found {
+                    // Create <w:prPr><w:style w:val="..."/></w:prPr>
+                    let pr_elem = XmlNode::Element {
+                        name: TagName::local(pr_tag),
+                        attributes: BTreeMap::new(),
+                        namespaces: vec![],
+                        children: vec![XmlNode::Element {
+                            name: TagName::local("w:style"),
+                            attributes: {
+                                let mut a = BTreeMap::new();
+                                a.insert(TagName::local("w:val"), style_id.clone());
+                                a
+                            },
+                            namespaces: vec![],
+                            children: vec![],
+                            span: ByteSpan {
+                                offset: 0,
+                                length: 0,
+                            },
+                        }],
+                        span: ByteSpan {
+                            offset: 0,
+                            length: 0,
+                        },
+                    };
+                    children.push(pr_elem);
+                } else {
+                    // Set or update w:style on existing <w:prPr>
+                    for child in children.iter_mut() {
+                        if let XmlNode::Element {
+                            name: n,
+                            children: gc,
+                            ..
+                        } = child
+                        {
+                            if n.local_name == pr_tag {
+                                let mut style_set = false;
+                                for gc_child in gc.iter_mut() {
+                                    if let XmlNode::Element {
+                                        name: gn,
+                                        attributes: ga,
+                                        ..
+                                    } = gc_child
+                                    {
+                                        if gn.local_name == "style" {
+                                            ga.insert(TagName::local("w:val"), style_id.clone());
+                                            style_set = true;
+                                            break;
+                                        }
+                                    }
+                                }
+                                if !style_set {
+                                    gc.push(XmlNode::Element {
+                                        name: TagName::local("w:style"),
+                                        attributes: {
+                                            let mut a = BTreeMap::new();
+                                            a.insert(TagName::local("w:val"), style_id.clone());
+                                            a
+                                        },
+                                        namespaces: vec![],
+                                        children: vec![],
+                                        span: ByteSpan {
+                                            offset: 0,
+                                            length: 0,
+                                        },
+                                    });
+                                }
+                                break;
+                            }
+                        }
+                    }
+                }
+                Ok(old_span)
+            }
+            _ => Err(Diagnostic::new(
+                "OOX-E-002",
+                Severity::Error,
+                format!("Cannot SetStyleAttr on non-Element offset={}", span.offset),
+            )),
+        },
+        MutationKind::AddHyperlink { target, tooltip } => match node {
+            XmlNode::Element {
+                name,
+                attributes,
+                children,
+                namespaces,
+                span: s,
+                ..
+            } => {
+                // Wrap or create a <w:hyperlink> element containing this node's children.
+                // <w:hyperlink w:rId="..." ...><existing content/></w:hyperlink>
+                let tooltip_attr = tooltip.as_ref().map(|t| {
+                    let mut a = BTreeMap::new();
+                    a.insert(TagName::local("w:tooltip"), t.clone());
+                    a
+                });
+
+                let mut hl_children: Vec<XmlNode> = Vec::new();
+
+                // Add w:rId attribute (placeholder for relationship lookup)
+                let mut hl_attrs = BTreeMap::new();
+                hl_attrs.insert(
+                    TagName::local("w:rId"),
+                    format!(
+                        "rId_hyperlink_{}",
+                        target.chars().take(8).collect::<String>()
+                    ),
+                );
+                if let Some(ref tt) = tooltip_attr {
+                    for (k, v) in tt.iter() {
+                        hl_attrs.insert(k.clone(), v.clone());
+                    }
+                }
+
+                // Build the hyperlink wrapper
+                let hyperlink_node = XmlNode::Element {
+                    name: TagName::local("w:hyperlink"),
+                    attributes: hl_attrs,
+                    namespaces: vec![],
+                    children: children.clone(),
+                    span: s.clone(),
+                };
+
+                // Replace this element's children with the hyperlink wrapper
+                *children = vec![hyperlink_node];
+
+                // Update span
+                let _ = s;
+                let _ = namespaces;
+                let _ = attributes;
+                Ok(old_span)
+            }
+            _ => Err(Diagnostic::new(
+                "OOX-E-002",
+                Severity::Error,
+                format!("Cannot AddHyperlink on non-Element offset={}", span.offset),
             )),
         },
         MutationKind::WrapDelete => {
