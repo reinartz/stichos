@@ -158,6 +158,7 @@ pub fn edit_comment(
                 page_number: None,
                 style_name: None,
                 numbering_info: None,
+                hyperlinks: vec![],
             },
         )],
     };

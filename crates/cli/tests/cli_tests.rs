@@ -87,7 +87,10 @@ fn test_inspect_json() {
     // Verify required fields per P1-48 contract
     assert_eq!(parsed["tool"].as_str().unwrap(), "inspect_document");
     assert!(parsed["path"].is_string());
-    assert_eq!(parsed["ir_version"].as_str().unwrap(), "1.0.0");
+    assert_eq!(
+        parsed["ir_version"].as_str().unwrap(),
+        gp_core::ir::IR_VERSION
+    );
     assert!(parsed["document_type"].is_string());
     assert!(parsed["structure"].is_object());
     // C14 context budget: default summary inspect samples element IDs (element_ids_sample).

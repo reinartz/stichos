@@ -42,6 +42,27 @@ enum Command {
         /// Output as JSON.
         #[arg(long, short = 'j')]
         json: bool,
+        /// Include style information (styles, numbering, docProps)
+        #[arg(long)]
+        styles: bool,
+        /// Include media information (images, drawings, embedded blobs)
+        #[arg(long)]
+        media: bool,
+        /// Include annotation information (comments, tracked changes, revisions)
+        #[arg(long)]
+        annots: bool,
+        /// Include element IDs in output
+        #[arg(long)]
+        ids: bool,
+        /// Include coordinate information
+        #[arg(long)]
+        coords: bool,
+        /// Include bounding boxes
+        #[arg(long)]
+        bboxes: bool,
+        /// Output format for inspect: json (default), csv, or tsv.
+        #[arg(long, default_value = "json")]
+        output_format: String,
     },
     /// Crop and zoom a region from a rendered document page.
     Region {
@@ -467,8 +488,29 @@ async fn main() -> Result<()> {
     let cli = Cli::parse();
 
     match cli.command {
-        Command::Inspect { path, json } => {
-            cmd_inspect(&path, json).await?;
+        Command::Inspect {
+            path,
+            json,
+            styles,
+            media,
+            annots,
+            ids,
+            coords,
+            bboxes,
+            output_format,
+        } => {
+            cmd_inspect(
+                &path,
+                json,
+                styles,
+                media,
+                annots,
+                ids,
+                coords,
+                bboxes,
+                &output_format,
+            )
+            .await?;
         }
         Command::Region {
             path,
@@ -720,9 +762,29 @@ async fn main() -> Result<()> {
     Ok(())
 }
 
-async fn cmd_inspect(path: &std::path::Path, json: bool) -> Result<()> {
+#[allow(clippy::too_many_arguments)]
+async fn cmd_inspect(
+    path: &std::path::Path,
+    json: bool,
+    styles: bool,
+    media: bool,
+    annots: bool,
+    ids: bool,
+    coords: bool,
+    bboxes: bool,
+    output_format: &str,
+) -> Result<()> {
     let path_str = path.to_string_lossy().to_string();
-    let result = inspect::inspect_document(&path_str)?;
+
+    // Tabular output path: parse IR and emit CSV/TSV.
+    if output_format == "csv" || output_format == "tsv" {
+        let ir = inspect::parse_document_from_path(&path_str)?;
+        let csv = inspect::export_tabular(&ir, output_format)?;
+        print!("{}", csv);
+        return Ok(());
+    }
+
+    let result = inspect::inspect_document(&path_str, styles, media, annots, ids, coords, bboxes)?;
     let result =
         budget_enforcer::enforce_inspect_budget(result).unwrap_or_else(|fallback| fallback);
     let result = budget_enforcer::stamp_envelope(result);
@@ -1442,7 +1504,43 @@ async fn cmd_serve(transport: &str, port: u16) -> Result<()> {
                         .as_str()
                         .ok_or_else(|| "missing required field: path".to_string())?
                         .to_string();
-                    let result = inspect::inspect_document(&path).map_err(|e| e.to_string())?;
+                    let _detail = args["detail"].as_str().unwrap_or("summary").to_string();
+                    let features: Vec<String> = args["features"]
+                        .as_array()
+                        .map(|a| {
+                            a.iter()
+                                .filter_map(|v| v.as_str().map(String::from))
+                                .collect()
+                        })
+                        .unwrap_or_default();
+                    let styles = args
+                        .get("styles")
+                        .and_then(|v| v.as_bool())
+                        .unwrap_or(false)
+                        || features.contains(&"styles".to_string());
+                    let media = args.get("media").and_then(|v| v.as_bool()).unwrap_or(false)
+                        || features.contains(&"media".to_string());
+                    let annots = args
+                        .get("annots")
+                        .and_then(|v| v.as_bool())
+                        .unwrap_or(false)
+                        || features.contains(&"annots".to_string());
+                    let ids = args.get("ids").and_then(|v| v.as_bool()).unwrap_or(false)
+                        || features.contains(&"ids".to_string());
+                    let coords = args
+                        .get("coords")
+                        .and_then(|v| v.as_bool())
+                        .unwrap_or(false)
+                        || features.contains(&"coords".to_string());
+                    let bboxes = args
+                        .get("bboxes")
+                        .and_then(|v| v.as_bool())
+                        .unwrap_or(false)
+                        || features.contains(&"bboxes".to_string());
+                    let result = inspect::inspect_document(
+                        &path, styles, media, annots, ids, coords, bboxes,
+                    )
+                    .map_err(|e| e.to_string())?;
                     let result = budget_enforcer::enforce_inspect_budget(result)
                         .unwrap_or_else(|fallback| fallback);
                     Ok(budget_enforcer::stamp_envelope(result))
@@ -1924,6 +2022,7 @@ async fn cmd_serve(transport: &str, port: u16) -> Result<()> {
                                 page_number: None,
                                 style_name: None,
                                 numbering_info: None,
+                                hyperlinks: vec![],
                             },
                         )],
                     };
@@ -2229,6 +2328,10 @@ async fn cmd_serve(transport: &str, port: u16) -> Result<()> {
 }
 
 fn cmd_schema() {
+    println!("=== Capability Matrix ===\n");
+    println!("{}", gp_core::capability::capabilities_json());
+    println!();
+
     println!("=== C14 Envelope Compliance Check ===\n");
 
     // Check each tool's response shape via envelope compliance
