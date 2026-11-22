@@ -154,7 +154,7 @@ impl CreationMetadata {
 }
 
 /// The current IR schema version constant.
-pub const IR_VERSION: &str = "1.0.0";
+pub const IR_VERSION: &str = "1.1.0";
 
 /// Regex pattern for valid element IDs: `id-` followed by 12+ hex chars.
 pub const ELEMENT_ID_PATTERN: &str = r"^id-[0-9a-f]{12,}$";
@@ -365,7 +365,7 @@ fn to_strings(paths: &[&str]) -> Vec<String> {
 // ====================================================================
 
 /// A complete document (Word-like).
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 pub struct Document {
     pub ir_version: String,
     #[serde(skip_serializing_if = "Option::is_none", default)]
@@ -373,6 +373,9 @@ pub struct Document {
     pub sections: Vec<Section>,
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub fields: Vec<Field>,
+    /// Grouped complex fields parsed from fldChar begin/separate/end sequences.
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub grouped_fields: Vec<FieldGrouped>,
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub comments: Vec<Comment>,
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
@@ -385,10 +388,14 @@ pub struct Document {
     /// byte-for-byte and replacing only content parts with IR-derived content.
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub template: Option<String>,
+    #[serde(skip_serializing_if = "BTreeMap::is_empty", default)]
+    pub styles: BTreeMap<String, StyleDef>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub properties: Option<Properties>,
 }
 
 /// A section of content within a document.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 pub struct Section {
     pub id: ElementId,
     pub kind: SectionKind,
@@ -401,12 +408,15 @@ pub struct Section {
     pub footnotes: Vec<Footnote>,
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub endnotes: Vec<Endnote>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub info: Option<SectionInfo>,
 }
 
 /// The kind of section.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "snake_case")]
 pub enum SectionKind {
+    #[default]
     Body,
     Header,
     Footer,
@@ -465,7 +475,7 @@ pub struct NumberingInfo {
 }
 
 /// A paragraph consisting of runs.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 pub struct Paragraph {
     pub id: ElementId,
     pub runs: Vec<Run>,
@@ -475,6 +485,8 @@ pub struct Paragraph {
     pub style_name: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub numbering_info: Option<NumberingInfo>,
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub hyperlinks: Vec<Hyperlink>,
 }
 
 /// A run of text with optional formatting.
@@ -532,6 +544,7 @@ pub enum FieldCharType {
 pub enum Field {
     Simple(FieldSimple),
     Complex(FieldComplex),
+    Grouped(FieldGrouped),
 }
 
 /// A comment attached to a document (from word/comments.xml).
@@ -751,7 +764,166 @@ pub struct CommentReference {
 
 // Missing IR types to append to ir.rs
 
-/// A table element.
+// ====================================================================
+// B.1: Style system (DOCX)
+// ====================================================================
+
+/// Character formatting properties for runs.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct RunPropDef {
+    pub font: Option<String>,
+    pub font_size: Option<f64>,
+    pub bold: Option<bool>,
+    pub italic: Option<bool>,
+    pub underline: Option<bool>,
+    /// Hex color string (e.g. "000000").
+    pub color: Option<String>,
+    /// Highlight color (e.g. "FFFF00").
+    pub highlight: Option<String>,
+    pub superscript: Option<bool>,
+    pub subscript: Option<bool>,
+    pub all_caps: Option<bool>,
+    pub small_caps: Option<bool>,
+    /// Theme scheme reference (e.g. "accent1").
+    pub scheme: Option<String>,
+}
+
+/// Paragraph formatting properties.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct ParaPropDef {
+    /// left/center/right/justify
+    pub alignment: Option<String>,
+    pub first_line_indent: Option<f64>,
+    pub left_indent: Option<f64>,
+    pub right_indent: Option<f64>,
+    pub spacing_before: Option<f64>,
+    pub spacing_after: Option<f64>,
+    pub line_spacing: Option<f64>,
+    pub keep_lines: Option<bool>,
+    pub keep_next: Option<bool>,
+    pub page_break_before: Option<bool>,
+    pub outline_level: Option<u32>,
+    pub tab_stops: Option<Vec<TabStop>>,
+    pub shadow: Option<bool>,
+    pub outline: Option<bool>,
+}
+
+/// A tab stop position.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct TabStop {
+    pub alignment: String,
+    pub leader: String,
+    pub position: f64,
+}
+
+/// A style definition from a document's styles.xml.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct StyleDef {
+    pub style_id: String,
+    pub name: Option<String>,
+    /// paragraph/run/table/character/numbering
+    pub style_type: Option<String>,
+    pub based_on: Option<String>,
+    pub link: Option<String>,
+    pub is_default: Option<bool>,
+    pub ui_priority: Option<i32>,
+    pub semi_hidden: Option<bool>,
+    pub hidden: Option<bool>,
+    pub run_props: Option<Box<RunPropDef>>,
+    pub para_props: Option<Box<ParaPropDef>>,
+}
+
+// ====================================================================
+// B.1: Document properties (DOCX core properties)
+// ====================================================================
+
+/// Core document properties (creator, title, etc.).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct Properties {
+    pub creator: Option<String>,
+    pub title: Option<String>,
+    pub subject: Option<String>,
+    pub description: Option<String>,
+    pub keywords: Option<String>,
+    pub category: Option<String>,
+    pub comments: Option<String>,
+    pub last_modified_by: Option<String>,
+    pub revision: Option<i32>,
+    pub created: Option<String>,
+    pub modified: Option<String>,
+    pub last_printed: Option<String>,
+    pub company: Option<String>,
+    pub manager: Option<String>,
+    pub language: Option<String>,
+    pub version: Option<String>,
+    pub hyperlinks_based_on: Option<bool>,
+}
+
+// ====================================================================
+// B.1: Hyperlink + FieldGrouped
+// ====================================================================
+
+/// A hyperlink target.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct Hyperlink {
+    pub target: Option<String>,
+    pub tooltip: Option<String>,
+    /// Internal document anchor.
+    pub anchor: Option<String>,
+    /// Relationship ID.
+    pub rid: Option<String>,
+    pub display_text: Option<String>,
+}
+
+/// A grouped field (w:fldChar begin/separate/end).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct FieldGrouped {
+    pub instruction: String,
+    pub result: Option<String>,
+    pub field_code: Option<String>,
+    pub start_id: Option<ElementId>,
+    pub end_id: Option<ElementId>,
+    pub separate_id: Option<ElementId>,
+}
+
+// ====================================================================
+// B.1: Section info
+// ====================================================================
+
+/// Page-level section configuration.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct SectionInfo {
+    pub page_width: Option<f64>, // points
+    pub page_height: Option<f64>,
+    /// portrait/landscape
+    pub orientation: Option<String>,
+    pub first_page: Option<i32>,
+    pub margins: Option<SectionMargins>,
+    pub columns: Option<SectionColumns>,
+}
+
+/// Section margin configuration.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct SectionMargins {
+    pub top: Option<f64>,
+    pub bottom: Option<f64>,
+    pub left: Option<f64>,
+    pub right: Option<f64>,
+    pub header: Option<f64>,
+    pub footer: Option<f64>,
+    pub gutter: Option<f64>,
+}
+
+/// Section column configuration.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct SectionColumns {
+    pub count: Option<u32>,
+    pub space_between: Option<f64>,
+    pub equal_width: Option<bool>,
+    pub unequal_widths: Option<Vec<f64>>,
+}
+
+/// A table element in a document section.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Table {
     pub id: ElementId,
@@ -817,16 +989,18 @@ pub struct ListItem {
 // ====================================================================
 
 /// A spreadsheet (Excel-like).
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 pub struct Spreadsheet {
     pub ir_version: String,
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub ir_version_migration: Option<String>,
     pub sheets: Vec<Sheet>,
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub defined_names: Vec<DefinedName>,
 }
 
 /// A single sheet in a spreadsheet.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 pub struct Sheet {
     pub id: ElementId,
     pub name: String,
@@ -837,13 +1011,41 @@ pub struct Sheet {
     pub header_row: Option<usize>,
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub footer_row: Option<usize>,
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub hyperlinks: Vec<Hyperlink>,
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub column_dimensions: Vec<ColumnDimension>,
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub row_dimensions: Vec<RowDimension>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub freeze_panes: Option<FreezePanes>,
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub sheet_views: Vec<SheetView>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub auto_filter: Option<AutoFilter>,
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub conditional_formats: Vec<ConditionalFormat>,
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub data_validations: Vec<DataValidation>,
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub tables: Vec<XlsxTable>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub protection: Option<SheetProtection>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub page_setup: Option<PageSetup>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub header_footer: Option<HeaderFooter>,
 }
 
 /// A row in a spreadsheet.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 pub struct SheetRow {
     pub id: ElementId,
     pub cells: Vec<SheetCell>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub height: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub hidden: Option<bool>,
 }
 
 /// A cell in a spreadsheet.
@@ -899,6 +1101,218 @@ pub struct MergedRange {
     pub start_col: usize,
     pub end_row: usize,
     pub end_col: usize,
+}
+
+// ====================================================================
+// B.1: Spreadsheet structural types
+// ====================================================================
+
+/// A defined name in a workbook (bookname).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct DefinedName {
+    pub name: String,
+    pub ref_formula: String,
+    pub local_sheet_id: Option<i32>,
+    pub builtin: Option<bool>,
+    pub comment: Option<String>,
+    pub hidden: Option<bool>,
+}
+
+/// Frozen panes configuration for a sheet view.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct FreezePanes {
+    pub x_split: Option<i32>,
+    pub y_split: Option<i32>,
+    pub active_pane: Option<String>,
+    pub top_left_cell: Option<String>,
+    pub active_cell: Option<String>,
+    pub pane: Option<String>,
+}
+
+/// A single sheet view.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct SheetView {
+    pub workbook_view_id: Option<i32>,
+    pub show_grid_lines: Option<bool>,
+    pub show_row_col_headers: Option<bool>,
+    pub zoom_scale: Option<i32>,
+    /// hidden/veryHidden/visible
+    pub state: Option<String>,
+    pub row_state: Option<Vec<SheetRowState>>,
+}
+
+/// State of an individual row in a sheet view.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct SheetRowState {
+    pub index: usize,
+    pub hidden: bool,
+    pub outline_level: Option<u8>,
+    pub collapsed: Option<bool>,
+}
+
+/// Column dimension info (styles.xml / column elements).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct ColumnDimension {
+    pub min: u32,
+    pub max: u32,
+    pub width: Option<f64>,
+    pub best_fit: Option<bool>,
+    pub hidden: Option<bool>,
+    pub outline_level: Option<u8>,
+    pub style: Option<i32>,
+}
+
+/// Row dimension info (rows in sheet data).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct RowDimension {
+    pub index: usize,
+    pub height: Option<f64>,
+    pub custom_height: Option<bool>,
+    pub hidden: Option<bool>,
+    pub outline_level: Option<u8>,
+    pub collapsed: Option<bool>,
+    pub ph: Option<bool>,
+}
+
+/// AutoFilter configuration for a sheet.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct AutoFilter {
+    pub ref_range: String,
+    pub filter_column: Vec<AutoFilterColumn>,
+}
+
+/// A single auto-filter column rule.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct AutoFilterColumn {
+    pub col: u32,
+    pub blank: Option<bool>,
+    pub filter_rules: Vec<FilterRule>,
+}
+
+/// A single filter condition.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct FilterRule {
+    pub operator: Option<String>,
+    pub val1: Option<String>,
+    pub val2: Option<String>,
+}
+
+/// A conditional format rule.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct ConditionalFormat {
+    pub r#type: String, // cellIs/dataBar/colorScale/iconSet/formula
+    pub sqref: String,
+    pub priority: Option<i32>,
+    pub dxf_index: Option<i32>,
+    pub formula: Option<String>,
+    pub content: Option<serde_json::Value>,
+    pub stop_if_true: Option<bool>,
+}
+
+/// Data validation rule.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct DataValidation {
+    pub r#type: String, // whole/decimal/list/date/time/textLength/custom
+    pub operator: Option<String>,
+    pub formula1: Option<String>,
+    pub formula2: Option<String>,
+    pub show_dropdown: Option<bool>,
+    pub show_error: Option<bool>,
+    pub error_style: Option<String>,
+    pub error_title: Option<String>,
+    pub error: Option<String>,
+    pub prompt_title: Option<String>,
+    pub prompt: Option<String>,
+    pub sqref: String,
+}
+
+/// A table in the worksheet.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct XlsxTable {
+    pub name: String,
+    pub display_name: String,
+    pub ref_range: String,
+    pub table_style_info: Option<serde_json::Value>,
+    pub auto_filter: Option<bool>,
+    pub columns: Vec<TableColumn>,
+    pub totals_row_shown: Option<bool>,
+    pub totals: Option<Vec<TotalsRow>>,
+    pub id: String,
+}
+
+/// A table column definition.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct TableColumn {
+    pub id: u32,
+    pub name: String,
+    pub column_index: Option<i32>,
+    pub totals_label: Option<String>,
+    pub totals_function: Option<String>,
+    pub totals_formula: Option<String>,
+}
+
+/// Totals row definition for a table.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct TotalsRow {
+    pub column_id: u32,
+    pub label: String,
+    pub formula: String,
+    pub value: String,
+}
+
+/// Sheet-level protection settings.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct SheetProtection {
+    pub sheet: Option<bool>,
+    pub objects: Option<bool>,
+    pub scenarios: Option<bool>,
+    pub format_cells: Option<bool>,
+    pub format_columns: Option<bool>,
+    pub format_rows: Option<bool>,
+    pub insert_columns: Option<bool>,
+    pub insert_rows: Option<bool>,
+    pub insert_hyperlinks: Option<bool>,
+    pub delete_columns: Option<bool>,
+    pub delete_rows: Option<bool>,
+    pub select_locked_cells: Option<bool>,
+    pub select_unlocked_cells: Option<bool>,
+    pub password: Option<String>,
+}
+
+/// Page setup configuration.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct PageSetup {
+    pub orientation: Option<String>,
+    pub paper_size: Option<i32>,
+    pub scale: Option<i32>,
+    pub fit_to_width: Option<f64>,
+    pub fit_to_height: Option<f64>,
+    pub first_page_number: Option<i32>,
+    pub use_first_page_number: Option<bool>,
+    pub page_order: Option<String>,
+    pub draft: Option<bool>,
+    pub use_defaults: Option<bool>,
+    pub errors: Option<String>,
+    pub horizontal_dpi: Option<i32>,
+    pub vertical_dpi: Option<i32>,
+    pub black_and_white: Option<bool>,
+    pub page_width: Option<f64>,
+    pub page_height: Option<f64>,
+}
+
+/// Header and footer configuration.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct HeaderFooter {
+    pub odd_header: Option<String>,
+    pub odd_footer: Option<String>,
+    pub even_header: Option<String>,
+    pub even_footer: Option<String>,
+    pub first_header: Option<String>,
+    pub first_footer: Option<String>,
+    pub different_odd_even: Option<bool>,
+    pub different_first: Option<bool>,
+    pub align_with_page_margins: Option<bool>,
+    pub scale_with_doc: Option<bool>,
 }
 
 // ===== Visit impls for Spreadsheet types =====
@@ -1641,12 +2055,16 @@ mod tests {
                 footers: vec![],
                 footnotes: vec![],
                 endnotes: vec![],
+                info: None,
             }],
             fields: vec![],
+            grouped_fields: vec![],
             comments: vec![],
             tracked_changes: vec![],
             revisions: vec![],
             template: None,
+            styles: BTreeMap::new(),
+            properties: None,
         };
         assert_eq!(doc.ir_version, IR_VERSION);
         assert_eq!(doc.sections.len(), 1);
@@ -1672,6 +2090,7 @@ mod tests {
             page_number: None,
             style_name: None,
             numbering_info: None,
+            hyperlinks: vec![],
         };
         assert_eq!(para.runs.len(), 1);
         assert_eq!(para.runs[0].text, "hello");
@@ -1724,6 +2143,7 @@ mod tests {
                 num_id: 1,
                 level: 0,
             }),
+            hyperlinks: vec![],
         };
         assert_eq!(para.numbering_info.as_ref().unwrap().num_id, 1);
         assert_eq!(para.numbering_info.as_ref().unwrap().level, 0);
@@ -1754,17 +2174,22 @@ mod tests {
                     page_number: None,
                     style_name: Some("Heading1".to_string()),
                     numbering_info: None,
+                    hyperlinks: vec![],
                 })],
                 headers: vec![],
                 footers: vec![],
                 footnotes: vec![],
                 endnotes: vec![],
+                info: None,
             }],
             fields: vec![],
+            grouped_fields: vec![],
             comments: vec![],
             tracked_changes: vec![],
             revisions: vec![],
             template: None,
+            styles: BTreeMap::new(),
+            properties: None,
         };
 
         let json = serde_json::to_string(&doc).expect("serialize");
@@ -1782,6 +2207,7 @@ mod tests {
             page_number: None,
             style_name: None,
             numbering_info: None,
+            hyperlinks: vec![],
         });
         let json = serde_json::to_string(&para).expect("serialize");
         eprintln!("Paragraph JSON: {}", json);
@@ -1937,12 +2363,14 @@ mod tests {
                 footers: vec![],
                 footnotes: vec![],
                 endnotes: vec![],
+                info: None,
             }],
             fields: vec![Field::Simple(FieldSimple {
                 id: ElementId::content_anchored("field", &["field:0"], "PAGE"),
                 instruction: "PAGE".to_string(),
                 result: Some("1".to_string()),
             })],
+            grouped_fields: vec![],
             comments: vec![Comment {
                 id: ElementId::content_anchored("comment", &["comment:0"], "0"),
                 comment_id: "0".to_string(),
@@ -1961,6 +2389,8 @@ mod tests {
             }],
             revisions: vec![],
             template: None,
+            styles: BTreeMap::new(),
+            properties: None,
         };
         assert_eq!(doc.fields.len(), 1);
         assert_eq!(doc.comments.len(), 1);
@@ -1985,12 +2415,16 @@ mod tests {
                 footers: vec![],
                 footnotes: vec![],
                 endnotes: vec![],
+                info: None,
             }],
             fields: vec![],
+            grouped_fields: vec![],
             comments: vec![],
             tracked_changes: vec![],
             revisions: vec![],
             template: None,
+            styles: BTreeMap::new(),
+            properties: None,
         };
         let json = serde_json::to_string(&doc).expect("serialize");
         // Empty vecs with skip_serializing_if are omitted from JSON
@@ -2085,8 +2519,10 @@ mod tests {
                 footers: vec![],
                 footnotes: vec![],
                 endnotes: vec![],
+                info: None,
             }],
             fields: vec![],
+            grouped_fields: vec![],
             comments: vec![],
             tracked_changes: vec![],
             revisions: vec![Revision {
@@ -2102,6 +2538,8 @@ mod tests {
                 new_value: None,
             }],
             template: None,
+            styles: BTreeMap::new(),
+            properties: None,
         };
         assert_eq!(doc.revisions.len(), 1);
         assert_eq!(doc.revisions[0].kind, RevisionKind::Insert);
@@ -2147,12 +2585,16 @@ mod tests {
                 footers: vec![],
                 footnotes: vec![],
                 endnotes: vec![],
+                info: None,
             }],
             fields: vec![],
+            grouped_fields: vec![],
             comments: vec![],
             tracked_changes: vec![],
             revisions: vec![],
             template: None,
+            styles: BTreeMap::new(),
+            properties: None,
         };
         let json = serde_json::to_string(&doc).expect("serialize");
         assert!(
