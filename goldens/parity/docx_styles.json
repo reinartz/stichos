@@ -1,0 +1,61 @@
+{
+  "__budget": {
+    "elements_count": 5,
+    "image_count": 0,
+    "tokens_est": 225
+  },
+  "bboxes": [],
+  "coordinates": [],
+  "diagnostics": [],
+  "document_type": "document",
+  "element_ids": [],
+  "element_ids_sample": [
+    {
+      "id": "id-961770b7054a",
+      "kind": "document",
+      "path": "/document"
+    },
+    {
+      "id": "id-d8d568e45010",
+      "kind": "section:body",
+      "path": "/document/section:body"
+    },
+    {
+      "id": "id-70c1057c596b",
+      "kind": "paragraph",
+      "path": "/document/section:body/paragraph"
+    },
+    {
+      "id": "id-e5583b7be655",
+      "kind": "run",
+      "path": "/document/section:body/paragraph/run"
+    },
+    {
+      "id": "id-388cc8206416",
+      "kind": "paragraph",
+      "path": "/document/section:body/paragraph"
+    }
+  ],
+  "element_kinds": {
+    "document": 1,
+    "paragraph": 3,
+    "run": 3,
+    "section:body": 1
+  },
+  "fidelity_budget": {
+    "confidence": 1.0,
+    "dropped_features": [],
+    "has_potentially_unsafe": false,
+    "part_warnings": [],
+    "rendered_by": null,
+    "unknown_parts": []
+  },
+  "ir_version": "1.1.0",
+  "path": "/localdata/workspace/stichos/corpus/blobs/custom-styles-docx-001.docx",
+  "rendered_by": "stichos/0.2.2",
+  "structure": {
+    "sections": 1
+  },
+  "tool": "inspect_document",
+  "total_elements": 8
+}

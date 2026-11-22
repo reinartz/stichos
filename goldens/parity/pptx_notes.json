@@ -1,0 +1,77 @@
+{
+  "__budget": {
+    "elements_count": 5,
+    "image_count": 0,
+    "tokens_est": 460
+  },
+  "bboxes": [],
+  "coordinates": [],
+  "diagnostics": [],
+  "document_type": "presentation",
+  "element_ids": [],
+  "element_ids_sample": [
+    {
+      "id": "id-5f7965c0854b",
+      "kind": "document",
+      "path": "/document"
+    },
+    {
+      "id": "id-a1f204b75f75",
+      "kind": "presentation",
+      "path": "/document/presentation"
+    },
+    {
+      "id": "id-f11d0e53e6aa",
+      "kind": "layout:layout-ppt/slideLayouts/slideLayout1.xml",
+      "path": "/document/presentation/layout:layout-ppt/slideLayouts/slideLayout1.xml"
+    },
+    {
+      "id": "id-055bc2497072",
+      "kind": "layout:layout-ppt/slideLayouts/slideLayout10.xml",
+      "path": "/document/presentation/layout:layout-ppt/slideLayouts/slideLayout10.xml"
+    },
+    {
+      "id": "id-61acfd73c798",
+      "kind": "layout:layout-ppt/slideLayouts/slideLayout11.xml",
+      "path": "/document/presentation/layout:layout-ppt/slideLayouts/slideLayout11.xml"
+    }
+  ],
+  "element_kinds": {
+    "__shape_count": 1,
+    "__shape_id": 1,
+    "__shape_name": 1,
+    "document": 1,
+    "layout:layout-ppt/slideLayouts/slideLayout1.xml": 1,
+    "layout:layout-ppt/slideLayouts/slideLayout10.xml": 1,
+    "layout:layout-ppt/slideLayouts/slideLayout11.xml": 1,
+    "layout:layout-ppt/slideLayouts/slideLayout2.xml": 1,
+    "layout:layout-ppt/slideLayouts/slideLayout3.xml": 1,
+    "layout:layout-ppt/slideLayouts/slideLayout4.xml": 1,
+    "layout:layout-ppt/slideLayouts/slideLayout5.xml": 1,
+    "layout:layout-ppt/slideLayouts/slideLayout6.xml": 1,
+    "layout:layout-ppt/slideLayouts/slideLayout7.xml": 1,
+    "layout:layout-ppt/slideLayouts/slideLayout8.xml": 1,
+    "layout:layout-ppt/slideLayouts/slideLayout9.xml": 1,
+    "master:master-ppt/slideMasters/slideMaster1.xml": 1,
+    "presentation": 1,
+    "shape:text": 1,
+    "slide:0": 1
+  },
+  "fidelity_budget": {
+    "confidence": 1.0,
+    "dropped_features": [],
+    "has_potentially_unsafe": false,
+    "part_warnings": [],
+    "rendered_by": null,
+    "unknown_parts": []
+  },
+  "ir_version": "1.1.0",
+  "path": "/localdata/workspace/stichos/corpus/blobs/scanned-ocr-pptx-001.pptx",
+  "rendered_by": "stichos/0.2.2",
+  "structure": {
+    "layout_count": 11,
+    "slide_count": 1
+  },
+  "tool": "inspect_document",
+  "total_elements": 19
+}
