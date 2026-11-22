@@ -325,6 +325,7 @@ mod tests {
             tracked_changes: vec![],
             template: None,
             revisions: vec![],
+            ..Default::default()
         }
     }
 
@@ -338,6 +339,7 @@ mod tests {
             footers: vec![],
             footnotes: vec![],
             endnotes: vec![],
+            ..Default::default()
         }
     }
 
@@ -350,6 +352,7 @@ mod tests {
             footers: vec![],
             footnotes: vec![],
             endnotes: vec![],
+            ..Default::default()
         }
     }
 
@@ -360,6 +363,7 @@ mod tests {
             page_number: None,
             style_name: None,
             numbering_info: None,
+            ..Default::default()
         })
     }
 

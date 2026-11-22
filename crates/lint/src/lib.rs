@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 //! lint: layout linter, SSIM comparison, payload budgeter, font analysis, and schema validation for stichos.
+#![allow(clippy::needless_update)]
 
 pub mod a11y;
 pub mod annotator;
