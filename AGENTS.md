@@ -58,7 +58,7 @@ Engines are spawned subprocesses, never linked; zero hard external deps.
 
 ## Development
 
-- `cargo test --workspace --lib` — all lib tests (2 350 pass / 0 fails, 2 ignored)
+- `cargo test --workspace --lib` — all lib tests (2 386 pass / 0 fails, 2 ignored; measured 2026-11-22)
 - `cargo test -p mcp --lib` — MCP protocol tests (93 pass / 0 fails)
 - `cargo fmt --check` + `cargo clippy --all-targets -- -D warnings` — lint
 - `tools/check-deps.sh` — dependency DAG enforcement (exits 0)
@@ -67,5 +67,5 @@ Engines are spawned subprocesses, never linked; zero hard external deps.
 
 ## Current status
 
-- Test counts: **2 350 pass / 0 fails** (workspace lib), **93 / 0** (mcp)
+- Test counts: **2 386 pass / 0 fails** (workspace lib), **93 / 0** (mcp) (measured 2026-11-22)
 - Version 0.2.2; `v0.2.2` tag published; repo public (flipped 2026-10-17).
