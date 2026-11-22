@@ -1927,7 +1927,7 @@ mod tests {
         let r = PdfReader::new().read(&simple_pdf());
         assert!(r.is_ok(), "codec: {:?}", r.err());
         let ir = r.unwrap();
-        assert_eq!(ir.ir_version, "1.0.0");
+        assert_eq!(ir.ir_version, "1.1.0");
         assert_eq!(ir.root.tag, "pdf");
         assert_eq!(
             ir.root.children.len(),
