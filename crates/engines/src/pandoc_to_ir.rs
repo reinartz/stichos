@@ -41,6 +41,7 @@
 
 use gp_core::diagnostics::{Diagnostic, Severity};
 use gp_core::ir::*;
+use std::collections::BTreeMap;
 
 use crate::pandoc_ast::{self, PandocBlock, PandocDocument, PandocInline};
 
@@ -112,12 +113,16 @@ pub fn pandoc_to_ir(doc: &PandocDocument) -> Result<IRDocument, Vec<Diagnostic>>
             footers: vec![],
             footnotes: vec![],
             endnotes: vec![],
+            info: None,
         }],
         fields: vec![],
+        grouped_fields: vec![],
         comments: vec![],
         tracked_changes: vec![],
         revisions: vec![],
         template: None,
+        styles: BTreeMap::new(),
+        properties: None,
     };
 
     if warnings.is_empty() {
@@ -164,6 +169,7 @@ fn convert_block(
                 page_number: None,
                 style_name: None,
                 numbering_info: None,
+                hyperlinks: vec![],
             }));
         }
         PandocBlock::Plain(inlines) => {
@@ -177,6 +183,7 @@ fn convert_block(
                 page_number: None,
                 style_name: None,
                 numbering_info: None,
+                hyperlinks: vec![],
             }));
         }
         PandocBlock::Header(level, _, content) => {
@@ -193,6 +200,7 @@ fn convert_block(
                     page_number: None,
                     style_name: Some(format!("Heading {}", level)),
                     numbering_info: None,
+                    hyperlinks: vec![],
                 }));
             }
         }
@@ -227,6 +235,7 @@ fn convert_block(
                 page_number: None,
                 style_name: Some("CodeBlock".to_string()),
                 numbering_info: None,
+                hyperlinks: vec![],
             }));
         }
         PandocBlock::Table(_, content) => {
@@ -253,6 +262,7 @@ fn convert_block(
                 page_number: None,
                 style_name: Some("HorizontalRule".to_string()),
                 numbering_info: None,
+                hyperlinks: vec![],
             }));
         }
         PandocBlock::BlockQuote(inner) => {
@@ -270,6 +280,7 @@ fn convert_block(
                 page_number: None,
                 style_name: Some("BlockQuote".to_string()),
                 numbering_info: None,
+                hyperlinks: vec![],
             }));
         }
         PandocBlock::LineBlock(lines) => {
@@ -290,6 +301,7 @@ fn convert_block(
                 page_number: None,
                 style_name: Some("LineBlock".to_string()),
                 numbering_info: None,
+                hyperlinks: vec![],
             }));
         }
         PandocBlock::RawBlock(_, text) => {
@@ -309,6 +321,7 @@ fn convert_block(
                 page_number: None,
                 style_name: Some("RawBlock".to_string()),
                 numbering_info: None,
+                hyperlinks: vec![],
             }));
         }
         PandocBlock::Div(_, div_content) => {
@@ -501,6 +514,7 @@ fn convert_block_list_to_items(blocks: &[PandocBlock]) -> Vec<SectionItem> {
                     page_number: None,
                     style_name: None,
                     numbering_info: None,
+                    hyperlinks: vec![],
                 }));
             }
             PandocBlock::Header(level, _, content) => {
@@ -510,6 +524,7 @@ fn convert_block_list_to_items(blocks: &[PandocBlock]) -> Vec<SectionItem> {
                     page_number: None,
                     style_name: Some(format!("Heading {}", level)),
                     numbering_info: None,
+                    hyperlinks: vec![],
                 }));
             }
             PandocBlock::BulletList(inner) => {
@@ -543,6 +558,7 @@ fn convert_block_list_to_items(blocks: &[PandocBlock]) -> Vec<SectionItem> {
                     page_number: None,
                     style_name: Some("CodeBlock".to_string()),
                     numbering_info: None,
+                    hyperlinks: vec![],
                 }));
             }
             _ => {}
@@ -632,6 +648,7 @@ fn convert_block_to_section_items(inlines: &[PandocInline]) -> Vec<SectionItem> 
         page_number: None,
         style_name: Some(format!("Heading {}", 1)),
         numbering_info: None,
+        hyperlinks: vec![],
     })]
 }
 
