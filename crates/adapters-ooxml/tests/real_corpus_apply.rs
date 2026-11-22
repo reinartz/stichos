@@ -44,8 +44,9 @@ fn assert_patch_applied(
     );
 
     // 4. Output must re-parse as valid OPC
-    adapters_ooxml::opc::parse_opc(output_data)
-        .expect(&format!("{}: output must re-parse as valid OPC", test_name));
+    adapters_ooxml::opc::parse_opc(output_data).unwrap_or_else(|_| {
+        panic!("{}: output must re-parse as valid OPC", test_name)
+    });
 }
 
 /// Resolve the corpus blobs directory.

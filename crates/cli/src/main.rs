@@ -131,7 +131,11 @@ enum Command {
         port: u16,
     },
     /// Check INV-2 schema compliance across all tool responses.
-    Schema,
+    Schema {
+        /// Output capability matrix as JSON only.
+        #[arg(long)]
+        json: bool,
+    },
     /// Apply surgical edits to a document.
     Apply {
         /// Path to the document file.
@@ -551,8 +555,8 @@ async fn main() -> Result<()> {
         Command::Serve { transport, port } => {
             cmd_serve(&transport, port).await?;
         }
-        Command::Schema => {
-            cmd_schema();
+        Command::Schema { json } => {
+            cmd_schema(json);
         }
         Command::Apply {
             path,
@@ -2327,7 +2331,12 @@ async fn cmd_serve(transport: &str, port: u16) -> Result<()> {
     Ok(())
 }
 
-fn cmd_schema() {
+fn cmd_schema(json: bool) {
+    if json {
+        println!("{}", gp_core::capability::capabilities_json());
+        return;
+    }
+
     println!("=== Capability Matrix ===\n");
     println!("{}", gp_core::capability::capabilities_json());
     println!();

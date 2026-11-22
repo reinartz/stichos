@@ -25,6 +25,19 @@ use super::xml::{ByteSpan, TagName, XmlDocument, XmlNode};
 // Types
 // ===========================================================================
 
+/// A hyperlink relationship entry to be written to a .rels file.
+#[derive(Debug, Clone)]
+pub struct HyperlinkRel {
+    /// The relationship ID (e.g. "rId1").
+    pub r_id: String,
+    /// The target URL.
+    pub target: String,
+    /// Whether the target is external.
+    pub target_mode: Option<String>,
+    /// The source part URI (e.g. "word/document.xml").
+    pub source_uri: String,
+}
+
 /// A docx-specific patch writer.
 pub struct DocxPatchWriter<'a> {
     /// The OPC package to patch.
@@ -64,8 +77,8 @@ impl<'a> DocxPatchWriter<'a> {
             }
         };
 
-        // 2. Route patch ops to span mutations per part.
-        let mutations_by_part = match self.route_ops(&parts) {
+        // 2. Route patch ops to span mutations per part, collecting hyperlink rels.
+        let (mutations_by_part, hyperlink_rels) = match self.route_ops(&mut parts) {
             Ok(m) => m,
             Err(e) => {
                 diags.extend(e);
@@ -97,9 +110,17 @@ impl<'a> DocxPatchWriter<'a> {
             }
         }
 
-        // 4. Build the PartMutation map for SurgicalWriter.
+        // 4. Create/update relationship files for hyperlinks (W4.3).
+        let mut rels_parts: Vec<(String, Vec<HyperlinkRel>)> = Vec::new();
+        for rel in &hyperlink_rels {
+            let rels_uri = rels_uri_for(&rel.source_uri);
+            rels_parts.push((rels_uri, vec![rel.clone()]));
+        }
+
+        // 5. Build the PartMutation map for SurgicalWriter.
         let mut mutations = BTreeMap::new();
 
+        // First, add all regular document parts.
         for (uri, doc) in &parts {
             let part_data = doc.to_bytes();
             let content_type = find_part(self.package, uri)
@@ -116,7 +137,41 @@ impl<'a> DocxPatchWriter<'a> {
             );
         }
 
-        // 5. Write the patched OPC via SurgicalWriter.
+        // Add hyperlink rel file mutations (UpdateRels for each rels URI).
+        for (rels_uri, rels) in rels_parts {
+            // Generate the rels XML content directly to avoid lifetime issues.
+            let mut rels_xml =
+                String::from(r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?>"#);
+            rels_xml.push_str(
+                "<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">"
+            );
+            for rel in &rels {
+                rels_xml.push_str("<Relationship ");
+                rels_xml.push_str(&format!("Id=\"{}\"", rel.r_id));
+                rels_xml.push_str(&format!(
+                    " Type=\"{}\"",
+                    "http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink"
+                ));
+                rels_xml.push_str(&format!(" Target=\"{}\"", rel.target));
+                if let Some(ref mode) = rel.target_mode {
+                    rels_xml.push_str(&format!(" TargetMode=\"{}\"", mode));
+                }
+                rels_xml.push_str("/>");
+            }
+            rels_xml.push_str("</Relationships>");
+
+            mutations.insert(
+                rels_uri,
+                PartMutation::Replace {
+                    data: rels_xml.into_bytes(),
+                    content_type: Some(
+                        "application/vnd.openxmlformats-package.relationships+xml".to_string(),
+                    ),
+                },
+            );
+        }
+
+        // 6. Write the patched OPC via SurgicalWriter.
         let patch_writer = SurgicalWriter::new(&[]);
         let write_result = match patch_writer.write_from_parts(&self.package.parts, mutations) {
             Ok(r) => r,
@@ -155,6 +210,22 @@ impl<'a> DocxPatchWriter<'a> {
             },
             Err(e) => {
                 diags.extend(e);
+            }
+        }
+
+        // Parse styles.xml — required for SetStyle operations (W4.1).
+        if let Ok(styles_part) = find_part(self.package, "word/styles.xml") {
+            match super::xml::parse_xml(&styles_part.data) {
+                Ok(doc) => {
+                    parts.insert("word/styles.xml".to_string(), doc);
+                }
+                Err(e) => {
+                    diags.push(Diagnostic::new(
+                        "OOX-E-002",
+                        Severity::Warning,
+                        format!("Failed to parse styles.xml: {}", e[0].message),
+                    ));
+                }
             }
         }
 
@@ -228,12 +299,14 @@ impl<'a> DocxPatchWriter<'a> {
     }
 
     /// Route patch ops to span mutations on the appropriate part.
+    /// Also collects hyperlink relationship entries for rels file generation.
     fn route_ops(
         &self,
-        parts: &BTreeMap<String, XmlDocument>,
-    ) -> Result<BTreeMap<String, Vec<SpanMutation>>, Vec<Diagnostic>> {
+        parts: &mut BTreeMap<String, XmlDocument>,
+    ) -> Result<(BTreeMap<String, Vec<SpanMutation>>, Vec<HyperlinkRel>), Vec<Diagnostic>> {
         let mut diags = Vec::new();
         let mut mutations_by_part: BTreeMap<String, Vec<SpanMutation>> = BTreeMap::new();
+        let mut hyperlink_rels: Vec<HyperlinkRel> = Vec::new();
 
         for op in &self.ops {
             match op {
@@ -307,6 +380,7 @@ impl<'a> DocxPatchWriter<'a> {
                         tooltip.as_deref(),
                         parts,
                         &mut mutations_by_part,
+                        &mut hyperlink_rels,
                     ) {
                         Ok(_) => {}
                         Err(e) => diags.extend(e),
@@ -338,7 +412,7 @@ impl<'a> DocxPatchWriter<'a> {
             return Err(diags);
         }
 
-        Ok(mutations_by_part)
+        Ok((mutations_by_part, hyperlink_rels))
     }
 
     /// Route ReplaceText op.
@@ -555,7 +629,7 @@ impl<'a> DocxPatchWriter<'a> {
     fn route_set_style(
         &self,
         op: &PatchOp,
-        parts: &BTreeMap<String, XmlDocument>,
+        parts: &mut BTreeMap<String, XmlDocument>,
         mutations_by_part: &mut BTreeMap<String, Vec<SpanMutation>>,
     ) -> Result<(), Vec<Diagnostic>> {
         let PatchOp::SetStyle {
@@ -811,24 +885,95 @@ impl<'a> DocxPatchWriter<'a> {
             },
         };
 
-        // Add mutation to styles.xml part
-        mutations_by_part
-            .entry(styles_uri.to_string())
-            .or_default()
-            .push(SpanMutation {
-                span: ByteSpan {
-                    offset: 0,
-                    length: 0,
+        // If styles.xml is not yet in parts, create it as a minimal styles document.
+        // This ensures the part exists for the mutation to target (W4.1).
+        if !parts.contains_key(styles_uri) {
+            let ns = vec![super::xml::Namespace {
+                prefix: "w".into(),
+                uri: "http://schemas.openxmlformats.org/wordprocessingml/2006/main".into(),
+            }];
+            let styles_doc = XmlDocument::new(
+                XmlNode::Element {
+                    name: TagName::local("w:styles"),
+                    attributes: BTreeMap::new(),
+                    namespaces: ns.clone(),
+                    children: vec![style_element.clone()],
+                    span: ByteSpan {
+                        offset: 0,
+                        length: 0,
+                    },
                 },
-                kind: MutationKind::InsertNode(style_element),
-            });
+                ns,
+                "utf-8".into(),
+                vec![],
+            );
+            parts.insert(styles_uri.to_string(), styles_doc);
+            return Ok(());
+        }
 
-        // If styles.xml is not in parts yet, we still record the mutation — the
-        // caller will merge it during the final PartMutation step.
+        // Find the <w:styles> element in styles.xml and insert the new style there.
+        if let Some(styles_doc) = parts.get_mut(styles_uri) {
+            // Check if the root is <w:styles> before mutably borrowing.
+            let root_is_styles = match &styles_doc.root {
+                XmlNode::Element { name, .. } => is_word_elem(name, "styles"),
+                _ => false,
+            };
+
+            match &mut styles_doc.root {
+                XmlNode::Element {
+                    name: _,
+                    attributes: _,
+                    namespaces: _,
+                    children: root_children,
+                    span: _,
+                } => {
+                    if root_is_styles {
+                        // Root is styles, insert into root's children
+                        root_children.push(style_element);
+                    } else {
+                        // Find <w:styles> element or create it
+                        let mut found = false;
+                        for child in root_children.iter_mut() {
+                            if let XmlNode::Element {
+                                name, children: gc, ..
+                            } = child
+                            {
+                                if is_word_elem(name, "styles") {
+                                    gc.push(style_element.clone());
+                                    found = true;
+                                    break;
+                                }
+                            }
+                        }
+                        if !found {
+                            // Create <w:styles> element
+                            let ns = vec![super::xml::Namespace {
+                                prefix: "w".into(),
+                                uri: "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+                                    .into(),
+                            }];
+                            root_children.push(XmlNode::Element {
+                                name: TagName::local("w:styles"),
+                                attributes: BTreeMap::new(),
+                                namespaces: ns,
+                                children: vec![style_element],
+                                span: ByteSpan {
+                                    offset: 0,
+                                    length: 0,
+                                },
+                            });
+                        }
+                    }
+                }
+                _ => {}
+            }
+        }
+
         Ok(())
     }
 
     /// Route AssignStyle op — assign a style to a paragraph/run.
+    /// Matches by element ID prefix (para:/run:) + index for reliable targeting.
     fn route_assign_style(
         &self,
         elem: &ElementId,
@@ -836,8 +981,34 @@ impl<'a> DocxPatchWriter<'a> {
         parts: &BTreeMap<String, XmlDocument>,
         mutations_by_part: &mut BTreeMap<String, Vec<SpanMutation>>,
     ) -> Result<(), Vec<Diagnostic>> {
+        let elem_str = elem.as_str();
+        let (target_type, index) = if let Some(rest) = elem_str.strip_prefix("para:") {
+            ("para", rest.parse::<usize>().ok())
+        } else if let Some(rest) = elem_str.strip_prefix("run:") {
+            ("run", rest.parse::<usize>().ok())
+        } else {
+            // Fall back to w:id matching for legacy IDs
+            for (part_uri, doc) in parts {
+                if let Some(span) = self.find_element_span(doc, elem) {
+                    mutations_by_part
+                        .entry(part_uri.clone())
+                        .or_default()
+                        .push(SpanMutation {
+                            span,
+                            kind: MutationKind::SetStyleAttr(style_id.to_string()),
+                        });
+                    return Ok(());
+                }
+            }
+            return Ok(());
+        };
+
+        // Find the target paragraph or run by index in document.xml
         for (part_uri, doc) in parts {
-            if let Some(span) = self.find_element_span(doc, elem) {
+            if part_uri != "word/document.xml" {
+                continue;
+            }
+            if let Some(span) = Self::find_element_by_index(&doc.root, target_type, index) {
                 mutations_by_part
                     .entry(part_uri.clone())
                     .or_default()
@@ -851,7 +1022,52 @@ impl<'a> DocxPatchWriter<'a> {
         Ok(())
     }
 
+    /// Find an element by type ("para" or "run") and 0-based index in the document tree.
+    fn find_element_by_index<'b>(
+        root: &'b XmlNode,
+        target_type: &str,
+        index: Option<usize>,
+    ) -> Option<ByteSpan> {
+        let idx = index?;
+        let mut count: usize = 0;
+
+        fn walk<'c>(
+            node: &'c XmlNode,
+            target_type: &str,
+            idx: usize,
+            count: &mut usize,
+        ) -> Option<ByteSpan> {
+            match node {
+                XmlNode::Element { name, span, .. } => {
+                    let matches = match target_type {
+                        "para" => is_word_elem(name, "p"),
+                        "run" => is_word_elem(name, "r"),
+                        _ => false,
+                    };
+                    if matches {
+                        if *count == idx {
+                            return Some(span.clone());
+                        }
+                        *count += 1;
+                    }
+                    if let XmlNode::Element { children, .. } = node {
+                        for child in children {
+                            if let Some(result) = walk(child, target_type, idx, count) {
+                                return Some(result);
+                            }
+                        }
+                    }
+                    None
+                }
+                _ => None,
+            }
+        }
+
+        walk(root, target_type, idx, &mut count)
+    }
+
     /// Route AddHyperlink op — add a hyperlink to a paragraph/run.
+    /// Generates a unique rId and targets element by ID prefix (para:/run:) or fallback.
     fn route_add_hyperlink(
         &self,
         target: &str,
@@ -859,22 +1075,174 @@ impl<'a> DocxPatchWriter<'a> {
         tooltip: Option<&str>,
         parts: &BTreeMap<String, XmlDocument>,
         mutations_by_part: &mut BTreeMap<String, Vec<SpanMutation>>,
+        hyperlink_rels: &mut Vec<HyperlinkRel>,
     ) -> Result<(), Vec<Diagnostic>> {
-        for (part_uri, doc) in parts {
-            if let Some(span) = self.find_element_span(doc, elem) {
-                mutations_by_part
-                    .entry(part_uri.clone())
-                    .or_default()
-                    .push(SpanMutation {
-                        span,
-                        kind: MutationKind::AddHyperlink {
-                            target: target.to_string(),
-                            tooltip: tooltip.map(|s| s.to_string()),
-                        },
-                    });
-                return Ok(());
+        // Count existing rId* attributes to generate a unique rId
+        let max_rid = Self::max_existing_rid(parts);
+        let r_id = format!("rId{}", max_rid + 1);
+
+        let elem_str = elem.as_str();
+        let (span, source_uri) = if let Some(rest) = elem_str.strip_prefix("para:") {
+            let idx = rest.parse::<usize>().ok();
+            (
+                Self::find_element_by_index_for_hyperlink(parts, "para", idx),
+                "word/document.xml",
+            )
+        } else if let Some(rest) = elem_str.strip_prefix("run:") {
+            let idx = rest.parse::<usize>().ok();
+            (
+                Self::find_element_by_index_for_hyperlink(parts, "run", idx),
+                "word/document.xml",
+            )
+        } else {
+            // Fall back to w:id matching for legacy IDs
+            for (part_uri, doc) in parts {
+                if let Some(s) = self.find_element_span(doc, elem) {
+                    return Self::push_hyperlink_mutations(
+                        part_uri,
+                        s,
+                        target,
+                        tooltip,
+                        &r_id,
+                        mutations_by_part,
+                        hyperlink_rels,
+                    );
+                }
+            }
+            (None, "word/document.xml")
+        };
+
+        if let Some(span) = span {
+            return Self::push_hyperlink_mutations(
+                source_uri,
+                span,
+                target,
+                tooltip,
+                &r_id,
+                mutations_by_part,
+                hyperlink_rels,
+            );
+        }
+        Ok(())
+    }
+
+    /// Count the maximum rId number in the package and return the next available.
+    fn max_existing_rid(parts: &BTreeMap<String, XmlDocument>) -> usize {
+        let mut max_rid: usize = 0;
+
+        fn count_rids(node: &XmlNode, max: &mut usize) {
+            if let XmlNode::Element {
+                attributes,
+                children,
+                ..
+            } = node
+            {
+                for (key, val) in attributes {
+                    if key.local_name == "rId" {
+                        if let Some(num_str) = val.strip_prefix("rId") {
+                            if let Ok(num) = num_str.parse::<usize>() {
+                                if num > *max {
+                                    *max = num;
+                                }
+                            }
+                        }
+                    }
+                }
+                for child in children {
+                    count_rids(child, max);
+                }
             }
         }
+
+        for doc in parts.values() {
+            count_rids(&doc.root, &mut max_rid);
+        }
+
+        max_rid + 1
+    }
+
+    /// Find element by type and index for hyperlink targeting.
+    fn find_element_by_index_for_hyperlink(
+        parts: &BTreeMap<String, XmlDocument>,
+        target_type: &str,
+        index: Option<usize>,
+    ) -> Option<ByteSpan> {
+        let idx = index?;
+        let mut count: usize = 0;
+
+        fn walk<'a>(
+            node: &'a XmlNode,
+            target_type: &str,
+            idx: usize,
+            count: &mut usize,
+        ) -> Option<&'a ByteSpan> {
+            match node {
+                XmlNode::Element { name, span, .. } => {
+                    let matches = match target_type {
+                        "para" => is_word_elem(name, "p"),
+                        "run" => is_word_elem(name, "r"),
+                        _ => false,
+                    };
+                    if matches {
+                        if *count == idx {
+                            return Some(span);
+                        }
+                        *count += 1;
+                    }
+                    if let XmlNode::Element { children, .. } = node {
+                        for child in children {
+                            if let Some(result) = walk(child, target_type, idx, count) {
+                                return Some(result);
+                            }
+                        }
+                    }
+                    None
+                }
+                _ => None,
+            }
+        }
+
+        for doc in parts.values() {
+            if let Some(span) = walk(&doc.root, target_type, idx, &mut count) {
+                return Some(span.clone());
+            }
+        }
+        None
+    }
+
+    /// Push hyperlink mutation with the generated rId, and record the rel.
+    fn push_hyperlink_mutations(
+        part_uri: &str,
+        span: ByteSpan,
+        target: &str,
+        tooltip: Option<&str>,
+        r_id: &str,
+        mutations_by_part: &mut BTreeMap<String, Vec<SpanMutation>>,
+        hyperlink_rels: &mut Vec<HyperlinkRel>,
+    ) -> Result<(), Vec<Diagnostic>> {
+        mutations_by_part
+            .entry(part_uri.to_string())
+            .or_default()
+            .push(SpanMutation {
+                span,
+                kind: MutationKind::AddHyperlink {
+                    target: target.to_string(),
+                    tooltip: tooltip.map(|s| s.to_string()),
+                    r_id: Some(r_id.to_string()),
+                },
+            });
+        // Track the hyperlink rel for writing to the rels file (W4.3).
+        let is_external = target.starts_with("http://") || target.starts_with("https://");
+        hyperlink_rels.push(HyperlinkRel {
+            r_id: r_id.to_string(),
+            target: target.to_string(),
+            target_mode: if is_external {
+                Some("External".to_string())
+            } else {
+                None
+            },
+            source_uri: part_uri.to_string(),
+        });
         Ok(())
     }
 
@@ -1001,6 +1369,24 @@ fn resolve_relative(base: &str, target: &str) -> String {
     }
 }
 
+/// Convert a part URI to its relationship file path.
+/// E.g. "word/document.xml" -> "word/_rels/document.xml.rels"
+fn rels_uri_for(part_uri: &str) -> String {
+    if let Some(pos) = part_uri.rfind('/') {
+        let dir = &part_uri[..pos];
+        let base = &part_uri[pos + 1..];
+        let rels_base = format!("_rels/{}.rels", base);
+        format!("{}/{}", dir, rels_base)
+    } else {
+        format!("_rels/{}.rels", part_uri)
+    }
+}
+
+/// Check if an element name matches (handles namespace-qualified names).
+fn is_word_elem(name: &TagName, local: &str) -> bool {
+    name.local_name == local
+}
+
 // ===========================================================================
 // Tests
 // ===========================================================================
@@ -1073,10 +1459,10 @@ pub(crate) mod tests {
         }];
         let writer = DocxPatchWriter::new(&pkg, ops);
 
-        let parts = writer.parse_document_parts().expect("parse parts");
+        let mut parts = writer.parse_document_parts().expect("parse parts");
         assert!(parts.contains_key("word/document.xml"));
 
-        let mutations = writer.route_ops(&parts).expect("route ops");
+        let (mutations, _) = writer.route_ops(&mut parts).expect("route ops");
         assert!(mutations.contains_key("word/document.xml"));
     }
 
@@ -1087,8 +1473,8 @@ pub(crate) mod tests {
         let ops = vec![PatchOp::Delete { elem: elem_id }];
         let writer = DocxPatchWriter::new(&pkg, ops);
 
-        let parts = writer.parse_document_parts().expect("parse parts");
-        let mutations = writer.route_ops(&parts).expect("route ops");
+        let mut parts = writer.parse_document_parts().expect("parse parts");
+        let (mutations, _) = writer.route_ops(&mut parts).expect("route ops");
         // Deletion on non-matching ID produces no mutations, which is expected
         assert!(mutations.is_empty() || mutations.contains_key("word/document.xml"));
     }
@@ -1109,8 +1495,8 @@ pub(crate) mod tests {
         }];
         let writer = DocxPatchWriter::new(&pkg, ops);
 
-        let parts = writer.parse_document_parts().expect("parse parts");
-        let mutations = writer.route_ops(&parts).expect("route ops");
+        let mut parts = writer.parse_document_parts().expect("parse parts");
+        let (mutations, _) = writer.route_ops(&mut parts).expect("route ops");
         assert!(mutations.contains_key("word/document.xml"));
     }
 
@@ -1124,8 +1510,8 @@ pub(crate) mod tests {
         }];
         let writer = DocxPatchWriter::new(&pkg, ops);
 
-        let parts = writer.parse_document_parts().expect("parse parts");
-        let mutations = writer.route_ops(&parts).expect("route ops");
+        let mut parts = writer.parse_document_parts().expect("parse parts");
+        let (mutations, _) = writer.route_ops(&mut parts).expect("route ops");
         assert!(mutations.is_empty() || mutations.contains_key("word/document.xml"));
     }
 
@@ -1141,8 +1527,8 @@ pub(crate) mod tests {
         }];
         let writer = DocxPatchWriter::new(&pkg, ops);
 
-        let parts = writer.parse_document_parts().expect("parse parts");
-        let mutations = writer.route_ops(&parts).expect("route ops");
+        let mut parts = writer.parse_document_parts().expect("parse parts");
+        let (mutations, _) = writer.route_ops(&mut parts).expect("route ops");
         assert!(mutations.is_empty() || mutations.contains_key("word/document.xml"));
     }
 
@@ -1157,8 +1543,8 @@ pub(crate) mod tests {
         }];
         let writer = DocxPatchWriter::new(&pkg, ops);
 
-        let parts = writer.parse_document_parts().expect("parse parts");
-        let mutations = writer.route_ops(&parts).expect("route ops");
+        let mut parts = writer.parse_document_parts().expect("parse parts");
+        let (mutations, _) = writer.route_ops(&mut parts).expect("route ops");
         assert!(mutations.is_empty() || mutations.contains_key("word/document.xml"));
     }
 
@@ -1173,11 +1559,11 @@ pub(crate) mod tests {
         }];
         let writer = DocxPatchWriter::new(&pkg, ops);
 
-        let parts = writer.parse_document_parts().expect("parse parts");
+        let mut parts = writer.parse_document_parts().expect("parse parts");
         // route_ops may return diagnostics for unsupported ops, but should still succeed
-        let mutations = writer.route_ops(&parts);
+        let mutations = writer.route_ops(&mut parts);
         // We expect either an empty map or a warning
-        if let Ok(ref m) = mutations {
+        if let Ok((m, _)) = mutations {
             assert!(m.is_empty() || m.contains_key("word/document.xml"));
         }
     }

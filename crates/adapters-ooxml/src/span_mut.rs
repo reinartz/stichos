@@ -40,6 +40,9 @@ pub enum MutationKind {
         blank_subsequent: bool,
     },
     InsertNode(XmlNode),
+    /// Insert multiple children at a specific position within a parent element.
+    /// `after_idx` is the 0-based index after which to insert (use 0 for prepend).
+    InsertChildren { nodes: Vec<XmlNode>, after_idx: usize },
     DeleteNode,
     SetAttribute {
         name: TagName,
@@ -52,6 +55,9 @@ pub enum MutationKind {
     AddHyperlink {
         target: String,
         tooltip: Option<String>,
+        /// The relationship ID to use (e.g. "rId1").
+        /// If None, a placeholder will be generated.
+        r_id: Option<String>,
     },
 }
 
@@ -442,6 +448,25 @@ fn apply_mut_to_node(
                 format!("Cannot InsertNode at non-Element offset={}", span.offset),
             )),
         },
+        MutationKind::InsertChildren { nodes, after_idx } => match node {
+            XmlNode::Element { children, .. } => {
+                let insert_at = if *after_idx >= children.len() {
+                    children.len()
+                } else {
+                    *after_idx
+                };
+                for (i, mut child) in nodes.iter().enumerate() {
+                    let inserted = set_span_offset(&mut child.clone(), span.offset);
+                    children.insert(insert_at + i, inserted);
+                }
+                Ok(old_span)
+            }
+            _ => Err(Diagnostic::new(
+                "OOX-E-002",
+                Severity::Error,
+                format!("Cannot InsertChildren at non-Element offset={}", span.offset),
+            )),
+        },
         MutationKind::DeleteNode => match node {
             XmlNode::Element { children, .. } => {
                 let pos = children.iter().position(|c| {
@@ -585,7 +610,11 @@ fn apply_mut_to_node(
                 format!("Cannot SetStyleAttr on non-Element offset={}", span.offset),
             )),
         },
-        MutationKind::AddHyperlink { target, tooltip } => match node {
+        MutationKind::AddHyperlink {
+            target,
+            tooltip,
+            r_id,
+        } => match node {
             XmlNode::Element {
                 name,
                 attributes,
@@ -604,15 +633,17 @@ fn apply_mut_to_node(
 
                 let mut hl_children: Vec<XmlNode> = Vec::new();
 
-                // Add w:rId attribute (placeholder for relationship lookup)
-                let mut hl_attrs = BTreeMap::new();
-                hl_attrs.insert(
-                    TagName::local("w:rId"),
+                // Use provided r_id or generate a placeholder
+                let r_id_val = r_id.clone().unwrap_or_else(|| {
                     format!(
                         "rId_hyperlink_{}",
                         target.chars().take(8).collect::<String>()
-                    ),
-                );
+                    )
+                });
+
+                // Add w:rId attribute (relationship ID)
+                let mut hl_attrs = BTreeMap::new();
+                hl_attrs.insert(TagName::local("w:rId"), r_id_val);
                 if let Some(ref tt) = tooltip_attr {
                     for (k, v) in tt.iter() {
                         hl_attrs.insert(k.clone(), v.clone());

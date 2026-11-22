@@ -102,10 +102,44 @@ impl<'a> XlsxPatchWriter<'a> {
             }
         }
 
-        // 4. Detect stale cached values by scanning formula references.
+        // 4. Apply page_setup ops directly to worksheet parts (bypass SpanMutation).
+        for op in &self.ops {
+            if let PatchOp::SetPageSetup {
+                sheet_name,
+                orientation,
+                paper_size,
+                margin_top,
+                margin_bottom,
+                margin_left,
+                margin_right,
+            } = op
+            {
+                // Find matching sheet part by URI containing the sheet name (lowercase)
+                for (part_uri, doc) in &mut parts {
+                    if part_uri.contains("sheet")
+                        && part_uri.to_lowercase().contains(&sheet_name.to_lowercase().replace(' ', ""))
+                    {
+                        let ps = self.create_page_setup(orientation, paper_size);
+                        let pm = self.create_page_margins(
+                            margin_top,
+                            margin_bottom,
+                            margin_left,
+                            margin_right,
+                        );
+                        if let XmlNode::Element { children, .. } = &mut doc.root {
+                            children.push(ps);
+                            children.push(pm);
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+
+        // 5. Detect stale cached values by scanning formula references.
         let _stale = self.detect_stale_cached_values(&parts);
 
-        // 5. Build PartMutation map and write via SurgicalWriter.
+        // 6. Build PartMutation map and write via SurgicalWriter.
         let mut mutations = BTreeMap::new();
         for (uri, doc) in &parts {
             let part_data = doc.to_bytes();
@@ -1505,28 +1539,9 @@ impl<'a> XlsxPatchWriter<'a> {
         let ps_xml = self.create_page_setup(orientation, paper_size);
         let pm_xml = self.create_page_margins(margin_top, margin_bottom, margin_left, margin_right);
 
-        for (part_uri, doc) in parts {
-            if part_uri.contains("sheet") {
-                if let Some(span) = self.find_sheet_data_span(doc) {
-                    mutations_by_part
-                        .entry(part_uri.clone())
-                        .or_default()
-                        .push(SpanMutation {
-                            span: span.clone(),
-                            kind: MutationKind::InsertNode(ps_xml.clone()),
-                        });
-                    mutations_by_part
-                        .entry(part_uri.clone())
-                        .or_default()
-                        .push(SpanMutation {
-                            span,
-                            kind: MutationKind::InsertNode(pm_xml.clone()),
-                        });
-                    return Ok(());
-                }
-            }
-        }
-        let _ = sheet_name;
+        // Skip SpanMutation for page_setup — handled directly in write()
+        // to avoid span reindexing issues when inserting sibling elements
+        let _ = (sheet_name, ps_xml, pm_xml);
         Ok(())
     }
 

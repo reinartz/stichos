@@ -1,4 +1,6 @@
 use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap;
+use std::fmt;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -6,6 +8,16 @@ pub enum FeatureState {
     Read,
     Write,
     None,
+}
+
+impl fmt::Display for FeatureState {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            FeatureState::Read => write!(f, "read"),
+            FeatureState::Write => write!(f, "write"),
+            FeatureState::None => write!(f, "none"),
+        }
+    }
 }
 
 pub const CAPABILITIES: &[(&str, &[(&str, FeatureState)])] = &[
@@ -58,7 +70,16 @@ pub const CAPABILITIES: &[(&str, &[(&str, FeatureState)])] = &[
 ];
 
 pub fn capabilities_json() -> String {
-    serde_json::to_string_pretty(&CAPABILITIES).unwrap_or_default()
+    let mut map = BTreeMap::new();
+    for (format, features) in CAPABILITIES {
+        let mut feat_map = BTreeMap::new();
+        for (feature, state) in *features {
+            feat_map.insert(feature.to_string(), format!("{}", state));
+        }
+        map.insert(format.to_string(), feat_map);
+    }
+    let output = serde_json::json!({"capabilities": map});
+    serde_json::to_string_pretty(&output).unwrap_or_default()
 }
 
 #[cfg(test)]
