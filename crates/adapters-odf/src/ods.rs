@@ -144,6 +144,7 @@ fn build_spreadsheet(data: &[u8]) -> Result<(Spreadsheet, Vec<Diagnostic>), Vec<
             ir_version: IR_VERSION.to_string(),
             ir_version_migration: None,
             sheets,
+            defined_names: vec![],
         },
         diags,
     ))
@@ -207,6 +208,8 @@ fn parse_sheet(node: &XmlNode, si: usize, diags: &mut Vec<Diagnostic>) -> Option
                                 rich: None,
                             })
                             .collect(),
+                        height: None,
+                        hidden: None,
                     });
                 }
             }
@@ -224,6 +227,18 @@ fn parse_sheet(node: &XmlNode, si: usize, diags: &mut Vec<Diagnostic>) -> Option
         merged_ranges: merged,
         header_row: None,
         footer_row: None,
+        hyperlinks: vec![],
+        column_dimensions: vec![],
+        row_dimensions: vec![],
+        freeze_panes: None,
+        sheet_views: vec![],
+        auto_filter: None,
+        conditional_formats: vec![],
+        data_validations: vec![],
+        tables: vec![],
+        protection: None,
+        page_setup: None,
+        header_footer: None,
     })
 }
 
@@ -297,6 +312,8 @@ fn parse_row(node: &XmlNode, ri: usize, diags: &mut Vec<Diagnostic>) -> Option<S
     Some(SheetRow {
         id: ElementId::from_content_hash("sheet_row", &[&format!("row:{ri}")], ""),
         cells,
+        height: None,
+        hidden: None,
     })
 }
 

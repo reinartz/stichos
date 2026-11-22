@@ -317,6 +317,7 @@ mod tests {
                 page_number: None,
                 style_name: None,
                 numbering_info: None,
+                hyperlinks: vec![],
             },
         )]);
         assert_eq!(text, "Hello world");

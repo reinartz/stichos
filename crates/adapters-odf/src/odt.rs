@@ -260,6 +260,7 @@ fn build_document(
         footers: vec![],
         footnotes: vec![],
         endnotes: vec![],
+        info: None,
     };
 
     if let Some(text_el @ XmlNode::Element { children: tc, .. }) = find_body_text(&xml_doc.root) {
@@ -274,10 +275,13 @@ fn build_document(
         ir_version_migration: None,
         sections: vec![section],
         fields: vec![],
+        grouped_fields: vec![],
         comments: vec![],
         tracked_changes: vec![],
         revisions: vec![],
         template: None,
+        styles: BTreeMap::new(),
+        properties: None,
     };
     Ok((document, diags))
 }
@@ -391,6 +395,7 @@ fn parse_paragraph(node: &XmlNode, styles: &BTreeMap<String, OdfStyle>) -> Optio
             page_number: None,
             style_name: style_name.clone(),
             numbering_info: None,
+            hyperlinks: vec![],
         });
     }
 
@@ -401,6 +406,7 @@ fn parse_paragraph(node: &XmlNode, styles: &BTreeMap<String, OdfStyle>) -> Optio
         page_number: None,
         style_name,
         numbering_info: None,
+        hyperlinks: vec![],
     })
 }
 
@@ -549,6 +555,7 @@ fn parse_span_paragraph(node: &XmlNode, styles: &BTreeMap<String, OdfStyle>) -> 
         page_number: None,
         style_name: None,
         numbering_info: None,
+        hyperlinks: vec![],
     })
 }
 
@@ -596,6 +603,7 @@ fn parse_hyperlink(node: &XmlNode, styles: &BTreeMap<String, OdfStyle>) -> Optio
         page_number: None,
         style_name: None,
         numbering_info: None,
+        hyperlinks: vec![],
     })
 }
 
