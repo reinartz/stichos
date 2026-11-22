@@ -33,6 +33,7 @@ dependencies = [
 name = "adapters-ooxml"
 version = "0.2.2"
 dependencies = [
+ "base64 0.22.1",
  "hex",
  "proptest",
  "serde",
