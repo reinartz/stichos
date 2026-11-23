@@ -117,7 +117,9 @@ impl<'a> XlsxPatchWriter<'a> {
                 // Find matching sheet part by URI containing the sheet name (lowercase)
                 for (part_uri, doc) in &mut parts {
                     if part_uri.contains("sheet")
-                        && part_uri.to_lowercase().contains(&sheet_name.to_lowercase().replace(' ', ""))
+                        && part_uri
+                            .to_lowercase()
+                            .contains(&sheet_name.to_lowercase().replace(' ', ""))
                     {
                         let ps = self.create_page_setup(orientation, paper_size);
                         let pm = self.create_page_margins(

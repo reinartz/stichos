@@ -42,7 +42,10 @@ pub enum MutationKind {
     InsertNode(XmlNode),
     /// Insert multiple children at a specific position within a parent element.
     /// `after_idx` is the 0-based index after which to insert (use 0 for prepend).
-    InsertChildren { nodes: Vec<XmlNode>, after_idx: usize },
+    InsertChildren {
+        nodes: Vec<XmlNode>,
+        after_idx: usize,
+    },
     DeleteNode,
     SetAttribute {
         name: TagName,
@@ -464,7 +467,10 @@ fn apply_mut_to_node(
             _ => Err(Diagnostic::new(
                 "OOX-E-002",
                 Severity::Error,
-                format!("Cannot InsertChildren at non-Element offset={}", span.offset),
+                format!(
+                    "Cannot InsertChildren at non-Element offset={}",
+                    span.offset
+                ),
             )),
         },
         MutationKind::DeleteNode => match node {
