@@ -189,6 +189,7 @@ fn ir_document_from_document(doc: &Document) -> IRDocument {
     IRDocument {
         ir_version: doc.ir_version.clone(),
         root,
+        resolved_styles: doc.resolved_styles.clone(),
     }
 }
 
@@ -349,9 +350,87 @@ fn collect_drawing_coords(node: &TaggedNode) -> Vec<serde_json::Value> {
     out
 }
 
+/// Count features by walking the tagged tree.
+fn count_features(nodes: &[TaggedNode]) -> (usize, usize, usize, usize, usize, usize) {
+    let mut paragraphs = 0;
+    let mut tables = 0;
+    let mut drawings = 0;
+    let mut lists = 0;
+    let mut cells = 0;
+    let mut merged = 0;
+
+    for node in nodes {
+        match node.tag.as_str() {
+            "paragraph" => paragraphs += 1,
+            "table" => {
+                tables += 1;
+                let (p, t, d, l, c, m) = count_features(&node.children);
+                paragraphs += p;
+                tables += t;
+                drawings += d;
+                lists += l;
+                cells += c;
+                merged += m;
+            }
+            "drawing" | "image" => drawings += 1,
+            "list" => lists += 1,
+            "cell" => {
+                cells += 1;
+                if node.tag.starts_with("cell:")
+                    || node.children.iter().any(|c| c.tag == "__merged_range")
+                {
+                    merged += 1;
+                }
+                let (_p, _t, _d, _l, c2, m) = count_features(&node.children);
+                cells += c2;
+                merged += m;
+            }
+            "__cell_count" => {
+                if let Some(ref s) = node.alt_text {
+                    if let Ok(v) = s.parse::<usize>() {
+                        cells = v;
+                    }
+                }
+            }
+            "__merged_count" => {
+                if let Some(ref s) = node.alt_text {
+                    if let Ok(v) = s.parse::<usize>() {
+                        merged = v;
+                    }
+                }
+            }
+            "__slide_count" | "__shape_count" | "__media_count" => {}
+            _ => {}
+        }
+        let (p, t, d, l, c2, m) = count_features(&node.children);
+        paragraphs += p;
+        tables += t;
+        drawings += d;
+        lists += l;
+        cells += c2;
+        merged += m;
+    }
+    (paragraphs, tables, drawings, lists, cells, merged)
+}
+
 /// Build a fidelity budget for the document.
-fn build_fidelity_budget(_ir: &IRDocument) -> serde_json::Value {
-    let budget = FidelityBudget::default();
+fn build_fidelity_budget(ir: &IRDocument) -> serde_json::Value {
+    let (paragraphs, tables, drawings, lists, cells, merged) = count_features(&ir.root.children);
+
+    let total_features = paragraphs + tables + drawings + lists + cells + merged;
+    let total = std::cmp::max(1, total_features);
+    let confidence = (total_features as f32) / (total as f32).clamp(0.0, 1.0);
+
+    let mut budget = FidelityBudget::new().with_confidence(confidence);
+
+    // Add warnings for features that may need attention
+    if drawings > 50 {
+        budget = budget.drop_feature("large_media_count", "high image count", drawings);
+    }
+    if paragraphs > 500 {
+        budget = budget.drop_feature("large_document", "very high paragraph count", paragraphs);
+    }
+
     serde_json::to_value(&budget).unwrap_or_default()
 }
 
@@ -373,11 +452,72 @@ fn build_styles_block(ir: &IRDocument) -> Option<serde_json::Value> {
                 &mut doc_props,
             );
 
-            if style_entries.is_empty() && numbering_entries.is_empty() && doc_props.is_none() {
+            // Build result object
+            let mut result = serde_json::Map::new();
+
+            // Include resolved styles from the IR (folded style chain)
+            if let Some(ref resolved) = ir.resolved_styles {
+                let mut resolved_map = serde_json::Map::new();
+                if !resolved.para_styles.is_empty() {
+                    let para_styles: Vec<_> = resolved
+                        .para_styles
+                        .iter()
+                        .map(|(name, style)| {
+                            json!({
+                                "name": name,
+                                "font_family": style.font_family,
+                                "font_size_pt": style.font_size_pt,
+                                "bold": style.bold,
+                                "italic": style.italic,
+                                "color": style.color,
+                                "fill_color": style.fill_color,
+                                "line_color": style.line_color,
+                            })
+                        })
+                        .collect();
+                    resolved_map.insert(
+                        "paragraph_styles".to_string(),
+                        serde_json::Value::Array(para_styles),
+                    );
+                }
+                if !resolved.char_styles.is_empty() {
+                    let char_styles: Vec<_> = resolved
+                        .char_styles
+                        .iter()
+                        .map(|(name, style)| {
+                            json!({
+                                "name": name,
+                                "font_family": style.font_family,
+                                "font_size_pt": style.font_size_pt,
+                                "bold": style.bold,
+                                "italic": style.italic,
+                                "color": style.color,
+                                "fill_color": style.fill_color,
+                                "line_color": style.line_color,
+                            })
+                        })
+                        .collect();
+                    resolved_map.insert(
+                        "character_styles".to_string(),
+                        serde_json::Value::Array(char_styles),
+                    );
+                }
+                if !resolved_map.is_empty() {
+                    result.insert(
+                        "resolved_styles".to_string(),
+                        serde_json::Value::Object(resolved_map),
+                    );
+                }
+            }
+
+            if style_entries.is_empty()
+                && numbering_entries.is_empty()
+                && doc_props.is_none()
+                && result.is_empty()
+            {
                 return None;
             }
 
-            let mut result = serde_json::Map::new();
             if !style_entries.is_empty() {
                 result.insert(
                     "styles".to_string(),
@@ -1023,6 +1163,7 @@ mod tests {
                 bbox: None,
                 children: vec![],
             },
+            resolved_styles: None,
         });
         assert!(budget["confidence"].is_number());
         assert_eq!(budget["confidence"].as_f64().unwrap(), 1.0);
@@ -1423,6 +1564,7 @@ mod tests {
                     children: vec![],
                 }],
             },
+            resolved_styles: None,
         };
         assert_eq!(document_type_name(&pdf_ir), "pdf");
 
@@ -1436,6 +1578,7 @@ mod tests {
                 bbox: None,
                 children: vec![],
             },
+            resolved_styles: None,
         };
         assert_eq!(document_type_name(&unknown_ir), "unknown");
     }
@@ -1512,6 +1655,7 @@ mod tests {
                     },
                 ],
             },
+            resolved_styles: None,
         };
         let summary = build_structure_summary(&pdf_ir);
         assert_eq!(summary["pages"].as_u64().unwrap(), 3);
@@ -1594,6 +1738,7 @@ mod tests {
                     ],
                 }],
             },
+            resolved_styles: None,
         };
         let coords = build_coordinate_manifest(&pdf_ir);
         assert_eq!(coords.len(), 1);
