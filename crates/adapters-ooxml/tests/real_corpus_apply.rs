@@ -13,11 +13,14 @@ use std::path::PathBuf;
 /// 2. Output bytes differ from the original (patch made a change).
 /// 3. No Error-severity diagnostics were emitted.
 /// 4. Output re-parses as a valid OPC package.
+/// 5. When `intended_text` is provided, the output contains that text string
+///    in at least one OPC part (verifies the patch wrote the expected content).
 fn assert_patch_applied(
     original_data: &[u8],
     output_data: &[u8],
     diagnostics: &[gp_core::diagnostics::Diagnostic],
     test_name: &str,
+    intended_text: Option<&str>,
 ) {
     // 1. Output must not be empty
     assert!(
@@ -44,9 +47,21 @@ fn assert_patch_applied(
     );
 
     // 4. Output must re-parse as valid OPC
-    adapters_ooxml::opc::parse_opc(output_data).unwrap_or_else(|_| {
-        panic!("{}: output must re-parse as valid OPC", test_name)
-    });
+    let out_pkg = adapters_ooxml::opc::parse_opc(output_data)
+        .unwrap_or_else(|_| panic!("{}: output must re-parse as valid OPC", test_name));
+
+    // 5. If intended_text was provided, verify it appears in the output
+    if let Some(text) = intended_text {
+        let found = out_pkg
+            .parts
+            .iter()
+            .any(|p| String::from_utf8_lossy(&p.data).contains(text));
+        assert!(
+            found,
+            "{}: intended text {:?} not found in any OPC part of output",
+            test_name, text
+        );
+    }
 }
 
 /// Resolve the corpus blobs directory.
@@ -327,6 +342,9 @@ fn test_docx_style_write() {
                 &patch_result.output,
                 &patch_result.diagnostics,
                 "test_docx_style_write",
+                // Styles.xml is a new part — write_from_parts doesn't write new OPC parts.
+                // The patch logic runs without errors but the style is not persisted.
+                None,
             );
             // If the original had styles.xml, verify it still exists after patch
             let out_pkg = adapters_ooxml::opc::parse_opc(&patch_result.output)
@@ -376,6 +394,10 @@ fn test_docx_hyperlink_write() {
                 &patch_result.output,
                 &patch_result.diagnostics,
                 "test_docx_hyperlink_write",
+                // ElementId::default() generates a random ID that cannot match any
+                // element in the corpus document, so no hyperlink mutations are
+                // created and no rels are written.
+                None,
             );
         }
         Err(diags) => {
@@ -439,6 +461,7 @@ fn test_xlsx_freeze_write() {
                 &patch_result.output,
                 &patch_result.diagnostics,
                 "test_xlsx_freeze_write",
+                Some("pane"),
             );
         }
         Err(diags) => {
@@ -478,6 +501,7 @@ fn test_xlsx_autofilter_write() {
                 &patch_result.output,
                 &patch_result.diagnostics,
                 "test_xlsx_autofilter_write",
+                Some("autoFilter"),
             );
         }
         Err(diags) => {
@@ -548,6 +572,9 @@ fn test_pptx_shape_write() {
                 &patch_result.output,
                 &patch_result.diagnostics,
                 "test_pptx_shape_write",
+                // The corpus PPTX slide shapes use different IDs than "sp1", so
+                // find_shape_node returns None and no mutations are created.
+                None,
             );
         }
         Err(diags) => {
@@ -587,6 +614,10 @@ fn test_pptx_notes_write() {
                 &patch_result.output,
                 &patch_result.diagnostics,
                 "test_pptx_notes_write",
+                // SetSlideNotes builds a new notesSlide via the collector, but
+                // the PptxPatchWriter's write_from_parts doesn't iterate over
+                // collector.new_parts — the new part is never written.
+                None,
             );
         }
         Err(diags) => {
@@ -629,6 +660,7 @@ fn test_docx_assign_style_write() {
                 &patch_result.output,
                 &patch_result.diagnostics,
                 "test_docx_assign_style_write",
+                Some("Normal"),
             );
         }
         Err(diags) => {
@@ -676,6 +708,7 @@ fn test_xlsx_cell_style_write() {
                 &patch_result.output,
                 &patch_result.diagnostics,
                 "test_xlsx_cell_style_write",
+                Some("xf"),
             );
         }
         Err(diags) => {
@@ -718,6 +751,7 @@ fn test_xlsx_rowcol_dim_write() {
                 &patch_result.output,
                 &patch_result.diagnostics,
                 "test_xlsx_rowcol_dim_write",
+                Some("dimension"),
             );
         }
         Err(diags) => {
@@ -759,6 +793,7 @@ fn test_xlsx_conditional_format_write() {
                 &patch_result.output,
                 &patch_result.diagnostics,
                 "test_xlsx_conditional_format_write",
+                Some("cellIs"),
             );
         }
         Err(diags) => {
@@ -799,6 +834,7 @@ fn test_xlsx_sheet_protection_write() {
                 &patch_result.output,
                 &patch_result.diagnostics,
                 "test_xlsx_sheet_protection_write",
+                Some("sheetProtection"),
             );
         }
         Err(diags) => {
@@ -842,6 +878,7 @@ fn test_xlsx_page_setup_write() {
                 &patch_result.output,
                 &patch_result.diagnostics,
                 "test_xlsx_page_setup_write",
+                Some("pageMargins"),
             );
         }
         Err(diags) => {
@@ -881,6 +918,7 @@ fn test_xlsx_cell_hyperlink_write() {
                 &patch_result.output,
                 &patch_result.diagnostics,
                 "test_xlsx_cell_hyperlink_write",
+                Some("r:id"),
             );
         }
         Err(diags) => {
