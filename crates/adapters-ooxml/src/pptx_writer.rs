@@ -22,12 +22,53 @@ use super::xml::{ByteSpan, TagName, XmlDocument, XmlNode};
 // Types
 // ===========================================================================
 
+/// A new OPC part to be added during patch application.
+#[derive(Debug, Clone)]
+pub struct NewPart {
+    /// The URI of the new part (e.g., "ppt/media/image1.png").
+    pub uri: String,
+    /// The content type (e.g., "image/png").
+    pub content_type: String,
+    /// The raw bytes of the part.
+    pub data: Vec<u8>,
+}
+
+/// A relationship update for an existing part.
+#[derive(Debug, Clone)]
+pub struct RelUpdate {
+    /// The source part URI (e.g., "ppt/presentation.xml").
+    pub source_uri: String,
+    /// The relationship ID (e.g., "rId3").
+    pub rel_id: String,
+    /// The target part URI (e.g., "ppt/notesSlides/notesSlide1.xml").
+    pub target_uri: String,
+    /// The relationship type (e.g., "http://schemas.openxmlformats.org/officeDocument/2006/relationships/notesSlide").
+    pub rel_type: String,
+}
+
 /// A PPTX-specific patch writer.
 pub struct PptxPatchWriter<'a> {
     /// The OPC package to patch.
     pub package: &'a OpcPackage,
     /// The patch operations to apply.
     pub ops: Vec<PatchOp>,
+}
+
+/// Collector for new parts and relationship updates discovered during routing.
+pub struct NewPartsCollector {
+    /// New parts to be added.
+    pub new_parts: Vec<NewPart>,
+    /// Relationship updates for existing parts.
+    pub rel_updates: Vec<RelUpdate>,
+}
+
+impl NewPartsCollector {
+    pub fn new() -> Self {
+        Self {
+            new_parts: Vec::new(),
+            rel_updates: Vec::new(),
+        }
+    }
 }
 
 /// Result of PPTX patch application.
@@ -62,8 +103,11 @@ impl<'a> PptxPatchWriter<'a> {
             }
         };
 
-        // 2. Route patch ops to span mutations per part.
-        let mutations_by_part = match self.route_ops(&parts) {
+        // 2. Collect new parts and rel updates during routing.
+        let mut collector = NewPartsCollector::new();
+
+        // 3. Route patch ops to span mutations per part.
+        let mutations_by_part = match self.route_ops(&parts, &mut collector) {
             Ok(m) => m,
             Err(e) => {
                 diags.extend(e);
@@ -104,6 +148,35 @@ impl<'a> PptxPatchWriter<'a> {
                 PartMutation::Replace {
                     data: part_data,
                     content_type: None,
+                },
+            );
+        }
+
+        // 5. Add new parts as PartMutation::Add.
+        for new_part in &collector.new_parts {
+            mutations.insert(
+                new_part.uri.clone(),
+                PartMutation::Add {
+                    uri: new_part.uri.clone(),
+                    content_type: new_part.content_type.clone(),
+                    data: new_part.data.clone(),
+                    rels: None,
+                },
+            );
+        }
+
+        // 6. Add rel updates as PartMutation::UpdateRels.
+        for rel_update in &collector.rel_updates {
+            mutations.insert(
+                format!("{}._rels", rel_update.source_uri),
+                PartMutation::UpdateRels {
+                    source_uri: rel_update.source_uri.clone(),
+                    rels: vec![super::writer::Relationship {
+                        id: rel_update.rel_id.clone(),
+                        target: rel_update.target_uri.clone(),
+                        relationship_type: rel_update.rel_type.clone(),
+                        target_mode: None,
+                    }],
                 },
             );
         }
@@ -162,6 +235,7 @@ impl<'a> PptxPatchWriter<'a> {
     fn route_ops(
         &self,
         parts: &BTreeMap<String, XmlDocument>,
+        collector: &mut NewPartsCollector,
     ) -> Result<BTreeMap<String, Vec<SpanMutation>>, Vec<Diagnostic>> {
         let mut diags = Vec::new();
         let mut mutations_by_part: BTreeMap<String, Vec<SpanMutation>> = BTreeMap::new();
@@ -268,6 +342,7 @@ impl<'a> PptxPatchWriter<'a> {
                         *height_pt,
                         parts,
                         &mut mutations_by_part,
+                        collector,
                     ) {
                         Ok(_) => {}
                         Err(e) => diags.extend(e),
@@ -312,8 +387,13 @@ impl<'a> PptxPatchWriter<'a> {
                     }
                 }
                 PatchOp::SetSlideNotes { slide_id, notes } => {
-                    match self.route_set_slide_notes(slide_id, notes, parts, &mut mutations_by_part)
-                    {
+                    match self.route_set_slide_notes(
+                        slide_id,
+                        notes,
+                        parts,
+                        &mut mutations_by_part,
+                        collector,
+                    ) {
                         Ok(_) => {}
                         Err(e) => diags.extend(e),
                     }
@@ -825,6 +905,7 @@ impl<'a> PptxPatchWriter<'a> {
         height_pt: Option<f64>,
         parts: &BTreeMap<String, XmlDocument>,
         mutations_by_part: &mut BTreeMap<String, Vec<SpanMutation>>,
+        collector: &mut NewPartsCollector,
     ) -> Result<(), Vec<Diagnostic>> {
         for (part_uri, doc) in parts {
             if let Some(span) = self.find_sp_tree_span(doc) {
@@ -834,9 +915,43 @@ impl<'a> PptxPatchWriter<'a> {
                 let h_emu = height_pt.map(|h| (h * 914400.0) as i64).unwrap_or(3048000);
                 let alt = alt_text.unwrap_or("Image");
 
-                let new_node = self.create_picture_element(
-                    slide_id, data, mime_type, alt, x_emu, y_emu, w_emu, h_emu,
-                );
+                let rel_id = format!("rId{}", 100 + (slide_id.chars().count() % 100));
+                let file_ext = match mime_type {
+                    "image/png" => "png",
+                    "image/jpeg" | "image/jpg" => "jpg",
+                    "image/gif" => "gif",
+                    "image/bmp" => "bmp",
+                    "image/svg+xml" => "svg",
+                    _ => "png",
+                };
+                let media_uri = format!("ppt/media/image{}.{}", slide_id, file_ext);
+                let content_type = match mime_type {
+                    "image/png" => "image/png".to_string(),
+                    "image/jpeg" | "image/jpg" => "image/jpeg".to_string(),
+                    "image/gif" => "image/gif".to_string(),
+                    "image/bmp" => "image/bmp".to_string(),
+                    "image/svg+xml" => "image/svg+xml".to_string(),
+                    _ => "application/octet-stream".to_string(),
+                };
+                let rel_type =
+                    "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image";
+                let slide_rels_uri = format!("{}._rels", part_uri);
+
+                collector.new_parts.push(NewPart {
+                    uri: media_uri.clone(),
+                    content_type,
+                    data: data.to_vec(),
+                });
+
+                collector.rel_updates.push(RelUpdate {
+                    source_uri: slide_rels_uri.clone(),
+                    rel_id: rel_id.clone(),
+                    target_uri: media_uri,
+                    rel_type: rel_type.to_string(),
+                });
+
+                let new_node =
+                    self.create_picture_element(slide_id, &rel_id, alt, x_emu, y_emu, w_emu, h_emu);
                 mutations_by_part
                     .entry(part_uri.clone())
                     .or_default()
@@ -932,13 +1047,14 @@ impl<'a> PptxPatchWriter<'a> {
     /// Route SetSlideNotes op — build a notesSlide part with txBody containing the notes text.
     ///
     /// If a notesSlide part already exists (ppt/notesSlides/notesN.xml), replaces its text content.
-    /// If it does not exist, creates a minimal notesSlide XML structure.
+    /// If it does not exist, creates a new notesSlide part and registers it via the collector.
     fn route_set_slide_notes(
         &self,
         slide_id: &str,
         notes: &str,
         parts: &BTreeMap<String, XmlDocument>,
         mutations_by_part: &mut BTreeMap<String, Vec<SpanMutation>>,
+        collector: &mut NewPartsCollector,
     ) -> Result<(), Vec<Diagnostic>> {
         let notes_uri = format!("ppt/notesSlides/notes{}.xml", slide_id);
 
@@ -946,7 +1062,7 @@ impl<'a> PptxPatchWriter<'a> {
             // Existing notesSlide — find the first <a:t> text node and replace it
             if let Some(span) = self.find_notes_text_span(doc) {
                 mutations_by_part
-                    .entry(notes_uri)
+                    .entry(notes_uri.clone())
                     .or_default()
                     .push(SpanMutation {
                         span,
@@ -956,39 +1072,27 @@ impl<'a> PptxPatchWriter<'a> {
             }
         }
 
-        // No notesSlide exists — create a minimal one and insert into the slide's spTree
-        // as a <p:notes> element reference, and record the notes part for the final write.
-        let new_node = self.create_notes_element(notes);
+        // No notesSlide exists — create a new part via the collector
+        let notes_xml = self.build_notes_slide_document(slide_id, notes);
+        let notes_bytes = notes_xml.to_bytes();
 
-        // We still need a notesSlide part. Create the full notesSlide XML as a span mutation
-        // target. Since we don't have an existing notesSlide part in our parsed parts,
-        // we insert a minimal notesSlide container. The caller must handle the part URI.
-        let slide_uri = format!("ppt/slides/{}.xml", slide_id);
-        if let Some(doc) = parts.get(&slide_uri) {
-            if let Some(span) = self.find_sp_tree_span(doc) {
-                mutations_by_part
-                    .entry(slide_uri)
-                    .or_default()
-                    .push(SpanMutation {
-                        span,
-                        kind: MutationKind::InsertNode(new_node),
-                    });
-                return Ok(());
-            }
-        }
+        // Add the new notesSlide part
+        collector.new_parts.push(NewPart {
+            uri: notes_uri.clone(),
+            content_type: "application/vnd.openxmlformats-officedocument.presentationml.notesSlide+xml".into(),
+            data: notes_bytes,
+        });
 
-        // If we can't find the slide, create the notesSlide structure anyway
-        let notes_doc = self.build_notes_slide_document(slide_id, notes);
-        mutations_by_part
-            .entry(notes_uri)
-            .or_default()
-            .push(SpanMutation {
-                span: ByteSpan {
-                    offset: 0,
-                    length: 0,
-                },
-                kind: MutationKind::InsertNode(notes_doc),
-            });
+        // Add the relationship from presentation.xml to the notesSlide part
+        let rel_id = format!("rId{}", 100 + slide_id.chars().count());
+        collector.rel_updates.push(RelUpdate {
+            source_uri: "ppt/presentation.xml".to_string(),
+            rel_id: rel_id.clone(),
+            target_uri: notes_uri,
+            rel_type:
+                "http://schemas.openxmlformats.org/officeDocument/2006/relationships/notesSlide"
+                    .into(),
+        });
 
         Ok(())
     }
@@ -1360,8 +1464,7 @@ impl<'a> PptxPatchWriter<'a> {
     fn create_picture_element(
         &self,
         slide_id: &str,
-        _data: &[u8],
-        _mime_type: &str,
+        rel_id: &str,
         alt_text: &str,
         x_emu: i64,
         y_emu: i64,
@@ -1369,7 +1472,6 @@ impl<'a> PptxPatchWriter<'a> {
         h_emu: i64,
     ) -> XmlNode {
         let pic_id = format!("{}pic", slide_id);
-        let rel_id = format!("rId{}", 100 + (slide_id.len() % 100));
 
         XmlNode::Element {
             name: TagName {
@@ -1454,7 +1556,7 @@ impl<'a> PptxPatchWriter<'a> {
                                     local_name: "embed".to_string(),
                                     namespace_uri: None,
                                 },
-                                rel_id,
+                                rel_id.to_string(),
                             );
                             attrs.insert(TagName::local("cstate"), "print".to_string());
                             attrs
@@ -1567,113 +1669,6 @@ impl<'a> PptxPatchWriter<'a> {
             span: ByteSpan {
                 offset: 0,
                 length: 100,
-            },
-        }
-    }
-
-    /// Create a minimal notes element for speaker notes.
-    fn create_notes_element(&self, notes: &str) -> XmlNode {
-        XmlNode::Element {
-            name: TagName {
-                prefix: Some("p".into()),
-                local_name: "notes".to_string(),
-                namespace_uri: None,
-            },
-            attributes: BTreeMap::new(),
-            namespaces: vec![super::xml::Namespace {
-                prefix: "p".into(),
-                uri: super::pptx::NS_PPT.into(),
-            }],
-            children: vec![
-                XmlNode::Element {
-                    name: TagName {
-                        prefix: Some("p".into()),
-                        local_name: "notesBg".to_string(),
-                        namespace_uri: None,
-                    },
-                    attributes: [(TagName::local("show"), "false".to_string())]
-                        .into_iter()
-                        .collect(),
-                    namespaces: vec![],
-                    children: vec![],
-                    span: ByteSpan {
-                        offset: 0,
-                        length: 20,
-                    },
-                },
-                XmlNode::Element {
-                    name: TagName {
-                        prefix: Some("p".into()),
-                        local_name: "txBody".to_string(),
-                        namespace_uri: None,
-                    },
-                    attributes: BTreeMap::new(),
-                    namespaces: vec![],
-                    children: vec![
-                        XmlNode::Element {
-                            name: TagName {
-                                prefix: Some("a".into()),
-                                local_name: "bodyPr".to_string(),
-                                namespace_uri: None,
-                            },
-                            attributes: BTreeMap::new(),
-                            namespaces: vec![],
-                            children: vec![],
-                            span: ByteSpan {
-                                offset: 0,
-                                length: 0,
-                            },
-                        },
-                        XmlNode::Element {
-                            name: TagName {
-                                prefix: Some("a".into()),
-                                local_name: "p".to_string(),
-                                namespace_uri: None,
-                            },
-                            attributes: BTreeMap::new(),
-                            namespaces: vec![],
-                            children: vec![
-                                XmlNode::Element {
-                                    name: TagName {
-                                        prefix: Some("a".into()),
-                                        local_name: "rPr".to_string(),
-                                        namespace_uri: None,
-                                    },
-                                    attributes: {
-                                        let mut attrs = BTreeMap::new();
-                                        attrs.insert(TagName::local("lang"), "en-US".to_string());
-                                        attrs
-                                    },
-                                    namespaces: vec![],
-                                    children: vec![],
-                                    span: ByteSpan {
-                                        offset: 0,
-                                        length: 0,
-                                    },
-                                },
-                                XmlNode::Text {
-                                    text: notes.to_string(),
-                                    span: ByteSpan {
-                                        offset: 0,
-                                        length: notes.len(),
-                                    },
-                                },
-                            ],
-                            span: ByteSpan {
-                                offset: 0,
-                                length: 0,
-                            },
-                        },
-                    ],
-                    span: ByteSpan {
-                        offset: 0,
-                        length: 0,
-                    },
-                },
-            ],
-            span: ByteSpan {
-                offset: 0,
-                length: 50,
             },
         }
     }
