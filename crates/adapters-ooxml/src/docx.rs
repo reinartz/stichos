@@ -33,6 +33,7 @@ use std::collections::BTreeMap;
 
 use super::opc::{parse_opc, OpcPackage, Part};
 use super::revision_reader::enumerate_revisions;
+use super::style_resolve::resolve_styles;
 use super::xml::{parse_xml, TagName, XmlDocument, XmlNode};
 
 // ===========================================================================
@@ -145,9 +146,10 @@ pub fn read_docx_full(package: &OpcPackage) -> Result<ReadResult, Vec<Diagnostic
     document.revisions = enumerate_revisions(&xml_doc, &mut rev_diags);
     diags.extend(rev_diags);
 
-    // 13. Set document styles and properties
+    // 13. Resolve styles and set document styles and properties
     let style_count = style_map.len();
-    document.styles = style_map;
+    document.styles = style_map.clone();
+    document.resolved_styles = Some(resolve_styles(&style_map));
     document.properties = merged_props;
 
     let ir_bytes = serde_json::to_vec(&document).map_err(|e| {
@@ -1991,6 +1993,7 @@ fn build_document(
         revisions: vec![],
         template: None,
         styles: BTreeMap::new(),
+        resolved_styles: None,
         properties: None,
     };
 
@@ -2069,6 +2072,7 @@ fn build_document_full(
             revisions: vec![],
             template: None,
             styles: BTreeMap::new(),
+            resolved_styles: None,
             properties: None,
         };
         apply_styles_to_document(&mut tmp_doc, style_map);
@@ -2087,6 +2091,7 @@ fn build_document_full(
         revisions: vec![],
         template: None,
         styles: BTreeMap::new(),
+        resolved_styles: None,
         properties: None,
     };
 
@@ -3419,7 +3424,7 @@ impl Codec for DocxReader {
 
     fn read(&self, data: &[u8]) -> Result<ReadResult, Vec<Diagnostic>> {
         match parse_opc(data) {
-            Ok(pkg) => read_docx(&pkg),
+            Ok(pkg) => read_docx_full(&pkg),
             Err(diags) => Err(diags),
         }
     }

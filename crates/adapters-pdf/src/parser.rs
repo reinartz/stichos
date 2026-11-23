@@ -1223,6 +1223,7 @@ impl PdfReader {
                     })
                     .collect(),
             },
+            resolved_styles: None,
         })
     }
 }

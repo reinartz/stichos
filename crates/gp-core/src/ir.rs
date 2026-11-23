@@ -390,6 +390,9 @@ pub struct Document {
     pub template: Option<String>,
     #[serde(skip_serializing_if = "BTreeMap::is_empty", default)]
     pub styles: BTreeMap<String, StyleDef>,
+    /// Resolved style information (folded from docDefaults → style chain → direct props).
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub resolved_styles: Option<StyleResolution>,
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub properties: Option<Properties>,
 }
@@ -831,6 +834,39 @@ pub struct StyleDef {
     pub hidden: Option<bool>,
     pub run_props: Option<Box<RunPropDef>>,
     pub para_props: Option<Box<ParaPropDef>>,
+}
+
+/// Resolved style information for a document element after traversing the style chain.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct ResolvedStyle {
+    /// Font family name, if specified.
+    pub font_family: Option<String>,
+    /// Font size in points.
+    pub font_size_pt: Option<f64>,
+    /// Bold formatting.
+    pub bold: Option<bool>,
+    /// Italic formatting.
+    pub italic: Option<bool>,
+    /// Text color as hex string.
+    pub color: Option<String>,
+    /// Fill/highlight color as hex string.
+    pub fill_color: Option<String>,
+    /// Line/border color as hex string.
+    pub line_color: Option<String>,
+}
+
+/// Resolved style information for an entire document.
+///
+/// Built by traversing the style chain (docDefaults → based_on chain → direct props)
+/// from the raw `StyleDef` entries.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct StyleResolution {
+    /// Resolved paragraph styles, keyed by style name/id.
+    #[serde(skip_serializing_if = "BTreeMap::is_empty", default)]
+    pub para_styles: BTreeMap<String, ResolvedStyle>,
+    /// Resolved character/run styles, keyed by style name/id.
+    #[serde(skip_serializing_if = "BTreeMap::is_empty", default)]
+    pub char_styles: BTreeMap<String, ResolvedStyle>,
 }
 
 // ====================================================================
@@ -1824,6 +1860,9 @@ pub struct TaggedNode {
 pub struct IRDocument {
     pub ir_version: String,
     pub root: TaggedNode,
+    /// Resolved style information, if available (populated from Document by adapters).
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub resolved_styles: Option<StyleResolution>,
 }
 
 // ====================================================================
@@ -2064,6 +2103,7 @@ mod tests {
             revisions: vec![],
             template: None,
             styles: BTreeMap::new(),
+            resolved_styles: None,
             properties: None,
         };
         assert_eq!(doc.ir_version, IR_VERSION);
@@ -2189,6 +2229,7 @@ mod tests {
             revisions: vec![],
             template: None,
             styles: BTreeMap::new(),
+            resolved_styles: None,
             properties: None,
         };
 
@@ -2390,6 +2431,7 @@ mod tests {
             revisions: vec![],
             template: None,
             styles: BTreeMap::new(),
+            resolved_styles: None,
             properties: None,
         };
         assert_eq!(doc.fields.len(), 1);
@@ -2424,6 +2466,7 @@ mod tests {
             revisions: vec![],
             template: None,
             styles: BTreeMap::new(),
+            resolved_styles: None,
             properties: None,
         };
         let json = serde_json::to_string(&doc).expect("serialize");
@@ -2539,6 +2582,7 @@ mod tests {
             }],
             template: None,
             styles: BTreeMap::new(),
+            resolved_styles: None,
             properties: None,
         };
         assert_eq!(doc.revisions.len(), 1);
@@ -2594,6 +2638,7 @@ mod tests {
             revisions: vec![],
             template: None,
             styles: BTreeMap::new(),
+            resolved_styles: None,
             properties: None,
         };
         let json = serde_json::to_string(&doc).expect("serialize");

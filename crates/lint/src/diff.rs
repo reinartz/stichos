@@ -748,6 +748,7 @@ mod tests {
                 bbox: None,
                 children: vec![],
             },
+            resolved_styles: None,
         };
         let ir_b = IRDocument {
             ir_version: IR_VERSION.to_string(),
@@ -758,6 +759,7 @@ mod tests {
                 bbox: None,
                 children: vec![],
             },
+            resolved_styles: None,
         };
         let diff = diff_ir(&ir_a, &ir_b);
         assert!(!diff.identical);
@@ -777,10 +779,12 @@ mod tests {
         let ir_a = IRDocument {
             ir_version: IR_VERSION.to_string(),
             root: root.clone(),
+            resolved_styles: None,
         };
         let ir_b = IRDocument {
             ir_version: IR_VERSION.to_string(),
             root,
+            resolved_styles: None,
         };
         let diff = diff_ir(&ir_a, &ir_b);
         assert!(diff.identical);

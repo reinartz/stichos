@@ -122,6 +122,7 @@ pub fn pandoc_to_ir(doc: &PandocDocument) -> Result<IRDocument, Vec<Diagnostic>>
         revisions: vec![],
         template: None,
         styles: BTreeMap::new(),
+        resolved_styles: None,
         properties: None,
     };
 
@@ -141,6 +142,7 @@ pub fn pandoc_to_ir(doc: &PandocDocument) -> Result<IRDocument, Vec<Diagnostic>>
                     children: document_to_nodes(&document, 0),
                 }],
             },
+            resolved_styles: None,
         })
     } else {
         Err(warnings)

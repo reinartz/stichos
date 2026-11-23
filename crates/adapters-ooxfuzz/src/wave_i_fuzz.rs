@@ -509,6 +509,7 @@ pub fn apply_op_deeply_nested_ir() -> IRDocument {
                 children: vec![],
             }],
         },
+        resolved_styles: None,
     }
 }
 
@@ -621,6 +622,7 @@ pub fn apply_op_massive_ir() -> IRDocument {
             bbox: None,
             children: root_children,
         },
+        resolved_styles: None,
     }
 }
 
@@ -655,6 +657,7 @@ pub fn apply_op_deeply_nested_children() -> IRDocument {
             bbox: None,
             children: vec![build_nested(500)],
         },
+        resolved_styles: None,
     }
 }
 
@@ -774,6 +777,7 @@ pub fn ir_doc_hostile_alt_text() -> IRDocument {
                 children: vec![],
             }],
         },
+        resolved_styles: None,
     }
 }
 
@@ -941,6 +945,7 @@ pub fn run_apply_op_fuzz() -> FuzzResult {
                 children: vec![],
             }],
         },
+        resolved_styles: None,
     };
 
     // Test various hostile PatchOps
@@ -1094,6 +1099,7 @@ mod tests {
                 bbox: None,
                 children: vec![],
             },
+            resolved_styles: None,
         };
         let op = apply_op_nonexistent_id();
         let result = apply_op(&mut ir, &op);

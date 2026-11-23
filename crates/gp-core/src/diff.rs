@@ -424,6 +424,7 @@ mod tests {
                 bbox: None,
                 children: vec![],
             },
+            resolved_styles: None,
         }
     }
 
@@ -446,6 +447,7 @@ mod tests {
                 bbox: None,
                 children: vec![child],
             },
+            resolved_styles: None,
         }
     }
 

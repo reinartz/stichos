@@ -915,6 +915,7 @@ mod tests {
                     }],
                 }],
             },
+            resolved_styles: None,
         }
     }
 

@@ -629,6 +629,7 @@ impl PatchExecutor for OdfPatchExecutor {
                 bbox: None,
                 children: vec![],
             },
+            resolved_styles: None,
         };
         gp_core::patch::apply_op(&mut ir, op)
     }

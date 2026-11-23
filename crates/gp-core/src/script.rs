@@ -653,6 +653,7 @@ mod tests {
                 bbox: None,
                 children: vec![],
             },
+            resolved_styles: None,
         };
         let script = r#"
             let read_back = ir_read();

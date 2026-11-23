@@ -33,6 +33,7 @@ pub fn ir_document_from_spreadsheet(spreadsheet: &Spreadsheet) -> IRDocument {
     IRDocument {
         ir_version: spreadsheet.ir_version.clone(),
         root: doc_root,
+        resolved_styles: None,
     }
 }
 
@@ -201,6 +202,7 @@ pub fn ir_document_from_presentation(presentation: &Presentation) -> IRDocument 
     IRDocument {
         ir_version: presentation.ir_version.clone(),
         root: doc_root,
+        resolved_styles: None,
     }
 }
 

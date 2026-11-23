@@ -50,6 +50,7 @@ pub fn markdown_to_document(markdown: &str) -> MarkdownResult {
             revisions: vec![],
             template: None,
             styles: BTreeMap::new(),
+            resolved_styles: None,
             properties: None,
         })
     } else {

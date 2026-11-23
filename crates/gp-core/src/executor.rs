@@ -1044,6 +1044,7 @@ pub fn make_minimal_ir(parts: &[SimplePart]) -> IRDocument {
             bbox: None,
             children,
         },
+        resolved_styles: None,
     }
 }
 
@@ -1123,6 +1124,7 @@ impl PatchExecutor for SurgicalPatchExecutor {
                 bbox: None,
                 children: vec![],
             },
+            resolved_styles: None,
         };
         crate::patch::apply_op(&mut ir, op)
     }

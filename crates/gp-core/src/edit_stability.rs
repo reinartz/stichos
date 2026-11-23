@@ -252,6 +252,7 @@ pub fn sample_ir_document() -> IRDocument {
                 }],
             }],
         },
+        resolved_styles: None,
     }
 }
 

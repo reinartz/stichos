@@ -281,6 +281,7 @@ fn build_document(
         revisions: vec![],
         template: None,
         styles: BTreeMap::new(),
+        resolved_styles: None,
         properties: None,
     };
     Ok((document, diags))
