@@ -154,6 +154,7 @@ pub fn edit_comment(
                     underline: None,
                     strikethrough: None,
                     style_name: None,
+                drawings: Vec::new(),
                 }],
                 page_number: None,
                 style_name: None,

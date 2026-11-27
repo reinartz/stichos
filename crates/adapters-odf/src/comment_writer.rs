@@ -313,6 +313,7 @@ mod tests {
                     underline: None,
                     strikethrough: None,
                     style_name: None,
+                    drawings: vec![],
                 }],
                 page_number: None,
                 style_name: None,

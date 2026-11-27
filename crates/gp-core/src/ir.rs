@@ -511,6 +511,9 @@ pub struct Run {
     pub strikethrough: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub style_name: Option<String>,
+    /// Inline drawings parsed from w:drawing inside w:r (run-level images).
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub drawings: Vec<Drawing>,
 }
 
 /// A simple field (w:fldSimple) — page numbers, date, etc.
@@ -2123,6 +2126,7 @@ mod tests {
             underline: None,
             strikethrough: None,
             style_name: None,
+            drawings: vec![],
         };
         let para = Paragraph {
             id: ElementId::content_anchored("paragraph", &["para:0"], &run.text),
@@ -2210,6 +2214,7 @@ mod tests {
                         underline: None,
                         strikethrough: None,
                         style_name: Some("Emphasis".to_string()),
+                        drawings: vec![],
                     }],
                     page_number: None,
                     style_name: Some("Heading1".to_string()),

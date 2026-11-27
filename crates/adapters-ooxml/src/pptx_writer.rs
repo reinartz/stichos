@@ -141,7 +141,7 @@ impl<'a> PptxPatchWriter<'a> {
 
         // 4. Build PartMutation map and write via SurgicalWriter.
         let mut mutations = BTreeMap::new();
-        for (uri, doc) in &parts {
+        for (uri, doc) in parts.iter_mut() {
             let part_data = doc.to_bytes();
             mutations.insert(
                 uri.clone(),

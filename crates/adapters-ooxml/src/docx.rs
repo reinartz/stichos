@@ -2617,7 +2617,7 @@ fn parse_paragraph_full(
                     continue;
                 }
                 if is_word_elem(name, "r") {
-                    if let Some(run) = parse_run(child, diags) {
+                    if let Some(run) = parse_run(child, pkg, source_uri, diags) {
                         runs.push(run);
                     }
                 } else if is_word_elem(name, "pStyle") {
@@ -2731,8 +2731,13 @@ struct RunProps {
     strikethrough: bool,
 }
 
-/// Parse a <w:r> element into a Run (with rStyle support).
-fn parse_run(node: &XmlNode, _diags: &mut Vec<Diagnostic>) -> Option<Run> {
+/// Parse a <w:r> element into a Run (with rStyle support and inline w:drawing).
+fn parse_run(
+    node: &XmlNode,
+    pkg: &OpcPackage,
+    source_uri: &str,
+    diags: &mut Vec<Diagnostic>,
+) -> Option<Run> {
     let mut text = String::new();
     let mut bold: Option<bool> = None;
     let mut italic: Option<bool> = None;
@@ -2742,6 +2747,7 @@ fn parse_run(node: &XmlNode, _diags: &mut Vec<Diagnostic>) -> Option<Run> {
     let mut strikethrough: Option<bool> = None;
     let mut r_style: Option<String> = None;
     let mut has_props = false;
+    let mut drawings: Vec<Drawing> = Vec::new();
 
     if let XmlNode::Element { children, .. } = node {
         for child in children {
@@ -2802,6 +2808,11 @@ fn parse_run(node: &XmlNode, _diags: &mut Vec<Diagnostic>) -> Option<Run> {
                                 text.push('\n');
                             }
                         }
+                    } else if is_word_elem(name, "drawing") {
+                        // R5.4: Parse w:drawing inside w:r (run-level images)
+                        if let Some(drawing) = parse_drawing(child, pkg, source_uri, diags) {
+                            drawings.push(drawing);
+                        }
                     }
                 }
                 _ => {}
@@ -2809,7 +2820,7 @@ fn parse_run(node: &XmlNode, _diags: &mut Vec<Diagnostic>) -> Option<Run> {
         }
     }
 
-    if text.is_empty() && !has_props {
+    if text.is_empty() && !has_props && drawings.is_empty() {
         return None;
     }
 
@@ -2827,6 +2838,7 @@ fn parse_run(node: &XmlNode, _diags: &mut Vec<Diagnostic>) -> Option<Run> {
                 underline,
                 strikethrough,
                 style_name: r_style.clone(),
+                drawings: Vec::new(),
             },
         ),
         text,
@@ -2837,6 +2849,7 @@ fn parse_run(node: &XmlNode, _diags: &mut Vec<Diagnostic>) -> Option<Run> {
         underline,
         strikethrough,
         style_name: r_style,
+        drawings,
     })
 }
 
@@ -2998,7 +3011,7 @@ fn parse_hyperlink(
             match child {
                 XmlNode::Element { name, .. } => {
                     if is_word_elem(name, "r") {
-                        if let Some(run) = parse_run(child, diags) {
+                        if let Some(run) = parse_run(child, pkg, source_uri, diags) {
                             runs.push(run);
                         }
                     } else if is_word_elem(name, "t") {
@@ -3021,6 +3034,7 @@ fn parse_hyperlink(
                                         underline: None,
                                         strikethrough: None,
                                         style_name: None,
+                                        drawings: vec![],
                                     },
                                 ),
                                 text: t.clone(),
@@ -3031,6 +3045,7 @@ fn parse_hyperlink(
                                 underline: None,
                                 strikethrough: None,
                                 style_name: None,
+                                drawings: vec![],
                             });
                         }
                     }

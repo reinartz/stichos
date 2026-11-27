@@ -233,6 +233,7 @@ fn convert_block(
                     underline: None,
                     strikethrough: None,
                     style_name: Some("Code".to_string()),
+                drawings: Vec::new(),
                 }],
                 page_number: None,
                 style_name: Some("CodeBlock".to_string()),
@@ -260,6 +261,7 @@ fn convert_block(
                     underline: None,
                     strikethrough: None,
                     style_name: Some("HorizontalRule".to_string()),
+                drawings: Vec::new(),
                 }],
                 page_number: None,
                 style_name: Some("HorizontalRule".to_string()),
@@ -319,6 +321,7 @@ fn convert_block(
                     underline: None,
                     strikethrough: None,
                     style_name: Some("RawBlock".to_string()),
+                    drawings: vec![],
                 }],
                 page_number: None,
                 style_name: Some("RawBlock".to_string()),
@@ -391,6 +394,7 @@ fn convert_inlines(inlines: &[PandocInline]) -> Vec<Run> {
                     underline: None,
                     strikethrough: None,
                     style_name: style,
+                drawings: Vec::new(),
                 });
             }
         }
@@ -556,6 +560,7 @@ fn convert_block_list_to_items(blocks: &[PandocBlock]) -> Vec<SectionItem> {
                         underline: None,
                         strikethrough: None,
                         style_name: Some("Code".to_string()),
+                    drawings: Vec::new(),
                     }],
                     page_number: None,
                     style_name: Some("CodeBlock".to_string()),

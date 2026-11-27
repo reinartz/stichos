@@ -573,6 +573,7 @@ fn make_run(
         font_name: None,
         font_size_pt: None,
         style_name: url.map(|_| "Hyperlink".to_string()),
+        drawings: Vec::new(),
     }
 }
 

@@ -516,8 +516,8 @@ fn apply_mut_to_node(
                 span: s,
                 ..
             } => {
-                // For paragraphs (w:p), look for or create w:pPr and set w:style there.
-                // For runs (w:r), look for or create w:rPr and set w:style there.
+                // For paragraphs (w:p), look for or create w:pPr and set w:pStyle there.
+                // For runs (w:r), look for or create w:rPr and set w:rStyle there.
                 let parent_name = &name.local_name;
                 let pr_tag = if parent_name == "p" {
                     "pPr"
@@ -525,6 +525,13 @@ fn apply_mut_to_node(
                     "rPr"
                 } else {
                     "pPr"
+                };
+                let style_tag = if parent_name == "p" {
+                    "w:pStyle"
+                } else if parent_name == "r" {
+                    "w:rStyle"
+                } else {
+                    "w:pStyle"
                 };
 
                 // Check if a <w:prPr> already exists
@@ -537,13 +544,13 @@ fn apply_mut_to_node(
                 });
 
                 if !pr_found {
-                    // Create <w:prPr><w:style w:val="..."/></w:prPr>
+                    // Create <w:prPr><w:pStyle w:val="..."/></w:prPr> or <w:rPr><w:rStyle.../>
                     let pr_elem = XmlNode::Element {
                         name: TagName::local(pr_tag),
                         attributes: BTreeMap::new(),
                         namespaces: vec![],
                         children: vec![XmlNode::Element {
-                            name: TagName::local("w:style"),
+                            name: TagName::local(style_tag),
                             attributes: {
                                 let mut a = BTreeMap::new();
                                 a.insert(TagName::local("w:val"), style_id.clone());
@@ -563,7 +570,7 @@ fn apply_mut_to_node(
                     };
                     children.push(pr_elem);
                 } else {
-                    // Set or update w:style on existing <w:prPr>
+                    // Set or update w:pStyle/w:rStyle on existing <w:prPr>
                     for child in children.iter_mut() {
                         if let XmlNode::Element {
                             name: n,
@@ -580,7 +587,7 @@ fn apply_mut_to_node(
                                         ..
                                     } = gc_child
                                     {
-                                        if gn.local_name == "style" {
+                                        if gn.local_name == style_tag {
                                             ga.insert(TagName::local("w:val"), style_id.clone());
                                             style_set = true;
                                             break;
@@ -589,7 +596,7 @@ fn apply_mut_to_node(
                                 }
                                 if !style_set {
                                     gc.push(XmlNode::Element {
-                                        name: TagName::local("w:style"),
+                                        name: TagName::local(style_tag),
                                         attributes: {
                                             let mut a = BTreeMap::new();
                                             a.insert(TagName::local("w:val"), style_id.clone());
@@ -647,9 +654,9 @@ fn apply_mut_to_node(
                     )
                 });
 
-                // Add w:rId attribute (relationship ID)
+                // Add r:id attribute (relationship ID) — not w:rId
                 let mut hl_attrs = BTreeMap::new();
-                hl_attrs.insert(TagName::local("w:rId"), r_id_val);
+                hl_attrs.insert(TagName::local("r:id"), r_id_val);
                 if let Some(ref tt) = tooltip_attr {
                     for (k, v) in tt.iter() {
                         hl_attrs.insert(k.clone(), v.clone());

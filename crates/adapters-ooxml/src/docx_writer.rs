@@ -121,7 +121,7 @@ impl<'a> DocxPatchWriter<'a> {
         let mut mutations = BTreeMap::new();
 
         // First, add all regular document parts.
-        for (uri, doc) in &parts {
+        for (uri, doc) in parts.iter_mut() {
             let part_data = doc.to_bytes();
             let content_type = find_part(self.package, uri)
                 .map(|p| p.content_type.clone())

@@ -190,13 +190,28 @@ fn write_tag_name(buf: &mut Vec<u8>, name: &TagName) {
 }
 
 /// A parsed XML document.
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct XmlDocument {
     pub root: XmlNode,
     pub namespaces: Vec<Namespace>,
     pub encoding: String,
     /// Original source bytes for byte-exact re-serialization.
     source: Vec<u8>,
+    /// Whether the DOM has been modified since parsing/cloning.
+    /// When true, to_bytes() re-serializes the DOM tree.
+    dirty: bool,
+}
+
+impl Clone for XmlDocument {
+    fn clone(&self) -> Self {
+        Self {
+            root: self.root.clone(),
+            namespaces: self.namespaces.clone(),
+            encoding: self.encoding.clone(),
+            source: self.source.clone(),
+            dirty: true, // Cloning implies the DOM may be modified
+        }
+    }
 }
 
 impl XmlDocument {
@@ -212,6 +227,7 @@ impl XmlDocument {
             namespaces,
             encoding,
             source,
+            dirty: false,
         }
     }
 
@@ -261,10 +277,22 @@ impl XmlDocument {
 
     /// Re-serialize the full document to bytes.
     ///
-    /// For byte-exact output, uses the original source bytes.
-    pub fn to_bytes(&self) -> Vec<u8> {
-        // For byte-exact output, use the full source
-        self.source.clone()
+    /// If the DOM has been modified (dirty flag), re-serializes the DOM tree
+    /// and updates source. Otherwise returns the original source bytes.
+    pub fn to_bytes(&mut self) -> Vec<u8> {
+        if self.dirty {
+            let bytes = self.root.to_bytes();
+            self.source = bytes.clone();
+            self.dirty = false;
+            bytes
+        } else {
+            self.source.clone()
+        }
+    }
+
+    /// Mark the document as clean (source is up-to-date).
+    pub fn mark_clean(&mut self) {
+        self.dirty = false;
     }
 
     /// Returns the original source bytes.
@@ -1139,7 +1167,7 @@ mod tests {
                    <Default Extension=\"xml\" ContentType=\"application/xml\"/>\
                    <Override PartName=\"/word/document.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml\"/>\
                    </Types>";
-        let doc = parse_xml(xml).expect("should parse [Content_Types].xml");
+        let mut doc = parse_xml(xml).expect("should parse [Content_Types].xml");
         let out = doc.to_bytes();
         assert_eq!(out, xml, "re-serialized bytes must match original");
     }
@@ -1211,7 +1239,7 @@ mod tests {
     fn test_multi_char_prefix() {
         let xml =
             b"<root xmlns:wp=\"http://example.com/wp\"><wp:inline distT=\"0\" distB=\"0\"/></root>";
-        let doc = parse_xml(xml).expect("should parse multi-char prefix");
+        let mut doc = parse_xml(xml).expect("should parse multi-char prefix");
 
         match &doc.root {
             XmlNode::Element { children, .. } => {
@@ -1396,7 +1424,7 @@ mod tests {
         let xml = content_types_xml.expect("[Content_Types].xml should exist in corpus fixture");
 
         // Parse the XML
-        let doc = parse_xml(&xml).expect("should parse [Content_Types].xml");
+        let mut doc = parse_xml(&xml).expect("should parse [Content_Types].xml");
 
         // Verify it has a root element
         match &doc.root {
@@ -1473,7 +1501,7 @@ mod tests {
     #[test]
     fn test_xml_node_to_bytes() {
         let xml = b"<root><child>text</child></root>";
-        let doc = parse_xml(xml).expect("should parse");
+        let mut doc = parse_xml(xml).expect("should parse");
 
         // Re-serialize the document
         let out = doc.to_bytes();
