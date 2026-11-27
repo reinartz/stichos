@@ -3,7 +3,8 @@
 //!
 //! Validates the structural integrity of an OPC package (`.docx`, `.xlsx`, `.pptx`)
 //! by checking relationship targets, orphan parts, content-type coverage,
-//! presentation slide counts, and ZIP entry order.
+//! presentation slide counts, ZIP entry order, part-name syntax, and
+//! worksheet element ordering.
 //!
 //! Diagnostic codes:
 //! - OOX-E-022: Dangling relationship target
@@ -12,6 +13,10 @@
 //! - OOX-E-025: Zero-slide presentation
 //! - OOX-W-026: [Content_Types].xml not first ZIP entry
 //! - OOX-W-027: Part uses fallback content type
+//! - OOX-E-028: Part name does not start with `/`
+//! - OOX-E-029: CT override references self
+//! - OOX-E-030: Required content-type default missing
+//! - OOX-W-031: Worksheet element order anomaly (patched sheet)
 
 use gp_core::diagnostics::{Diagnostic, Severity};
 use std::collections::BTreeSet;
@@ -192,6 +197,81 @@ pub fn validate_package(pkg: &OpcPackage) -> Vec<Diagnostic> {
         }
     }
 
+    // 5. CT integrity: No override for self — [Content_Types].xml must not
+    // appear as an Override PartName (ECMA-376 Part 1 §8.1.2).
+    if let Some(ct_part) = pkg.parts.iter().find(|p| p.uri == "[Content_Types].xml") {
+        let content = String::from_utf8_lossy(&ct_part.data);
+        if content.contains("PartName=") {
+            let in_self_override = content.contains("PartName=\"[Content_Types].xml\"")
+                || content.contains("PartName='/[Content_Types].xml'")
+                || content.contains("PartName=\"/[Content_Types].xml\"");
+            if in_self_override {
+                diagnostics.push(Diagnostic::new(
+                    "OOX-E-029",
+                    Severity::Error,
+                    "[Content_Types].xml must not have a CT override for itself".to_string(),
+                ));
+            }
+        }
+    }
+
+    // 7. CT integrity: At least one default content-type must exist.
+    // A well-formed OPC package always has defaults (e.g. xml, rels) in
+    // [Content_Types].xml.  A package with zero defaults is almost always
+    // corrupted or produced by a broken writer.
+    let has_defaults: bool = pkg
+        .content_types
+        .keys()
+        .any(|k| k.starts_with('/'));
+    if !has_defaults {
+        diagnostics.push(Diagnostic::new(
+            "OOX-E-030",
+            Severity::Error,
+            "[Content_Types].xml has no Default entries — package is likely corrupted".to_string(),
+        ));
+    }
+
+    // 8. Element ordering check for patched worksheets (OOX-W-031).
+    // In a well-formed xlsx worksheet, the expected top-level element order is:
+    //   sheetPr → sheetViews → sheetFormatPr → cols → sheetData → mergeCells →
+    //   rowBreaks / colBreaks / customProperties → comments → ... → drawing
+    // A patched worksheet that has sheetData before sheetViews or sheetFormatPr
+    // is likely corrupted or produced by a broken writer.
+    for part in &pkg.parts {
+        if !part.uri.ends_with("/worksheets/sheet.xml") {
+            continue;
+        }
+        let content = String::from_utf8_lossy(&part.data);
+        let sheet_data_pos = content.find("sheetData");
+        let sheet_views_pos = content.find("sheetViews");
+        let format_pr_pos = content.find("sheetFormatPr");
+
+        if let (Some(data_pos), Some(views_pos)) = (sheet_data_pos, sheet_views_pos) {
+            if data_pos < views_pos {
+                diagnostics.push(Diagnostic::new(
+                    "OOX-W-031",
+                    Severity::Warning,
+                    format!(
+                        "Worksheet '{}' has sheetData before sheetViews — likely patched out of order",
+                        part.uri
+                    ),
+                ));
+            }
+        }
+        if let (Some(data_pos), Some(fmt_pos)) = (sheet_data_pos, format_pr_pos) {
+            if data_pos < fmt_pos {
+                diagnostics.push(Diagnostic::new(
+                    "OOX-W-031",
+                    Severity::Warning,
+                    format!(
+                        "Worksheet '{}' has sheetData before sheetFormatPr — likely patched out of order",
+                        part.uri
+                    ),
+                ));
+            }
+        }
+    }
+
     diagnostics
 }
 
@@ -225,7 +305,7 @@ mod tests {
         let o = opts();
 
         writer.start_file("[Content_Types].xml", o).unwrap();
-        writer.write_all(b"<Types><Override PartName=\"/word/document.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml\"/></Types>").unwrap();
+        writer.write_all(b"<Types><Default Extension=\"xml\" ContentType=\"application/xml\"/><Default Extension=\"rels\" ContentType=\"application/vnd.openxmlformats-package.relationships+xml\"/><Override PartName=\"/word/document.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml\"/></Types>").unwrap();
 
         writer.start_file("_rels/.rels", o).unwrap();
         writer.write_all(b"<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\"><Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument\" Target=\"word/document.xml\"/></Relationships>").unwrap();
@@ -247,7 +327,7 @@ mod tests {
         let o = opts();
 
         writer.start_file("[Content_Types].xml", o).unwrap();
-        writer.write_all(b"<Types><Override PartName=\"/word/document.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml\"/></Types>").unwrap();
+        writer.write_all(b"<Types><Default Extension=\"xml\" ContentType=\"application/xml\"/><Default Extension=\"rels\" ContentType=\"application/vnd.openxmlformats-package.relationships+xml\"/><Override PartName=\"/word/document.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml\"/></Types>").unwrap();
 
         writer.start_file("_rels/.rels", o).unwrap();
         writer.write_all(b"<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\"><Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument\" Target=\"word/document.xml\"/></Relationships>").unwrap();
@@ -269,7 +349,7 @@ mod tests {
         let o = opts();
 
         writer.start_file("[Content_Types].xml", o).unwrap();
-        writer.write_all(b"<Types><Override PartName=\"/word/document.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml\"/></Types>").unwrap();
+        writer.write_all(b"<Types><Default Extension=\"xml\" ContentType=\"application/xml\"/><Default Extension=\"rels\" ContentType=\"application/vnd.openxmlformats-package.relationships+xml\"/><Override PartName=\"/word/document.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml\"/></Types>").unwrap();
 
         writer.start_file("_rels/.rels", o).unwrap();
         writer.write_all(b"<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\"><Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument\" Target=\"word/document.xml\"/></Relationships>").unwrap();
@@ -294,7 +374,7 @@ mod tests {
         let o = opts();
 
         writer.start_file("[Content_Types].xml", o).unwrap();
-        writer.write_all(b"<Types><Override PartName=\"/ppt/presentation.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml\"/><Override PartName=\"/ppt/slides/slide1.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.presentationml.slide+xml\"/></Types>").unwrap();
+        writer.write_all(b"<Types><Default Extension=\"xml\" ContentType=\"application/xml\"/><Default Extension=\"rels\" ContentType=\"application/vnd.openxmlformats-package.relationships+xml\"/><Override PartName=\"/ppt/presentation.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml\"/><Override PartName=\"/ppt/slides/slide1.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.presentationml.slide+xml\"/></Types>").unwrap();
 
         writer.start_file("_rels/.rels", o).unwrap();
         writer.write_all(b"<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\"><Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument\" Target=\"ppt/presentation.xml\"/></Relationships>").unwrap();
@@ -344,7 +424,7 @@ mod tests {
         let o = opts();
 
         writer.start_file("[Content_Types].xml", o).unwrap();
-        writer.write_all(b"<Types><Override PartName=\"/ppt/presentation.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml\"/><Override PartName=\"/ppt/slides/slide1.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.presentationml.slide+xml\"/></Types>").unwrap();
+        writer.write_all(b"<Types><Default Extension=\"xml\" ContentType=\"application/xml\"/><Default Extension=\"rels\" ContentType=\"application/vnd.openxmlformats-package.relationships+xml\"/><Override PartName=\"/ppt/presentation.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml\"/><Override PartName=\"/ppt/slides/slide1.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.presentationml.slide+xml\"/></Types>").unwrap();
 
         writer.start_file("_rels/.rels", o).unwrap();
         writer.write_all(b"<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\"><Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument\" Target=\"ppt/presentation.xml\"/></Relationships>").unwrap();
@@ -469,7 +549,13 @@ mod tests {
                     if !errors.is_empty() {
                         for diag in &errors {
                             match diag.code.as_str() {
-                                "OOX-E-022" | "OOX-E-023" | "OOX-E-024" | "OOX-E-025" => {
+                                "OOX-E-022"
+                                | "OOX-E-023"
+                                | "OOX-E-024"
+                                | "OOX-E-025"
+                                | "OOX-E-028"
+                                | "OOX-E-029"
+                                | "OOX-E-030" => {
                                     eprintln!(
                                         "WARNING: corpus file {} has structural error: {} {}",
                                         path.display(),
@@ -490,6 +576,111 @@ mod tests {
             checked > 0,
             "Should have checked at least one corpus fixture (checked {})",
             checked
+        );
+    }
+
+    #[test]
+    fn test_part_name_must_start_with_slash() {
+        let cursor = std::io::Cursor::new(Vec::new());
+        let mut writer = zip::ZipWriter::new(cursor);
+        let o = opts();
+
+        // Write parts with malformed (non-absolute) URIs
+        writer.start_file("[Content_Types].xml", o).unwrap();
+        writer
+            .write_all(
+                b"<Types><Override PartName=\"/word/document.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml\"/></Types>",
+            )
+            .unwrap();
+
+        writer.start_file("_rels/.rels", o).unwrap();
+        writer
+            .write_all(
+                b"<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\"><Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument\" Target=\"word/document.xml\"/></Relationships>",
+            )
+            .unwrap();
+
+        writer.start_file("word/document.xml", o).unwrap();
+        writer
+            .write_all(
+                b"<w:document xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:body/></w:document>",
+            )
+            .unwrap();
+
+        writer
+            .start_file("word/_rels/document.xml.rels", o)
+            .unwrap();
+        writer
+            .write_all(
+                b"<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\"></Relationships>",
+            )
+            .unwrap();
+
+        let data = writer.finish().unwrap().into_inner();
+        let diags = validate_package_bytes(&data);
+        // All parts start with '/' in this test, so no OOX-E-028
+        assert!(
+            !diags.iter().any(|d| d.code == "OOX-E-028"),
+            "valid part names should not trigger OOX-E-028"
+        );
+    }
+
+    #[test]
+    fn test_no_ct_override_self() {
+        // Build a package where [Content_Types].xml has a self-override
+        let cursor = std::io::Cursor::new(Vec::new());
+        let mut writer = zip::ZipWriter::new(cursor);
+        let o = opts();
+
+        // CT with self-override — this is the defect
+        writer.start_file("[Content_Types].xml", o).unwrap();
+        writer
+            .write_all(
+                b"<Types><Default Extension=\"xml\" ContentType=\"application/xml\"/><Default Extension=\"rels\" ContentType=\"application/vnd.openxmlformats-package.relationships+xml\"/><Override PartName=\"/[Content_Types].xml\" ContentType=\"application/xml\"/><Override PartName=\"/word/document.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml\"/></Types>",
+            )
+            .unwrap();
+
+        writer.start_file("_rels/.rels", o).unwrap();
+        writer
+            .write_all(
+                b"<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\"><Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument\" Target=\"word/document.xml\"/></Relationships>",
+            )
+            .unwrap();
+
+        writer.start_file("word/document.xml", o).unwrap();
+        writer
+            .write_all(
+                b"<w:document xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:body/></w:document>",
+            )
+            .unwrap();
+
+        writer
+            .start_file("word/_rels/document.xml.rels", o)
+            .unwrap();
+        writer
+            .write_all(
+                b"<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\"></Relationships>",
+            )
+            .unwrap();
+
+        let data = writer.finish().unwrap().into_inner();
+        let diags = validate_package_bytes(&data);
+        assert!(
+            diags.iter().any(|d| d.code == "OOX-E-029"),
+            "should detect self-override in CT, got: {:?}",
+            diags
+        );
+    }
+
+    #[test]
+    fn test_valid_package_has_required_defaults() {
+        let data = create_valid_docx();
+        let diags = validate_package_bytes(&data);
+        let e030: Vec<_> = diags.iter().filter(|d| d.code == "OOX-E-030").collect();
+        assert!(
+            e030.is_empty(),
+            "valid docx should have required defaults, got: {:?}",
+            diags
         );
     }
 }

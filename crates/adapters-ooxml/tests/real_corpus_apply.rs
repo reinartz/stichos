@@ -1184,12 +1184,151 @@ fn test_pptx_table_cell_text_write() {
         Err(diags) => {
             let has_errors = diags
                 .iter()
-                .any(|d| d.severity == gp_core::diagnostics::Severity::Error);
+                 .any(|d| d.severity == gp_core::diagnostics::Severity::Error);
             assert!(
                 !has_errors,
                 "SetTableCellText should not produce errors: {:?}",
                 diags
             );
         }
+    }
+}
+
+// R8.1: Tests for previously untested PatchOps
+#[test]
+fn test_docx_insert_write() {
+    let data = std::fs::read(corpus_files("docx").first().unwrap()).expect("read corpus docx");
+    let pkg = adapters_ooxml::opc::parse_opc(&data).expect("parse docx");
+    let op = gp_core::patch::PatchOp::Insert {
+        anchor: gp_core::ir::ElementId::default(),
+        kind: "inserted-node".to_string(),
+    };
+    let writer = adapters_ooxml::docx_writer::DocxPatchWriter::new(&pkg, vec![op]);
+    let result = writer.write();
+    match result {
+        Ok(pr) => assert!(!pr.diagnostics.iter().any(|d| d.severity == gp_core::diagnostics::Severity::Error)),
+        Err(diags) => assert!(!diags.iter().any(|d| d.severity == gp_core::diagnostics::Severity::Error)),
+    }
+}
+
+#[test]
+fn test_docx_replace_text_write() {
+    let data = std::fs::read(corpus_files("docx").first().unwrap()).expect("read corpus docx");
+    let pkg = adapters_ooxml::opc::parse_opc(&data).expect("parse docx");
+    let op = gp_core::patch::PatchOp::ReplaceText {
+        elem: gp_core::ir::ElementId::default(),
+        old: "zzz_nonexistent_text_xyz".to_string(),
+        new: "zzz_replacement_text_xyz".to_string(),
+    };
+    let writer = adapters_ooxml::docx_writer::DocxPatchWriter::new(&pkg, vec![op]);
+    let result = writer.write();
+    match result {
+        Ok(pr) => assert!(!pr.diagnostics.iter().any(|d| d.severity == gp_core::diagnostics::Severity::Error)),
+        Err(diags) => assert!(!diags.iter().any(|d| d.severity == gp_core::diagnostics::Severity::Error)),
+    }
+}
+
+#[test]
+fn test_docx_delete_write() {
+    let data = std::fs::read(corpus_files("docx").first().unwrap()).expect("read corpus docx");
+    let pkg = adapters_ooxml::opc::parse_opc(&data).expect("parse docx");
+    let op = gp_core::patch::PatchOp::Delete {
+        elem: gp_core::ir::ElementId::default(),
+    };
+    let writer = adapters_ooxml::docx_writer::DocxPatchWriter::new(&pkg, vec![op]);
+    let result = writer.write();
+    match result {
+        Ok(pr) => assert!(!pr.diagnostics.iter().any(|d| d.severity == gp_core::diagnostics::Severity::Error)),
+        Err(diags) => assert!(!diags.iter().any(|d| d.severity == gp_core::diagnostics::Severity::Error)),
+    }
+}
+
+#[test]
+fn test_docx_set_run_props_write() {
+    let data = std::fs::read(corpus_files("docx").first().unwrap()).expect("read corpus docx");
+    let pkg = adapters_ooxml::opc::parse_opc(&data).expect("parse docx");
+    let op = gp_core::patch::PatchOp::SetRunProps {
+        elem: gp_core::ir::ElementId::default(),
+        props: gp_core::patch::RunProperties {
+            bold: true, italic: false,
+            font_name: Some("Arial".to_string()),
+            font_size_pt: Some(14.0),
+        },
+    };
+    let writer = adapters_ooxml::docx_writer::DocxPatchWriter::new(&pkg, vec![op]);
+    let result = writer.write();
+    match result {
+        Ok(pr) => assert!(!pr.diagnostics.iter().any(|d| d.severity == gp_core::diagnostics::Severity::Error)),
+        Err(diags) => assert!(!diags.iter().any(|d| d.severity == gp_core::diagnostics::Severity::Error)),
+    }
+}
+
+#[test]
+fn test_xlsx_set_cell_value_write() {
+    let data = std::fs::read(corpus_files("xlsx").first().unwrap()).expect("read corpus xlsx");
+    let pkg = adapters_ooxml::opc::parse_opc(&data).expect("parse xlsx");
+    let op = gp_core::patch::PatchOp::SetCellValue {
+        cell: gp_core::ir::ElementId::default(),
+        value: "zzz_test_cell_value_xyz".to_string(),
+    };
+    let writer = adapters_ooxml::xlsx_writer::XlsxPatchWriter::new(&pkg, vec![op]);
+    let result = writer.write();
+    match result {
+        Ok(pr) => assert!(!pr.diagnostics.iter().any(|d| d.severity == gp_core::diagnostics::Severity::Error)),
+        Err(diags) => assert!(!diags.iter().any(|d| d.severity == gp_core::diagnostics::Severity::Error)),
+    }
+}
+
+#[test]
+fn test_xlsx_set_cell_rich_write() {
+    let data = std::fs::read(corpus_files("xlsx").first().unwrap()).expect("read corpus xlsx");
+    let pkg = adapters_ooxml::opc::parse_opc(&data).expect("parse xlsx");
+    let op = gp_core::patch::PatchOp::SetCellRich {
+        cell: gp_core::ir::ElementId::default(),
+        runs: vec![gp_core::ir::CellRun {
+            text: "zzz_rich_cell_xyz".to_string(),
+            bold: Some(true), color: None, strikethrough: None, size: None,
+        }],
+    };
+    let writer = adapters_ooxml::xlsx_writer::XlsxPatchWriter::new(&pkg, vec![op]);
+    let result = writer.write();
+    match result {
+        Ok(pr) => assert!(!pr.diagnostics.iter().any(|d| d.severity == gp_core::diagnostics::Severity::Error)),
+        Err(diags) => assert!(!diags.iter().any(|d| d.severity == gp_core::diagnostics::Severity::Error)),
+    }
+}
+
+#[test]
+fn test_docx_track_insert_write() {
+    let data = std::fs::read(corpus_files("docx").first().unwrap()).expect("read corpus docx");
+    let pkg = adapters_ooxml::opc::parse_opc(&data).expect("parse docx");
+    let op = gp_core::patch::PatchOp::TrackInsert {
+        anchor: gp_core::ir::ElementId::default(),
+        kind: "tracked-insert".to_string(),
+        author: "test-author".to_string(),
+        timestamp: "2026-11-26T00:00:00Z".to_string(),
+    };
+    let writer = adapters_ooxml::docx_writer::DocxPatchWriter::new(&pkg, vec![op]);
+    let result = writer.write();
+    match result {
+        Ok(pr) => assert!(!pr.diagnostics.iter().any(|d| d.severity == gp_core::diagnostics::Severity::Error)),
+        Err(diags) => assert!(!diags.iter().any(|d| d.severity == gp_core::diagnostics::Severity::Error)),
+    }
+}
+
+#[test]
+fn test_docx_track_delete_write() {
+    let data = std::fs::read(corpus_files("docx").first().unwrap()).expect("read corpus docx");
+    let pkg = adapters_ooxml::opc::parse_opc(&data).expect("parse docx");
+    let op = gp_core::patch::PatchOp::TrackDelete {
+        elem: gp_core::ir::ElementId::default(),
+        author: "test-author".to_string(),
+        timestamp: "2026-11-26T00:00:00Z".to_string(),
+    };
+    let writer = adapters_ooxml::docx_writer::DocxPatchWriter::new(&pkg, vec![op]);
+    let result = writer.write();
+    match result {
+        Ok(pr) => assert!(!pr.diagnostics.iter().any(|d| d.severity == gp_core::diagnostics::Severity::Error)),
+        Err(diags) => assert!(!diags.iter().any(|d| d.severity == gp_core::diagnostics::Severity::Error)),
     }
 }

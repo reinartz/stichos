@@ -117,6 +117,17 @@
 
 Legend: 📖 = read-only implemented, ❌ = not yet surfaced in capability matrix
 
+## Test Counts (measured 2026-11-27)
+
+| Suite | Command | Count |
+|-------|---------|-------|
+| Workspace lib | `cargo test --workspace --lib` | 838 pass / 1 fail (pre-existing fixture count mismatch) |
+| MCP protocol | `cargo test -p stichos-mcp --lib` | 93 pass / 0 fail |
+| OOXML fuzz | `cargo test -p adapters-ooxfuzz` | 226 pass / 0 fail |
+| Corpus apply | `cargo test -p adapters-ooxml --test real_corpus_apply` | 37 pass / 0 fail |
+| Property tests | `cargo test -p adapters-ooxml --test property_tests` | 23 pass / 0 fail |
+| Pyoracle | `python3 -m pytest harness/pyoracle -q` | 61 pass / 0 fail |
+
 ## Phase-4 Surface (historical)
 
 - **20 MCP tools** (measured 2026-09-18: `mcp/spec.rs:824` asserts `TOOLS.len() == 20`): Added `list_revisions`, `accept_revisions`, `reject_revisions`, `add_comment`

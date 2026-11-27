@@ -124,7 +124,7 @@ async fn start_http(port: u16, listen_addr: String, handler: BoxedHandler) -> Re
                     http::route_review_request(request, &review_store, text_source.clone());
                 send_http_response(&mut socket, &response).await;
             } else {
-                let response = http::route_request(request, session_store, handler);
+                let response = http::route_request(request, session_store, handler).await;
                 send_http_response(&mut socket, &response).await;
             }
         });
