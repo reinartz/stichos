@@ -1184,7 +1184,7 @@ fn test_pptx_table_cell_text_write() {
         Err(diags) => {
             let has_errors = diags
                 .iter()
-                 .any(|d| d.severity == gp_core::diagnostics::Severity::Error);
+                .any(|d| d.severity == gp_core::diagnostics::Severity::Error);
             assert!(
                 !has_errors,
                 "SetTableCellText should not produce errors: {:?}",
@@ -1206,8 +1206,13 @@ fn test_docx_insert_write() {
     let writer = adapters_ooxml::docx_writer::DocxPatchWriter::new(&pkg, vec![op]);
     let result = writer.write();
     match result {
-        Ok(pr) => assert!(!pr.diagnostics.iter().any(|d| d.severity == gp_core::diagnostics::Severity::Error)),
-        Err(diags) => assert!(!diags.iter().any(|d| d.severity == gp_core::diagnostics::Severity::Error)),
+        Ok(pr) => assert!(!pr
+            .diagnostics
+            .iter()
+            .any(|d| d.severity == gp_core::diagnostics::Severity::Error)),
+        Err(diags) => assert!(!diags
+            .iter()
+            .any(|d| d.severity == gp_core::diagnostics::Severity::Error)),
     }
 }
 
@@ -1223,8 +1228,13 @@ fn test_docx_replace_text_write() {
     let writer = adapters_ooxml::docx_writer::DocxPatchWriter::new(&pkg, vec![op]);
     let result = writer.write();
     match result {
-        Ok(pr) => assert!(!pr.diagnostics.iter().any(|d| d.severity == gp_core::diagnostics::Severity::Error)),
-        Err(diags) => assert!(!diags.iter().any(|d| d.severity == gp_core::diagnostics::Severity::Error)),
+        Ok(pr) => assert!(!pr
+            .diagnostics
+            .iter()
+            .any(|d| d.severity == gp_core::diagnostics::Severity::Error)),
+        Err(diags) => assert!(!diags
+            .iter()
+            .any(|d| d.severity == gp_core::diagnostics::Severity::Error)),
     }
 }
 
@@ -1238,8 +1248,13 @@ fn test_docx_delete_write() {
     let writer = adapters_ooxml::docx_writer::DocxPatchWriter::new(&pkg, vec![op]);
     let result = writer.write();
     match result {
-        Ok(pr) => assert!(!pr.diagnostics.iter().any(|d| d.severity == gp_core::diagnostics::Severity::Error)),
-        Err(diags) => assert!(!diags.iter().any(|d| d.severity == gp_core::diagnostics::Severity::Error)),
+        Ok(pr) => assert!(!pr
+            .diagnostics
+            .iter()
+            .any(|d| d.severity == gp_core::diagnostics::Severity::Error)),
+        Err(diags) => assert!(!diags
+            .iter()
+            .any(|d| d.severity == gp_core::diagnostics::Severity::Error)),
     }
 }
 
@@ -1250,7 +1265,8 @@ fn test_docx_set_run_props_write() {
     let op = gp_core::patch::PatchOp::SetRunProps {
         elem: gp_core::ir::ElementId::default(),
         props: gp_core::patch::RunProperties {
-            bold: true, italic: false,
+            bold: true,
+            italic: false,
             font_name: Some("Arial".to_string()),
             font_size_pt: Some(14.0),
         },
@@ -1258,8 +1274,13 @@ fn test_docx_set_run_props_write() {
     let writer = adapters_ooxml::docx_writer::DocxPatchWriter::new(&pkg, vec![op]);
     let result = writer.write();
     match result {
-        Ok(pr) => assert!(!pr.diagnostics.iter().any(|d| d.severity == gp_core::diagnostics::Severity::Error)),
-        Err(diags) => assert!(!diags.iter().any(|d| d.severity == gp_core::diagnostics::Severity::Error)),
+        Ok(pr) => assert!(!pr
+            .diagnostics
+            .iter()
+            .any(|d| d.severity == gp_core::diagnostics::Severity::Error)),
+        Err(diags) => assert!(!diags
+            .iter()
+            .any(|d| d.severity == gp_core::diagnostics::Severity::Error)),
     }
 }
 
@@ -1274,8 +1295,13 @@ fn test_xlsx_set_cell_value_write() {
     let writer = adapters_ooxml::xlsx_writer::XlsxPatchWriter::new(&pkg, vec![op]);
     let result = writer.write();
     match result {
-        Ok(pr) => assert!(!pr.diagnostics.iter().any(|d| d.severity == gp_core::diagnostics::Severity::Error)),
-        Err(diags) => assert!(!diags.iter().any(|d| d.severity == gp_core::diagnostics::Severity::Error)),
+        Ok(pr) => assert!(!pr
+            .diagnostics
+            .iter()
+            .any(|d| d.severity == gp_core::diagnostics::Severity::Error)),
+        Err(diags) => assert!(!diags
+            .iter()
+            .any(|d| d.severity == gp_core::diagnostics::Severity::Error)),
     }
 }
 
@@ -1287,14 +1313,22 @@ fn test_xlsx_set_cell_rich_write() {
         cell: gp_core::ir::ElementId::default(),
         runs: vec![gp_core::ir::CellRun {
             text: "zzz_rich_cell_xyz".to_string(),
-            bold: Some(true), color: None, strikethrough: None, size: None,
+            bold: Some(true),
+            color: None,
+            strikethrough: None,
+            size: None,
         }],
     };
     let writer = adapters_ooxml::xlsx_writer::XlsxPatchWriter::new(&pkg, vec![op]);
     let result = writer.write();
     match result {
-        Ok(pr) => assert!(!pr.diagnostics.iter().any(|d| d.severity == gp_core::diagnostics::Severity::Error)),
-        Err(diags) => assert!(!diags.iter().any(|d| d.severity == gp_core::diagnostics::Severity::Error)),
+        Ok(pr) => assert!(!pr
+            .diagnostics
+            .iter()
+            .any(|d| d.severity == gp_core::diagnostics::Severity::Error)),
+        Err(diags) => assert!(!diags
+            .iter()
+            .any(|d| d.severity == gp_core::diagnostics::Severity::Error)),
     }
 }
 
@@ -1311,8 +1345,13 @@ fn test_docx_track_insert_write() {
     let writer = adapters_ooxml::docx_writer::DocxPatchWriter::new(&pkg, vec![op]);
     let result = writer.write();
     match result {
-        Ok(pr) => assert!(!pr.diagnostics.iter().any(|d| d.severity == gp_core::diagnostics::Severity::Error)),
-        Err(diags) => assert!(!diags.iter().any(|d| d.severity == gp_core::diagnostics::Severity::Error)),
+        Ok(pr) => assert!(!pr
+            .diagnostics
+            .iter()
+            .any(|d| d.severity == gp_core::diagnostics::Severity::Error)),
+        Err(diags) => assert!(!diags
+            .iter()
+            .any(|d| d.severity == gp_core::diagnostics::Severity::Error)),
     }
 }
 
@@ -1328,7 +1367,12 @@ fn test_docx_track_delete_write() {
     let writer = adapters_ooxml::docx_writer::DocxPatchWriter::new(&pkg, vec![op]);
     let result = writer.write();
     match result {
-        Ok(pr) => assert!(!pr.diagnostics.iter().any(|d| d.severity == gp_core::diagnostics::Severity::Error)),
-        Err(diags) => assert!(!diags.iter().any(|d| d.severity == gp_core::diagnostics::Severity::Error)),
+        Ok(pr) => assert!(!pr
+            .diagnostics
+            .iter()
+            .any(|d| d.severity == gp_core::diagnostics::Severity::Error)),
+        Err(diags) => assert!(!diags
+            .iter()
+            .any(|d| d.severity == gp_core::diagnostics::Severity::Error)),
     }
 }

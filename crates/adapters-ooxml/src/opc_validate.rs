@@ -219,10 +219,7 @@ pub fn validate_package(pkg: &OpcPackage) -> Vec<Diagnostic> {
     // A well-formed OPC package always has defaults (e.g. xml, rels) in
     // [Content_Types].xml.  A package with zero defaults is almost always
     // corrupted or produced by a broken writer.
-    let has_defaults: bool = pkg
-        .content_types
-        .keys()
-        .any(|k| k.starts_with('/'));
+    let has_defaults: bool = pkg.content_types.keys().any(|k| k.starts_with('/'));
     if !has_defaults {
         diagnostics.push(Diagnostic::new(
             "OOX-E-030",
@@ -549,13 +546,8 @@ mod tests {
                     if !errors.is_empty() {
                         for diag in &errors {
                             match diag.code.as_str() {
-                                "OOX-E-022"
-                                | "OOX-E-023"
-                                | "OOX-E-024"
-                                | "OOX-E-025"
-                                | "OOX-E-028"
-                                | "OOX-E-029"
-                                | "OOX-E-030" => {
+                                "OOX-E-022" | "OOX-E-023" | "OOX-E-024" | "OOX-E-025"
+                                | "OOX-E-028" | "OOX-E-029" | "OOX-E-030" => {
                                     eprintln!(
                                         "WARNING: corpus file {} has structural error: {} {}",
                                         path.display(),

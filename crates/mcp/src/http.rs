@@ -1244,7 +1244,7 @@ async fn handle_tools_call(handler: &BoxedHandler, req: &JsonRpcRequest) -> Json
         }
     };
 
-    match handler.dispatch(&tool_name, &args).await {
+    match handler.dispatch(tool_name, &args).await {
         Ok(result) => {
             let json_str =
                 serde_json::to_string(&result).unwrap_or_else(|_| "<unserializable>".into());

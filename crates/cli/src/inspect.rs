@@ -1050,6 +1050,7 @@ mod tests {
                     items: vec![SectionItem::Paragraph(Paragraph {
                         id: ElementId::derive("paragraph", &["para:0"], &"hello"),
                         runs: vec![Run {
+                            drawings: vec![],
                             id: ElementId::derive("run", &["run:0"], &"hello"),
                             text: "hello".into(),
                             bold: None,
@@ -1111,6 +1112,7 @@ mod tests {
                 items: vec![SectionItem::Paragraph(Paragraph {
                     id: ElementId::derive("paragraph", &["para:0"], &"test"),
                     runs: vec![Run {
+                        drawings: vec![],
                         id: ElementId::derive("run", &["run:0"], &"test"),
                         text: "test".into(),
                         bold: None,
@@ -1196,6 +1198,7 @@ mod tests {
                     id: ElementId::derive("paragraph", &["para:0"], &"test"),
                     runs: vec![Run {
                         id: ElementId::derive("run", &["run:0"], &"test"),
+                        drawings: vec![],
                         text: "test".into(),
                         bold: None,
                         italic: None,
@@ -1261,6 +1264,7 @@ mod tests {
                     id: ElementId::derive("paragraph", &["para:0"], &"test"),
                     runs: vec![Run {
                         id: ElementId::derive("run", &["run:0"], &"test"),
+                        drawings: vec![],
                         text: "hello".into(),
                         bold: None,
                         italic: None,
@@ -1349,6 +1353,7 @@ mod tests {
                     id: ElementId::derive("paragraph", &["para:0"], &"test"),
                     runs: vec![Run {
                         id: ElementId::derive("run", &["run:0"], &"test"),
+                        drawings: vec![],
                         text: "test".into(),
                         bold: None,
                         italic: None,
