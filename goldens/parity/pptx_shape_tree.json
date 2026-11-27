@@ -2,7 +2,7 @@
   "__budget": {
     "elements_count": 5,
     "image_count": 0,
-    "tokens_est": 466
+    "tokens_est": 452
   },
   "bboxes": [],
   "coordinates": [],
@@ -38,7 +38,7 @@
   ],
   "element_kinds": {
     "__shape_count": 1,
-    "__shape_id": 3,
+    "__shape_id": 1,
     "__shape_name": 1,
     "document": 1,
     "layout:layout-ppt/slideLayouts/slideLayout1.xml": 1,
@@ -54,12 +54,11 @@
     "layout:layout-ppt/slideLayouts/slideLayout9.xml": 1,
     "master:master-ppt/slideMasters/slideMaster1.xml": 1,
     "presentation": 1,
-    "shape:drawing": 2,
     "shape:text": 1,
     "slide:0": 1
   },
   "fidelity_budget": {
-    "confidence": 1.0,
+    "confidence": 0.0,
     "dropped_features": [],
     "has_potentially_unsafe": false,
     "part_warnings": [],
@@ -67,12 +66,12 @@
     "unknown_parts": []
   },
   "ir_version": "1.1.0",
-  "path": "/localdata/workspace/stichos/corpus/blobs/smartart-drawing-pptx-001.pptx",
+  "path": "corpus/blobs/cjk-text-pptx-001.pptx",
   "rendered_by": "stichos/0.2.2",
   "structure": {
     "layout_count": 11,
     "slide_count": 1
   },
   "tool": "inspect_document",
-  "total_elements": 23
+  "total_elements": 19
 }
