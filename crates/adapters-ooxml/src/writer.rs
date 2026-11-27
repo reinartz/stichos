@@ -636,15 +636,9 @@ impl<'a> SurgicalWriter<'a> {
         zip_err!(zip_writer.start_file("[Content_Types].xml", opts));
         zip_err!(zip_writer.write_all(content_types_xml.as_bytes()));
 
-        let has_rels_parts = parts.iter().any(|p| {
-            p.uri.starts_with("ppt/") || p.uri.starts_with("word/") || p.uri.starts_with("xl/")
-        });
-        if has_rels_parts {
-            let _ = zip_writer.start_file("_rels/.rels", opts);
-            let _ = zip_writer.write_all(b"<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\
-                               <Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">\
-                               </Relationships>");
-        }
+        // _rels/.rels is handled by the main loop below via the parts list.
+        // If the original package had _rels/.rels, it will be in parts and preserved.
+        // Only write a minimal empty .rels if no original was present (corrupted package).
 
         for part in parts {
             let uri = &part.uri;

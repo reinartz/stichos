@@ -260,6 +260,7 @@ fn build_document(
         footers: vec![],
         footnotes: vec![],
         endnotes: vec![],
+        info: None,
     };
 
     if let Some(text_el @ XmlNode::Element { children: tc, .. }) = find_body_text(&xml_doc.root) {
@@ -274,10 +275,14 @@ fn build_document(
         ir_version_migration: None,
         sections: vec![section],
         fields: vec![],
+        grouped_fields: vec![],
         comments: vec![],
         tracked_changes: vec![],
         revisions: vec![],
         template: None,
+        styles: BTreeMap::new(),
+        resolved_styles: None,
+        properties: None,
     };
     Ok((document, diags))
 }
@@ -387,10 +392,12 @@ fn parse_paragraph(node: &XmlNode, styles: &BTreeMap<String, OdfStyle>) -> Optio
                 underline: None,
                 strikethrough: None,
                 style_name: style_name.clone(),
+                drawings: Vec::new(),
             }],
             page_number: None,
             style_name: style_name.clone(),
             numbering_info: None,
+            hyperlinks: vec![],
         });
     }
 
@@ -401,6 +408,7 @@ fn parse_paragraph(node: &XmlNode, styles: &BTreeMap<String, OdfStyle>) -> Optio
         page_number: None,
         style_name,
         numbering_info: None,
+        hyperlinks: vec![],
     })
 }
 
@@ -425,6 +433,7 @@ fn parse_run_content(node: &XmlNode, styles: &BTreeMap<String, OdfStyle>) -> Opt
                 underline: None,
                 strikethrough: None,
                 style_name: None,
+                drawings: Vec::new(),
             }])
         }
         XmlNode::Element { name, .. } if is_local(name, "s") => Some(vec![Run {
@@ -437,6 +446,7 @@ fn parse_run_content(node: &XmlNode, styles: &BTreeMap<String, OdfStyle>) -> Opt
             underline: None,
             strikethrough: None,
             style_name: None,
+            drawings: Vec::new(),
         }]),
         XmlNode::Element { children, .. } => {
             let mut all: Vec<Run> = Vec::new();
@@ -534,6 +544,7 @@ fn parse_span_node(node: &XmlNode, styles: &BTreeMap<String, OdfStyle>) -> Optio
         underline: None,
         strikethrough: None,
         style_name: span_style_name,
+        drawings: Vec::new(),
     }])
 }
 
@@ -549,6 +560,7 @@ fn parse_span_paragraph(node: &XmlNode, styles: &BTreeMap<String, OdfStyle>) -> 
         page_number: None,
         style_name: None,
         numbering_info: None,
+        hyperlinks: vec![],
     })
 }
 
@@ -592,10 +604,12 @@ fn parse_hyperlink(node: &XmlNode, styles: &BTreeMap<String, OdfStyle>) -> Optio
             underline: None,
             strikethrough: None,
             style_name: None,
+            drawings: Vec::new(),
         }],
         page_number: None,
         style_name: None,
         numbering_info: None,
+        hyperlinks: vec![],
     })
 }
 

@@ -1,0 +1,67 @@
+# stichos parity — T1-advanced track exit checks (G.2 goldens, G.5 pyoracle, A.5 corpus net)
+#
+# This job is the CI home for the T1-advanced verification artifacts that were
+# previously dev-only:
+#   - regenerates the generated corpus (blobs are gitignored; gen build does not render)
+#   - runs the real-corpus apply matrix (A.5/G.1)
+#   - runs the pyoracle cross-check against python-docx/openpyxl/python-pptx (G.5/D34)
+#   - runs the committed parity goldens in --check mode (G.2)
+#
+# Schedule + manual dispatch only: it needs the generated corpus and is heavier than
+# the PR gate. It is intentionally separate from nightly.yml (which owns LO fidelity).
+#
+# NOTE: number_format display formatting (Excel number format rendering to human-readable
+# strings) is explicitly out of scope for the parity checks. The inspect --styles output
+# captures the raw numFmt ID / format code; display formatting is handled by the render
+# engine, not the adapter.
+name: parity
+on:
+  schedule:
+    - cron: "30 4 * * *"
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: parity-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  parity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.98
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: install qpdf + mupdf (needed for some corpus files)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y qpdf mupdf-tools
+
+      - name: install harness dev deps (dev-only, never shipped)
+        run: pip install -r harness/requirements-dev.txt
+
+      - name: rebuild generated corpus (blobs are gitignored)
+        working-directory: harness/generator
+        run: python3 -m gen build
+
+      - name: build stichos binary
+        run: cargo build --release --bin stichos
+
+      - name: corpus apply matrix (A.5/G.1)
+        run: cargo test -p adapters-ooxml --test real_corpus_apply
+
+      - name: pyoracle cross-check (G.5/D34)
+        run: python3 -m pytest harness/pyoracle -q
+
+      - name: parity goldens --check (G.2)
+        env:
+          STICHOS_BIN: ${{ github.workspace }}/target/release/stichos
+        run: bash goldens/parity/run_goldens.sh --check

@@ -308,6 +308,32 @@ impl OdfPatchExecutor {
                 // Spreadsheet rich text — not applicable to ODF.
                 vec![]
             }
+            PatchOp::SetShapeProps { .. }
+            | PatchOp::InsertPicture { .. }
+            | PatchOp::SetSlideText { .. }
+            | PatchOp::SetTableCellText { .. }
+            | PatchOp::SetSlideNotes { .. } => {
+                // PPTX-specific ops — not applicable to ODF.
+                vec![]
+            }
+            PatchOp::SetStyle { .. }
+            | PatchOp::AssignStyle { .. }
+            | PatchOp::AddHyperlink { .. }
+            | PatchOp::SetCellStyle { .. }
+            | PatchOp::SetFreezePane { .. }
+            | PatchOp::SetRowColDim { .. }
+            | PatchOp::SetAutoFilter { .. }
+            | PatchOp::SetConditionalFormat { .. }
+            | PatchOp::SetSheetProtection { .. }
+            | PatchOp::SetPageSetup { .. }
+            | PatchOp::SetCellHyperlink { .. }
+            | PatchOp::SetDefinedName { .. }
+            | PatchOp::SetDataValidation { .. }
+            | PatchOp::AddTable { .. }
+            | PatchOp::RemoveTable { .. } => {
+                // Format-specific ops — not applicable to ODF.
+                vec![]
+            }
         }
     }
 
@@ -603,6 +629,7 @@ impl PatchExecutor for OdfPatchExecutor {
                 bbox: None,
                 children: vec![],
             },
+            resolved_styles: None,
         };
         gp_core::patch::apply_op(&mut ir, op)
     }

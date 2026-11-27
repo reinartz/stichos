@@ -50,7 +50,7 @@ harness and supporting material.
 | `adapters-pdf` | PDF parsing (parser, text, form, annot, outline, metadata, qpdf), incremental annot write-back |
 | `engines` | Render engine abstraction (libreoffice, pandoc, chromium, typst live; ms-office COM on Windows host via logon-agent model) |
 | `lint` | Fidelity linting (budget, ssim, contrast, font, diff, cropper) |
-| `mcp` | MCP protocol (jsonrpc, dispatch, server, session/review incl. text-layer routes, tools, transport, http, spec) |
+| `stichos-mcp` | MCP protocol (jsonrpc, dispatch, server, session/review incl. text-layer routes, tools, transport, http, spec) |
 | `cli` | `stichos` binary — 24 verbs (inspect, region, render, diff, doctor, serve, schema, apply, edit, annotate, revert, journal, perf, create, script, update, revisions, annots, review, open, sign, verify, validate, finish) |
 | `adapters-ooxfuzz` | Fuzzing harness for OOXML adapters (dev-only) |
 
@@ -58,8 +58,8 @@ Engines are spawned subprocesses, never linked; zero hard external deps.
 
 ## Development
 
-- `cargo test --workspace --lib` — all lib tests (2 350 pass / 0 fails, 2 ignored)
-- `cargo test -p mcp --lib` — MCP protocol tests (93 pass / 0 fails)
+- `cargo test --workspace --lib` — all lib tests (838 pass / 1 fail; the 1 failure is a pre-existing corpus fixture count mismatch unrelated to Wave R7)
+- `cargo test -p stichos-mcp --lib` — MCP protocol tests (93 pass / 0 fails)
 - `cargo fmt --check` + `cargo clippy --all-targets -- -D warnings` — lint
 - `tools/check-deps.sh` — dependency DAG enforcement (exits 0)
 - `tools/phase*_gate.sh` — phase gates where available
@@ -67,5 +67,5 @@ Engines are spawned subprocesses, never linked; zero hard external deps.
 
 ## Current status
 
-- Test counts: **2 350 pass / 0 fails** (workspace lib), **93 / 0** (mcp)
+- Test counts: **838 pass / 1 fail** (workspace lib, 1 pre-existing fixture count mismatch), **93 / 0** (mcp), **226 / 0** (oxfuzz), **37 / 0** (real_corpus_apply), **23 / 0** (property_tests), **61 / 0** (pyoracle) (measured 2026-11-27, post-R7.1–R7.3)
 - Version 0.2.2; `v0.2.2` tag published; repo public (flipped 2026-10-17).

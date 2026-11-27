@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## [Unreleased] — T1-advanced (IR contract)
+
+- IR_VERSION bumped `1.0.0` → `1.1.0` (gp-core): additive IR types for T1-advanced (StyleDef, RunPropDef, ParaPropDef, Properties, Hyperlink, FieldGrouped, SectionInfo, Sheet.* fields, Spreadsheet.defined_names, Slide.notes, SlideElement shape/placeholder/chart fields, Presentation theme/slide_size/master_ids, Theme, Chart, ChartSeries, SlideIdRef, etc.). Contract C1 updated accordingly. Breaking changes still require a minor bump per C7.
+
 ## [0.2.2] — 2026-10-18
 
 - Add per-crate `README.md` for all 8 published crates (what it does, install, usage example,

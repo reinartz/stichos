@@ -527,6 +527,28 @@ impl SurgicalPatchExecutor {
                 PatchOp::Insert { .. } | PatchOp::TrackInsert { .. } => {
                     &DeniedAction::UnknownAction
                 }
+                PatchOp::SetShapeProps { .. }
+                | PatchOp::SetSlideText { .. }
+                | PatchOp::SetTableCellText { .. }
+                | PatchOp::SetSlideNotes { .. }
+                | PatchOp::SetStyle { .. }
+                | PatchOp::AssignStyle { .. }
+                | PatchOp::AddHyperlink { .. }
+                | PatchOp::SetCellStyle { .. }
+                | PatchOp::SetFreezePane { .. }
+                | PatchOp::SetConditionalFormat { .. }
+                | PatchOp::SetSheetProtection { .. }
+                | PatchOp::SetPageSetup { .. }
+                | PatchOp::SetRowColDim { .. }
+                | PatchOp::SetAutoFilter { .. }
+                | PatchOp::SetCellHyperlink { .. }
+                | PatchOp::SetDataValidation { .. }
+                | PatchOp::SetDefinedName { .. }
+                | PatchOp::AddTable { .. }
+                | PatchOp::RemoveTable { .. } => &DeniedAction::MacroPartWrite,
+                PatchOp::InsertPicture { .. } => &DeniedAction::ExternalRelAdd,
+                #[allow(unreachable_patterns)]
+                _ => &DeniedAction::UnknownAction,
             })
             .collect();
 
@@ -1022,6 +1044,7 @@ pub fn make_minimal_ir(parts: &[SimplePart]) -> IRDocument {
             bbox: None,
             children,
         },
+        resolved_styles: None,
     }
 }
 
@@ -1101,6 +1124,7 @@ impl PatchExecutor for SurgicalPatchExecutor {
                 bbox: None,
                 children: vec![],
             },
+            resolved_styles: None,
         };
         crate::patch::apply_op(&mut ir, op)
     }
@@ -1125,6 +1149,11 @@ pub fn execute_with_journal(
             match &ops[0] {
                 PatchOp::Insert { .. } | PatchOp::TrackInsert { .. } => JournalAction::Insert,
                 PatchOp::Delete { .. } | PatchOp::TrackDelete { .. } => JournalAction::Delete,
+                PatchOp::InsertPicture { .. } => JournalAction::Insert,
+                PatchOp::SetShapeProps { .. }
+                | PatchOp::SetSlideText { .. }
+                | PatchOp::SetTableCellText { .. }
+                | PatchOp::SetSlideNotes { .. } => JournalAction::Replace,
                 _ => JournalAction::Replace,
             }
         };

@@ -1,0 +1,77 @@
+{
+  "__budget": {
+    "elements_count": 5,
+    "image_count": 0,
+    "tokens_est": 287
+  },
+  "bboxes": [],
+  "coordinates": [],
+  "diagnostics": [],
+  "document_type": "spreadsheet",
+  "element_ids": [],
+  "element_ids_sample": [
+    {
+      "id": "id-5f7965c0854b",
+      "kind": "document",
+      "path": "/document"
+    },
+    {
+      "id": "id-1e95cd102919",
+      "kind": "spreadsheet",
+      "path": "/document/spreadsheet"
+    },
+    {
+      "id": "id-c818478ded75",
+      "kind": "sheet:Styles",
+      "path": "/document/spreadsheet/sheet:Styles"
+    },
+    {
+      "id": "id-8e58f0248d94",
+      "kind": "row:0",
+      "path": "/document/spreadsheet/sheet:Styles/row:0"
+    },
+    {
+      "id": "id-6f1c5c4acc20",
+      "kind": "cell:0,0",
+      "path": "/document/spreadsheet/sheet:Styles/row:0/cell:0,0"
+    }
+  ],
+  "element_kinds": {
+    "__cached_value": 6,
+    "__cell_count": 1,
+    "cell:0,0": 1,
+    "cell:0,1": 1,
+    "cell:0,2": 1,
+    "cell:0,3": 1,
+    "cell:1,0": 1,
+    "cell:1,1": 1,
+    "cell:1,2": 1,
+    "cell:1,3": 1,
+    "cell:2,0": 1,
+    "cell:2,1": 1,
+    "cell:2,2": 1,
+    "cell:2,3": 1,
+    "document": 1,
+    "row:0": 1,
+    "row:1": 1,
+    "row:2": 1,
+    "sheet:Styles": 1,
+    "spreadsheet": 1
+  },
+  "fidelity_budget": {
+    "confidence": 1.0,
+    "dropped_features": [],
+    "has_potentially_unsafe": false,
+    "part_warnings": [],
+    "rendered_by": null,
+    "unknown_parts": []
+  },
+  "ir_version": "1.1.0",
+  "path": "/localdata/workspace/stichos/corpus/blobs/custom-styles-xlsx-001.xlsx",
+  "rendered_by": "stichos/0.2.2",
+  "structure": {
+    "sheet_count": 2
+  },
+  "tool": "inspect_document",
+  "total_elements": 25
+}

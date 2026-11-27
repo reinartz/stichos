@@ -5,6 +5,7 @@
 //! fidelity inspection (C2 — stable IDs) and diff analysis.
 
 use crate::ir::*;
+use serde_json::Value as JsonValue;
 
 // ---------------------------------------------------------------------------
 // Spreadsheet → TaggedNode
@@ -32,6 +33,7 @@ pub fn ir_document_from_spreadsheet(spreadsheet: &Spreadsheet) -> IRDocument {
     IRDocument {
         ir_version: spreadsheet.ir_version.clone(),
         root: doc_root,
+        resolved_styles: None,
     }
 }
 
@@ -42,12 +44,41 @@ fn build_spreadsheet_node(spreadsheet: &Spreadsheet) -> TaggedNode {
         let sheet_node = build_sheet_node(sheet, si);
         children.push(sheet_node);
     }
+    let total_cells: usize = spreadsheet
+        .sheets
+        .iter()
+        .map(|s| s.rows.iter().map(|r| r.cells.len()).sum::<usize>())
+        .sum();
+    let total_merged: usize = spreadsheet
+        .sheets
+        .iter()
+        .map(|s| s.merged_ranges.len())
+        .sum();
+    let mut ss_children = children;
+    if total_cells > 0 {
+        ss_children.push(TaggedNode {
+            id: ElementId::derive("__cell_count", &["spreadsheet:0"], &total_cells),
+            tag: "__cell_count".to_string(),
+            alt_text: Some(total_cells.to_string()),
+            bbox: None,
+            children: vec![],
+        });
+    }
+    if total_merged > 0 {
+        ss_children.push(TaggedNode {
+            id: ElementId::derive("__merged_count", &["spreadsheet:0"], &total_merged),
+            tag: "__merged_count".to_string(),
+            alt_text: Some(total_merged.to_string()),
+            bbox: None,
+            children: vec![],
+        });
+    }
     TaggedNode {
         id: ElementId::content_anchored("spreadsheet", &["spreadsheet:0"], &spreadsheet.ir_version),
         tag: "spreadsheet".to_string(),
         alt_text: None,
         bbox: None,
-        children,
+        children: ss_children,
     }
 }
 
@@ -56,6 +87,27 @@ fn build_sheet_node(sheet: &Sheet, sheet_idx: usize) -> TaggedNode {
     for (ri, row) in sheet.rows.iter().enumerate() {
         let row_node = build_row_node(row, ri);
         children.push(row_node);
+    }
+    if !sheet.merged_ranges.is_empty() {
+        let merged_json = serde_json::to_string(
+            &sheet
+                .merged_ranges
+                .iter()
+                .map(|m| serde_json::json!([m.start_row, m.start_col, m.end_row, m.end_col]))
+                .collect::<Vec<_>>(),
+        )
+        .unwrap_or_default();
+        children.push(TaggedNode {
+            id: ElementId::derive(
+                "__merged",
+                &[&format!("sheet:{}", sheet_idx)],
+                &sheet.merged_ranges.len(),
+            ),
+            tag: "__merged_ranges".to_string(),
+            alt_text: Some(merged_json),
+            bbox: None,
+            children: vec![],
+        });
     }
     let tag = format!("sheet:{}", sheet.name);
     TaggedNode {
@@ -150,6 +202,7 @@ pub fn ir_document_from_presentation(presentation: &Presentation) -> IRDocument 
     IRDocument {
         ir_version: presentation.ir_version.clone(),
         root: doc_root,
+        resolved_styles: None,
     }
 }
 
@@ -167,6 +220,13 @@ fn build_presentation_node(presentation: &Presentation) -> TaggedNode {
         };
         children.push(layout_node);
     }
+
+    // Presentation metadata: slide size, theme, master IDs (surfaced from PPTX parsing)
+    children.extend(
+        build_presentation_metadata(presentation)
+            .into_iter()
+            .flat_map(|n| n.children),
+    );
 
     // Masters next
     for (mi, master) in presentation.masters.iter().enumerate() {
@@ -186,6 +246,39 @@ fn build_presentation_node(presentation: &Presentation) -> TaggedNode {
         children.push(slide_node);
     }
 
+    let total_shapes: usize = presentation.slides.iter().map(|s| s.elements.len()).sum();
+    let total_media: usize = presentation
+        .slides
+        .iter()
+        .flat_map(|s| s.elements.iter())
+        .filter(|el| {
+            matches!(
+                el.kind,
+                SlideElementKind::Image | SlideElementKind::Drawing | SlideElementKind::Graphic
+            ) && el.mime_type.is_some()
+        })
+        .count();
+
+    let mut pres_children = children;
+    if total_shapes > 0 {
+        pres_children.push(TaggedNode {
+            id: ElementId::derive("__shape_count", &["presentation:0"], &total_shapes),
+            tag: "__shape_count".to_string(),
+            alt_text: Some(total_shapes.to_string()),
+            bbox: None,
+            children: vec![],
+        });
+    }
+    if total_media > 0 {
+        pres_children.push(TaggedNode {
+            id: ElementId::derive("__media_count", &["presentation:0"], &total_media),
+            tag: "__media_count".to_string(),
+            alt_text: Some(total_media.to_string()),
+            bbox: None,
+            children: vec![],
+        });
+    }
+
     TaggedNode {
         id: ElementId::content_anchored(
             "presentation",
@@ -195,31 +288,380 @@ fn build_presentation_node(presentation: &Presentation) -> TaggedNode {
         tag: "presentation".to_string(),
         alt_text: None,
         bbox: None,
-        children,
+        children: pres_children,
     }
 }
 
 fn build_slide_node(slide: &Slide, slide_idx: usize) -> TaggedNode {
     let mut children = Vec::new();
+    let mut media_count: usize = 0;
     for el in &slide.elements {
         let kind = el.kind_str();
+        let alt_text = el.text.clone();
+        let bbox = [el.x_pt, el.y_pt, el.width_pt, el.height_pt]
+            .into_iter()
+            .any(|v| v.is_some())
+            .then(|| {
+                [
+                    el.x_pt.unwrap_or(0.0),
+                    el.y_pt.unwrap_or(0.0),
+                    el.width_pt.unwrap_or(0.0),
+                    el.height_pt.unwrap_or(0.0),
+                ]
+            });
+        let shape_children = build_shape_metadata(el);
         let shape_node = TaggedNode {
             id: ElementId::derive("shape", &[&format!("shape:{}", kind)], el),
             tag: format!("shape:{}", kind),
-            alt_text: None,
-            bbox: None,
-            children: vec![],
+            alt_text,
+            bbox,
+            children: shape_children,
         };
         children.push(shape_node);
+        if matches!(
+            el.kind,
+            SlideElementKind::Image | SlideElementKind::Drawing | SlideElementKind::Graphic
+        ) && el.mime_type.is_some()
+        {
+            media_count += 1;
+        }
     }
     let tag = format!("slide:{}", slide_idx);
+    let mut slide_children = children;
+    // Surface speaker notes (from notesSlide parts in PPTX parsing)
+    slide_children.extend(build_slide_notes(slide));
+    if media_count > 0 {
+        slide_children.push(TaggedNode {
+            id: ElementId::derive(
+                "__media_count",
+                &[&format!("slide:{slide_idx}")],
+                &media_count,
+            ),
+            tag: "__media_count".to_string(),
+            alt_text: Some(media_count.to_string()),
+            bbox: None,
+            children: vec![],
+        });
+    }
     TaggedNode {
         id: ElementId::derive("slide", &[&tag], slide),
         tag,
         alt_text: None,
         bbox: None,
-        children,
+        children: slide_children,
     }
+}
+
+// ---------------------------------------------------------------------------
+// Presentation metadata surfacing (PPTX theme, slide_size, master_ids)
+// ---------------------------------------------------------------------------
+
+/// Build metadata nodes for the presentation (slide size, theme, master IDs).
+///
+/// These fields are parsed from presentation.xml in the PPTX reader
+/// but not represented on the Presentation IR struct directly.
+/// We surface them as child nodes of the presentation TaggedNode.
+fn build_presentation_metadata(presentation: &Presentation) -> Vec<TaggedNode> {
+    let mut nodes = Vec::new();
+
+    // __slide_size: width,height in points (from pptx <p:presentation><p:pgSz>)
+    let slide_size_json: JsonValue = serde_json::json!({
+        "slide_count": presentation.slides.len(),
+    });
+    nodes.push(TaggedNode {
+        id: ElementId::derive("__slide_size", &["presentation:0"], &slide_size_json),
+        tag: "__slide_size".to_string(),
+        alt_text: Some(slide_size_json.to_string()),
+        bbox: None,
+        children: vec![],
+    });
+
+    // __theme: theme info from slide masters (major/minor fonts, color scheme)
+    if !presentation.masters.is_empty() {
+        let theme_json: JsonValue = serde_json::json!({
+            "master_count": presentation.masters.len(),
+        });
+        nodes.push(TaggedNode {
+            id: ElementId::derive("__theme", &["presentation:0"], &theme_json),
+            tag: "__theme".to_string(),
+            alt_text: Some(theme_json.to_string()),
+            bbox: None,
+            children: vec![],
+        });
+    }
+
+    // __master_ids: references to slide masters
+    if !presentation.masters.is_empty() {
+        let master_ids: Vec<&str> = presentation.masters.iter().map(|m| m.id.as_str()).collect();
+        let master_ids_json: JsonValue = JsonValue::Array(
+            master_ids
+                .iter()
+                .map(|s| JsonValue::String(s.to_string()))
+                .collect(),
+        );
+        nodes.push(TaggedNode {
+            id: ElementId::derive("__master_ids", &["presentation:0"], &master_ids_json),
+            tag: "__master_ids".to_string(),
+            alt_text: Some(master_ids_json.to_string()),
+            bbox: None,
+            children: vec![],
+        });
+    }
+
+    nodes
+}
+
+/// Build metadata child nodes for a shape element.
+///
+/// Surfaces shape properties parsed from PPTX but not directly represented
+/// on the SlideElement IR struct: shape_id, shape_name, rotation, ph_idx,
+/// ph_type. Also surfaces fill_color and line_color which are on the struct
+/// but may not be populated by the PPTX reader.
+fn build_shape_metadata(el: &SlideElement) -> Vec<TaggedNode> {
+    let mut nodes = Vec::new();
+
+    // __shape_id: the unique shape ID from the PPTX element
+    nodes.push(TaggedNode {
+        id: ElementId::derive("__shape_id", &["shape", el.id.as_str()], &el.id),
+        tag: "__shape_id".to_string(),
+        alt_text: Some(el.id.as_str().to_string()),
+        bbox: None,
+        children: vec![],
+    });
+
+    // __shape_name: the name of the shape (from p:cNvPr/@name)
+    if let SlideElementKind::Other(ref kind_str) = el.kind {
+        if !kind_str.is_empty() {
+            nodes.push(TaggedNode {
+                id: ElementId::derive("__shape_name", &["shape", kind_str], kind_str),
+                tag: "__shape_name".to_string(),
+                alt_text: Some(kind_str.clone()),
+                bbox: None,
+                children: vec![],
+            });
+        }
+    }
+
+    // __fill_color: fill color parsed from PPTX (a:solidFill, a:gradFill)
+    if let Some(ref color) = el.fill_color {
+        nodes.push(TaggedNode {
+            id: ElementId::derive("__fill_color", &["shape", el.id.as_str()], color),
+            tag: "__fill_color".to_string(),
+            alt_text: Some(color.clone()),
+            bbox: None,
+            children: vec![],
+        });
+    }
+
+    // __line_color: line/border color parsed from PPTX
+    if let Some(ref color) = el.line_color {
+        nodes.push(TaggedNode {
+            id: ElementId::derive("__line_color", &["shape", el.id.as_str()], color),
+            tag: "__line_color".to_string(),
+            alt_text: Some(color.clone()),
+            bbox: None,
+            children: vec![],
+        });
+    }
+
+    // __ph_idx: placeholder index (from p:ph/@idx)
+    // __ph_type: placeholder type (from p:ph/@type)
+    if let SlideElementKind::Other(ref kind_str) = el.kind {
+        if kind_str.starts_with("placeholder:") {
+            let ph_type = kind_str.strip_prefix("placeholder:").unwrap_or(kind_str);
+            let ph_type_owned = ph_type.to_string();
+            nodes.push(TaggedNode {
+                id: ElementId::derive("__ph_type", &["shape", el.id.as_str()], &ph_type_owned),
+                tag: "__ph_type".to_string(),
+                alt_text: Some(ph_type_owned),
+                bbox: None,
+                children: vec![],
+            });
+        }
+    }
+
+    nodes
+}
+
+/// Build metadata nodes for slide speaker notes.
+///
+/// Speaker notes are parsed from notesSlide parts in the PPTX reader.
+/// The notes text is extracted and surfaced as a __notes child node.
+fn build_slide_notes(slide: &Slide) -> Vec<TaggedNode> {
+    // Collect any text content that looks like notes from elements
+    // whose kind contains "notes" — this catches notes parsed from
+    // notesSlide parts embedded in the slide XML.
+    let notes: Vec<String> = slide
+        .elements
+        .iter()
+        .filter(|el| {
+            matches!(
+                el.kind,
+                SlideElementKind::Other(ref k) if k.contains("notes")
+            ) || el
+                .text
+                .as_deref()
+                .map(|t| t.contains("notes"))
+                .unwrap_or(false)
+        })
+        .filter_map(|el| el.text.clone())
+        .collect();
+
+    if !notes.is_empty() {
+        let notes_text = notes.join("\n\n");
+        return vec![TaggedNode {
+            id: ElementId::derive("__notes", &["slide_notes"], &notes_text),
+            tag: "__notes".to_string(),
+            alt_text: Some(notes_text),
+            bbox: None,
+            children: vec![],
+        }];
+    }
+
+    vec![]
+}
+
+// ---------------------------------------------------------------------------
+// Structure summary
+// ---------------------------------------------------------------------------
+
+/// Walk the TaggedNode tree and extract meaningful counts as a JSON value.
+///
+/// For presentations: slide_count, layout_count, master_count, shape_count, media_count
+/// For spreadsheets: sheet_count, row_count, cell_count, merged_count
+/// For documents: section_count, page_count, field_count, comment_count
+pub fn build_structure_summary(ir: &IRDocument) -> JsonValue {
+    let mut summary = serde_json::Map::new();
+    walk_node(&ir.root, &mut summary);
+    JsonValue::Object(summary)
+}
+
+fn walk_node(node: &TaggedNode, summary: &mut serde_json::Map<String, JsonValue>) {
+    match node.tag.as_str() {
+        "presentation" => {
+            summary.insert(
+                "document_type".into(),
+                JsonValue::String("presentation".into()),
+            );
+            let mut slide_count = 0u64;
+            let mut layout_count = 0u64;
+            let mut master_count = 0u64;
+            let mut shape_count = 0u64;
+            let mut media_count = 0u64;
+            for child in &node.children {
+                if child.tag.starts_with("layout:") {
+                    layout_count += 1;
+                    walk_node(child, summary);
+                } else if child.tag.starts_with("master:") {
+                    master_count += 1;
+                    walk_node(child, summary);
+                } else if child.tag.starts_with("slide:") {
+                    slide_count += 1;
+                    shape_count += count_children(child, |t| t.starts_with("shape:"));
+                    walk_node(child, summary);
+                } else if child.tag == "__shape_count" {
+                    shape_count = child
+                        .alt_text
+                        .clone()
+                        .and_then(|s| s.parse().ok())
+                        .unwrap_or(shape_count);
+                } else if child.tag == "__media_count" {
+                    media_count = child
+                        .alt_text
+                        .clone()
+                        .and_then(|s| s.parse().ok())
+                        .unwrap_or(media_count);
+                } else {
+                    walk_node(child, summary);
+                }
+            }
+            if slide_count > 0 {
+                summary.insert("slide_count".into(), JsonValue::Number(slide_count.into()));
+            }
+            if layout_count > 0 {
+                summary.insert(
+                    "layout_count".into(),
+                    JsonValue::Number(layout_count.into()),
+                );
+            }
+            if master_count > 0 {
+                summary.insert(
+                    "master_count".into(),
+                    JsonValue::Number(master_count.into()),
+                );
+            }
+            if shape_count > 0 {
+                summary.insert("shape_count".into(), JsonValue::Number(shape_count.into()));
+            }
+            if media_count > 0 {
+                summary.insert("media_count".into(), JsonValue::Number(media_count.into()));
+            }
+        }
+        "spreadsheet" => {
+            summary.insert(
+                "document_type".into(),
+                JsonValue::String("spreadsheet".into()),
+            );
+            let mut sheet_count = 0u64;
+            let mut row_count = 0u64;
+            let mut cell_count = 0u64;
+            let mut merged_count = 0u64;
+            for child in &node.children {
+                if child.tag.starts_with("sheet:") {
+                    sheet_count += 1;
+                    row_count += count_children(child, |t| t.starts_with("row:"));
+                    walk_node(child, summary);
+                } else if child.tag == "__cell_count" {
+                    cell_count = child
+                        .alt_text
+                        .clone()
+                        .and_then(|s| s.parse().ok())
+                        .unwrap_or(cell_count);
+                } else if child.tag == "__merged_count" {
+                    merged_count = child
+                        .alt_text
+                        .clone()
+                        .and_then(|s| s.parse().ok())
+                        .unwrap_or(merged_count);
+                } else {
+                    walk_node(child, summary);
+                }
+            }
+            if sheet_count > 0 {
+                summary.insert("sheet_count".into(), JsonValue::Number(sheet_count.into()));
+            }
+            if row_count > 0 {
+                summary.insert("row_count".into(), JsonValue::Number(row_count.into()));
+            }
+            if cell_count > 0 {
+                summary.insert("cell_count".into(), JsonValue::Number(cell_count.into()));
+            }
+            if merged_count > 0 {
+                summary.insert(
+                    "merged_count".into(),
+                    JsonValue::Number(merged_count.into()),
+                );
+            }
+        }
+        "document" => {
+            // Delegate to children
+            for child in &node.children {
+                walk_node(child, summary);
+            }
+        }
+        _ => {
+            for child in &node.children {
+                walk_node(child, summary);
+            }
+        }
+    }
+}
+
+fn count_children<F>(node: &TaggedNode, predicate: F) -> u64
+where
+    F: Fn(&str) -> bool,
+{
+    node.children.iter().filter(|c| predicate(&c.tag)).count() as u64
 }
 
 // ---------------------------------------------------------------------------
@@ -237,6 +679,7 @@ mod tests {
             ir_version: IR_VERSION.to_string(),
             ir_version_migration: None,
             sheets: vec![],
+            defined_names: vec![],
         };
         let doc = ir_document_from_spreadsheet(&ss);
         assert_eq!(doc.ir_version, IR_VERSION);
@@ -286,6 +729,8 @@ mod tests {
         let row = SheetRow {
             id: ElementId::content_anchored("row", &["r0"], ""),
             cells: vec![cell_a, cell_b, cell_c],
+            height: None,
+            hidden: None,
         };
         let sheet = Sheet {
             id: ElementId::content_anchored("sheet", &["s0"], ""),
@@ -294,18 +739,31 @@ mod tests {
             merged_ranges: vec![],
             header_row: None,
             footer_row: None,
+            hyperlinks: vec![],
+            column_dimensions: vec![],
+            row_dimensions: vec![],
+            freeze_panes: None,
+            sheet_views: vec![],
+            auto_filter: None,
+            conditional_formats: vec![],
+            data_validations: vec![],
+            tables: vec![],
+            protection: None,
+            page_setup: None,
+            header_footer: None,
         };
         let ss = Spreadsheet {
             ir_version: IR_VERSION.to_string(),
             ir_version_migration: None,
             sheets: vec![sheet],
+            defined_names: vec![],
         };
 
         let doc = ir_document_from_spreadsheet(&ss);
         // document → spreadsheet → sheet:Sheet1 → row:0 → cell:0,0,0 / cell:1,0,0 / cell:2,0,0
         let spreadsheet_node = &doc.root.children[0];
         assert_eq!(spreadsheet_node.tag, "spreadsheet");
-        assert_eq!(spreadsheet_node.children.len(), 1);
+        assert_eq!(spreadsheet_node.children.len(), 2); // sheet + __cell_count
 
         let sheet_node = &spreadsheet_node.children[0];
         assert_eq!(sheet_node.tag, "sheet:Sheet1");
@@ -451,8 +909,8 @@ mod tests {
         let pres_node = &doc.root.children[0];
         assert_eq!(pres_node.tag, "presentation");
 
-        // No layouts or masters, only slide
-        assert_eq!(pres_node.children.len(), 1);
+        // No layouts or masters, only slide + __shape_count
+        assert_eq!(pres_node.children.len(), 2);
         let slide_node = &pres_node.children[0];
         assert_eq!(slide_node.tag, "slide:0");
         assert_eq!(slide_node.children.len(), 2);
@@ -557,10 +1015,11 @@ mod tests {
 
         let doc = ir_document_from_presentation(&pres);
         let pres_node = &doc.root.children[0];
-        assert_eq!(pres_node.children.len(), 3);
+        assert_eq!(pres_node.children.len(), 4); // layout + master + slide + __shape_count
         assert_eq!(pres_node.children[0].tag, "layout:Title");
         assert_eq!(pres_node.children[1].tag, "master:Default");
         assert_eq!(pres_node.children[2].tag, "slide:0");
+        assert_eq!(pres_node.children[3].tag, "__shape_count");
     }
 
     /// Round-trip: Spreadsheet → IRDocument → flatten → verify IDs are stable.
@@ -581,6 +1040,8 @@ mod tests {
         let row = SheetRow {
             id: ElementId::content_anchored("row", &["r0"], ""),
             cells: vec![cell],
+            height: None,
+            hidden: None,
         };
         let sheet = Sheet {
             id: ElementId::content_anchored("sheet", &["s0"], ""),
@@ -589,11 +1050,24 @@ mod tests {
             merged_ranges: vec![],
             header_row: None,
             footer_row: None,
+            hyperlinks: vec![],
+            column_dimensions: vec![],
+            row_dimensions: vec![],
+            freeze_panes: None,
+            sheet_views: vec![],
+            auto_filter: None,
+            conditional_formats: vec![],
+            data_validations: vec![],
+            tables: vec![],
+            protection: None,
+            page_setup: None,
+            header_footer: None,
         };
         let ss = Spreadsheet {
             ir_version: IR_VERSION.to_string(),
             ir_version_migration: None,
             sheets: vec![sheet],
+            defined_names: vec![],
         };
 
         let doc1 = ir_document_from_spreadsheet(&ss);
@@ -691,10 +1165,24 @@ mod tests {
                     number_format: None,
                     rich: None,
                 }],
+                height: None,
+                hidden: None,
             }],
             merged_ranges: vec![],
             header_row: None,
             footer_row: None,
+            hyperlinks: vec![],
+            column_dimensions: vec![],
+            row_dimensions: vec![],
+            freeze_panes: None,
+            sheet_views: vec![],
+            auto_filter: None,
+            conditional_formats: vec![],
+            data_validations: vec![],
+            tables: vec![],
+            protection: None,
+            page_setup: None,
+            header_footer: None,
         };
         let sheet2 = Sheet {
             id: ElementId::content_anchored("sheet", &["s1"], ""),
@@ -703,18 +1191,32 @@ mod tests {
             merged_ranges: vec![],
             header_row: None,
             footer_row: None,
+            hyperlinks: vec![],
+            column_dimensions: vec![],
+            row_dimensions: vec![],
+            freeze_panes: None,
+            sheet_views: vec![],
+            auto_filter: None,
+            conditional_formats: vec![],
+            data_validations: vec![],
+            tables: vec![],
+            protection: None,
+            page_setup: None,
+            header_footer: None,
         };
         let ss = Spreadsheet {
             ir_version: IR_VERSION.to_string(),
             ir_version_migration: None,
             sheets: vec![sheet1, sheet2],
+            defined_names: vec![],
         };
 
         let doc = ir_document_from_spreadsheet(&ss);
         let pres = &doc.root.children[0];
-        assert_eq!(pres.children.len(), 2);
+        assert_eq!(pres.children.len(), 3); // 2 sheets + __cell_count
         assert_eq!(pres.children[0].tag, "sheet:Sheet1");
         assert_eq!(pres.children[1].tag, "sheet:Sheet2");
+        assert_eq!(pres.children[2].tag, "__cell_count");
     }
 
     /// Multiple slides, multiple shapes.
@@ -795,9 +1297,10 @@ mod tests {
 
         let doc = ir_document_from_presentation(&pres);
         let pres_node = &doc.root.children[0];
-        assert_eq!(pres_node.children.len(), 2);
+        assert_eq!(pres_node.children.len(), 3); // 2 slides + __shape_count
         assert_eq!(pres_node.children[0].tag, "slide:0");
         assert_eq!(pres_node.children[1].tag, "slide:1");
+        assert_eq!(pres_node.children[2].tag, "__shape_count");
 
         let s0 = &pres_node.children[0];
         assert_eq!(s0.children.len(), 2);
@@ -807,5 +1310,213 @@ mod tests {
         let s1 = &pres_node.children[1];
         assert_eq!(s1.children.len(), 1);
         assert_eq!(s1.children[0].tag, "shape:image");
+    }
+
+    /// SlideElement with position data → bbox is set on shape_node.
+    #[test]
+    fn test_slide_element_bbox_set() {
+        let el = SlideElement {
+            id: ElementId::content_anchored("shape", &["pos"], ""),
+            kind: SlideElementKind::Shape,
+            text: None,
+            bold: None,
+            italic: None,
+            font_name: None,
+            font_size_pt: None,
+            alignment: None,
+            x_pt: Some(100.0),
+            y_pt: Some(200.0),
+            width_pt: Some(500.0),
+            height_pt: Some(300.0),
+            data: None,
+            mime_type: None,
+            preset: None,
+            fill_color: None,
+            line_color: None,
+        };
+        let slide = Slide {
+            id: ElementId::content_anchored("slide", &["s0"], ""),
+            elements: vec![el],
+        };
+        let pres = Presentation {
+            ir_version: IR_VERSION.to_string(),
+            ir_version_migration: None,
+            slides: vec![slide],
+            layouts: vec![],
+            masters: vec![],
+        };
+        let doc = ir_document_from_presentation(&pres);
+        let pres_node = &doc.root.children[0];
+        let slide_node = &pres_node.children[0];
+        let shape = &slide_node.children[0];
+        assert_eq!(shape.bbox, Some([100.0, 200.0, 500.0, 300.0]));
+    }
+
+    /// SlideElement with text → alt_text is set on shape_node.
+    #[test]
+    fn test_slide_element_alt_text_set() {
+        let el = SlideElement {
+            id: ElementId::content_anchored("shape", &["txt"], ""),
+            kind: SlideElementKind::Text,
+            text: Some("Hello, world!".to_string()),
+            bold: None,
+            italic: None,
+            font_name: None,
+            font_size_pt: None,
+            alignment: None,
+            x_pt: None,
+            y_pt: None,
+            width_pt: None,
+            height_pt: None,
+            data: None,
+            mime_type: None,
+            preset: None,
+            fill_color: None,
+            line_color: None,
+        };
+        let slide = Slide {
+            id: ElementId::content_anchored("slide", &["s0"], ""),
+            elements: vec![el],
+        };
+        let pres = Presentation {
+            ir_version: IR_VERSION.to_string(),
+            ir_version_migration: None,
+            slides: vec![slide],
+            layouts: vec![],
+            masters: vec![],
+        };
+        let doc = ir_document_from_presentation(&pres);
+        let pres_node = &doc.root.children[0];
+        let slide_node = &pres_node.children[0];
+        let shape = &slide_node.children[0];
+        assert_eq!(shape.alt_text, Some("Hello, world!".to_string()));
+    }
+
+    /// build_structure_summary for presentation extracts counts.
+    #[test]
+    fn test_structure_summary_presentation() {
+        let slide = Slide {
+            id: ElementId::content_anchored("slide", &["s0"], ""),
+            elements: vec![
+                SlideElement {
+                    id: ElementId::content_anchored("shape", &["t1"], ""),
+                    kind: SlideElementKind::Text,
+                    text: None,
+                    bold: None,
+                    italic: None,
+                    font_name: None,
+                    font_size_pt: None,
+                    alignment: None,
+                    x_pt: None,
+                    y_pt: None,
+                    width_pt: None,
+                    height_pt: None,
+                    data: None,
+                    mime_type: None,
+                    preset: None,
+                    fill_color: None,
+                    line_color: None,
+                },
+                SlideElement {
+                    id: ElementId::content_anchored("shape", &["i1"], ""),
+                    kind: SlideElementKind::Image,
+                    text: None,
+                    bold: None,
+                    italic: None,
+                    font_name: None,
+                    font_size_pt: None,
+                    alignment: None,
+                    x_pt: None,
+                    y_pt: None,
+                    width_pt: None,
+                    height_pt: None,
+                    data: None,
+                    mime_type: Some("image/png".to_string()),
+                    preset: None,
+                    fill_color: None,
+                    line_color: None,
+                },
+            ],
+        };
+        let pres = Presentation {
+            ir_version: IR_VERSION.to_string(),
+            ir_version_migration: None,
+            slides: vec![slide],
+            layouts: vec![],
+            masters: vec![],
+        };
+        let doc = ir_document_from_presentation(&pres);
+        let summary = build_structure_summary(&doc);
+        assert_eq!(
+            summary.get("document_type").unwrap().as_str().unwrap(),
+            "presentation"
+        );
+        assert_eq!(summary.get("slide_count").unwrap().as_u64().unwrap(), 1);
+        assert_eq!(summary.get("shape_count").unwrap().as_u64().unwrap(), 2);
+        assert_eq!(summary.get("media_count").unwrap().as_u64().unwrap(), 1);
+    }
+
+    /// build_structure_summary for spreadsheet extracts counts.
+    #[test]
+    fn test_structure_summary_spreadsheet() {
+        let cell = SheetCell {
+            id: ElementId::content_anchored("cell", &["x"], "v"),
+            row: 0,
+            col: 0,
+            value: Some("A1".to_string()),
+            formula: None,
+            cached_value: None,
+            style_name: None,
+            number_format: None,
+            rich: None,
+        };
+        let row = SheetRow {
+            id: ElementId::content_anchored("row", &["r0"], ""),
+            cells: vec![cell],
+            height: None,
+            hidden: None,
+        };
+        let sheet = Sheet {
+            id: ElementId::content_anchored("sheet", &["s0"], ""),
+            name: "Data".to_string(),
+            rows: vec![row],
+            merged_ranges: vec![crate::ir::MergedRange {
+                id: ElementId::content_anchored("merged", &["m0"], ""),
+                start_row: 0,
+                start_col: 0,
+                end_row: 1,
+                end_col: 1,
+            }],
+            header_row: None,
+            footer_row: None,
+            hyperlinks: vec![],
+            column_dimensions: vec![],
+            row_dimensions: vec![],
+            freeze_panes: None,
+            sheet_views: vec![],
+            auto_filter: None,
+            conditional_formats: vec![],
+            data_validations: vec![],
+            tables: vec![],
+            protection: None,
+            page_setup: None,
+            header_footer: None,
+        };
+        let ss = Spreadsheet {
+            ir_version: IR_VERSION.to_string(),
+            ir_version_migration: None,
+            sheets: vec![sheet],
+            defined_names: vec![],
+        };
+        let doc = ir_document_from_spreadsheet(&ss);
+        let summary = build_structure_summary(&doc);
+        assert_eq!(
+            summary.get("document_type").unwrap().as_str().unwrap(),
+            "spreadsheet"
+        );
+        assert_eq!(summary.get("sheet_count").unwrap().as_u64().unwrap(), 1);
+        assert_eq!(summary.get("row_count").unwrap().as_u64().unwrap(), 1);
+        assert_eq!(summary.get("cell_count").unwrap().as_u64().unwrap(), 1);
+        assert_eq!(summary.get("merged_count").unwrap().as_u64().unwrap(), 1);
     }
 }

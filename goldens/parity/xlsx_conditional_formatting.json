@@ -1,0 +1,103 @@
+{
+  "__budget": {
+    "elements_count": 5,
+    "image_count": 0,
+    "tokens_est": 362
+  },
+  "bboxes": [],
+  "coordinates": [],
+  "diagnostics": [],
+  "document_type": "spreadsheet",
+  "element_ids": [],
+  "element_ids_sample": [
+    {
+      "id": "id-5f7965c0854b",
+      "kind": "document",
+      "path": "/document"
+    },
+    {
+      "id": "id-1e95cd102919",
+      "kind": "spreadsheet",
+      "path": "/document/spreadsheet"
+    },
+    {
+      "id": "id-cffe3684e159",
+      "kind": "sheet:CF",
+      "path": "/document/spreadsheet/sheet:CF"
+    },
+    {
+      "id": "id-7ba95d3ef63c",
+      "kind": "row:0",
+      "path": "/document/spreadsheet/sheet:CF/row:0"
+    },
+    {
+      "id": "id-28f67e9cfd78",
+      "kind": "cell:0,0",
+      "path": "/document/spreadsheet/sheet:CF/row:0/cell:0,0"
+    }
+  ],
+  "element_kinds": {
+    "__cached_value": 20,
+    "__cell_count": 1,
+    "cell:0,0": 1,
+    "cell:0,2": 1,
+    "cell:1,0": 1,
+    "cell:10,0": 1,
+    "cell:11,0": 1,
+    "cell:12,0": 1,
+    "cell:13,0": 1,
+    "cell:14,0": 1,
+    "cell:15,0": 1,
+    "cell:16,0": 1,
+    "cell:17,0": 1,
+    "cell:18,0": 1,
+    "cell:19,0": 1,
+    "cell:2,0": 1,
+    "cell:3,0": 1,
+    "cell:4,0": 1,
+    "cell:5,0": 1,
+    "cell:6,0": 1,
+    "cell:7,0": 1,
+    "cell:8,0": 1,
+    "cell:9,0": 1,
+    "document": 1,
+    "row:0": 1,
+    "row:1": 1,
+    "row:10": 1,
+    "row:11": 1,
+    "row:12": 1,
+    "row:13": 1,
+    "row:14": 1,
+    "row:15": 1,
+    "row:16": 1,
+    "row:17": 1,
+    "row:18": 1,
+    "row:19": 1,
+    "row:2": 1,
+    "row:3": 1,
+    "row:4": 1,
+    "row:5": 1,
+    "row:6": 1,
+    "row:7": 1,
+    "row:8": 1,
+    "row:9": 1,
+    "sheet:CF": 1,
+    "spreadsheet": 1
+  },
+  "fidelity_budget": {
+    "confidence": 1.0,
+    "dropped_features": [],
+    "has_potentially_unsafe": false,
+    "part_warnings": [],
+    "rendered_by": null,
+    "unknown_parts": []
+  },
+  "ir_version": "1.1.0",
+  "path": "/localdata/workspace/stichos/corpus/blobs/conditional-formatting-xlsx-001.xlsx",
+  "rendered_by": "stichos/0.2.2",
+  "structure": {
+    "sheet_count": 2
+  },
+  "tool": "inspect_document",
+  "total_elements": 65
+}

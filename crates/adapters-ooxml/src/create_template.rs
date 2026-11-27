@@ -751,12 +751,14 @@ mod tests {
                 footers: vec![],
                 footnotes: vec![],
                 endnotes: vec![],
+                ..Default::default()
             }],
             fields: vec![],
             comments: vec![],
             tracked_changes: vec![],
             revisions: vec![],
             template: None,
+            ..Default::default()
         };
         create_minimal_docx(&doc).expect("should create template")
     }
@@ -795,21 +797,25 @@ mod tests {
                         underline: None,
                         strikethrough: None,
                         style_name: Some("Heading 1".to_string()),
+                        drawings: vec![],
                     }],
                     page_number: None,
                     style_name: Some("Heading 1".to_string()),
                     numbering_info: None,
+                    ..Default::default()
                 })],
                 headers: vec![],
                 footers: vec![],
                 footnotes: vec![],
                 endnotes: vec![],
+                ..Default::default()
             }],
             fields: vec![],
             comments: vec![],
             tracked_changes: vec![],
             revisions: vec![],
             template: None,
+            ..Default::default()
         };
 
         let result =
@@ -859,12 +865,14 @@ mod tests {
                 footers: vec![],
                 footnotes: vec![],
                 endnotes: vec![],
+                ..Default::default()
             }],
             fields: vec![],
             comments: vec![],
             tracked_changes: vec![],
             revisions: vec![],
             template: None,
+            ..Default::default()
         };
 
         let result =
@@ -909,21 +917,25 @@ mod tests {
                         underline: None,
                         strikethrough: None,
                         style_name: None,
+                        drawings: vec![],
                     }],
                     page_number: None,
                     style_name: None,
                     numbering_info: None,
+                    ..Default::default()
                 })],
                 headers: vec![],
                 footers: vec![],
                 footnotes: vec![],
                 endnotes: vec![],
+                ..Default::default()
             }],
             fields: vec![],
             comments: vec![],
             tracked_changes: vec![],
             revisions: vec![],
             template: None,
+            ..Default::default()
         };
 
         let result =
@@ -959,12 +971,14 @@ mod tests {
                 footers: vec![],
                 footnotes: vec![],
                 endnotes: vec![],
+                ..Default::default()
             }],
             fields: vec![],
             comments: vec![],
             tracked_changes: vec![],
             revisions: vec![],
             template: None,
+            ..Default::default()
         };
 
         // Force numbering in template to test drop reporting
@@ -1017,10 +1031,12 @@ mod tests {
                             underline: None,
                             strikethrough: None,
                             style_name: None,
+                            drawings: vec![],
                         }],
                         page_number: None,
                         style_name: None,
                         numbering_info: None,
+                        ..Default::default()
                     }),
                     SectionItem::Paragraph(Paragraph {
                         id: ElementId::content_anchored("paragraph", &["para:1"], "p2"),
@@ -1034,22 +1050,26 @@ mod tests {
                             underline: None,
                             strikethrough: None,
                             style_name: None,
+                            drawings: vec![],
                         }],
                         page_number: None,
                         style_name: None,
                         numbering_info: None,
+                        ..Default::default()
                     }),
                 ],
                 headers: vec![],
                 footers: vec![],
                 footnotes: vec![],
                 endnotes: vec![],
+                ..Default::default()
             }],
             fields: vec![],
             comments: vec![],
             tracked_changes: vec![],
             revisions: vec![],
             template: None,
+            ..Default::default()
         };
 
         let result =
@@ -1113,10 +1133,12 @@ mod tests {
                     underline: None,
                     strikethrough: None,
                     style_name: None,
+                    drawings: vec![],
                 }],
                 page_number: None,
                 style_name: None,
                 numbering_info: None,
+                ..Default::default()
             })],
             is_even_page: false,
         };
@@ -1135,10 +1157,12 @@ mod tests {
                     underline: None,
                     strikethrough: None,
                     style_name: None,
+                    drawings: vec![],
                 }],
                 page_number: None,
                 style_name: None,
                 numbering_info: None,
+                ..Default::default()
             })],
             is_even_page: false,
         };
@@ -1154,12 +1178,14 @@ mod tests {
                 footers: vec![footer],
                 footnotes: vec![],
                 endnotes: vec![],
+                ..Default::default()
             }],
             fields: vec![],
             comments: vec![],
             tracked_changes: vec![],
             revisions: vec![],
             template: None,
+            ..Default::default()
         };
 
         let result =
@@ -1203,12 +1229,14 @@ mod tests {
                 footers: vec![],
                 footnotes: vec![],
                 endnotes: vec![],
+                ..Default::default()
             }],
             fields: vec![],
             comments: vec![],
             tracked_changes: vec![],
             revisions: vec![],
             template: None,
+            ..Default::default()
         };
         let result = create_minimal_docx(&doc).expect("should create minimal docx");
         assert!(!result.is_empty());
@@ -1246,12 +1274,14 @@ mod tests {
                 footers: vec![],
                 footnotes: vec![],
                 endnotes: vec![],
+                ..Default::default()
             }],
             fields: vec![],
             comments: vec![],
             tracked_changes: vec![],
             revisions: vec![],
             template: None,
+            ..Default::default()
         };
 
         let result =

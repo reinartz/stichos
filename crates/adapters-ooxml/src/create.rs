@@ -1135,12 +1135,14 @@ mod tests {
                 footers: vec![],
                 footnotes: vec![],
                 endnotes: vec![],
+                ..Default::default()
             }],
             fields: vec![],
             comments: vec![],
             tracked_changes: vec![],
             revisions: vec![],
             template: None,
+            ..Default::default()
         }
     }
 
@@ -1163,21 +1165,25 @@ mod tests {
                         underline: None,
                         strikethrough: None,
                         style_name: None,
+                        drawings: vec![],
                     }],
                     page_number: None,
                     style_name: Some("Heading 1".to_string()),
                     numbering_info: None,
+                    ..Default::default()
                 })],
                 headers: vec![],
                 footers: vec![],
                 footnotes: vec![],
                 endnotes: vec![],
+                ..Default::default()
             }],
             fields: vec![],
             comments: vec![],
             tracked_changes: vec![],
             revisions: vec![],
             template: None,
+            ..Default::default()
         }
     }
 
@@ -1196,10 +1202,12 @@ mod tests {
                     underline: None,
                     strikethrough: None,
                     style_name: None,
+                    drawings: vec![],
                 }],
                 page_number: None,
                 style_name: None,
                 numbering_info: None,
+                ..Default::default()
             })],
             colspan: None,
             rowspan: None,
@@ -1218,10 +1226,12 @@ mod tests {
                     underline: None,
                     strikethrough: None,
                     style_name: None,
+                    drawings: vec![],
                 }],
                 page_number: None,
                 style_name: None,
                 numbering_info: None,
+                ..Default::default()
             })],
             colspan: None,
             rowspan: None,
@@ -1242,12 +1252,14 @@ mod tests {
                 footers: vec![],
                 footnotes: vec![],
                 endnotes: vec![],
+                ..Default::default()
             }],
             fields: vec![],
             comments: vec![],
             tracked_changes: vec![],
             revisions: vec![],
             template: None,
+            ..Default::default()
         }
     }
 
@@ -1502,10 +1514,12 @@ mod tests {
                     underline: None,
                     strikethrough: None,
                     style_name: None,
+                    drawings: vec![],
                 }],
                 page_number: None,
                 style_name: None,
                 numbering_info: None,
+                ..Default::default()
             })],
             level: 0,
         };
@@ -1524,12 +1538,14 @@ mod tests {
                 footers: vec![],
                 footnotes: vec![],
                 endnotes: vec![],
+                ..Default::default()
             }],
             fields: vec![],
             comments: vec![],
             tracked_changes: vec![],
             revisions: vec![],
             template: None,
+            ..Default::default()
         };
         let result = create_minimal_docx(&doc);
         assert!(result.is_ok(), "Should create docx with list");
@@ -1572,21 +1588,25 @@ mod tests {
                         underline: None,
                         strikethrough: None,
                         style_name: None,
+                        drawings: vec![],
                     }],
                     page_number: None,
                     style_name: None,
                     numbering_info: None,
+                    ..Default::default()
                 })],
                 headers: vec![],
                 footers: vec![],
                 footnotes: vec![],
                 endnotes: vec![],
+                ..Default::default()
             }],
             fields: vec![],
             comments: vec![],
             tracked_changes: vec![],
             revisions: vec![],
             template: None,
+            ..Default::default()
         };
         let bytes = create_minimal_docx(&doc).expect("Should create docx");
         let cursor = Cursor::new(&bytes);
@@ -1617,12 +1637,14 @@ mod tests {
                 footers: vec![],
                 footnotes: vec![],
                 endnotes: vec![],
+                ..Default::default()
             }],
             fields: vec![],
             comments: vec![],
             tracked_changes: vec![],
             revisions: vec![],
             template: None,
+            ..Default::default()
         };
         let result = create_minimal_docx(&doc);
         assert!(result.is_ok(), "Should create docx even with drawing");
@@ -1647,6 +1669,7 @@ mod tests {
             tracked_changes: vec![],
             revisions: vec![],
             template: None,
+            ..Default::default()
         };
         let bytes = create_minimal_docx(&doc).expect("Should create docx from empty document");
         let cursor = Cursor::new(&bytes);
@@ -1671,10 +1694,12 @@ mod tests {
                 underline: None,
                 strikethrough: None,
                 style_name: None,
+                drawings: vec![],
             }],
             page_number: None,
             style_name: None,
             numbering_info: None,
+            ..Default::default()
         });
         let para2 = SectionItem::Paragraph(Paragraph {
             id: ElementId::content_anchored("paragraph", &["para:1"], "p2"),
@@ -1688,10 +1713,12 @@ mod tests {
                 underline: None,
                 strikethrough: None,
                 style_name: None,
+                drawings: vec![],
             }],
             page_number: None,
             style_name: None,
             numbering_info: None,
+            ..Default::default()
         });
         let doc = Document {
             ir_version: IR_VERSION.to_string(),
@@ -1704,12 +1731,14 @@ mod tests {
                 footers: vec![],
                 footnotes: vec![],
                 endnotes: vec![],
+                ..Default::default()
             }],
             fields: vec![],
             comments: vec![],
             tracked_changes: vec![],
             revisions: vec![],
             template: None,
+            ..Default::default()
         };
         let bytes = create_minimal_docx(&doc).expect("Should create docx");
         let cursor = Cursor::new(&bytes);
@@ -1756,12 +1785,14 @@ mod tests {
                 footers: vec![],
                 footnotes: vec![],
                 endnotes: vec![],
+                ..Default::default()
             }],
             fields: vec![],
             comments: vec![],
             tracked_changes: vec![],
             revisions: vec![],
             template: None,
+            ..Default::default()
         };
         let bytes = create_minimal_docx(&doc).expect("Should create docx with image");
         let cursor = Cursor::new(&bytes);
@@ -1799,10 +1830,12 @@ mod tests {
                     underline: None,
                     strikethrough: None,
                     style_name: None,
+                    drawings: vec![],
                 }],
                 page_number: None,
                 style_name: None,
                 numbering_info: None,
+                ..Default::default()
             })],
             is_even_page: false,
         };
@@ -1820,10 +1853,12 @@ mod tests {
                     underline: None,
                     strikethrough: None,
                     style_name: None,
+                    drawings: vec![],
                 }],
                 page_number: None,
                 style_name: None,
                 numbering_info: None,
+                ..Default::default()
             })],
             is_even_page: false,
         };
@@ -1838,12 +1873,14 @@ mod tests {
                 footers: vec![footer],
                 footnotes: vec![],
                 endnotes: vec![],
+                ..Default::default()
             }],
             fields: vec![],
             comments: vec![],
             tracked_changes: vec![],
             revisions: vec![],
             template: None,
+            ..Default::default()
         };
         let bytes = create_minimal_docx(&doc).expect("Should create docx with hf");
         let cursor = Cursor::new(&bytes);
@@ -1885,10 +1922,12 @@ mod tests {
                 underline: None,
                 strikethrough: None,
                 style_name: None,
+                drawings: vec![],
             }],
             page_number: None,
             style_name: None,
             numbering_info: None,
+            ..Default::default()
         });
         let doc = Document {
             ir_version: IR_VERSION.to_string(),
@@ -1901,12 +1940,14 @@ mod tests {
                 footers: vec![],
                 footnotes: vec![],
                 endnotes: vec![],
+                ..Default::default()
             }],
             fields: vec![],
             comments: vec![],
             tracked_changes: vec![],
             revisions: vec![],
             template: None,
+            ..Default::default()
         };
         let bytes = create_minimal_docx(&doc).expect("Should create docx with hyperlink");
         let cursor = Cursor::new(&bytes);
@@ -1940,10 +1981,12 @@ mod tests {
                     underline: None,
                     strikethrough: None,
                     style_name: None,
+                    drawings: vec![],
                 }],
                 page_number: None,
                 style_name: None,
                 numbering_info: None,
+                ..Default::default()
             })],
             colspan: Some(2),
             rowspan: None,
@@ -1962,10 +2005,12 @@ mod tests {
                     underline: None,
                     strikethrough: None,
                     style_name: None,
+                    drawings: vec![],
                 }],
                 page_number: None,
                 style_name: None,
                 numbering_info: None,
+                ..Default::default()
             })],
             colspan: None,
             rowspan: Some(2),
@@ -1984,10 +2029,12 @@ mod tests {
                     underline: None,
                     strikethrough: None,
                     style_name: None,
+                    drawings: vec![],
                 }],
                 page_number: None,
                 style_name: None,
                 numbering_info: None,
+                ..Default::default()
             })],
             colspan: None,
             rowspan: None,
@@ -2006,10 +2053,12 @@ mod tests {
                     underline: None,
                     strikethrough: None,
                     style_name: None,
+                    drawings: vec![],
                 }],
                 page_number: None,
                 style_name: None,
                 numbering_info: None,
+                ..Default::default()
             })],
             colspan: None,
             rowspan: None,
@@ -2035,12 +2084,14 @@ mod tests {
                 footers: vec![],
                 footnotes: vec![],
                 endnotes: vec![],
+                ..Default::default()
             }],
             fields: vec![],
             comments: vec![],
             tracked_changes: vec![],
             revisions: vec![],
             template: None,
+            ..Default::default()
         };
         let bytes = create_minimal_docx(&doc).expect("Should create docx with merged cells");
         let cursor = Cursor::new(&bytes);
@@ -2077,10 +2128,12 @@ mod tests {
                     underline: None,
                     strikethrough: None,
                     style_name: None,
+                    drawings: vec![],
                 }],
                 page_number: None,
                 style_name: None,
                 numbering_info: None,
+                ..Default::default()
             })],
             reference_id: Some("1".to_string()),
         };
@@ -2095,12 +2148,14 @@ mod tests {
                 footers: vec![],
                 footnotes: vec![fn_item],
                 endnotes: vec![],
+                ..Default::default()
             }],
             fields: vec![],
             comments: vec![],
             tracked_changes: vec![],
             revisions: vec![],
             template: None,
+            ..Default::default()
         };
         let bytes = create_minimal_docx(&doc).expect("Should create docx with footnotes");
         let cursor = Cursor::new(&bytes);
@@ -2137,10 +2192,12 @@ mod tests {
                     underline: None,
                     strikethrough: None,
                     style_name: None,
+                    drawings: vec![],
                 }],
                 page_number: None,
                 style_name: None,
                 numbering_info: None,
+                ..Default::default()
             })],
         };
         let doc = Document {
@@ -2154,12 +2211,14 @@ mod tests {
                 footers: vec![],
                 footnotes: vec![],
                 endnotes: vec![en_item],
+                ..Default::default()
             }],
             fields: vec![],
             comments: vec![],
             tracked_changes: vec![],
             revisions: vec![],
             template: None,
+            ..Default::default()
         };
         let bytes = create_minimal_docx(&doc).expect("Should create docx with endnotes");
         let cursor = Cursor::new(&bytes);
@@ -2193,15 +2252,18 @@ mod tests {
                     underline: None,
                     strikethrough: None,
                     style_name: None,
+                    drawings: vec![],
                 }],
                 page_number: None,
                 style_name: None,
                 numbering_info: None,
+                ..Default::default()
             })],
             headers: vec![],
             footers: vec![],
             footnotes: vec![],
             endnotes: vec![],
+            ..Default::default()
         };
         let section2 = Section {
             id: ElementId::content_anchored("section", &["section:1"], "s2"),
@@ -2218,15 +2280,18 @@ mod tests {
                     underline: None,
                     strikethrough: None,
                     style_name: None,
+                    drawings: vec![],
                 }],
                 page_number: None,
                 style_name: None,
                 numbering_info: None,
+                ..Default::default()
             })],
             headers: vec![],
             footers: vec![],
             footnotes: vec![],
             endnotes: vec![],
+            ..Default::default()
         };
         let doc = Document {
             ir_version: IR_VERSION.to_string(),
@@ -2237,6 +2302,7 @@ mod tests {
             tracked_changes: vec![],
             revisions: vec![],
             template: None,
+            ..Default::default()
         };
         let bytes = create_minimal_docx(&doc).expect("Should create multi-section docx");
         let cursor = Cursor::new(&bytes);
@@ -2273,10 +2339,12 @@ mod tests {
                     underline: None,
                     strikethrough: None,
                     style_name: None,
+                    drawings: vec![],
                 }],
                 page_number: None,
                 style_name: None,
                 numbering_info: None,
+                ..Default::default()
             })],
             level: 0,
         };
@@ -2294,10 +2362,12 @@ mod tests {
                     underline: None,
                     strikethrough: None,
                     style_name: None,
+                    drawings: vec![],
                 }],
                 page_number: None,
                 style_name: None,
                 numbering_info: None,
+                ..Default::default()
             })],
             level: 0,
         };
@@ -2316,12 +2386,14 @@ mod tests {
                 footers: vec![],
                 footnotes: vec![],
                 endnotes: vec![],
+                ..Default::default()
             }],
             fields: vec![],
             comments: vec![],
             tracked_changes: vec![],
             revisions: vec![],
             template: None,
+            ..Default::default()
         };
         let bytes = create_minimal_docx(&doc).expect("Should create docx with numbering");
         let cursor = Cursor::new(&bytes);
@@ -2356,12 +2428,14 @@ mod tests {
                 footers: vec![],
                 footnotes: vec![],
                 endnotes: vec![],
+                ..Default::default()
             }],
             fields: vec![],
             comments: vec![],
             tracked_changes: vec![],
             revisions: vec![],
             template: None,
+            ..Default::default()
         };
         let bytes = create_minimal_docx(&doc).expect("Should create docx with image");
         let cursor = Cursor::new(&bytes);

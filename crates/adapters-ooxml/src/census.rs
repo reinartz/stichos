@@ -641,10 +641,12 @@ mod tests {
                 underline: None,
                 strikethrough: None,
                 style_name: None,
+                drawings: vec![],
             }],
             page_number: None,
             style_name: None,
             numbering_info: None,
+            ..Default::default()
         }
     }
 
@@ -657,6 +659,7 @@ mod tests {
             footers: vec![],
             footnotes: vec![],
             endnotes: vec![],
+            ..Default::default()
         }
     }
 
@@ -675,6 +678,7 @@ mod tests {
             tracked_changes: changes,
             revisions: vec![],
             template: None,
+            ..Default::default()
         }
     }
 
@@ -811,6 +815,7 @@ mod tests {
             ],
             footnotes: vec![],
             endnotes: vec![],
+            ..Default::default()
         };
         let doc = Document {
             ir_version: IR_VERSION.to_string(),
@@ -821,6 +826,7 @@ mod tests {
             tracked_changes: vec![],
             revisions: vec![],
             template: None,
+            ..Default::default()
         };
         let counts = census_document(&doc);
         assert_eq!(counts.section_headers, 1);
@@ -860,6 +866,7 @@ mod tests {
             rows: vec![SheetRow {
                 id: ElementId::content_anchored("row", &["Sheet1:0"], "0"),
                 cells: vec![cell1, cell2],
+                ..Default::default()
             }],
             merged_ranges: vec![MergedRange {
                 id: ElementId::content_anchored("merged", &["merge:0"], "A1:B1"),
@@ -870,11 +877,13 @@ mod tests {
             }],
             header_row: None,
             footer_row: None,
+            ..Default::default()
         };
         let ss = Spreadsheet {
             ir_version: IR_VERSION.to_string(),
             ir_version_migration: None,
             sheets: vec![sheet],
+            ..Default::default()
         };
         let counts = census_spreadsheet(&ss);
         assert_eq!(counts.spreadsheet_cells, 2);
@@ -907,10 +916,12 @@ mod tests {
             rows: vec![SheetRow {
                 id: ElementId::content_anchored("row", &["S1:0"], "0"),
                 cells: vec![make_cell(0, 0)],
+                ..Default::default()
             }],
             merged_ranges: vec![],
             header_row: None,
             footer_row: None,
+            ..Default::default()
         };
         let sheet2 = Sheet {
             id: ElementId::content_anchored("sheet", &["S2"], "S2"),
@@ -929,6 +940,7 @@ mod tests {
                         number_format: None,
                         rich: None,
                     }],
+                    ..Default::default()
                 },
                 SheetRow {
                     id: ElementId::content_anchored("row", &["S2:1"], "1"),
@@ -943,16 +955,19 @@ mod tests {
                         number_format: None,
                         rich: None,
                     }],
+                    ..Default::default()
                 },
             ],
             merged_ranges: vec![],
             header_row: None,
             footer_row: None,
+            ..Default::default()
         };
         let ss = Spreadsheet {
             ir_version: IR_VERSION.to_string(),
             ir_version_migration: None,
             sheets: vec![sheet1, sheet2],
+            ..Default::default()
         };
         let counts = census_spreadsheet(&ss);
         assert_eq!(counts.spreadsheet_sheets, 2);
@@ -1321,11 +1336,14 @@ mod tests {
                         number_format: None,
                         rich: None,
                     }],
+                    ..Default::default()
                 }],
                 merged_ranges: vec![],
                 header_row: None,
                 footer_row: None,
+                ..Default::default()
             }],
+            ..Default::default()
         };
         let budget = budget_from_spreadsheet(&ss, &[]);
         assert_eq!(budget.confidence, 1.0);

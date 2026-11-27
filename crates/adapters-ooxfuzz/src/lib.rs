@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 #![allow(dead_code)]
+#![allow(clippy::needless_update)]
 #![allow(unused_imports)]
 
 //! adapters-ooxfuzz: Fuzz corpus for OPC, XML, and PDF readers.

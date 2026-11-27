@@ -1141,7 +1141,7 @@ fn add_csp_headers(mut response: HttpResponse) -> HttpResponse {
 // ---------------------------------------------------------------------------
 
 /// Route an incoming HTTP request through the JSON-RPC handler.
-pub fn route_request(
+pub async fn route_request(
     request: HttpRequest,
     store: SessionStore,
     handler: BoxedHandler,
@@ -1185,7 +1185,7 @@ pub fn route_request(
     let response = match request.method.as_str() {
         "initialize" => handle_initialize(&request),
         "tools/list" => handle_tools_list(&request),
-        "tools/call" => handle_tools_call(&handler, &request),
+        "tools/call" => handle_tools_call(&handler, &request).await,
         _ => JsonRpcResponse::error(request.id.clone(), JsonRpcError::method_not_found()),
     };
 
@@ -1223,63 +1223,49 @@ fn handle_tools_list(req: &JsonRpcRequest) -> JsonRpcResponse {
     JsonRpcResponse::success(req.id.clone(), result)
 }
 
-fn handle_tools_call(handler: &BoxedHandler, req: &JsonRpcRequest) -> JsonRpcResponse {
-    let rt = match tokio::runtime::Builder::new_current_thread()
-        .enable_all()
-        .build()
-    {
-        Ok(rt) => rt,
-        Err(_) => {
-            return JsonRpcResponse::error(req.id.clone(), JsonRpcError::internal_error());
+async fn handle_tools_call(handler: &BoxedHandler, req: &JsonRpcRequest) -> JsonRpcResponse {
+    let handler = handler.clone();
+    let id = req.id.clone();
+    let params = &req.params;
+    let name = params
+        .as_ref()
+        .and_then(|p| p.get("name"))
+        .and_then(|n| n.as_str());
+    let args = params
+        .as_ref()
+        .and_then(|p| p.get("arguments").or_else(|| p.get("params")))
+        .cloned()
+        .unwrap_or_else(|| serde_json::json!({}));
+
+    let tool_name = match name {
+        Some(n) => n,
+        None => {
+            return JsonRpcResponse::error(id.clone(), JsonRpcError::invalid_params());
         }
     };
 
-    let handler = handler.clone();
-    let id = req.id.clone();
-    let resp = rt.block_on(async {
-        let params = &req.params;
-        let name = params
-            .as_ref()
-            .and_then(|p| p.get("name"))
-            .and_then(|n| n.as_str());
-        let args = params
-            .as_ref()
-            .and_then(|p| p.get("arguments").or_else(|| p.get("params")))
-            .cloned()
-            .unwrap_or_else(|| serde_json::json!({}));
-
-        let tool_name = match name {
-            Some(n) => n,
-            None => {
-                return JsonRpcResponse::error(id.clone(), JsonRpcError::invalid_params());
-            }
-        };
-
-        match handler.dispatch(tool_name, &args).await {
-            Ok(result) => {
-                let json_str =
-                    serde_json::to_string(&result).unwrap_or_else(|_| "<unserializable>".into());
-                JsonRpcResponse::success(
-                    id.clone(),
-                    serde_json::json!({
-                        "content": [{"type": "text", "text": json_str}],
-                        "structuredContent": result,
-                        "isError": false,
-                    }),
-                )
-            }
-            Err(err) => JsonRpcResponse::success(
+    match handler.dispatch(tool_name, &args).await {
+        Ok(result) => {
+            let json_str =
+                serde_json::to_string(&result).unwrap_or_else(|_| "<unserializable>".into());
+            JsonRpcResponse::success(
                 id.clone(),
                 serde_json::json!({
-                    "content": [{"type": "text", "text": format!("error: {}", err)}],
-                    "structuredContent": null,
-                    "isError": true,
+                    "content": [{"type": "text", "text": json_str}],
+                    "structuredContent": result,
+                    "isError": false,
                 }),
-            ),
+            )
         }
-    });
-
-    resp
+        Err(err) => JsonRpcResponse::success(
+            id.clone(),
+            serde_json::json!({
+                "content": [{"type": "text", "text": format!("error: {}", err)}],
+                "structuredContent": null,
+                "isError": true,
+            }),
+        ),
+    }
 }
 
 fn object_from_params(params: &[ParamDef]) -> Value {
@@ -1388,8 +1374,8 @@ mod tests {
     }
 
     /// test_route_post_ok — POST / returns 200
-    #[test]
-    fn test_route_post_ok() {
+    #[tokio::test]
+    async fn test_route_post_ok() {
         let store = new_session_store();
         let handler = test_handler();
         let req = HttpRequest {
@@ -1398,13 +1384,13 @@ mod tests {
             headers: HashMap::new(),
             body: r#"{"jsonrpc":"2.0","method":"initialize","id":1}"#.as_bytes().to_vec(),
         };
-        let resp = route_request(req, store, handler);
+        let resp = route_request(req, store, handler).await;
         assert_eq!(resp.status, 200);
     }
 
     /// test_route_get_not_found — GET / returns 404
-    #[test]
-    fn test_route_get_not_found() {
+    #[tokio::test]
+    async fn test_route_get_not_found() {
         let store = new_session_store();
         let handler = test_handler();
         let req = HttpRequest {
@@ -1413,13 +1399,13 @@ mod tests {
             headers: HashMap::new(),
             body: Vec::new(),
         };
-        let resp = route_request(req, store, handler);
+        let resp = route_request(req, store, handler).await;
         assert_eq!(resp.status, 404);
     }
 
     /// test_route_wrong_path — POST /other returns 404
-    #[test]
-    fn test_route_wrong_path() {
+    #[tokio::test]
+    async fn test_route_wrong_path() {
         let store = new_session_store();
         let handler = test_handler();
         let req = HttpRequest {
@@ -1428,13 +1414,13 @@ mod tests {
             headers: HashMap::new(),
             body: Vec::new(),
         };
-        let resp = route_request(req, store, handler);
+        let resp = route_request(req, store, handler).await;
         assert_eq!(resp.status, 404);
     }
 
     /// test_route_invalid_json — invalid JSON → parse error response
-    #[test]
-    fn test_route_invalid_json() {
+    #[tokio::test]
+    async fn test_route_invalid_json() {
         let store = new_session_store();
         let handler = test_handler();
         let req = HttpRequest {
@@ -1443,7 +1429,7 @@ mod tests {
             headers: HashMap::new(),
             body: b"not json at all".to_vec(),
         };
-        let resp = route_request(req, store, handler);
+        let resp = route_request(req, store, handler).await;
         assert_eq!(resp.status, 200);
         let body_str = String::from_utf8_lossy(&resp.body);
         let parsed: Value = serde_json::from_str(&body_str).expect("valid json response");
@@ -1455,8 +1441,8 @@ mod tests {
     }
 
     /// test_route_tools_list — returns tool definitions
-    #[test]
-    fn test_route_tools_list() {
+    #[tokio::test]
+    async fn test_route_tools_list() {
         let store = new_session_store();
         let handler = test_handler();
         let req = HttpRequest {
@@ -1465,7 +1451,7 @@ mod tests {
             headers: HashMap::new(),
             body: r#"{"jsonrpc":"2.0","method":"tools/list","id":1}"#.as_bytes().to_vec(),
         };
-        let resp = route_request(req, store, handler);
+        let resp = route_request(req, store, handler).await;
         assert_eq!(resp.status, 200);
         let body_str = String::from_utf8_lossy(&resp.body);
         let parsed: Value = serde_json::from_str(&body_str).expect("valid json response");
@@ -1533,8 +1519,8 @@ mod tests {
     }
 
     /// test_route_initialize — returns protocolVersion and capabilities
-    #[test]
-    fn test_route_initialize() {
+    #[tokio::test]
+    async fn test_route_initialize() {
         let store = new_session_store();
         let handler = test_handler();
         let req = HttpRequest {
@@ -1545,7 +1531,7 @@ mod tests {
                 .as_bytes()
                 .to_vec(),
         };
-        let resp = route_request(req, store, handler);
+        let resp = route_request(req, store, handler).await;
         assert_eq!(resp.status, 200);
         let body_str = String::from_utf8_lossy(&resp.body);
         let parsed: Value = serde_json::from_str(&body_str).expect("valid json");
@@ -1558,8 +1544,8 @@ mod tests {
     }
 
     /// test_route_method_not_found — unknown method returns -32601
-    #[test]
-    fn test_route_method_not_found() {
+    #[tokio::test]
+    async fn test_route_method_not_found() {
         let store = new_session_store();
         let handler = test_handler();
         let req = HttpRequest {
@@ -1570,7 +1556,7 @@ mod tests {
                 .as_bytes()
                 .to_vec(),
         };
-        let resp = route_request(req, store, handler);
+        let resp = route_request(req, store, handler).await;
         assert_eq!(resp.status, 200);
         let body_str = String::from_utf8_lossy(&resp.body);
         let parsed: Value = serde_json::from_str(&body_str).expect("valid json");
@@ -1579,8 +1565,8 @@ mod tests {
     }
 
     /// test_route_session_header — x-session-id is accepted (routing succeeds)
-    #[test]
-    fn test_route_session_header() {
+    #[tokio::test]
+    async fn test_route_session_header() {
         let store = new_session_store();
         let handler = test_handler();
         let mut headers = HashMap::new();
@@ -1591,7 +1577,7 @@ mod tests {
             headers,
             body: r#"{"jsonrpc":"2.0","method":"initialize","id":1}"#.as_bytes().to_vec(),
         };
-        let resp = route_request(req, store, handler);
+        let resp = route_request(req, store, handler).await;
         // Session header is accepted: routing succeeds with 200
         assert_eq!(resp.status, 200);
         let body_str = String::from_utf8_lossy(&resp.body);
@@ -1600,8 +1586,8 @@ mod tests {
     }
 
     /// Regression: HTTP tools/list must echo the request id (JSON-RPC 2.0 §4.3).
-    #[test]
-    fn test_route_tools_list_echoes_request_id() {
+    #[tokio::test]
+    async fn test_route_tools_list_echoes_request_id() {
         let store = new_session_store();
         let handler = test_handler();
         let req = HttpRequest {
@@ -1612,7 +1598,7 @@ mod tests {
                 .as_bytes()
                 .to_vec(),
         };
-        let resp = route_request(req, store, handler);
+        let resp = route_request(req, store, handler).await;
         let body_str = String::from_utf8_lossy(&resp.body);
         let parsed: Value = serde_json::from_str(&body_str).expect("valid json");
         assert_eq!(parsed["id"], 77);
@@ -1622,8 +1608,8 @@ mod tests {
     }
 
     /// Regression: HTTP tools/list with various id types
-    #[test]
-    fn test_route_tools_list_various_ids() {
+    #[tokio::test]
+    async fn test_route_tools_list_various_ids() {
         let store = new_session_store();
         let handler = test_handler();
         for id_val in [
@@ -1641,7 +1627,7 @@ mod tests {
                 headers: HashMap::new(),
                 body: body.into_bytes(),
             };
-            let resp = route_request(req, store.clone(), handler.clone());
+            let resp = route_request(req, store.clone(), handler.clone()).await;
             let body_str = String::from_utf8_lossy(&resp.body);
             let parsed: Value = serde_json::from_str(&body_str).expect("valid json");
             assert_eq!(parsed["id"], id_val, "id should be echoed back");
@@ -1649,8 +1635,8 @@ mod tests {
     }
 
     /// test_route_tools_call — tools/call dispatches to handler and returns structured content
-    #[test]
-    fn test_route_tools_call() {
+    #[tokio::test]
+    async fn test_route_tools_call() {
         let store = new_session_store();
         let handler = test_handler();
         let req = HttpRequest {
@@ -1659,7 +1645,7 @@ mod tests {
             headers: HashMap::new(),
             body: r#"{"jsonrpc":"2.0","method":"tools/call","id":1,"params":{"name":"doctor","arguments":{}}}"#.as_bytes().to_vec(),
         };
-        let resp = route_request(req, store, handler);
+        let resp = route_request(req, store, handler).await;
         assert_eq!(resp.status, 200);
         let body_str = String::from_utf8_lossy(&resp.body);
         let parsed: Value = serde_json::from_str(&body_str).expect("valid json");
@@ -1675,8 +1661,8 @@ mod tests {
     }
 
     /// test_route_tools_call_missing_name — returns error when tool name is missing
-    #[test]
-    fn test_route_tools_call_missing_name() {
+    #[tokio::test]
+    async fn test_route_tools_call_missing_name() {
         let store = new_session_store();
         let handler = test_handler();
         let req = HttpRequest {
@@ -1687,7 +1673,7 @@ mod tests {
                 .as_bytes()
                 .to_vec(),
         };
-        let resp = route_request(req, store, handler);
+        let resp = route_request(req, store, handler).await;
         assert_eq!(resp.status, 200);
         let body_str = String::from_utf8_lossy(&resp.body);
         let parsed: Value = serde_json::from_str(&body_str).expect("valid json");

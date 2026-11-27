@@ -1728,6 +1728,1811 @@ impl DiagnosticRegistry {
             },
         );
 
+        // T1-advanced: DOCX style resolution / write (OOX-W-210..219)
+        entries.insert(
+            "OOX-W-210",
+            CodeEntry {
+                code: "OOX-W-210",
+                severity: Severity::Warning,
+                category: "style",
+                description: "Style not found in styles.xml for paragraph",
+            },
+        );
+        entries.insert(
+            "OOX-W-211",
+            CodeEntry {
+                code: "OOX-W-211",
+                severity: Severity::Warning,
+                category: "style",
+                description: "Unknown style type in styles.xml",
+            },
+        );
+        entries.insert(
+            "OOX-W-212",
+            CodeEntry {
+                code: "OOX-W-212",
+                severity: Severity::Warning,
+                category: "style",
+                description: "Style chain cycle detected (basedOn loop)",
+            },
+        );
+        entries.insert(
+            "OOX-W-213",
+            CodeEntry {
+                code: "OOX-W-213",
+                severity: Severity::Warning,
+                category: "style",
+                description: "Missing docDefaults in styles.xml",
+            },
+        );
+        entries.insert(
+            "OOX-W-214",
+            CodeEntry {
+                code: "OOX-W-214",
+                severity: Severity::Warning,
+                category: "style",
+                description: "Incompatible style link (run style on paragraph)",
+            },
+        );
+        entries.insert(
+            "OOX-W-215",
+            CodeEntry {
+                code: "OOX-W-215",
+                severity: Severity::Warning,
+                category: "style",
+                description: "Style {0} has no basedOn, using implicit defaults",
+            },
+        );
+        entries.insert(
+            "OOX-W-216",
+            CodeEntry {
+                code: "OOX-W-216",
+                severity: Severity::Warning,
+                category: "style",
+                description: "Multiple styles with same styleId",
+            },
+        );
+        entries.insert(
+            "OOX-W-217",
+            CodeEntry {
+                code: "OOX-W-217",
+                severity: Severity::Warning,
+                category: "style",
+                description: "Style {0} uiPriority {1} conflicts with {2}",
+            },
+        );
+        entries.insert(
+            "OOX-W-218",
+            CodeEntry {
+                code: "OOX-W-218",
+                severity: Severity::Warning,
+                category: "style",
+                description: "Semi-hidden style {0} may be user-invisible",
+            },
+        );
+        entries.insert(
+            "OOX-W-219",
+            CodeEntry {
+                code: "OOX-W-219",
+                severity: Severity::Warning,
+                category: "style",
+                description: "Style write: failed to serialize style XML",
+            },
+        );
+
+        // T1-advanced: DOCX style error (OOX-E-030)
+        entries.insert(
+            "OOX-E-030",
+            CodeEntry {
+                code: "OOX-E-030",
+                severity: Severity::Error,
+                category: "style",
+                description: "Styles part missing or malformed",
+            },
+        );
+
+        // T1-advanced: DOCX hyperlink read/write (OOX-W-220..229)
+        entries.insert(
+            "OOX-W-220",
+            CodeEntry {
+                code: "OOX-W-220",
+                severity: Severity::Warning,
+                category: "hyperlink",
+                description: "Hyperlink target not found for rid {0}",
+            },
+        );
+        entries.insert(
+            "OOX-W-221",
+            CodeEntry {
+                code: "OOX-W-221",
+                severity: Severity::Warning,
+                category: "hyperlink",
+                description: "Invalid hyperlink target URI: {0}",
+            },
+        );
+        entries.insert(
+            "OOX-W-222",
+            CodeEntry {
+                code: "OOX-W-222",
+                severity: Severity::Warning,
+                category: "hyperlink",
+                description: "Hyperlink with no text content",
+            },
+        );
+        entries.insert(
+            "OOX-W-223",
+            CodeEntry {
+                code: "OOX-W-223",
+                severity: Severity::Warning,
+                category: "hyperlink",
+                description: "Internal anchor target {0} not found",
+            },
+        );
+        entries.insert(
+            "OOX-W-224",
+            CodeEntry {
+                code: "OOX-W-224",
+                severity: Severity::Warning,
+                category: "hyperlink",
+                description: "Duplicate hyperlink on same run",
+            },
+        );
+        entries.insert(
+            "OOX-W-225",
+            CodeEntry {
+                code: "OOX-W-225",
+                severity: Severity::Warning,
+                category: "hyperlink",
+                description: "Hyperlink tooltip exceeds max length",
+            },
+        );
+        entries.insert(
+            "OOX-W-226",
+            CodeEntry {
+                code: "OOX-W-226",
+                severity: Severity::Warning,
+                category: "hyperlink",
+                description: "Resolved hyperlink target to package root",
+            },
+        );
+        entries.insert(
+            "OOX-W-227",
+            CodeEntry {
+                code: "OOX-W-227",
+                severity: Severity::Warning,
+                category: "hyperlink",
+                description: "Hyperlink rid collision in rels",
+            },
+        );
+        entries.insert(
+            "OOX-W-228",
+            CodeEntry {
+                code: "OOX-W-228",
+                severity: Severity::Warning,
+                category: "hyperlink",
+                description: "External hyperlink scheme not allowed: {0}",
+            },
+        );
+        entries.insert(
+            "OOX-W-229",
+            CodeEntry {
+                code: "OOX-W-229",
+                severity: Severity::Warning,
+                category: "hyperlink",
+                description: "Hyperlink write: failed to add rel entry",
+            },
+        );
+
+        // T1-advanced: DOCX drawing/image blob (OOX-W-230..239)
+        entries.insert(
+            "OOX-W-230",
+            CodeEntry {
+                code: "OOX-W-230",
+                severity: Severity::Warning,
+                category: "media",
+                description: "Drawing element with no blip embed",
+            },
+        );
+        entries.insert(
+            "OOX-W-231",
+            CodeEntry {
+                code: "OOX-W-231",
+                severity: Severity::Warning,
+                category: "media",
+                description: "Image part not found for rId {0}",
+            },
+        );
+        entries.insert(
+            "OOX-W-232",
+            CodeEntry {
+                code: "OOX-W-232",
+                severity: Severity::Warning,
+                category: "media",
+                description: "Unknown image MIME type for {0}",
+            },
+        );
+        entries.insert(
+            "OOX-W-233",
+            CodeEntry {
+                code: "OOX-W-233",
+                severity: Severity::Warning,
+                category: "media",
+                description: "Image data too large for inline context: {0} bytes",
+            },
+        );
+        entries.insert(
+            "OOX-W-234",
+            CodeEntry {
+                code: "OOX-W-234",
+                severity: Severity::Warning,
+                category: "media",
+                description: "Drawing bbox exceeds page bounds",
+            },
+        );
+        entries.insert(
+            "OOX-W-235",
+            CodeEntry {
+                code: "OOX-W-235",
+                severity: Severity::Warning,
+                category: "media",
+                description: "Inline drawing overlap detected with {0}",
+            },
+        );
+        entries.insert(
+            "OOX-W-236",
+            CodeEntry {
+                code: "OOX-W-236",
+                severity: Severity::Warning,
+                category: "media",
+                description: "Floating drawing z-index {0} out of range",
+            },
+        );
+        entries.insert(
+            "OOX-W-237",
+            CodeEntry {
+                code: "OOX-W-237",
+                severity: Severity::Warning,
+                category: "media",
+                description: "pic:pic has no pic:cNvPr name",
+            },
+        );
+        entries.insert(
+            "OOX-W-238",
+            CodeEntry {
+                code: "OOX-W-238",
+                severity: Severity::Warning,
+                category: "media",
+                description: "Drawing write: failed to add media part",
+            },
+        );
+        entries.insert(
+            "OOX-W-239",
+            CodeEntry {
+                code: "OOX-W-239",
+                severity: Severity::Warning,
+                category: "media",
+                description: "Drawing write: missing content type override",
+            },
+        );
+
+        // T1-advanced: DOCX complex fields / TOC (OOX-W-240..249)
+        entries.insert(
+            "OOX-W-240",
+            CodeEntry {
+                code: "OOX-W-240",
+                severity: Severity::Warning,
+                category: "field",
+                description: "Unclosed field (fldChar begin without end)",
+            },
+        );
+        entries.insert(
+            "OOX-W-241",
+            CodeEntry {
+                code: "OOX-W-241",
+                severity: Severity::Warning,
+                category: "field",
+                description: "Field result exceeds max length: {0} chars",
+            },
+        );
+        entries.insert(
+            "OOX-W-242",
+            CodeEntry {
+                code: "OOX-W-242",
+                severity: Severity::Warning,
+                category: "field",
+                description: "TOC entry missing hyperlink target",
+            },
+        );
+        entries.insert(
+            "OOX-W-243",
+            CodeEntry {
+                code: "OOX-W-243",
+                severity: Severity::Warning,
+                category: "field",
+                description: "Field instruction parse error: {0}",
+            },
+        );
+        entries.insert(
+            "OOX-W-244",
+            CodeEntry {
+                code: "OOX-W-244",
+                severity: Severity::Warning,
+                category: "field",
+                description: "PAGENUM field with unknown switch: {0}",
+            },
+        );
+        entries.insert(
+            "OOX-W-245",
+            CodeEntry {
+                code: "OOX-W-245",
+                severity: Severity::Warning,
+                category: "field",
+                description: "REF field references unknown bookmark: {0}",
+            },
+        );
+        entries.insert(
+            "OOX-W-246",
+            CodeEntry {
+                code: "OOX-W-246",
+                severity: Severity::Warning,
+                category: "field",
+                description: "SEQ field with invalid sequence identifier",
+            },
+        );
+        entries.insert(
+            "OOX-W-247",
+            CodeEntry {
+                code: "OOX-W-247",
+                severity: Severity::Warning,
+                category: "field",
+                description: "Field group with mismatched fldChar types",
+            },
+        );
+        entries.insert(
+            "OOX-W-248",
+            CodeEntry {
+                code: "OOX-W-248",
+                severity: Severity::Warning,
+                category: "field",
+                description: "Nested field detected (may not render in all viewers)",
+            },
+        );
+        entries.insert(
+            "OOX-W-249",
+            CodeEntry {
+                code: "OOX-W-249",
+                severity: Severity::Warning,
+                category: "field",
+                description: "Complex field write: field group ID collision",
+            },
+        );
+
+        // T1-advanced: XLSX style table / cell style (OOX-W-250..269)
+        entries.insert(
+            "OOX-W-250",
+            CodeEntry {
+                code: "OOX-W-250",
+                severity: Severity::Warning,
+                category: "style",
+                description: "numFmt {0} not found for cell style index {1}",
+            },
+        );
+        entries.insert(
+            "OOX-W-251",
+            CodeEntry {
+                code: "OOX-W-251",
+                severity: Severity::Warning,
+                category: "style",
+                description: "Unknown number format: {0}",
+            },
+        );
+        entries.insert(
+            "OOX-W-252",
+            CodeEntry {
+                code: "OOX-W-252",
+                severity: Severity::Warning,
+                category: "style",
+                description: "Cell style index {0} exceeds xf count",
+            },
+        );
+        entries.insert(
+            "OOX-W-253",
+            CodeEntry {
+                code: "OOX-W-253",
+                severity: Severity::Warning,
+                category: "style",
+                description: "Font name not found in fonts table: {0}",
+            },
+        );
+        entries.insert(
+            "OOX-W-254",
+            CodeEntry {
+                code: "OOX-W-254",
+                severity: Severity::Warning,
+                category: "style",
+                description: "Font size outside valid range: {0}",
+            },
+        );
+        entries.insert(
+            "OOX-W-255",
+            CodeEntry {
+                code: "OOX-W-255",
+                severity: Severity::Warning,
+                category: "style",
+                description: "Fill pattern {0} not in fills table",
+            },
+        );
+        entries.insert(
+            "OOX-W-256",
+            CodeEntry {
+                code: "OOX-W-256",
+                severity: Severity::Warning,
+                category: "style",
+                description: "Border cell style not found",
+            },
+        );
+        entries.insert(
+            "OOX-W-257",
+            CodeEntry {
+                code: "OOX-W-257",
+                severity: Severity::Warning,
+                category: "style",
+                description: "Alignment property ignored for numeric cell",
+            },
+        );
+        entries.insert(
+            "OOX-W-258",
+            CodeEntry {
+                code: "OOX-W-258",
+                severity: Severity::Warning,
+                category: "style",
+                description: "Style {0} has conflicting font entries",
+            },
+        );
+        entries.insert(
+            "OOX-W-259",
+            CodeEntry {
+                code: "OOX-W-259",
+                severity: Severity::Warning,
+                category: "style",
+                description: "cellStyleXfs count exceeds cellStyles count",
+            },
+        );
+        entries.insert(
+            "OOX-W-260",
+            CodeEntry {
+                code: "OOX-W-260",
+                severity: Severity::Warning,
+                category: "style",
+                description: "Duplicate cellStyle name: {0}",
+            },
+        );
+        entries.insert(
+            "OOX-W-261",
+            CodeEntry {
+                code: "OOX-W-261",
+                severity: Severity::Warning,
+                category: "style",
+                description: "Style write: xf index collision",
+            },
+        );
+        entries.insert(
+            "OOX-W-262",
+            CodeEntry {
+                code: "OOX-W-262",
+                severity: Severity::Warning,
+                category: "style",
+                description: "Style write: numFmt ID reuse detected",
+            },
+        );
+        entries.insert(
+            "OOX-W-263",
+            CodeEntry {
+                code: "OOX-W-263",
+                severity: Severity::Warning,
+                category: "style",
+                description: "Style write: failed to serialize style table",
+            },
+        );
+        entries.insert(
+            "OOX-W-264",
+            CodeEntry {
+                code: "OOX-W-264",
+                severity: Severity::Warning,
+                category: "style",
+                description: "Style write: missing font for index {0}",
+            },
+        );
+        entries.insert(
+            "OOX-W-265",
+            CodeEntry {
+                code: "OOX-W-265",
+                severity: Severity::Warning,
+                category: "style",
+                description: "Style write: missing fill for index {0}",
+            },
+        );
+        entries.insert(
+            "OOX-W-266",
+            CodeEntry {
+                code: "OOX-W-266",
+                severity: Severity::Warning,
+                category: "style",
+                description: "Style write: missing border for index {0}",
+            },
+        );
+        entries.insert(
+            "OOX-W-267",
+            CodeEntry {
+                code: "OOX-W-267",
+                severity: Severity::Warning,
+                category: "style",
+                description: "cellXfs references undefined style index {0}",
+            },
+        );
+        entries.insert(
+            "OOX-W-268",
+            CodeEntry {
+                code: "OOX-W-268",
+                severity: Severity::Warning,
+                category: "style",
+                description: "Number format {0} uses unsupported type",
+            },
+        );
+        entries.insert(
+            "OOX-W-269",
+            CodeEntry {
+                code: "OOX-W-269",
+                severity: Severity::Warning,
+                category: "style",
+                description: "Style inheritance depth exceeds limit for {0}",
+            },
+        );
+
+        // T1-advanced: XLSX views · freeze · autofilter (OOX-W-270..289)
+        entries.insert(
+            "OOX-W-270",
+            CodeEntry {
+                code: "OOX-W-270",
+                severity: Severity::Warning,
+                category: "view",
+                description: "Freeze pane split exceeds sheet bounds",
+            },
+        );
+        entries.insert(
+            "OOX-W-271",
+            CodeEntry {
+                code: "OOX-W-271",
+                severity: Severity::Warning,
+                category: "view",
+                description: "Invalid active pane: {0}",
+            },
+        );
+        entries.insert(
+            "OOX-W-272",
+            CodeEntry {
+                code: "OOX-W-272",
+                severity: Severity::Warning,
+                category: "view",
+                description: "Top-left cell outside visible area",
+            },
+        );
+        entries.insert(
+            "OOX-W-273",
+            CodeEntry {
+                code: "OOX-W-273",
+                severity: Severity::Warning,
+                category: "view",
+                description: "Sheet view zoom scale out of range: {0}",
+            },
+        );
+        entries.insert(
+            "OOX-W-274",
+            CodeEntry {
+                code: "OOX-W-274",
+                severity: Severity::Warning,
+                category: "view",
+                description: "Frozen row count exceeds row count",
+            },
+        );
+        entries.insert(
+            "OOX-W-275",
+            CodeEntry {
+                code: "OOX-W-275",
+                severity: Severity::Warning,
+                category: "view",
+                description: "Freeze pane: active_cell {0} outside split",
+            },
+        );
+        entries.insert(
+            "OOX-W-276",
+            CodeEntry {
+                code: "OOX-W-276",
+                severity: Severity::Warning,
+                category: "view",
+                description: "sheetViews count exceeds 1 (only one view per sheet)",
+            },
+        );
+        entries.insert(
+            "OOX-W-277",
+            CodeEntry {
+                code: "OOX-W-277",
+                severity: Severity::Warning,
+                category: "view",
+                description: "Column dimension min > max: {0} > {1}",
+            },
+        );
+        entries.insert(
+            "OOX-W-278",
+            CodeEntry {
+                code: "OOX-W-278",
+                severity: Severity::Warning,
+                category: "view",
+                description: "Row dimension index exceeds sheet rows",
+            },
+        );
+        entries.insert(
+            "OOX-W-279",
+            CodeEntry {
+                code: "OOX-W-279",
+                severity: Severity::Warning,
+                category: "view",
+                description: "AutoFilter range invalid: {0}",
+            },
+        );
+        entries.insert(
+            "OOX-W-280",
+            CodeEntry {
+                code: "OOX-W-280",
+                severity: Severity::Warning,
+                category: "view",
+                description: "AutoFilter column index out of range: {0}",
+            },
+        );
+        entries.insert(
+            "OOX-W-281",
+            CodeEntry {
+                code: "OOX-W-281",
+                severity: Severity::Warning,
+                category: "view",
+                description: "AutoFilter blank filter on non-empty column",
+            },
+        );
+        entries.insert(
+            "OOX-W-282",
+            CodeEntry {
+                code: "OOX-W-282",
+                severity: Severity::Warning,
+                category: "view",
+                description: "AutoFilter write: range mismatch",
+            },
+        );
+        entries.insert(
+            "OOX-W-283",
+            CodeEntry {
+                code: "OOX-W-283",
+                severity: Severity::Warning,
+                category: "view",
+                description: "View state conflict: hidden sheet with active view",
+            },
+        );
+        entries.insert(
+            "OOX-W-284",
+            CodeEntry {
+                code: "OOX-W-284",
+                severity: Severity::Warning,
+                category: "view",
+                description: "Row outline level exceeds 7: {0}",
+            },
+        );
+        entries.insert(
+            "OOX-W-285",
+            CodeEntry {
+                code: "OOX-W-285",
+                severity: Severity::Warning,
+                category: "view",
+                description: "Column outline level exceeds 7: {0}",
+            },
+        );
+        entries.insert(
+            "OOX-W-286",
+            CodeEntry {
+                code: "OOX-W-286",
+                severity: Severity::Warning,
+                category: "view",
+                description: "Freeze pane: workbookViewId mismatch",
+            },
+        );
+        entries.insert(
+            "OOX-W-287",
+            CodeEntry {
+                code: "OOX-W-287",
+                severity: Severity::Warning,
+                category: "view",
+                description: "AutoFilter filterColumn duplicate col: {0}",
+            },
+        );
+        entries.insert(
+            "OOX-W-288",
+            CodeEntry {
+                code: "OOX-W-288",
+                severity: Severity::Warning,
+                category: "view",
+                description: "FilterRule operator invalid for type: {0}",
+            },
+        );
+        entries.insert(
+            "OOX-W-289",
+            CodeEntry {
+                code: "OOX-W-289",
+                severity: Severity::Warning,
+                category: "view",
+                description: "AutoFilter write: missing ref attribute",
+            },
+        );
+
+        // T1-advanced: XLSX defined names (OOX-W-290..299)
+        entries.insert(
+            "OOX-W-290",
+            CodeEntry {
+                code: "OOX-W-290",
+                severity: Severity::Warning,
+                category: "defined-name",
+                description: "Defined name {0} has no refFormula",
+            },
+        );
+        entries.insert(
+            "OOX-W-291",
+            CodeEntry {
+                code: "OOX-W-291",
+                severity: Severity::Warning,
+                category: "defined-name",
+                description: "Defined name refFormula invalid: {0}",
+            },
+        );
+        entries.insert(
+            "OOX-W-292",
+            CodeEntry {
+                code: "OOX-W-292",
+                severity: Severity::Warning,
+                category: "defined-name",
+                description: "Local sheet ID out of range: {0}",
+            },
+        );
+        entries.insert(
+            "OOX-W-293",
+            CodeEntry {
+                code: "OOX-W-293",
+                severity: Severity::Warning,
+                category: "defined-name",
+                description: "Defined name {0} conflicts with builtin name",
+            },
+        );
+        entries.insert(
+            "OOX-W-294",
+            CodeEntry {
+                code: "OOX-W-294",
+                severity: Severity::Warning,
+                category: "defined-name",
+                description: "Defined name hidden in non-local scope",
+            },
+        );
+        entries.insert(
+            "OOX-W-295",
+            CodeEntry {
+                code: "OOX-W-295",
+                severity: Severity::Warning,
+                category: "defined-name",
+                description: "Defined name {0} references deleted sheet",
+            },
+        );
+        entries.insert(
+            "OOX-W-296",
+            CodeEntry {
+                code: "OOX-W-296",
+                severity: Severity::Warning,
+                category: "defined-name",
+                description: "Defined name write: sheet ID mismatch",
+            },
+        );
+        entries.insert(
+            "OOX-W-297",
+            CodeEntry {
+                code: "OOX-W-297",
+                severity: Severity::Warning,
+                category: "defined-name",
+                description: "Defined name write: formula too long",
+            },
+        );
+        entries.insert(
+            "OOX-W-298",
+            CodeEntry {
+                code: "OOX-W-298",
+                severity: Severity::Warning,
+                category: "defined-name",
+                description: "Defined name write: duplicate name",
+            },
+        );
+        entries.insert(
+            "OOX-W-299",
+            CodeEntry {
+                code: "OOX-W-299",
+                severity: Severity::Warning,
+                category: "defined-name",
+                description: "Defined name delete: name not found",
+            },
+        );
+
+        // T1-advanced: XLSX conditional formatting (OOX-W-300..309)
+        entries.insert(
+            "OOX-W-300",
+            CodeEntry {
+                code: "OOX-W-300",
+                severity: Severity::Warning,
+                category: "cf",
+                description: "Conditional format sqref invalid: {0}",
+            },
+        );
+        entries.insert(
+            "OOX-W-301",
+            CodeEntry {
+                code: "OOX-W-301",
+                severity: Severity::Warning,
+                category: "cf",
+                description: "CF type {0} missing required formula",
+            },
+        );
+        entries.insert(
+            "OOX-W-302",
+            CodeEntry {
+                code: "OOX-W-302",
+                severity: Severity::Warning,
+                category: "cf",
+                description: "CF dxf index {0} not in docDefaults",
+            },
+        );
+        entries.insert(
+            "OOX-W-303",
+            CodeEntry {
+                code: "OOX-W-303",
+                severity: Severity::Warning,
+                category: "cf",
+                description: "CF priority collision: {0}",
+            },
+        );
+        entries.insert(
+            "OOX-W-304",
+            CodeEntry {
+                code: "OOX-W-304",
+                severity: Severity::Warning,
+                category: "cf",
+                description: "CF rule applied to entire sheet (may impact performance)",
+            },
+        );
+        entries.insert(
+            "OOX-W-305",
+            CodeEntry {
+                code: "OOX-W-305",
+                severity: Severity::Warning,
+                category: "cf",
+                description: "Color scale missing equalOp/focusOn for {0}",
+            },
+        );
+        entries.insert(
+            "OOX-W-306",
+            CodeEntry {
+                code: "OOX-W-306",
+                severity: Severity::Warning,
+                category: "cf",
+                description: "CF write: failed to add conditionalFormatting part",
+            },
+        );
+        entries.insert(
+            "OOX-W-307",
+            CodeEntry {
+                code: "OOX-W-307",
+                severity: Severity::Warning,
+                category: "cf",
+                description: "CF write: dxf index out of range",
+            },
+        );
+        entries.insert(
+            "OOX-W-308",
+            CodeEntry {
+                code: "OOX-W-308",
+                severity: Severity::Warning,
+                category: "cf",
+                description: "CF write: sqref range overflow",
+            },
+        );
+        entries.insert(
+            "OOX-W-309",
+            CodeEntry {
+                code: "OOX-W-309",
+                severity: Severity::Warning,
+                category: "cf",
+                description: "Conditional format content too complex: {0} rules",
+            },
+        );
+
+        // T1-advanced: XLSX DV · ListObject tables (OOX-W-310..329)
+        entries.insert(
+            "OOX-W-310",
+            CodeEntry {
+                code: "OOX-W-310",
+                severity: Severity::Warning,
+                category: "dv",
+                description: "DataValidation sqref invalid: {0}",
+            },
+        );
+        entries.insert(
+            "OOX-W-311",
+            CodeEntry {
+                code: "OOX-W-311",
+                severity: Severity::Warning,
+                category: "dv",
+                description: "DV type {0} missing formula1",
+            },
+        );
+        entries.insert(
+            "OOX-W-312",
+            CodeEntry {
+                code: "OOX-W-312",
+                severity: Severity::Warning,
+                category: "dv",
+                description: "DV operator invalid for type: {0}",
+            },
+        );
+        entries.insert(
+            "OOX-W-313",
+            CodeEntry {
+                code: "OOX-W-313",
+                severity: Severity::Warning,
+                category: "dv",
+                description: "DV error message too long: {0} chars",
+            },
+        );
+        entries.insert(
+            "OOX-W-314",
+            CodeEntry {
+                code: "OOX-W-314",
+                severity: Severity::Warning,
+                category: "dv",
+                description: "DV prompt message too long: {0} chars",
+            },
+        );
+        entries.insert(
+            "OOX-W-315",
+            CodeEntry {
+                code: "OOX-W-315",
+                severity: Severity::Warning,
+                category: "dv",
+                description: "List data validation references external sheet",
+            },
+        );
+        entries.insert(
+            "OOX-W-316",
+            CodeEntry {
+                code: "OOX-W-316",
+                severity: Severity::Warning,
+                category: "dv",
+                description: "DV write: failed to add dataValidation part",
+            },
+        );
+        entries.insert(
+            "OOX-W-317",
+            CodeEntry {
+                code: "OOX-W-317",
+                severity: Severity::Warning,
+                category: "dv",
+                description: "DV write: formula parse error",
+            },
+        );
+        entries.insert(
+            "OOX-W-318",
+            CodeEntry {
+                code: "OOX-W-318",
+                severity: Severity::Warning,
+                category: "dv",
+                description: "DV delete: validation index not found",
+            },
+        );
+        entries.insert(
+            "OOX-W-319",
+            CodeEntry {
+                code: "OOX-W-319",
+                severity: Severity::Warning,
+                category: "dv",
+                description: "DV type {0} requires operator {1}",
+            },
+        );
+        entries.insert(
+            "OOX-W-320",
+            CodeEntry {
+                code: "OOX-W-320",
+                severity: Severity::Warning,
+                category: "table",
+                description: "Table {0} ref range invalid",
+            },
+        );
+        entries.insert(
+            "OOX-W-321",
+            CodeEntry {
+                code: "OOX-W-321",
+                severity: Severity::Warning,
+                category: "table",
+                description: "Table column count exceeds 16384",
+            },
+        );
+        entries.insert(
+            "OOX-W-322",
+            CodeEntry {
+                code: "OOX-W-322",
+                severity: Severity::Warning,
+                category: "table",
+                description: "Table name already exists: {0}",
+            },
+        );
+        entries.insert(
+            "OOX-W-323",
+            CodeEntry {
+                code: "OOX-W-323",
+                severity: Severity::Warning,
+                category: "table",
+                description: "Table part URI collision: {0}",
+            },
+        );
+        entries.insert(
+            "OOX-W-324",
+            CodeEntry {
+                code: "OOX-W-324",
+                severity: Severity::Warning,
+                category: "table",
+                description: "Table write: missing table part",
+            },
+        );
+        entries.insert(
+            "OOX-W-325",
+            CodeEntry {
+                code: "OOX-W-325",
+                severity: Severity::Warning,
+                category: "table",
+                description: "Table write: rel collision",
+            },
+        );
+        entries.insert(
+            "OOX-W-326",
+            CodeEntry {
+                code: "OOX-W-326",
+                severity: Severity::Warning,
+                category: "table",
+                description: "Table totalsRow function invalid: {0}",
+            },
+        );
+        entries.insert(
+            "OOX-W-327",
+            CodeEntry {
+                code: "OOX-W-327",
+                severity: Severity::Warning,
+                category: "table",
+                description: "Table autoFilter range mismatch",
+            },
+        );
+        entries.insert(
+            "OOX-W-328",
+            CodeEntry {
+                code: "OOX-W-328",
+                severity: Severity::Warning,
+                category: "table",
+                description: "Table style not found: {0}",
+            },
+        );
+        entries.insert(
+            "OOX-W-329",
+            CodeEntry {
+                code: "OOX-W-329",
+                severity: Severity::Warning,
+                category: "table",
+                description: "Table column duplicate id: {0}",
+            },
+        );
+
+        // T1-advanced: XLSX protection · page setup · header-footer (OOX-W-330..349)
+        entries.insert(
+            "OOX-W-330",
+            CodeEntry {
+                code: "OOX-W-330",
+                severity: Severity::Warning,
+                category: "protection",
+                description: "Sheet protection password too long: {0} chars",
+            },
+        );
+        entries.insert(
+            "OOX-W-331",
+            CodeEntry {
+                code: "OOX-W-331",
+                severity: Severity::Warning,
+                category: "protection",
+                description: "Sheet protection: password hash mismatch",
+            },
+        );
+        entries.insert(
+            "OOX-W-332",
+            CodeEntry {
+                code: "OOX-W-332",
+                severity: Severity::Warning,
+                category: "protection",
+                description: "Protection flag conflict: {0} vs {1}",
+            },
+        );
+        entries.insert(
+            "OOX-W-333",
+            CodeEntry {
+                code: "OOX-W-333",
+                severity: Severity::Warning,
+                category: "protection",
+                description: "Protection write: sheet not locked",
+            },
+        );
+        entries.insert(
+            "OOX-W-334",
+            CodeEntry {
+                code: "OOX-W-334",
+                severity: Severity::Warning,
+                category: "protection",
+                description: "Page setup paper size undefined: {0}",
+            },
+        );
+        entries.insert(
+            "OOX-W-335",
+            CodeEntry {
+                code: "OOX-W-335",
+                severity: Severity::Warning,
+                category: "protection",
+                description: "Page setup scale 0 (use fit-to)",
+            },
+        );
+        entries.insert(
+            "OOX-W-336",
+            CodeEntry {
+                code: "OOX-W-336",
+                severity: Severity::Warning,
+                category: "protection",
+                description: "Page setup: fit-to overrides scale",
+            },
+        );
+        entries.insert(
+            "OOX-W-337",
+            CodeEntry {
+                code: "OOX-W-337",
+                severity: Severity::Warning,
+                category: "protection",
+                description: "Header/footer section unknown: {0}",
+            },
+        );
+        entries.insert(
+            "OOX-W-338",
+            CodeEntry {
+                code: "OOX-W-338",
+                severity: Severity::Warning,
+                category: "protection",
+                description: "Header/footer string too long: {0} chars",
+            },
+        );
+        entries.insert(
+            "OOX-W-339",
+            CodeEntry {
+                code: "OOX-W-339",
+                severity: Severity::Warning,
+                category: "protection",
+                description: "Header/footer ampersand escape invalid",
+            },
+        );
+        entries.insert(
+            "OOX-W-340",
+            CodeEntry {
+                code: "OOX-W-340",
+                severity: Severity::Warning,
+                category: "protection",
+                description: "Page margins: negative value {0}",
+            },
+        );
+        entries.insert(
+            "OOX-W-341",
+            CodeEntry {
+                code: "OOX-W-341",
+                severity: Severity::Warning,
+                category: "protection",
+                description: "Header/footer: different first but no first section",
+            },
+        );
+        entries.insert(
+            "OOX-W-342",
+            CodeEntry {
+                code: "OOX-W-342",
+                severity: Severity::Warning,
+                category: "protection",
+                description: "Protection write: password not hashed",
+            },
+        );
+        entries.insert(
+            "OOX-W-343",
+            CodeEntry {
+                code: "OOX-W-343",
+                severity: Severity::Warning,
+                category: "protection",
+                description: "Page setup write: invalid paper size",
+            },
+        );
+        entries.insert(
+            "OOX-W-344",
+            CodeEntry {
+                code: "OOX-W-344",
+                severity: Severity::Warning,
+                category: "protection",
+                description: "Header/footer write: section not supported",
+            },
+        );
+        entries.insert(
+            "OOX-W-345",
+            CodeEntry {
+                code: "OOX-W-345",
+                severity: Severity::Warning,
+                category: "protection",
+                description: "Protection: delete rows not allowed on protected sheet",
+            },
+        );
+        entries.insert(
+            "OOX-W-346",
+            CodeEntry {
+                code: "OOX-W-346",
+                severity: Severity::Warning,
+                category: "protection",
+                description: "Page setup: DPI out of range: {0}",
+            },
+        );
+        entries.insert(
+            "OOX-W-347",
+            CodeEntry {
+                code: "OOX-W-347",
+                severity: Severity::Warning,
+                category: "protection",
+                description: "Header/footer: unknown format code in string",
+            },
+        );
+        entries.insert(
+            "OOX-W-348",
+            CodeEntry {
+                code: "OOX-W-348",
+                severity: Severity::Warning,
+                category: "protection",
+                description: "Protection write: sheet not in parts map",
+            },
+        );
+        entries.insert(
+            "OOX-W-349",
+            CodeEntry {
+                code: "OOX-W-349",
+                severity: Severity::Warning,
+                category: "protection",
+                description: "Page setup write: margin out of range",
+            },
+        );
+
+        // T1-advanced: PPTX shape tree · geometry · shape props (OOX-W-350..369)
+        // NOTE: 350 and 351 already exist in the registry
+        entries.insert(
+            "OOX-W-352",
+            CodeEntry {
+                code: "OOX-W-352",
+                severity: Severity::Warning,
+                category: "shape",
+                description: "Shape geometry: unknown preset {0}",
+            },
+        );
+        entries.insert(
+            "OOX-W-353",
+            CodeEntry {
+                code: "OOX-W-353",
+                severity: Severity::Warning,
+                category: "shape",
+                description: "Shape fill: unknown fill type {0}",
+            },
+        );
+        entries.insert(
+            "OOX-W-354",
+            CodeEntry {
+                code: "OOX-W-354",
+                severity: Severity::Warning,
+                category: "shape",
+                description: "Shape line: missing ln for connector",
+            },
+        );
+        entries.insert(
+            "OOX-W-355",
+            CodeEntry {
+                code: "OOX-W-355",
+                severity: Severity::Warning,
+                category: "shape",
+                description: "Shape rotation: value out of range: {0}",
+            },
+        );
+        entries.insert(
+            "OOX-W-356",
+            CodeEntry {
+                code: "OOX-W-356",
+                severity: Severity::Warning,
+                category: "shape",
+                description: "Group child count exceeds limit: {0}",
+            },
+        );
+        entries.insert(
+            "OOX-W-357",
+            CodeEntry {
+                code: "OOX-W-357",
+                severity: Severity::Warning,
+                category: "shape",
+                description: "Shape ID collision: {0}",
+            },
+        );
+        entries.insert(
+            "OOX-W-358",
+            CodeEntry {
+                code: "OOX-W-358",
+                severity: Severity::Warning,
+                category: "shape",
+                description: "Shape name too long: {0} chars",
+            },
+        );
+        entries.insert(
+            "OOX-W-359",
+            CodeEntry {
+                code: "OOX-W-359",
+                severity: Severity::Warning,
+                category: "shape",
+                description: "Placeholder idx {0} not found in layout",
+            },
+        );
+        entries.insert(
+            "OOX-W-360",
+            CodeEntry {
+                code: "OOX-W-360",
+                severity: Severity::Warning,
+                category: "shape",
+                description: "Shape write: part not in parts map",
+            },
+        );
+        entries.insert(
+            "OOX-W-361",
+            CodeEntry {
+                code: "OOX-W-361",
+                severity: Severity::Warning,
+                category: "shape",
+                description: "Shape write: spPr mutation failed",
+            },
+        );
+        entries.insert(
+            "OOX-W-362",
+            CodeEntry {
+                code: "OOX-W-362",
+                severity: Severity::Warning,
+                category: "shape",
+                description: "Shape write: fill color invalid",
+            },
+        );
+        entries.insert(
+            "OOX-W-363",
+            CodeEntry {
+                code: "OOX-W-363",
+                severity: Severity::Warning,
+                category: "shape",
+                description: "Shape write: rotation not preserved",
+            },
+        );
+        entries.insert(
+            "OOX-W-364",
+            CodeEntry {
+                code: "OOX-W-364",
+                severity: Severity::Warning,
+                category: "shape",
+                description: "Connector: missing connection coords",
+            },
+        );
+        entries.insert(
+            "OOX-W-365",
+            CodeEntry {
+                code: "OOX-W-365",
+                severity: Severity::Warning,
+                category: "shape",
+                description: "Group: child {0} not in parent tree",
+            },
+        );
+        entries.insert(
+            "OOX-W-366",
+            CodeEntry {
+                code: "OOX-W-366",
+                severity: Severity::Warning,
+                category: "shape",
+                description: "Shape write: missing rel entry",
+            },
+        );
+        entries.insert(
+            "OOX-W-367",
+            CodeEntry {
+                code: "OOX-W-367",
+                severity: Severity::Warning,
+                category: "shape",
+                description: "Shape tree: orphan blip embed rId {0}",
+            },
+        );
+        entries.insert(
+            "OOX-W-368",
+            CodeEntry {
+                code: "OOX-W-368",
+                severity: Severity::Warning,
+                category: "shape",
+                description: "pic:pic blip not in media parts",
+            },
+        );
+        entries.insert(
+            "OOX-W-369",
+            CodeEntry {
+                code: "OOX-W-369",
+                severity: Severity::Warning,
+                category: "shape",
+                description: "Shape tree: depth exceeds limit: {0}",
+            },
+        );
+
+        // T1-advanced: PPTX placeholders · table cells · notes (OOX-W-370..389)
+        entries.insert(
+            "OOX-W-370",
+            CodeEntry {
+                code: "OOX-W-370",
+                severity: Severity::Warning,
+                category: "placeholder",
+                description: "Placeholder {0} type mismatch: expected {1}",
+            },
+        );
+        entries.insert(
+            "OOX-W-371",
+            CodeEntry {
+                code: "OOX-W-371",
+                severity: Severity::Warning,
+                category: "placeholder",
+                description: "Placeholder text too long for {0}: {1} chars",
+            },
+        );
+        entries.insert(
+            "OOX-W-372",
+            CodeEntry {
+                code: "OOX-W-372",
+                severity: Severity::Warning,
+                category: "placeholder",
+                description: "Placeholder write: shape not found",
+            },
+        );
+        entries.insert(
+            "OOX-W-373",
+            CodeEntry {
+                code: "OOX-W-373",
+                severity: Severity::Warning,
+                category: "placeholder",
+                description: "Placeholder write: txBody not found",
+            },
+        );
+        entries.insert(
+            "OOX-W-374",
+            CodeEntry {
+                code: "OOX-W-374",
+                severity: Severity::Warning,
+                category: "placeholder",
+                description: "Table cell text too long: {0} chars",
+            },
+        );
+        entries.insert(
+            "OOX-W-375",
+            CodeEntry {
+                code: "OOX-W-375",
+                severity: Severity::Warning,
+                category: "placeholder",
+                description: "Table: row count exceeds limit: {0}",
+            },
+        );
+        entries.insert(
+            "OOX-W-376",
+            CodeEntry {
+                code: "OOX-W-376",
+                severity: Severity::Warning,
+                category: "placeholder",
+                description: "Table: column count exceeds limit: {0}",
+            },
+        );
+        entries.insert(
+            "OOX-W-377",
+            CodeEntry {
+                code: "OOX-W-377",
+                severity: Severity::Warning,
+                category: "placeholder",
+                description: "Table cell merge: invalid range",
+            },
+        );
+        entries.insert(
+            "OOX-W-378",
+            CodeEntry {
+                code: "OOX-W-378",
+                severity: Severity::Warning,
+                category: "placeholder",
+                description: "Table: cell rowspan + colSpan overflow",
+            },
+        );
+        entries.insert(
+            "OOX-W-379",
+            CodeEntry {
+                code: "OOX-W-379",
+                severity: Severity::Warning,
+                category: "placeholder",
+                description: "Table write: slide not found",
+            },
+        );
+        entries.insert(
+            "OOX-W-380",
+            CodeEntry {
+                code: "OOX-W-380",
+                severity: Severity::Warning,
+                category: "placeholder",
+                description: "Notes slide: no notes part URI",
+            },
+        );
+        entries.insert(
+            "OOX-W-381",
+            CodeEntry {
+                code: "OOX-W-381",
+                severity: Severity::Warning,
+                category: "placeholder",
+                description: "Notes: text exceeds limit: {0} chars",
+            },
+        );
+        entries.insert(
+            "OOX-W-382",
+            CodeEntry {
+                code: "OOX-W-382",
+                severity: Severity::Warning,
+                category: "placeholder",
+                description: "Notes write: part not in parts map",
+            },
+        );
+        entries.insert(
+            "OOX-W-383",
+            CodeEntry {
+                code: "OOX-W-383",
+                severity: Severity::Warning,
+                category: "placeholder",
+                description: "Notes write: failed to create notesSlide part",
+            },
+        );
+        entries.insert(
+            "OOX-W-384",
+            CodeEntry {
+                code: "OOX-W-384",
+                severity: Severity::Warning,
+                category: "placeholder",
+                description: "Placeholder: layout not found for slide {0}",
+            },
+        );
+        entries.insert(
+            "OOX-W-385",
+            CodeEntry {
+                code: "OOX-W-385",
+                severity: Severity::Warning,
+                category: "placeholder",
+                description: "Placeholder: idx 0 reserved (skip)",
+            },
+        );
+        entries.insert(
+            "OOX-W-386",
+            CodeEntry {
+                code: "OOX-W-386",
+                severity: Severity::Warning,
+                category: "placeholder",
+                description: "Table: body row missing text",
+            },
+        );
+        entries.insert(
+            "OOX-W-387",
+            CodeEntry {
+                code: "OOX-W-387",
+                severity: Severity::Warning,
+                category: "placeholder",
+                description: "Table: header row missing name",
+            },
+        );
+        entries.insert(
+            "OOX-W-388",
+            CodeEntry {
+                code: "OOX-W-388",
+                severity: Severity::Warning,
+                category: "placeholder",
+                description: "Table write: XML serialization error",
+            },
+        );
+        entries.insert(
+            "OOX-W-389",
+            CodeEntry {
+                code: "OOX-W-389",
+                severity: Severity::Warning,
+                category: "placeholder",
+                description: "Notes: malformed txBody",
+            },
+        );
+
+        // T1-advanced: PPTX theme · chart read (OOX-W-390..399)
+        // NOTE: 390 and 391 already exist in the registry
+        entries.insert(
+            "OOX-W-392",
+            CodeEntry {
+                code: "OOX-W-392",
+                severity: Severity::Warning,
+                category: "theme",
+                description: "Theme: clrMap override ignored",
+            },
+        );
+        entries.insert(
+            "OOX-W-393",
+            CodeEntry {
+                code: "OOX-W-393",
+                severity: Severity::Warning,
+                category: "theme",
+                description: "Theme: font scheme unknown font family: {0}",
+            },
+        );
+        entries.insert(
+            "OOX-W-394",
+            CodeEntry {
+                code: "OOX-W-394",
+                severity: Severity::Warning,
+                category: "theme",
+                description: "Theme: color count mismatch in clrScheme",
+            },
+        );
+        entries.insert(
+            "OOX-W-395",
+            CodeEntry {
+                code: "OOX-W-395",
+                severity: Severity::Warning,
+                category: "theme",
+                description: "Chart: graphicFrame not chart: {0}",
+            },
+        );
+        entries.insert(
+            "OOX-W-396",
+            CodeEntry {
+                code: "OOX-W-396",
+                severity: Severity::Warning,
+                category: "theme",
+                description: "Chart: series name missing",
+            },
+        );
+        entries.insert(
+            "OOX-W-397",
+            CodeEntry {
+                code: "OOX-W-397",
+                severity: Severity::Warning,
+                category: "theme",
+                description: "Chart: category count mismatch",
+            },
+        );
+        entries.insert(
+            "OOX-W-398",
+            CodeEntry {
+                code: "OOX-W-398",
+                severity: Severity::Warning,
+                category: "theme",
+                description: "Chart: value count mismatch",
+            },
+        );
+        entries.insert(
+            "OOX-W-399",
+            CodeEntry {
+                code: "OOX-W-399",
+                severity: Severity::Warning,
+                category: "theme",
+                description: "Chart: data type unknown: {0}",
+            },
+        );
+
+        // T1-advanced: capability matrix / inspect budget (GP-W-310..GP-W-319)
+        entries.insert(
+            "GP-W-310",
+            CodeEntry {
+                code: "GP-W-310",
+                severity: Severity::Warning,
+                category: "capability",
+                description: "Capability {0} not available for format {1}",
+            },
+        );
+        entries.insert(
+            "GP-W-311",
+            CodeEntry {
+                code: "GP-W-311",
+                severity: Severity::Warning,
+                category: "capability",
+                description: "Inspect feature {0} disabled by budget",
+            },
+        );
+        entries.insert(
+            "GP-W-312",
+            CodeEntry {
+                code: "GP-W-312",
+                severity: Severity::Warning,
+                category: "capability",
+                description: "Inspect payload exceeds budget envelope: {0} bytes",
+            },
+        );
+        entries.insert(
+            "GP-W-313",
+            CodeEntry {
+                code: "GP-W-313",
+                severity: Severity::Warning,
+                category: "capability",
+                description: "Feature {0} write not supported for format {1}",
+            },
+        );
+        entries.insert(
+            "GP-W-314",
+            CodeEntry {
+                code: "GP-W-314",
+                severity: Severity::Warning,
+                category: "capability",
+                description: "Schema output truncated (budget limit)",
+            },
+        );
+        entries.insert(
+            "GP-W-315",
+            CodeEntry {
+                code: "GP-W-315",
+                severity: Severity::Warning,
+                category: "capability",
+                description: "Capability check: format not registered: {0}",
+            },
+        );
+        entries.insert(
+            "GP-W-316",
+            CodeEntry {
+                code: "GP-W-316",
+                severity: Severity::Warning,
+                category: "capability",
+                description: "Budget cap exceeded for {0}: {1}/{2}",
+            },
+        );
+        entries.insert(
+            "GP-W-317",
+            CodeEntry {
+                code: "GP-W-317",
+                severity: Severity::Warning,
+                category: "capability",
+                description: "Inspect detail level {0} not recognized",
+            },
+        );
+        entries.insert(
+            "GP-W-318",
+            CodeEntry {
+                code: "GP-W-318",
+                severity: Severity::Warning,
+                category: "capability",
+                description: "Feature {0} default-off (use --{0} flag)",
+            },
+        );
+        entries.insert(
+            "GP-W-319",
+            CodeEntry {
+                code: "GP-W-319",
+                severity: Severity::Warning,
+                category: "capability",
+                description: "Capability matrix incomplete (format {0} partial)",
+            },
+        );
+
         Self { entries }
     }
 }

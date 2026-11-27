@@ -56,6 +56,18 @@ pub const TOOLS: &[ToolSpec] = &[
                 required: false,
                 description: "Format hint (inferred if omitted)",
             },
+            ParamDef {
+                name: "detail",
+                param_type: ParamType::String,
+                required: false,
+                description: "Detail level: summary, full, or feature",
+            },
+            ParamDef {
+                name: "features",
+                param_type: ParamType::StringArray,
+                required: false,
+                description: "Feature blocks to include (styles, media, annots, ids, coords, bboxes)",
+            },
         ],
         idempotent: true,
         deprecated: false,

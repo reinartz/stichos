@@ -8,7 +8,10 @@ target/
 # harness data (blobs live in external object store; local caches stay out of git)
 corpus/blobs/
 harness/.cache/
-goldens/
+# Keep committed parity goldens (G.2) tracked; ignore other local golden scratch.
+goldens/*
+!goldens/parity/
+!goldens/parity/**
 baseline/out/
 
 # tool scratch

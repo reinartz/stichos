@@ -364,7 +364,27 @@ impl RevisionWriter {
                 }
                 PatchOp::SetRunProps { .. }
                 | PatchOp::SetCellValue { .. }
-                | PatchOp::SetCellRich { .. } => {
+                | PatchOp::SetCellRich { .. }
+                | PatchOp::SetShapeProps { .. }
+                | PatchOp::InsertPicture { .. }
+                | PatchOp::SetSlideText { .. }
+                | PatchOp::SetTableCellText { .. }
+                | PatchOp::SetSlideNotes { .. }
+                | PatchOp::SetStyle { .. }
+                | PatchOp::AssignStyle { .. }
+                | PatchOp::AddHyperlink { .. }
+                | PatchOp::SetCellStyle { .. }
+                | PatchOp::SetFreezePane { .. }
+                | PatchOp::SetRowColDim { .. }
+                | PatchOp::SetAutoFilter { .. }
+                | PatchOp::SetConditionalFormat { .. }
+                | PatchOp::SetSheetProtection { .. }
+                | PatchOp::SetPageSetup { .. }
+                | PatchOp::SetCellHyperlink { .. }
+                | PatchOp::SetDefinedName { .. }
+                | PatchOp::SetDataValidation { .. }
+                | PatchOp::AddTable { .. }
+                | PatchOp::RemoveTable { .. } => {
                     // Not applicable for ODF text revision writing.
                 }
             }

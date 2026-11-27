@@ -233,6 +233,46 @@ pub fn enforce_inspect_budget(mut response: Value) -> Result<Value, Value> {
         }
     }
 
+    // Per-feature budget caps (styles, media, conditional formats, data
+    // validations, tables, theme).  Each feature is looked up by its
+    // top-level key; the value must be a numeric count or a length of an
+    // array.  Exceeding a cap bumps `budget_exceeded` and appends to the
+    // note.
+    let mut feature_checks: Vec<(&str, usize)> = Vec::new();
+    if let Some(v) = response.get("styles").and_then(|v| v.as_u64()) {
+        feature_checks.push(("styles", v as usize));
+    }
+    if let Some(v) = response.get("media").and_then(|v| v.as_u64()) {
+        feature_checks.push(("media", v as usize));
+    }
+    if let Some(v) = response.get("conditional_formats").and_then(|v| v.as_u64()) {
+        feature_checks.push(("conditional_formats", v as usize));
+    }
+    if let Some(v) = response.get("data_validations").and_then(|v| v.as_u64()) {
+        feature_checks.push(("data_validations", v as usize));
+    }
+    if let Some(v) = response.get("tables").and_then(|v| v.as_u64()) {
+        feature_checks.push(("tables", v as usize));
+    }
+    if let Some(v) = response.get("theme_entries").and_then(|v| v.as_u64()) {
+        feature_checks.push(("theme", v as usize));
+    }
+
+    for (feature, count) in feature_checks {
+        if !enforce_feature_budget(feature, count) {
+            let cap: usize = match feature {
+                "styles" => MAX_STYLES,
+                "media" => MAX_MEDIA,
+                "conditional_formats" => MAX_CONDITIONAL_FORMATS,
+                "data_validations" => MAX_DATA_VALIDATIONS,
+                "tables" => MAX_TABLES,
+                "theme" => MAX_THEME_ENTRIES,
+                _ => 0,
+            };
+            truncated.push(format!("{} count {} exceeds cap {}", feature, count, cap));
+        }
+    }
+
     // C3: a diagnostics array must exist on every response.
     if response.get("diagnostics").is_none() {
         response["diagnostics"] = serde_json::json!([]);
@@ -435,6 +475,78 @@ const MAX_INSPECT_COORD_ENTRIES: usize = 200;
 
 /// Max bboxes per coordinate entry (page/section) in an inspect manifest.
 const MAX_INSPECT_BBOXES_PER_PAGE: usize = 50;
+
+/// Features gated by default — detail is off unless explicitly enabled.
+pub const FEATURE_GATED_DETAILS: &[&str] = &[
+    "styles",
+    "media",
+    "annots",
+    "hyperlinks",
+    "drawings",
+    "conditional_formats",
+    "data_validations",
+    "tables",
+    "theme",
+    "freeze_panes",
+    "auto_filter",
+    "defined_names",
+];
+
+/// Maximum number of styles returned per inspect response.
+pub const MAX_STYLES: usize = 500;
+
+/// Maximum number of media/embedded objects per document.
+pub const MAX_MEDIA: usize = 100;
+
+/// Maximum conditional formatting rules per sheet.
+pub const MAX_CONDITIONAL_FORMATS: usize = 200;
+
+/// Maximum data validation rules per sheet.
+pub const MAX_DATA_VALIDATIONS: usize = 100;
+
+/// Maximum tables (spreadsheet tables) per workbook.
+pub const MAX_TABLES: usize = 50;
+
+/// Maximum theme entries per document.
+pub const MAX_THEME_ENTRIES: usize = 50;
+
+/// Enforce a per-feature budget cap.
+///
+/// Returns `true` when `count` is within the cap for `feature`, or `true`
+/// for unknown features (they have no cap).
+///
+/// Known features and their caps:
+/// - `"styles"` → `MAX_STYLES` (500)
+/// - `"media"` → `MAX_MEDIA` (100)
+/// - `"conditional_formats"` → `MAX_CONDITIONAL_FORMATS` (200)
+/// - `"data_validations"` → `MAX_DATA_VALIDATIONS` (100)
+/// - `"tables"` → `MAX_TABLES` (50)
+/// - `"theme"` → `MAX_THEME_ENTRIES` (50)
+/// - unknown → no cap (always allows)
+pub fn enforce_feature_budget(feature: &str, count: usize) -> bool {
+    match feature {
+        "styles" => count <= MAX_STYLES,
+        "media" => count <= MAX_MEDIA,
+        "conditional_formats" => count <= MAX_CONDITIONAL_FORMATS,
+        "data_validations" => count <= MAX_DATA_VALIDATIONS,
+        "tables" => count <= MAX_TABLES,
+        "theme" => count <= MAX_THEME_ENTRIES,
+        _ => true,
+    }
+}
+
+/// Return the detail level for a feature name.
+///
+/// Returns `"gated"` when the feature is in [`FEATURE_GATED_DETAILS`],
+/// meaning it needs explicit opt-in.  Returns `"available"` otherwise.
+#[allow(dead_code)]
+pub fn feature_detail_level(feature: &str) -> &str {
+    if FEATURE_GATED_DETAILS.contains(&feature) {
+        "gated"
+    } else {
+        "available"
+    }
+}
 
 #[cfg(test)]
 mod tests {
@@ -896,5 +1008,143 @@ mod tests {
                 tool
             );
         }
+    }
+
+    // --- per-feature budget tests ---
+
+    /// test_enforce_feature_budget_within_limit — styles count within limit.
+    #[test]
+    fn test_enforce_feature_budget_within_limit() {
+        assert!(enforce_feature_budget("styles", 500));
+        assert!(enforce_feature_budget("styles", 1));
+        assert!(enforce_feature_budget("styles", 0));
+        assert!(enforce_feature_budget("media", 100));
+        assert!(enforce_feature_budget("conditional_formats", 200));
+        assert!(enforce_feature_budget("data_validations", 100));
+        assert!(enforce_feature_budget("tables", 50));
+        assert!(enforce_feature_budget("theme", 50));
+    }
+
+    /// test_enforce_feature_budget_exceeds_limit — media count exceeds limit.
+    #[test]
+    fn test_enforce_feature_budget_exceeds_limit() {
+        assert!(!enforce_feature_budget("styles", 501));
+        assert!(!enforce_feature_budget("media", 101));
+        assert!(!enforce_feature_budget("conditional_formats", 201));
+        assert!(!enforce_feature_budget("data_validations", 101));
+        assert!(!enforce_feature_budget("tables", 51));
+        assert!(!enforce_feature_budget("theme", 51));
+    }
+
+    /// test_enforce_feature_budget_unknown_feature — unknown features pass.
+    #[test]
+    fn test_enforce_feature_budget_unknown_feature() {
+        assert!(enforce_feature_budget("unknown_feature", 99999));
+        assert!(enforce_feature_budget("", 0));
+    }
+
+    /// test_feature_gated_details — verify gated feature names.
+    #[test]
+    fn test_feature_gated_details() {
+        assert_eq!(feature_detail_level("styles"), "gated");
+        assert_eq!(feature_detail_level("media"), "gated");
+        assert_eq!(feature_detail_level("annots"), "gated");
+        assert_eq!(feature_detail_level("hyperlinks"), "gated");
+        assert_eq!(feature_detail_level("drawings"), "gated");
+        assert_eq!(feature_detail_level("conditional_formats"), "gated");
+        assert_eq!(feature_detail_level("data_validations"), "gated");
+        assert_eq!(feature_detail_level("tables"), "gated");
+        assert_eq!(feature_detail_level("theme"), "gated");
+        assert_eq!(feature_detail_level("freeze_panes"), "gated");
+        assert_eq!(feature_detail_level("auto_filter"), "gated");
+        assert_eq!(feature_detail_level("defined_names"), "gated");
+        // unknown features are available
+        assert_eq!(feature_detail_level("unknown_feature"), "available");
+        assert_eq!(feature_detail_level(""), "available");
+    }
+
+    /// test_enforce_inspect_budget_with_feature_caps — full budget enforcement including new caps.
+    #[test]
+    fn test_enforce_inspect_budget_with_feature_caps() {
+        let response = serde_json::json!({
+            "tool": "inspect_document",
+            "path": "big.xlsx",
+            "total_elements": 50,
+            "element_ids_sample": [],
+            "coordinates": [],
+            "styles": 600,
+            "media": 50,
+            "conditional_formats": 250,
+            "data_validations": 80,
+            "tables": 10,
+            "theme_entries": 10,
+            "fidelity_budget": {"confidence": 1.0},
+        });
+        let result = enforce_inspect_budget(response).unwrap();
+        assert!(result["budget_exceeded"].as_bool().unwrap());
+        let note = result["budget_note"].as_str().unwrap();
+        assert!(note.contains("styles count 600 exceeds cap 500"));
+        assert!(note.contains("conditional_formats count 250 exceeds cap 200"));
+        // media, data_validations, tables, theme are within caps — not in note
+        assert!(!note.contains("media"));
+        assert!(!note.contains("data_validations"));
+        assert!(!note.contains("tables"));
+        assert!(!note.contains("theme"));
+    }
+
+    /// test_enforce_inspect_budget_feature_caps_within_limits — no flag when all within caps.
+    #[test]
+    fn test_enforce_inspect_budget_feature_caps_within_limits() {
+        let response = serde_json::json!({
+            "tool": "inspect_document",
+            "path": "ok.docx",
+            "total_elements": 5,
+            "element_ids_sample": [],
+            "coordinates": [],
+            "styles": 100,
+            "media": 50,
+            "conditional_formats": 100,
+            "data_validations": 50,
+            "tables": 25,
+            "theme_entries": 30,
+            "fidelity_budget": {"confidence": 1.0},
+        });
+        let result = enforce_inspect_budget(response).unwrap();
+        assert!(result.get("budget_exceeded").is_none());
+    }
+
+    /// test_enforce_inspect_budget_feature_boundary_values — exactly at cap passes.
+    #[test]
+    fn test_enforce_inspect_budget_feature_boundary_values() {
+        let response = serde_json::json!({
+            "tool": "inspect_document",
+            "path": "boundary.xlsx",
+            "total_elements": 5,
+            "element_ids_sample": [],
+            "coordinates": [],
+            "styles": 500,
+            "media": 100,
+            "conditional_formats": 200,
+            "data_validations": 100,
+            "tables": 50,
+            "theme_entries": 50,
+            "fidelity_budget": {"confidence": 1.0},
+        });
+        let result = enforce_inspect_budget(response).unwrap();
+        assert!(result.get("budget_exceeded").is_none());
+    }
+
+    /// test_feature_detail_level_known_features.
+    #[test]
+    fn test_feature_detail_level_known_features() {
+        assert_eq!(feature_detail_level("styles"), "gated");
+        assert_eq!(feature_detail_level("annots"), "gated");
+    }
+
+    /// test_feature_detail_level_unknown_features.
+    #[test]
+    fn test_feature_detail_level_unknown_features() {
+        assert_eq!(feature_detail_level("random_feature"), "available");
+        assert_eq!(feature_detail_level("something_else"), "available");
     }
 }

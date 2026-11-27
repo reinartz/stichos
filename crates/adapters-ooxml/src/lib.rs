@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 //! adapters-ooxml: OOXML (.docx, .xlsx, .pptx) readers and writers for stichos.
+#![allow(clippy::needless_update)]
 //!
 //! Implements OPC (Open Packaging Conventions) parsing, XML content extraction,
 //! and conversion to the gp-core intermediate representation. Also includes
@@ -27,6 +28,7 @@ pub mod revision_ops;
 pub mod revision_reader;
 pub mod revision_writer;
 pub mod span_mut;
+pub mod style_resolve;
 pub mod validate;
 pub mod writer;
 pub mod xlsx;

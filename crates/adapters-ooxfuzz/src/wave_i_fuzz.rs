@@ -26,6 +26,7 @@ pub fn sheet_inspect_empty() -> Spreadsheet {
         ir_version: IR_VERSION.to_string(),
         ir_version_migration: None,
         sheets: vec![],
+        ..Default::default()
     }
 }
 
@@ -38,11 +39,13 @@ pub fn sheet_inspect_empty_sheet() -> Spreadsheet {
         merged_ranges: vec![],
         header_row: None,
         footer_row: None,
+        ..Default::default()
     };
     Spreadsheet {
         ir_version: IR_VERSION.to_string(),
         ir_version_migration: None,
         sheets: vec![sheet],
+        ..Default::default()
     }
 }
 
@@ -63,6 +66,7 @@ pub fn sheet_inspect_100k_rows() -> Spreadsheet {
                 number_format: None,
                 rich: None,
             }],
+            ..Default::default()
         })
         .collect();
     let sheet = Sheet {
@@ -72,11 +76,13 @@ pub fn sheet_inspect_100k_rows() -> Spreadsheet {
         merged_ranges: vec![],
         header_row: None,
         footer_row: None,
+        ..Default::default()
     };
     Spreadsheet {
         ir_version: IR_VERSION.to_string(),
         ir_version_migration: None,
         sheets: vec![sheet],
+        ..Default::default()
     }
 }
 
@@ -96,6 +102,7 @@ pub fn sheet_inspect_1m_char_cell() -> Spreadsheet {
     let row = SheetRow {
         id: ElementId::content_anchored("row", &["r0"], ""),
         cells: vec![cell],
+        ..Default::default()
     };
     let sheet = Sheet {
         id: ElementId::content_anchored("sheet", &["s0"], ""),
@@ -104,11 +111,13 @@ pub fn sheet_inspect_1m_char_cell() -> Spreadsheet {
         merged_ranges: vec![],
         header_row: None,
         footer_row: None,
+        ..Default::default()
     };
     Spreadsheet {
         ir_version: IR_VERSION.to_string(),
         ir_version_migration: None,
         sheets: vec![sheet],
+        ..Default::default()
     }
 }
 
@@ -139,6 +148,7 @@ pub fn sheet_inspect_malformed_cell_refs() -> Spreadsheet {
     let row = SheetRow {
         id: ElementId::content_anchored("row", &["r0"], ""),
         cells: vec![cell_a, cell_b],
+        ..Default::default()
     };
     let sheet = Sheet {
         id: ElementId::content_anchored("sheet", &["s0"], ""),
@@ -147,11 +157,13 @@ pub fn sheet_inspect_malformed_cell_refs() -> Spreadsheet {
         merged_ranges: vec![],
         header_row: None,
         footer_row: None,
+        ..Default::default()
     };
     Spreadsheet {
         ir_version: IR_VERSION.to_string(),
         ir_version_migration: None,
         sheets: vec![sheet],
+        ..Default::default()
     }
 }
 
@@ -171,6 +183,7 @@ pub fn sheet_inspect_huge_merged_ranges() -> Spreadsheet {
     let row = SheetRow {
         id: ElementId::content_anchored("row", &["r0"], ""),
         cells: vec![cell],
+        ..Default::default()
     };
     let merged = MergedRange {
         id: ElementId::content_anchored("merged", &["m0"], ""),
@@ -186,11 +199,13 @@ pub fn sheet_inspect_huge_merged_ranges() -> Spreadsheet {
         merged_ranges: vec![merged],
         header_row: None,
         footer_row: None,
+        ..Default::default()
     };
     Spreadsheet {
         ir_version: IR_VERSION.to_string(),
         ir_version_migration: None,
         sheets: vec![sheet],
+        ..Default::default()
     }
 }
 
@@ -211,6 +226,7 @@ pub fn sheet_inspect_c15_deep_nesting_formula() -> Spreadsheet {
     let row = SheetRow {
         id: ElementId::content_anchored("row", &["r0"], ""),
         cells: vec![cell],
+        ..Default::default()
     };
     let sheet = Sheet {
         id: ElementId::content_anchored("sheet", &["s0"], ""),
@@ -219,11 +235,13 @@ pub fn sheet_inspect_c15_deep_nesting_formula() -> Spreadsheet {
         merged_ranges: vec![],
         header_row: None,
         footer_row: None,
+        ..Default::default()
     };
     Spreadsheet {
         ir_version: IR_VERSION.to_string(),
         ir_version_migration: None,
         sheets: vec![sheet],
+        ..Default::default()
     }
 }
 
@@ -491,6 +509,7 @@ pub fn apply_op_deeply_nested_ir() -> IRDocument {
                 children: vec![],
             }],
         },
+        resolved_styles: None,
     }
 }
 
@@ -603,6 +622,7 @@ pub fn apply_op_massive_ir() -> IRDocument {
             bbox: None,
             children: root_children,
         },
+        resolved_styles: None,
     }
 }
 
@@ -637,6 +657,7 @@ pub fn apply_op_deeply_nested_children() -> IRDocument {
             bbox: None,
             children: vec![build_nested(500)],
         },
+        resolved_styles: None,
     }
 }
 
@@ -672,6 +693,7 @@ pub fn sheet_inspect_10_sheets() -> Spreadsheet {
             let row = SheetRow {
                 id: ElementId::content_anchored("row", &[&format!("s{}:r0", si)], ""),
                 cells,
+                ..Default::default()
             };
             Sheet {
                 id: ElementId::content_anchored("sheet", &[&format!("s{}", si)], ""),
@@ -680,6 +702,7 @@ pub fn sheet_inspect_10_sheets() -> Spreadsheet {
                 merged_ranges: vec![],
                 header_row: None,
                 footer_row: None,
+                ..Default::default()
             }
         })
         .collect();
@@ -687,6 +710,7 @@ pub fn sheet_inspect_10_sheets() -> Spreadsheet {
         ir_version: IR_VERSION.to_string(),
         ir_version_migration: None,
         sheets,
+        ..Default::default()
     }
 }
 
@@ -753,6 +777,7 @@ pub fn ir_doc_hostile_alt_text() -> IRDocument {
                 children: vec![],
             }],
         },
+        resolved_styles: None,
     }
 }
 
@@ -920,6 +945,7 @@ pub fn run_apply_op_fuzz() -> FuzzResult {
                 children: vec![],
             }],
         },
+        resolved_styles: None,
     };
 
     // Test various hostile PatchOps
@@ -1073,6 +1099,7 @@ mod tests {
                 bbox: None,
                 children: vec![],
             },
+            resolved_styles: None,
         };
         let op = apply_op_nonexistent_id();
         let result = apply_op(&mut ir, &op);

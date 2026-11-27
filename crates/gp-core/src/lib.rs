@@ -7,6 +7,7 @@
 
 #[cfg(test)]
 mod c10_contract_tests;
+pub mod capability;
 pub mod diagnostics;
 pub mod diff;
 pub mod edit_stability;

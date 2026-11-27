@@ -325,6 +325,7 @@ mod tests {
             tracked_changes: vec![],
             template: None,
             revisions: vec![],
+            ..Default::default()
         }
     }
 
@@ -338,6 +339,7 @@ mod tests {
             footers: vec![],
             footnotes: vec![],
             endnotes: vec![],
+            ..Default::default()
         }
     }
 
@@ -350,6 +352,7 @@ mod tests {
             footers: vec![],
             footnotes: vec![],
             endnotes: vec![],
+            ..Default::default()
         }
     }
 
@@ -360,6 +363,7 @@ mod tests {
             page_number: None,
             style_name: None,
             numbering_info: None,
+            ..Default::default()
         })
     }
 
@@ -374,6 +378,7 @@ mod tests {
             underline: None,
             strikethrough: None,
             style_name: None,
+            drawings: vec![],
         }
     }
 
@@ -744,6 +749,7 @@ mod tests {
                 bbox: None,
                 children: vec![],
             },
+            resolved_styles: None,
         };
         let ir_b = IRDocument {
             ir_version: IR_VERSION.to_string(),
@@ -754,6 +760,7 @@ mod tests {
                 bbox: None,
                 children: vec![],
             },
+            resolved_styles: None,
         };
         let diff = diff_ir(&ir_a, &ir_b);
         assert!(!diff.identical);
@@ -773,10 +780,12 @@ mod tests {
         let ir_a = IRDocument {
             ir_version: IR_VERSION.to_string(),
             root: root.clone(),
+            resolved_styles: None,
         };
         let ir_b = IRDocument {
             ir_version: IR_VERSION.to_string(),
             root,
+            resolved_styles: None,
         };
         let diff = diff_ir(&ir_a, &ir_b);
         assert!(diff.identical);

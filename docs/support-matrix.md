@@ -67,7 +67,7 @@
 
 ## Phase-7 Intake (post-M6)
 
-- **24 MCP tools** (Track-H adopted: added `validate`, `finish`): 12 tools at `schema_version: "1.6.0"` (additive defaults), 11 tools at `schema_version: "1.0.0"` (read-only), 1 tool at `schema_version: "1.7.0"` (`validate_package`)
+- **24 MCP tools** (Track-H adopted: added `validate_package`): 12 tools at `schema_version: "1.6.0"` (additive defaults), 11 tools at `schema_version: "1.0.0"` (read-only), 1 tool at `schema_version: "1.7.0"` (`validate_package`)
 - xlsx/pptx create (content-driven from IR)
 - Full formula coverage (C15 extension)
 - Lint encode/ssim refresh
@@ -75,6 +75,58 @@
 - PDF redaction
 - Real CMS signing (PKCS#7/CMS)
 - pdfium raster rung
+
+## Phase-8 Surface (Wave 6 — Surfacing & contracts, 2026-11-22)
+
+- **24 MCP tools** (measured: `mcp/spec.rs` asserts `TOOLS.len() == 24`)
+- **CLI:** 24 verbs; `stichos schema --json` now emits capability matrix as structured JSON
+  (nested object keyed by format, not raw tuple array)
+- **MCP `inspect_document`** parses `detail` and `features` params; `detail="feature"` enables
+  all feature blocks (styles, media, annots, ids, coords, bboxes) via the same budget-enveloped
+  pipeline as the CLI `inspect` command
+- **Feature parity** (honest state from `CAPABILITIES` constant, measured 2026-11-22):
+
+| Format | Feature | State | Notes |
+|--------|---------|-------|-------|
+| DOCX | complex_fields | 📖 read | Only read-capable DOCX feature |
+| DOCX | styles | ❌ none | |
+| DOCX | hyperlinks | ❌ none | |
+| DOCX | drawings_media | ❌ none | |
+| DOCX | images | ❌ none | |
+| XLSX | cell_styles | ❌ none | |
+| XLSX | freeze_panes | ❌ none | |
+| XLSX | autofilter | ❌ none | |
+| XLSX | defined_names | ❌ none | |
+| XLSX | conditional_formatting | ❌ none | |
+| XLSX | data_validation | ❌ none | |
+| XLSX | tables | ❌ none | |
+| XLSX | protection | ❌ none | |
+| XLSX | page_setup | ❌ none | |
+| XLSX | hyperlinks | ❌ none | |
+| XLSX | number_formats | ❌ none | |
+| PPTX | shape_tree | 📖 read | re-landed W5; xform/rot/prstGeom/fill/ln |
+| PPTX | placeholders | 📖 read | |
+| PPTX | table_cells | 📖 read | |
+| PPTX | theme | 📖 read | |
+| PPTX | notes | 📖 read | |
+| PPTX | slide_size | 📖 read | |
+| PPTX | charts | 📖 read | |
+| Cross | capability_matrix | 📖 read | `stichos schema` + `--json` |
+| Cross | inspect_flags | 📖 read | `--styles --media --annots --ids --coords --bboxes` |
+| Cross | csv_export | ❌ none | |
+
+Legend: 📖 = read-only implemented, ❌ = not yet surfaced in capability matrix
+
+## Test Counts (measured 2026-11-27)
+
+| Suite | Command | Count |
+|-------|---------|-------|
+| Workspace lib | `cargo test --workspace --lib` | 838 pass / 1 fail (pre-existing fixture count mismatch) |
+| MCP protocol | `cargo test -p stichos-mcp --lib` | 93 pass / 0 fail |
+| OOXML fuzz | `cargo test -p adapters-ooxfuzz` | 226 pass / 0 fail |
+| Corpus apply | `cargo test -p adapters-ooxml --test real_corpus_apply` | 37 pass / 0 fail |
+| Property tests | `cargo test -p adapters-ooxml --test property_tests` | 23 pass / 0 fail |
+| Pyoracle | `python3 -m pytest harness/pyoracle -q` | 61 pass / 0 fail |
 
 ## Phase-4 Surface (historical)
 

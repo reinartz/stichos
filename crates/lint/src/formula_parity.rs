@@ -303,11 +303,14 @@ mod tests {
                             rich: None,
                         },
                     ],
+                    ..Default::default()
                 }],
                 merged_ranges: vec![],
                 header_row: None,
                 footer_row: None,
+                ..Default::default()
             }],
+            ..Default::default()
         };
 
         let results = inventory_from_spreadsheet("test_fixture", &spreadsheet);

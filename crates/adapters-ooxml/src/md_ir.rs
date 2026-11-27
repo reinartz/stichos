@@ -6,6 +6,7 @@
 
 use gp_core::diagnostics::Diagnostic;
 use gp_core::ir::*;
+use std::collections::BTreeMap;
 
 /// Result of markdown parsing — a Document IR or diagnostics.
 pub type MarkdownResult = Result<Document, Vec<Diagnostic>>;
@@ -40,12 +41,17 @@ pub fn markdown_to_document(markdown: &str) -> MarkdownResult {
                 footers: vec![],
                 footnotes: vec![],
                 endnotes: vec![],
+                info: None,
             }],
             fields: vec![],
+            grouped_fields: vec![],
             comments: vec![],
             tracked_changes: vec![],
             revisions: vec![],
             template: None,
+            styles: BTreeMap::new(),
+            resolved_styles: None,
+            properties: None,
         })
     } else {
         Err(parse_diags)
@@ -406,6 +412,7 @@ fn parse_table_row(line: &str) -> Option<Vec<Cell>> {
                 page_number: None,
                 style_name: None,
                 numbering_info: None,
+                hyperlinks: vec![],
             })],
             colspan: None,
             rowspan: None,
@@ -539,6 +546,7 @@ fn make_paragraph(runs: &[Run], style_name: Option<String>) -> Paragraph {
         page_number: None,
         style_name,
         numbering_info: None,
+        hyperlinks: vec![],
     }
 }
 
@@ -565,6 +573,7 @@ fn make_run(
         font_name: None,
         font_size_pt: None,
         style_name: url.map(|_| "Hyperlink".to_string()),
+        drawings: Vec::new(),
     }
 }
 
